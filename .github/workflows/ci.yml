@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Check format
+        run: cargo fmt --all -- --check
+      - name: Build
+        run: cargo build --all --verbose
+      - name: Run tests with async-std
+        run: cargo test --all --verbose
