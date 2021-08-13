@@ -13,7 +13,7 @@ It is:
 
 [![Crates.io][crates-badge]][crates-url]
 
-[crates-badge]: https://img.shields.io/crates/v/tokio.svg
+[crates-badge]: https://img.shields.io/crates/v/poem.svg
 [crates-url]: https://crates.io/crates/poem
 
 ## Example
