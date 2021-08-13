@@ -1,12 +1,14 @@
 mod data;
 mod json;
 mod path;
+mod query;
 
 use std::convert::Infallible;
 
 pub use data::Data;
 pub use json::Json;
 pub use path::Path;
+pub use query::Query;
 
 use bytes::Bytes;
 
