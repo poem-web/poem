@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::convert::TryInto;
 
-use crate::error::ErrorInvalidMethod;
 use crate::uri::Uri;
 use crate::{Body, Error, Extensions, HeaderMap, HeaderName, HeaderValue, Method, Result, Version};
 
@@ -23,13 +22,10 @@ pub struct Request {
 }
 
 impl Request {
-    pub(crate) fn from_hyper(req: hyper::Request<hyper::Body>) -> Result<Self> {
+    pub(crate) fn from_http_request(req: hyper::Request<hyper::Body>) -> Result<Self> {
         let (parts, body) = req.into_parts();
         Ok(Self {
-            method: match parts.method {
-                http::Method::GET => Method::Get,
-                _ => return Err(Error::internal_server_error(ErrorInvalidMethod)),
-            },
+            method: Method::from_http_method(parts.method)?,
             uri: Uri(parts.uri),
             version: Version(parts.version),
             headers: HeaderMap(parts.headers),
@@ -103,6 +99,18 @@ impl Request {
     #[inline]
     pub fn take_body(&mut self) -> Body {
         std::mem::take(&mut self.body)
+    }
+
+    pub(crate) fn take_http_request(&mut self) -> hyper::Request<hyper::Body> {
+        let mut http_req = http::request::Request::default();
+
+        *http_req.method_mut() = self.method.into_http_method();
+        *http_req.uri_mut() = self.uri.0.clone();
+        *http_req.version_mut() = self.version.0;
+        *http_req.headers_mut() = self.headers.0.clone();
+        *http_req.body_mut() = self.take_body().0;
+
+        http_req
     }
 }
 

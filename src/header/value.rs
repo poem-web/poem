@@ -8,8 +8,8 @@ pub struct HeaderValue(pub(crate) http::header::HeaderValue);
 
 impl HeaderValue {
     #[inline]
-    pub(crate) fn into_inner(self) -> http::header::HeaderValue {
-        self.0
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
     }
 
     #[inline]
@@ -51,6 +51,14 @@ impl TryFrom<&str> for HeaderValue {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::from_str(value)
+    }
+}
+
+impl TryFrom<String> for HeaderValue {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(&value)
     }
 }
 

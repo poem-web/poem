@@ -32,7 +32,7 @@ impl<T: DeserializeOwned> FromRequest for Json<T> {
 
 impl<T: Serialize> IntoResponse for Json<T> {
     fn into_response(self) -> Result<Response> {
-        let data = serde_json::to_vec(&self.0).map_err(Error::internal_server_error)?;
+        let data = serde_json::to_vec(&self.0).map_err(Error::bad_request)?;
         Response::builder()
             .header(HeaderName::CONTENT_TYPE, "application/json")
             .body(data.into())

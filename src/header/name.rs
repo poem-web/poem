@@ -19,11 +19,6 @@ pub struct HeaderName(pub(crate) http::header::HeaderName);
 
 impl HeaderName {
     #[inline]
-    pub(crate) fn into_inner(self) -> http::header::HeaderName {
-        self.0
-    }
-
-    #[inline]
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }

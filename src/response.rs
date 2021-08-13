@@ -21,7 +21,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub(crate) fn into_hyper(self) -> hyper::Response<hyper::Body> {
+    pub(crate) fn into_http_response(self) -> hyper::Response<hyper::Body> {
         let mut resp = hyper::Response::new(self.body.0);
         *resp.status_mut() = self.status.0;
         *resp.version_mut() = self.version.0;

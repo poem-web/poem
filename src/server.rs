@@ -21,14 +21,14 @@ impl Server {
                     move |req: hyper::Request<hyper::Body>| {
                         let ep = ep.clone();
                         async move {
-                            let req = match Request::from_hyper(req) {
+                            let req = match Request::from_http_request(req) {
                                 Ok(req) => req,
-                                Err(err) => return Ok(err.as_response().into_hyper()),
+                                Err(err) => return Ok(err.as_response().into_http_response()),
                             };
 
                             let resp = match ep.call(req).await {
-                                Ok(resp) => resp.into_hyper(),
-                                Err(err) => err.as_response().into_hyper(),
+                                Ok(resp) => resp.into_http_response(),
+                                Err(err) => err.as_response().into_http_response(),
                             };
                             Ok::<_, Infallible>(resp)
                         }

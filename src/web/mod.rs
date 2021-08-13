@@ -1,16 +1,18 @@
 mod data;
+mod form;
 mod json;
 mod path;
 mod query;
 
 use std::convert::Infallible;
 
+use bytes::Bytes;
+
 pub use data::Data;
+pub use form::Form;
 pub use json::Json;
 pub use path::Path;
 pub use query::Query;
-
-use bytes::Bytes;
 
 use crate::{Body, Error, HeaderMap, Request, Response, Result, StatusCode};
 

@@ -39,7 +39,7 @@ impl HeaderMap {
     /// is returned. Use `get_all` to get all values associated with a given
     /// key. Returns `None` if there are no values associated with the key.
     pub fn get(&self, key: HeaderName) -> Option<HeaderValue> {
-        self.0.get(key.into_inner()).cloned().map(HeaderValue)
+        self.0.get(key.0).cloned().map(HeaderValue)
     }
 
     /// Returns a view of all values associated with a key.
@@ -47,16 +47,12 @@ impl HeaderMap {
     /// The returned view does not incur any allocations and allows iterating
     /// the values associated with the key.
     pub fn get_all(&self, key: HeaderName) -> impl Iterator<Item = HeaderValue> + '_ {
-        self.0
-            .get_all(key.into_inner())
-            .into_iter()
-            .cloned()
-            .map(HeaderValue)
+        self.0.get_all(key.0).into_iter().cloned().map(HeaderValue)
     }
 
     /// Returns true if the map contains a value for the specified key.
     pub fn contains_key(&self, key: HeaderName) -> bool {
-        self.0.contains_key(key.into_inner())
+        self.0.contains_key(key.0)
     }
 
     /// An iterator visiting all key-value pairs.
@@ -100,9 +96,7 @@ impl HeaderMap {
     /// The key is not updated, though; this matters for types that can be `==`
     /// without being identical.
     pub fn insert(&mut self, key: HeaderName, value: HeaderValue) -> Option<HeaderValue> {
-        self.0
-            .insert(key.into_inner(), value.into_inner())
-            .map(HeaderValue)
+        self.0.insert(key.0, value.0).map(HeaderValue)
     }
 
     /// Inserts a key-value pair into the map.
@@ -115,7 +109,7 @@ impl HeaderMap {
     /// updated, though; this matters for types that can be `==` without being
     /// identical.
     pub fn append(&mut self, key: HeaderName, value: HeaderValue) -> bool {
-        self.0.append(key.into_inner(), value.into_inner())
+        self.0.append(key.0, value.0)
     }
 
     /// Removes a key from the map, returning the value associated with the key.
@@ -123,7 +117,7 @@ impl HeaderMap {
     /// Returns `None` if the map does not contain the key. If there are
     /// multiple values associated with the key, then the first one is returned.
     pub fn remove(&mut self, key: HeaderName) -> Option<HeaderValue> {
-        self.0.remove(key.into_inner()).map(HeaderValue)
+        self.0.remove(key.0).map(HeaderValue)
     }
 
     /// Remove the entry from the map.
@@ -131,7 +125,7 @@ impl HeaderMap {
     /// All values associated with the entry are removed and the first one is
     /// returned. See [HeaderMap::remove_entry_mult] for an API that returns all values.
     pub fn remove_entry(&mut self, key: HeaderName) -> Option<HeaderValue> {
-        if let http::header::Entry::Occupied(e) = self.0.entry(key.into_inner()) {
+        if let http::header::Entry::Occupied(e) = self.0.entry(key.0) {
             let (_, value) = e.remove_entry();
             Some(HeaderValue(value))
         } else {
@@ -144,7 +138,7 @@ impl HeaderMap {
     /// The key and all values associated with the entry are removed and
     /// returned.
     pub fn remove_entry_mult(&mut self, key: HeaderName) -> impl Iterator<Item = HeaderValue> + '_ {
-        if let http::header::Entry::Occupied(e) = self.0.entry(key.into_inner()) {
+        if let http::header::Entry::Occupied(e) = self.0.entry(key.0) {
             let (_, values) = e.remove_entry_mult();
             Box::new(values.into_iter().map(HeaderValue)) as Box<dyn Iterator<Item = HeaderValue>>
         } else {

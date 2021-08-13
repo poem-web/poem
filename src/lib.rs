@@ -2,24 +2,6 @@
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub mod error;
-pub mod middlewares;
-pub mod route;
-pub mod uri;
-pub mod web;
-
-mod body;
-mod endpoint;
-mod header;
-mod method;
-mod middleware;
-mod request;
-mod response;
-mod route_recognizer;
-mod server;
-mod status_code;
-mod version;
-
 pub use http::Extensions;
 
 pub use body::Body;
@@ -34,3 +16,22 @@ pub use server::Server;
 pub use status_code::StatusCode;
 pub use version::Version;
 pub use web::{FromRequest, IntoResponse};
+
+pub mod error;
+pub mod middlewares;
+pub mod route;
+pub mod uri;
+pub mod web;
+pub mod websocket;
+
+mod body;
+mod endpoint;
+mod header;
+mod method;
+mod middleware;
+mod request;
+mod response;
+mod route_recognizer;
+mod server;
+mod status_code;
+mod version;

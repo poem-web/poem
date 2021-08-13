@@ -24,7 +24,7 @@ impl<T> DerefMut for Query<T> {
 impl<T: DeserializeOwned> FromRequest for Query<T> {
     async fn from_request(req: &mut Request) -> Result<Self> {
         serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
-            .map_err(Error::internal_server_error)
+            .map_err(Error::bad_request)
             .map(Self)
     }
 }

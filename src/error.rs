@@ -156,6 +156,9 @@ define_simple_errors!(
 
     /// ErrorInvalidPathParams
     (ErrorInvalidPathParams, "invalid path params");
+
+    /// ErrorInvalidFormContentType
+    (ErrorInvalidFormContentType, "invalid form content type");
 );
 
 pub type Result<T, E = Error> = ::std::result::Result<T, E>;
