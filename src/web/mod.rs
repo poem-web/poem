@@ -1,6 +1,7 @@
 mod data;
 mod form;
 mod json;
+mod multipart;
 mod path;
 mod query;
 
@@ -11,6 +12,7 @@ use bytes::Bytes;
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;
+pub use multipart::Multipart;
 pub use path::Path;
 pub use query::Query;
 
