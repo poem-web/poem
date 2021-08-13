@@ -106,3 +106,13 @@ impl<T: IntoResponse, E: Into<Error>> IntoResponse for Result<T, E> {
             .and_then(IntoResponse::into_response)
     }
 }
+
+pub struct Html<T>(pub T);
+
+impl<T: Into<String>> IntoResponse for Html<T> {
+    fn into_response(self) -> Result<Response> {
+        Response::builder()
+            .content_type("text/html")
+            .body(self.0.into().into())
+    }
+}

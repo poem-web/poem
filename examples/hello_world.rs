@@ -7,7 +7,7 @@ async fn hello(Path(name): Path<String>) -> String {
 
 #[tokio::main]
 async fn main() {
-    let route = Route::new().at("/hello/:name", route::get(hello));
+    let route = Route::new(, ).at("/hello/:name", route::get(hello));
 
     poem::Server::new(route)
         .serve(&"127.0.0.1:3000".parse().unwrap())
