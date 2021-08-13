@@ -49,8 +49,10 @@ where
     }
 }
 
+/// An HTTP request handler.
 #[async_trait::async_trait]
 pub trait Endpoint: Send + Sync + 'static {
+    /// Get the response to the request.
     async fn call(&self, req: Request) -> Result<Response>;
 }
 

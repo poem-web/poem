@@ -16,6 +16,10 @@ categories = [
     "web-programming::websocket",
 ]
 
+[features]
+default = []
+websocket = ["tokio-tungstenite"]
+
 [dependencies]
 async-trait = "0.1.51"
 anyhow = "1.0.42"
@@ -30,9 +34,11 @@ tokio-util = { version = "0.6.7", features = ["io"] }
 serde = { version = "1.0.127", features = ["derive"] }
 serde_json = "1.0.66"
 serde_urlencoded = "0.7.0"
-tokio-tungstenite = "0.15.0"
 sha1 = "0.6.0"
 base64 = "0.13.0"
+
+# Non-feature optional dependencies
+tokio-tungstenite = { version = "0.15.0", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.9.0", features = ["rt-multi-thread", "macros"] }

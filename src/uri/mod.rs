@@ -1,3 +1,5 @@
+//! URI component
+
 mod authority;
 mod parts;
 mod path_and_query;
@@ -35,7 +37,7 @@ impl FromStr for Uri {
 }
 
 impl Uri {
-    /// Attempt to convert a `Uri` from `Parts`
+    /// Attempt to convert a [`Uri`] from [`Parts`].
     pub fn from_parts(parts: Parts) -> Result<Self> {
         let mut builder = http::uri::Builder::new();
 
@@ -57,7 +59,7 @@ impl Uri {
             .map(Self)
     }
 
-    /// Convert a [Uri] into [Parts].
+    /// Convert a [`Uri`] into [`Parts`].
     pub fn into_parts(self) -> Parts {
         let parts = self.0.into_parts();
         Parts {
@@ -67,32 +69,32 @@ impl Uri {
         }
     }
 
-    /// Get the scheme of this [Uri].
+    /// Get the scheme of this [`Uri`].
     pub fn schema(&self) -> Option<Scheme> {
         self.0.scheme().cloned().map(Scheme)
     }
 
-    /// Get the scheme of this [Uri] as a `&str`.
+    /// Get the scheme of this [`Uri`] as a `&str`.
     pub fn schema_str(&self) -> Option<&str> {
         self.0.scheme_str()
     }
 
-    /// Get the host of this [Uri].
+    /// Get the host of this [`Uri`].
     pub fn host(&self) -> Option<&str> {
         self.0.host()
     }
 
-    /// Get the path of this [Uri].
+    /// Get the path of this [`Uri`].
     pub fn path(&self) -> &str {
         self.0.path()
     }
 
-    /// Get the query string of this [Uri], starting after the `?`.
+    /// Get the query string of this [`Uri`], starting after the `?`.
     pub fn query(&self) -> Option<&str> {
         self.0.query()
     }
 
-    /// Get the port of this [Uri] as a `u16`.
+    /// Get the port of this [`Uri`] as a `u16`.
     pub fn port(&self) -> Option<u16> {
         self.0.port_u16()
     }

@@ -8,6 +8,7 @@ use tokio::io::AsyncRead;
 
 use crate::{Error, Result};
 
+/// A body object for requests and responses.
 #[derive(Default)]
 pub struct Body(pub(crate) hyper::Body);
 
@@ -47,16 +48,19 @@ impl From<String> for Body {
 }
 
 impl Body {
+    /// Create a body objecj from [`Bytes`].
     #[inline]
     pub fn from_bytes(data: Bytes) -> Self {
         data.into()
     }
 
+    /// Create a body objecj from [`String`].
     #[inline]
     pub fn from_string(data: String) -> Self {
         data.into()
     }
 
+    /// Create a body object from reader.
     #[inline]
     pub fn from_async_read(reader: impl AsyncRead + Send + 'static) -> Self {
         Self(hyper::Body::wrap_stream(tokio_util::io::ReaderStream::new(
@@ -64,17 +68,20 @@ impl Body {
         )))
     }
 
+    /// Create an empty body.
     #[inline]
     pub fn empty() -> Self {
         Self(hyper::Body::empty())
     }
 
+    /// Consumes this body object to return a [`Bytes`] that contains all data.
     pub async fn into_bytes(self) -> Result<Bytes> {
         hyper::body::to_bytes(self.0)
             .await
             .map_err(Error::internal_server_error)
     }
 
+    /// Consumes this body object to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Send + 'static {
         tokio_util::io::StreamReader::new(BodyStream(self.0))
     }

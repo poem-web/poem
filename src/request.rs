@@ -101,6 +101,7 @@ impl Request {
         std::mem::take(&mut self.body)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn take_http_request(&mut self) -> hyper::Request<hyper::Body> {
         let mut http_req = http::request::Request::default();
 
@@ -119,7 +120,7 @@ pub struct RequestBuilder(Result<Parts>);
 impl RequestBuilder {
     /// Sets the HTTP method for this request.
     ///
-    /// By default this is [Method::Get].
+    /// By default this is [`Method::Get`].
     pub fn method(self, method: Method) -> RequestBuilder {
         Self(self.0.map(move |parts| Parts { method, ..parts }))
     }

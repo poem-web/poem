@@ -4,11 +4,13 @@ use crate::error::{Error, ErrorNotFound};
 use crate::uri::Uri;
 use crate::{Endpoint, Middleware, Request, Response, Result};
 
+/// Middleware for remove path prefix.
 pub struct StripPrefix {
     prefix: Arc<str>,
 }
 
 impl StripPrefix {
+    /// Create new [StripPrefix] middleware with specified prefix.
     pub fn new(prefix: impl AsRef<str>) -> Self {
         Self {
             prefix: prefix.as_ref().into(),

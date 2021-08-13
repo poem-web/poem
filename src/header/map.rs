@@ -1,10 +1,12 @@
 use crate::{HeaderName, HeaderValue};
 use std::iter::FromIterator;
 
+/// A set of HTTP headers.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct HeaderMap(pub(crate) http::header::HeaderMap);
 
 impl HeaderMap {
+    /// Create an empty [`HeaderMap`].
     #[inline]
     pub fn new() -> Self {
         Self::default()

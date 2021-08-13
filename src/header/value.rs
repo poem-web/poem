@@ -3,15 +3,20 @@ use std::str::FromStr;
 
 use crate::error::{Error, ErrorInvalidHeaderValue, Result};
 
+/// Represents an HTTP header field value.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HeaderValue(pub(crate) http::header::HeaderValue);
 
 impl HeaderValue {
+    /// Converts a [`HeaderValue`] to a byte slice.
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    /// Yields a &str slice if the HeaderValue only contains visible ASCII chars.
+    ///
+    /// This function will perform a scan of the header value, checking all the characters.
     #[inline]
     pub fn to_str(&self) -> Result<&str> {
         self.0
@@ -19,16 +24,26 @@ impl HeaderValue {
             .map_err(|_| Error::internal_server_error(ErrorInvalidHeaderValue))
     }
 
+    /// Convert a static string to a [`HeaderValue`].
+    ///
+    /// This function will not perform any copying, however the string is checked to ensure that no
+    /// invalid characters are present. Only visible ASCII characters (32-127) are permitted.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the argument contains invalid header value characters.
     #[inline]
     pub fn from_static(src: &'static str) -> Self {
         Self(http::header::HeaderValue::from_static(src))
     }
 
+    /// Returns true if the [`HeaderValue`] has a length of zero bytes.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Returns the length of self in bytes.
     #[inline]
     pub fn len(&self) -> usize {
         self.0.len()

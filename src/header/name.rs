@@ -14,6 +14,7 @@ macro_rules! define_header_names {
     };
 }
 
+/// Represents an HTTP header field name.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HeaderName(pub(crate) http::header::HeaderName);
 
@@ -23,6 +24,11 @@ impl HeaderName {
         self.0.as_str()
     }
 
+    /// Converts a static string to a HTTP header name.
+    ///
+    /// # Panics
+    ///
+    /// This function panics when the static string is a invalid header.
     #[inline]
     pub fn from_static(src: &'static str) -> Self {
         Self(http::header::HeaderName::from_static(src))

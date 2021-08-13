@@ -3,11 +3,12 @@ use std::str::FromStr;
 
 use crate::error::{Error, ErrorInvalidUri};
 
+/// Represents the authority component of a URI.
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Authority(pub(crate) http::uri::Authority);
 
 impl Authority {
-    /// Attempt to convert an [Authority] from a static string.
+    /// Attempt to convert an [`Authority`] from a static string.
     ///
     /// This function will not perform any copying, and the string will be checked if it is empty or contains an invalid character.
     ///
@@ -25,13 +26,13 @@ impl Authority {
         self.0.as_str()
     }
 
-    /// Get the host of this [Authority].
+    /// Get the host of this [`Authority`].
     #[inline]
     pub fn host(&self) -> &str {
         self.0.host()
     }
 
-    /// Get the port of this [Authority].
+    /// Get the port of this [`Authority`].
     #[inline]
     pub fn port(&self) -> Option<u16> {
         self.0.port_u16()

@@ -3,11 +3,12 @@ use std::str::FromStr;
 
 use crate::error::{Error, ErrorInvalidUri};
 
+/// Represents the path component of a URI
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PathAndQuery(pub(crate) http::uri::PathAndQuery);
 
 impl PathAndQuery {
-    /// Convert a [PathAndQuery] from a static string.
+    /// Convert a [`PathAndQuery`] from a static string.
     ///
     /// This function will not perform any copying, however the string is checked to ensure that it is valid.
     ///

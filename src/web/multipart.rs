@@ -5,6 +5,22 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{Error, FromRequest, HeaderName, Request, Result};
 
+/// An extractor that parses `multipart/form-data` requests commonly used with file uploads.
+///
+/// # Example
+///
+/// ```rust
+/// use poem::web::Multipart;
+/// use poem::Result;
+///
+/// async fn upload(mut multipart: Multipart) -> Result<()> {
+///     while let Some(field) = multipart.next_field().await? {
+///         let data = field.bytes().await?;
+///         println!("{} bytes", data.len());
+///     }
+///     Ok(())
+/// }
+/// ```
 pub struct Multipart {
     inner: multer::Multipart<'static>,
 }
@@ -29,6 +45,7 @@ impl FromRequest for Multipart {
 }
 
 impl Multipart {
+    /// Yields the next [`Field`] if available.
     pub async fn next_field(&mut self) -> Result<Option<Field>> {
         match self.inner.next_field().await.map_err(Error::bad_request)? {
             Some(field) => Ok(Some(Field(field))),
@@ -37,24 +54,29 @@ impl Multipart {
     }
 }
 
+/// A single field in a multipart stream.
 pub struct Field(multer::Field<'static>);
 
 impl Field {
+    /// Get the content type of the field.
     #[inline]
     pub fn content_type(&self) -> Option<&str> {
         self.0.content_type().map(|mime| mime.essence_str())
     }
 
+    /// The file name found in the `Content-Disposition` header.
     #[inline]
     pub fn file_name(&self) -> Option<&str> {
         self.0.file_name()
     }
 
+    /// The field name found in the `Content-Disposition` header.
     #[inline]
     pub fn name(&self) -> Option<&str> {
         self.0.name()
     }
 
+    /// Get the full data of the field as Bytes.
     pub async fn bytes(self) -> Result<Vec<u8>> {
         let mut data = Vec::new();
         let mut buf = [0; 2048];
@@ -74,11 +96,13 @@ impl Field {
         Ok(data)
     }
 
+    /// Get the full field data as text.
     #[inline]
     pub async fn text(self) -> Result<String> {
         String::from_utf8(self.bytes().await?).map_err(Error::bad_request)
     }
 
+    /// Consume this field to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Send {
         tokio_util::io::StreamReader::new(
             self.0

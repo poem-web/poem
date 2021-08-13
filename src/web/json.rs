@@ -4,6 +4,43 @@ use std::ops::{Deref, DerefMut};
 use crate::{Error, FromRequest, HeaderName, IntoResponse, Request, Response, Result};
 use serde::Serialize;
 
+/// JSON extractor and responder.
+///
+/// # Extractor
+///
+/// To extract the specified type of JSON from the body, `T` must implement [`serde::Deserialize`].
+///
+/// ```
+/// use serde::Deserialize;
+/// use poem::web::Json;
+///
+/// #[derive(Deserialize)]
+/// struct User {
+///     name: String,
+/// }
+///
+/// async fn index(Json(user) : Json<User>) -> String {
+///     format!("welcome {}!", user.name)
+/// }
+/// ```
+///
+/// # Responder
+///
+/// To serialize the specified type to JSON, `T` must implement [`serde::Serialize`].
+///
+/// ```
+/// use serde::Serialize;
+/// use poem::web::Json;
+///
+/// #[derive(Serialize)]
+/// struct User {
+///     name: String,
+/// }
+///
+/// async fn index() -> Json<User> {
+///     Json(User { name: "sunli".to_string() })
+/// }
+/// ```
 pub struct Json<T>(pub T);
 
 impl<T> Deref for Json<T> {

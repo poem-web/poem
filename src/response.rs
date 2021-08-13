@@ -92,14 +92,14 @@ pub struct ResponseBuilder(Result<Parts>);
 impl ResponseBuilder {
     /// Sets the HTTP status for this response.
     ///
-    /// By default this is [StatusCode::OK].
+    /// By default this is [`StatusCode::OK`].
     pub fn status(self, status: StatusCode) -> Self {
         Self(self.0.map(|parts| Parts { status, ..parts }))
     }
 
     /// Sets the HTTP version for this response.
     ///
-    /// By default this is [Version::HTTP_11]
+    /// By default this is [`Version::HTTP_11`]
     pub fn version(self, version: Version) -> Self {
         Self(self.0.map(|parts| Parts { version, ..parts }))
     }
@@ -107,7 +107,7 @@ impl ResponseBuilder {
     /// Appends a header to this response builder.
     ///
     /// This function will append the provided key/value as a header to the
-    /// internal [HeaderMap] being constructed.
+    /// internal [`HeaderMap`] being constructed.
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
         K: TryInto<HeaderName>,

@@ -1,15 +1,33 @@
 use crate::error::{Error, ErrorInvalidMethod, Result};
 
+/// HTTP request methods.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Method {
+    /// OPTIONS
     Options = 0,
+
+    /// GET
     Get = 1,
+
+    /// POST
     Post = 2,
+
+    /// PUT
     Put = 3,
+
+    /// DELETE
     Delete = 4,
+
+    /// HEAD
     Head = 5,
+
+    /// TRACE
     Trace = 6,
+
+    /// CONNECT
     Connect = 7,
+
+    /// PATCH
     Patch = 8,
 }
 

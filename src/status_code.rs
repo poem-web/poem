@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 
 use crate::error::{Error, ErrorInvalidStatusCode};
 
+/// An HTTP status code.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct StatusCode(pub(crate) http::StatusCode);
 
@@ -33,21 +34,32 @@ macro_rules! define_status_codes {
 }
 
 impl StatusCode {
+    /// Returns the `u16` corresponding to this [`StatusCode`].
     #[inline]
     pub fn as_u16(&self) -> u16 {
         self.0.as_u16()
     }
 
+    /// Check if status is within `500`-`599`.
     #[inline]
     pub fn is_server_error(&self) -> bool {
         self.0.is_server_error()
     }
 
+    /// Check if status is within `400`-`499`.
     #[inline]
     pub fn is_client_error(&self) -> bool {
         self.0.is_client_error()
     }
 
+    /// Check if status is within `100`-`199`.
+    #[inline]
+    pub fn is_informational(&self) -> bool {
+        self.0.is_informational()
+    }
+
+    /// Check if status is within `200`-`299`.
+    #[inline]
     pub fn is_success(&self) -> bool {
         self.0.is_success()
     }

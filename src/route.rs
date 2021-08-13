@@ -1,21 +1,26 @@
+//! Route object and DSL
+
 use crate::endpoint::{FnHandler, FnHandlerWrapper};
 use crate::error::ErrorNotFound;
 use crate::method::COUNT_METHODS;
 use crate::route_recognizer::Router;
 use crate::{Endpoint, Error, Method, Request, Response};
 
+/// Routing object
 #[derive(Default)]
 pub struct Route {
     router: Router<Box<dyn Endpoint>>,
 }
 
 impl Route {
+    /// Create a new routing object.
     pub fn new() -> Self {
         Self {
             router: Default::default(),
         }
     }
 
+    /// Add an [Endpoint] to the specified path.
     pub fn at(mut self, path: &str, ep: impl Endpoint) -> Self {
         self.router.add(path, Box::new(ep));
         self
@@ -53,14 +58,31 @@ macro_rules! define_method_fn {
 }
 
 define_method_fn!(
+    /// Set a [`FnHandler`] to the [`Method::Get`].
     (get, Get);
+
+    /// Set a [`FnHandler`] to the [`Method::Post`].
     (post, Post);
+
+    /// Set a [`FnHandler`] to the [`Method::Put`].
     (put, Put);
+
+    /// Set a [`FnHandler`] to the [`Method::Delete`].
     (delete, Delete);
+
+    /// Set a [`FnHandler`] to the [`Method::Head`].
     (head, Head);
+
+    /// Set a [`FnHandler`] to the [`Method::Options`].
     (options, Options);
+
+    /// Set a [`FnHandler`] to the [`Method::Connect`].
     (connect, Connect);
+
+    /// Set a [`FnHandler`] to the [`Method::Patch`].
     (patch, Patch);
+
+    /// Set a [`FnHandler`] to the [`Method::Trace`].
     (trace, Trace);
 );
 
@@ -80,12 +102,14 @@ macro_rules! define_methods {
     };
 }
 
+/// HTTP methods routing object.
 #[derive(Default)]
 pub struct RouteMethod {
     router: [Option<Box<dyn Endpoint>>; COUNT_METHODS],
 }
 
 impl RouteMethod {
+    /// Set a [`FnHandler`] to the specified method type.
     pub fn method<T, In>(mut self, method: Method, ep: T) -> Self
     where
         T: FnHandler<In> + 'static,
@@ -96,14 +120,31 @@ impl RouteMethod {
     }
 
     define_methods!(
+        /// Set a [`FnHandler`] to the [`Method::Get`].
         (get, Get);
+
+        /// Set a [`FnHandler`] to the [`Method::Post`].
         (post, Post);
+
+        /// Set a [`FnHandler`] to the [`Method::Put`].
         (put, Put);
+
+        /// Set a [`FnHandler`] to the [`Method::Delete`].
         (delete, Delete);
+
+        /// Set a [`FnHandler`] to the [`Method::Head`].
         (head, Head);
+
+        /// Set a [`FnHandler`] to the [`Method::Options`].
         (options, Options);
+
+        /// Set a [`FnHandler`] to the [`Method::Connect`].
         (connect, Connect);
+
+        /// Set a [`FnHandler`] to the [`Method::Patch`].
         (patch, Patch);
+
+        /// Set a [`FnHandler`] to the [`Method::Trace`].
         (trace, Trace);
     );
 }

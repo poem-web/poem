@@ -1,10 +1,12 @@
 use crate::{Endpoint, Middleware, Request, Response, Result};
 
+/// Middleware for add any data to request.
 pub struct AddData<D> {
     value: D,
 }
 
 impl<D: Clone + Send + Sync + 'static> AddData<D> {
+    /// Create new [AddData] middleware with any value.
     pub fn new(value: D) -> Self {
         AddData { value }
     }

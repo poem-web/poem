@@ -1,3 +1,5 @@
+//! Commonly used as the type of extractor or responder.
+
 mod data;
 mod form;
 mod json;
@@ -27,8 +29,9 @@ pub trait FromRequest: Sized {
 
 /// Trait for generating responses.
 ///
-/// Types that implement [IntoResponse] can be returned from handlers.
+/// Types that implement [IntoResponse] can be returned from endpoints/handlers.
 pub trait IntoResponse {
+    /// Consume itself and return [`Response`].
     fn into_response(self) -> Result<Response>;
 }
 
