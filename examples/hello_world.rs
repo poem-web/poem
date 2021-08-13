@@ -1,17 +1,15 @@
-use poem::middlewares::StripPrefix;
 use poem::route::{self, Route};
-use poem::EndpointExt;
+use poem::web::Path;
 
-async fn hello() -> &'static str {
-    "hello"
+async fn hello(Path(name): Path<String>) -> String {
+    format!("hello: {}", name)
 }
 
 #[tokio::main]
 async fn main() {
-    let route = Route::new().at("/hello", route::get(hello));
-    let api = Route::new().at("/api/*", route.with(StripPrefix::new("/api")));
+    let route = Route::new().at("/hello/:name", route::get(hello));
 
-    poem::Server::new(api)
+    poem::Server::new(route)
         .serve(&"127.0.0.1:3000".parse().unwrap())
         .await
         .unwrap();
