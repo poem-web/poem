@@ -25,6 +25,9 @@ pub struct HeaderName(pub(crate) http::header::HeaderName);
 /// standard headers, but HTTP messages may include non-standard header names as
 /// well as long as they adhere to the specification.
 impl HeaderName {
+    /// Returns a str representation of the header.
+    ///
+    /// The returned string will always be lower case.
     #[inline]
     pub fn as_str(&self) -> &str {
         self.0.as_str()

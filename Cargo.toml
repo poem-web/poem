@@ -3,7 +3,7 @@ name = "poem"
 version = "0.1.0"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
-description = "Poem is an easy-to-use web framework for Rust"
+description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
 license = "MIT/Apache-2.0"
 documentation = "https://docs.rs/poem/"
 homepage = "https://github.com/poem/poem"
@@ -19,6 +19,8 @@ categories = [
 [features]
 default = []
 websocket = ["tokio-tungstenite"]
+multipart = ["multer"]
+tls = ["tokio-rustls"]
 
 [dependencies]
 async-trait = "0.1.51"
@@ -28,17 +30,19 @@ futures-util = { version = "0.3.16", features = ["sink"] }
 http = "0.2.4"
 hyper = { version = "0.14.11", features = ["http1", "http2", "server", "runtime", "stream"] }
 mime = "0.3.16"
-multer = { version = "2.0.1", features = ["tokio"] }
-tokio = { version = "1.9.0", features = ["sync", "rt"] }
+tokio = { version = "1.9.0", features = ["sync", "rt", "net"] }
 tokio-util = { version = "0.6.7", features = ["io"] }
 serde = { version = "1.0.127", features = ["derive"] }
 serde_json = "1.0.66"
 serde_urlencoded = "0.7.0"
 sha1 = "0.6.0"
 base64 = "0.13.0"
+typed-headers = "0.2.0"
 
 # Non-feature optional dependencies
+multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.15.0", optional = true }
+tokio-rustls = { version = "0.22.0", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.9.0", features = ["rt-multi-thread", "macros"] }

@@ -12,6 +12,7 @@ struct Parts {
     extensions: Extensions,
 }
 
+/// Represents an HTTP response.
 pub struct Response {
     status: StatusCode,
     version: Version,
@@ -30,6 +31,7 @@ impl Response {
         resp
     }
 
+    /// Creates a response builder.
     pub fn builder() -> ResponseBuilder {
         ResponseBuilder(Ok(Parts {
             status: StatusCode::OK,
@@ -39,31 +41,37 @@ impl Response {
         }))
     }
 
+    /// Returns the associated status code.
     #[inline]
     pub fn status(&self) -> StatusCode {
         self.status
     }
 
+    /// Sets the status code for this response.
     #[inline]
     pub fn set_status(&mut self, status: StatusCode) {
         self.status = status;
     }
 
+    /// Returns a reference to the associated header map.
     #[inline]
     pub fn headers(&self) -> &HeaderMap {
         &self.headers
     }
 
+    /// Returns a mutable reference to the associated header map.
     #[inline]
     pub fn headers_mut(&mut self) -> &mut HeaderMap {
         &mut self.headers
     }
 
+    /// Returns the associated version.
     #[inline]
     pub fn version(&self) -> Version {
         self.version
     }
 
+    /// Sets the version for this response.
     #[inline]
     pub fn set_version(&mut self, version: Version) {
         self.version = version;
@@ -81,12 +89,14 @@ impl Response {
         &mut self.extensions
     }
 
+    /// Take the body from this response and sets the body to empty.
     #[inline]
     pub fn take_body(mut self) -> Body {
         std::mem::take(&mut self.body)
     }
 }
 
+/// An response builder.
 pub struct ResponseBuilder(Result<Parts>);
 
 impl ResponseBuilder {

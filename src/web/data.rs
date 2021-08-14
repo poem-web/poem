@@ -4,7 +4,7 @@ use crate::{Error, FromRequest, Request};
 
 /// An extractor that can extract data from the request extension.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
 /// use poem::web::Data;
