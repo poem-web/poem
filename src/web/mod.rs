@@ -1,5 +1,6 @@
 //! Commonly used as the type of extractor or response.
 
+mod block;
 mod data;
 mod form;
 mod json;
@@ -11,6 +12,7 @@ use std::convert::Infallible;
 
 use bytes::Bytes;
 
+pub use block::{block_run, BlockingError};
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;
