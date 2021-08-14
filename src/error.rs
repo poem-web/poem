@@ -39,7 +39,7 @@ impl From<Infallible> for Error {
 impl Error {
     /// Create a new error from any error.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use std::num::ParseIntError;
@@ -190,34 +190,31 @@ macro_rules! define_simple_errors {
 }
 
 define_simple_errors!(
-    /// ErrorNotFound
+    /// This error occurs when the path does not match.
     (ErrorNotFound, "not found");
 
-    /// ErrorInvalidMethod
+    /// This error occurs when the method is invalid.
     (ErrorInvalidMethod, "invalid method");
 
-    /// ErrorInvalidHeaderName
+    /// This error occurs when the header name is invalid.
     (ErrorInvalidHeaderName, "invalid header name");
 
-    /// ErrorInvalidHeaderValue
+    /// This error occurs when the header value is invalid.
     (ErrorInvalidHeaderValue, "invalid header value");
 
-    /// ErrorInvalidMime
-    (ErrorInvalidMime, "invalid mime");
-
-    /// ErrorInvalidUri
+    /// This error occurs when the uri is invalid.
     (ErrorInvalidUri, "invalid uri");
 
-    /// ErrorInvalidStatusCode
+    /// This error occurs when the status code is invalid.
     (ErrorInvalidStatusCode, "invalid status code");
 
-    /// ErrorMissingRouteParams
+    /// This error occurs when the status code is invalid.
     (ErrorMissingRouteParams, "missing route params");
 
-    /// ErrorInvalidPathParams
+    /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
     (ErrorInvalidPathParams, "invalid path params");
 
-    /// ErrorInvalidFormContentType
+    /// This error occurs when `Content-type` is not `application/x-www-form-urlencoded`.
     (ErrorInvalidFormContentType, "invalid form content type");
 );
 

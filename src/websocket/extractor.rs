@@ -13,7 +13,7 @@ use crate::{
 
 /// An extractor that can accept websocket connections.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
 /// use futures_util::{StreamExt, SinkExt};

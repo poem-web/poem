@@ -14,6 +14,30 @@ pub struct Route {
 
 impl Route {
     /// Add an [Endpoint] to the specified path.
+    ///
+    /// You can match the full path or wildcard path, and use the [`Path`](crate::web::Path) extractor to get
+    /// the path parameters.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{route, get};
+    /// use poem::web::Path;
+    ///
+    /// async fn a() {}
+    ///
+    /// async fn b(Path((group, name)): Path<(String, String)>) {}
+    ///
+    /// async fn c(Path(path): Path<String>) {}
+    ///
+    /// let app = route()
+    ///     // full path
+    ///     .at("/a/b", get(a))
+    ///     // capture parameters
+    ///     .at("/b/:group/:name", get(b))
+    ///     // capture tail path
+    ///     .at("/c/*path", get(c));
+    /// ```
     pub fn at(mut self, path: &str, ep: impl Endpoint) -> Self {
         self.router.add(path, Box::new(ep));
         self

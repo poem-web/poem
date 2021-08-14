@@ -19,21 +19,17 @@ It is:
 ## Example
 
 ```rust
-use poem::{route, get};
 use poem::web::Path;
+use poem::{get, route, serve};
 
 async fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
+  format!("hello: {}", name)
 }
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/hello/:name", get(hello));
-
-    poem::Server::new(app)
-        .serve(&"127.0.0.1:3000".parse().unwrap())
-        .await
-        .unwrap();
+  let app = route().at("/hello/:name", get(hello));
+  serve(app).run("127.0.0.1:3000").await.unwrap();
 }
 ```
 

@@ -12,6 +12,7 @@ struct Parts {
     extensions: Extensions,
 }
 
+/// Represents an HTTP request.
 pub struct Request {
     method: Method,
     uri: Uri,
@@ -34,6 +35,7 @@ impl Request {
         })
     }
 
+    /// Creates a request builder.
     pub fn builder() -> RequestBuilder {
         RequestBuilder(Ok(Parts {
             method: Method::Get,
@@ -44,41 +46,49 @@ impl Request {
         }))
     }
 
+    /// Returns a reference to the associated HTTP method.
     #[inline]
     pub fn method(&self) -> Method {
         self.method
     }
 
+    /// Sets the HTTP method for this request.
     #[inline]
     pub fn set_method(&mut self, method: Method) {
         self.method = method;
     }
 
+    /// Returns a reference to the associated URI.
     #[inline]
     pub fn uri(&self) -> &Uri {
         &self.uri
     }
 
+    /// Sets the URI for this request.
     #[inline]
     pub fn set_uri(&mut self, uri: Uri) {
         self.uri = uri;
     }
 
+    /// Returns the associated version.
     #[inline]
     pub fn version(&self) -> Version {
         self.version
     }
 
+    /// Sets the version for this request.
     #[inline]
     pub fn set_version(&mut self, version: Version) {
         self.version = version;
     }
 
+    /// Returns a reference to the associated header map.
     #[inline]
     pub fn headers(&self) -> &HeaderMap {
         &self.headers
     }
 
+    /// Returns a mutable reference to the associated header map.
     #[inline]
     pub fn headers_mut(&mut self) -> &mut HeaderMap {
         &mut self.headers
@@ -96,6 +106,7 @@ impl Request {
         &mut self.extensions
     }
 
+    /// Take the body from this request and sets the body to empty.
     #[inline]
     pub fn take_body(&mut self) -> Body {
         std::mem::take(&mut self.body)
@@ -115,6 +126,7 @@ impl Request {
     }
 }
 
+/// An request builder.
 pub struct RequestBuilder(Result<Parts>);
 
 impl RequestBuilder {
