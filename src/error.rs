@@ -236,11 +236,11 @@ impl From<ErrorInvalidUriParts> for Error {
     }
 }
 
-impl From<ErrorInvalidHeaderName> for Error {
-    fn from(err: ErrorInvalidHeaderName) -> Self {
-        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
-    }
-}
+// impl From<ErrorInvalidHeaderName> for Error {
+//     fn from(err: ErrorInvalidHeaderName) -> Self {
+//         Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+//     }
+// }
 
 impl From<ErrorInvalidHeaderValue> for Error {
     fn from(err: ErrorInvalidHeaderValue) -> Self {
