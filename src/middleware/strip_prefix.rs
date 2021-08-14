@@ -18,16 +18,19 @@ impl StripPrefix {
     }
 }
 
-impl Middleware for StripPrefix {
-    fn transform<T: Endpoint>(&self, ep: T) -> Box<dyn Endpoint> {
-        Box::new(StripPrefixImpl {
+impl<E: Endpoint> Middleware<E> for StripPrefix {
+    type Output = StripPrefixImpl<E>;
+
+    fn transform(&self, ep: E) -> Self::Output {
+        StripPrefixImpl {
             inner: ep,
             prefix: self.prefix.clone(),
-        })
+        }
     }
 }
 
-struct StripPrefixImpl<E> {
+#[doc(hidden)]
+pub struct StripPrefixImpl<E> {
     inner: E,
     prefix: Arc<str>,
 }

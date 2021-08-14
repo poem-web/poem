@@ -53,6 +53,7 @@ pub enum CloseCode {
     /// to a different IP (when multiple targets exist), or reconnect to the same IP
     /// when a user has performed an action.
     Again,
+    /// Code reserved for the future.
     Reserved(u16),
 }
 
@@ -102,10 +103,24 @@ impl From<CloseCode> for u16 {
     }
 }
 
+/// An enum representing the various forms of a WebSocket message.
 pub enum Message {
+    /// A text WebSocket message
     Text(String),
+
+    /// A binary WebSocket message
     Binary(Vec<u8>),
+
+    /// A ping message with the specified payload
+    ///
+    /// The payload here must have a length less than 125 bytes
     Ping(Vec<u8>),
+
+    /// A pong message with the specified payload
+    ///
+    /// The payload here must have a length less than 125 bytes
     Pong(Vec<u8>),
+
+    /// A close message with the optional close frame.
     Close(Option<(CloseCode, String)>),
 }

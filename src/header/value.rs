@@ -4,6 +4,14 @@ use std::str::FromStr;
 use crate::error::{Error, ErrorInvalidHeaderValue, Result};
 
 /// Represents an HTTP header field value.
+///
+/// In practice, HTTP header field values are usually valid ASCII. However, the
+/// HTTP spec allows for a header value to contain opaque bytes as well. In this
+/// case, the header field value is not able to be represented as a string.
+///
+/// To handle this, the `HeaderValue` is useable as a type and can be compared
+/// with strings and implements `Debug`. A `to_str` fn is provided that returns
+/// an `Err` if the header value contains non visible ascii characters.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HeaderValue(pub(crate) http::header::HeaderValue);
 

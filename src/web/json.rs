@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 use crate::{Error, FromRequest, HeaderName, IntoResponse, Request, Response, Result};
 use serde::Serialize;
 
-/// JSON extractor and responder.
+/// JSON extractor and response.
 ///
 /// # Extractor
 ///
@@ -24,7 +24,7 @@ use serde::Serialize;
 /// }
 /// ```
 ///
-/// # Responder
+/// # Response
 ///
 /// To serialize the specified type to JSON, `T` must implement [`serde::Serialize`].
 ///

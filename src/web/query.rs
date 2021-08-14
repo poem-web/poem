@@ -4,6 +4,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{Error, FromRequest, Request, Result};
 
+/// An extractor that can deserialize some type from query string.
 pub struct Query<T>(pub T);
 
 impl<T> Deref for Query<T> {

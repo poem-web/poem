@@ -1,3 +1,5 @@
+//! Websocket extractor and response.
+
 mod extractor;
 mod message;
 mod stream;

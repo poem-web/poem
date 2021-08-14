@@ -1,9 +1,9 @@
 //! Some common error types.
 
+use std::convert::Infallible;
 use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::{Body, HeaderName, Response, StatusCode};
-use std::convert::Infallible;
 
 macro_rules! define_error {
     ($($(#[$docs:meta])* ($name:ident, $code:ident);)*) => {
@@ -41,7 +41,7 @@ impl Error {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use std::num::ParseIntError;
     ///
     /// use poem::{Error, StatusCode};

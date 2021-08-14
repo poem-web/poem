@@ -5,9 +5,10 @@ use serde::de::DeserializeOwned;
 use crate::error::ErrorInvalidFormContentType;
 use crate::{Error, FromRequest, HeaderName, HeaderValue, Method, Request, Result};
 
-/// An extractor that can get parameters from query string or body.
+/// An extractor that can deserialize some type from query string or body.
 ///
-/// If the method is not `GET`, the query parameters will be parsed from the body.
+/// If the method is not `GET`, the query parameters will be parsed from the body, otherwise it is like [`Query`](crate::web::Query).
+///
 /// If the `Content-Type` is not `application/x-www-form-urlencoded`, then a `Bad Request` response
 /// will be returned.
 pub struct Form<T>(pub T);

@@ -24,7 +24,7 @@ websocket = ["tokio-tungstenite"]
 async-trait = "0.1.51"
 anyhow = "1.0.42"
 bytes = "1.0.1"
-futures-util = "0.3.16"
+futures-util = { version = "0.3.16", features = ["sink"] }
 http = "0.2.4"
 hyper = { version = "0.14.11", features = ["http1", "http2", "server", "runtime", "stream"] }
 mime = "0.3.16"

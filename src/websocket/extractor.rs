@@ -11,6 +11,25 @@ use crate::{
     Result, StatusCode,
 };
 
+/// An extractor that can accept websocket connections.
+///
+/// # Examples
+///
+/// ```
+/// use futures_util::{StreamExt, SinkExt};
+/// use poem::websocket::{WebSocket, Message};
+/// use poem::{route, get, IntoResponse};
+///
+/// async fn index(ws: WebSocket) -> impl IntoResponse {
+///     ws.on_upgrade(|mut socket| async move {
+///         if let Some(Ok(Message::Text(text))) = socket.next().await {
+///             let _ = socket.send(Message::Text(text)).await;
+///         }
+///     })
+/// }
+///
+/// let app = route().at("/", get(index));
+/// ```
 pub struct WebSocket {
     key: HeaderValue,
     on_upgrade: OnUpgrade,
@@ -55,6 +74,20 @@ impl WebSocket {
     /// If the protocol name specified by `Sec-WebSocket-Protocol` header
     /// to match any of them, the upgrade response will include `Sec-WebSocket-Protocol` header and
     /// return the protocol name.
+    ///
+    /// ```
+    /// use futures_util::{StreamExt, SinkExt};
+    /// use poem::websocket::WebSocket;
+    /// use poem::{route, get, IntoResponse};
+    ///
+    /// async fn index(ws: WebSocket) -> impl IntoResponse {
+    ///     ws.protocols(vec!["graphql-rs", "graphql-transport-ws"]).on_upgrade(|socket| async move {
+    ///         // ...
+    ///     })
+    /// }
+    ///
+    /// let app = route().at("/", get(index));
+    /// ```
     pub fn protocols<I>(mut self, protocols: I) -> Self
     where
         I: IntoIterator,
@@ -70,6 +103,9 @@ impl WebSocket {
         self
     }
 
+    /// Finalize upgrading the connection and call the provided `callback` with the stream.
+    ///
+    /// Note that the return value of this function must be returned from the handler.
     pub fn on_upgrade<F, Fut>(self, callback: F) -> impl IntoResponse
     where
         F: FnOnce(WebSocketStream) -> Fut + Send + 'static,

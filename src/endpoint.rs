@@ -4,8 +4,10 @@ use std::sync::Arc;
 
 use crate::{FromRequest, IntoResponse, Middleware, Request, Response, Result};
 
+/// Represents a handler that can handle requests.
 #[async_trait::async_trait]
 pub trait FnHandler<In>: Send + Sync {
+    /// Call the handler with the given request.
     async fn call(&self, req: Request) -> Result<Response>;
 }
 
@@ -98,9 +100,26 @@ where
     }
 }
 
+/// Some helper functions for [`Endpoint`].
 pub trait EndpointExt {
-    fn with<T: Middleware>(self, middleware: T) -> Box<dyn Endpoint>
+    /// Use middleware to transform this endpoint.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::web::Data;
+    /// use poem::middleware::AddData;
+    /// use poem::{EndpointExt, route, get};
+    ///
+    /// async fn index(Data(data): Data<i32>) -> String {
+    ///     format!("{}", data)
+    /// }
+    ///
+    /// let app = route().at("/", get(index)).with(AddData::new(100i32));
+    /// ```
+    fn with<T>(self, middleware: T) -> T::Output
     where
+        T: Middleware<Self>,
         Self: Endpoint + Sized,
     {
         middleware.transform(self)

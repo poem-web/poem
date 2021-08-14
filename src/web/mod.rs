@@ -1,4 +1,4 @@
-//! Commonly used as the type of extractor or responder.
+//! Commonly used as the type of extractor or response.
 
 mod data;
 mod form;
@@ -107,6 +107,7 @@ impl<T: IntoResponse, E: Into<Error>> IntoResponse for Result<T, E> {
     }
 }
 
+/// An HTML response.
 pub struct Html<T>(pub T);
 
 impl<T: Into<String>> IntoResponse for Html<T> {

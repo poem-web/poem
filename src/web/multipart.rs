@@ -9,7 +9,7 @@ use crate::{Error, FromRequest, HeaderName, Request, Result};
 ///
 /// # Example
 ///
-/// ```rust
+/// ```
 /// use poem::web::Multipart;
 /// use poem::Result;
 ///

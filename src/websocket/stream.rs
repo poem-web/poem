@@ -5,10 +5,10 @@ use std::task::{Context, Poll};
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
 use hyper::upgrade::Upgraded;
 
-use super::utils::{tungstenite_error_to_io_error, tungstenite_msg_to_message};
+use super::utils::tungstenite_error_to_io_error;
 use super::Message;
-use crate::websocket::utils::msg_to_tungstenite_message;
 
+/// A `WebSocket` stream, which implements [`Stream<Message>`] and [`Sink<Message>`].
 pub struct WebSocketStream {
     inner: tokio_tungstenite::WebSocketStream<Upgraded>,
 }
@@ -24,7 +24,7 @@ impl Stream for WebSocketStream {
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.inner.poll_next_unpin(cx) {
-            Poll::Ready(Some(Ok(msg))) => Poll::Ready(Some(Ok(tungstenite_msg_to_message(msg)))),
+            Poll::Ready(Some(Ok(msg))) => Poll::Ready(Some(Ok(msg.into()))),
             Poll::Ready(Some(Err(err))) => {
                 Poll::Ready(Some(Err(tungstenite_error_to_io_error(err))))
             }
@@ -45,7 +45,7 @@ impl Sink<Message> for WebSocketStream {
 
     fn start_send(mut self: Pin<&mut Self>, item: Message) -> Result<(), Self::Error> {
         self.inner
-            .start_send_unpin(msg_to_tungstenite_message(item))
+            .start_send_unpin(item.into())
             .map_err(tungstenite_error_to_io_error)
     }
 

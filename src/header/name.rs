@@ -18,6 +18,12 @@ macro_rules! define_header_names {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HeaderName(pub(crate) http::header::HeaderName);
 
+/// Represents an HTTP header field name.
+///
+/// Header field names identify the header. Header sets may include multiple
+/// headers with the same name. The HTTP specification defines a number of
+/// standard headers, but HTTP messages may include non-standard header names as
+/// well as long as they adhere to the specification.
 impl HeaderName {
     #[inline]
     pub fn as_str(&self) -> &str {

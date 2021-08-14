@@ -1,3 +1,4 @@
+/// Represents a version of the HTTP spec.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Version(pub(crate) http::Version);
 
