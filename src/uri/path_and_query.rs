@@ -1,5 +1,7 @@
-use std::fmt::{self, Display, Formatter};
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 use crate::error::{Error, ErrorInvalidUri};
 
@@ -10,7 +12,8 @@ pub struct PathAndQuery(pub(crate) http::uri::PathAndQuery);
 impl PathAndQuery {
     /// Convert a [`PathAndQuery`] from a static string.
     ///
-    /// This function will not perform any copying, however the string is checked to ensure that it is valid.
+    /// This function will not perform any copying, however the string is
+    /// checked to ensure that it is valid.
     ///
     /// # Panics
     ///

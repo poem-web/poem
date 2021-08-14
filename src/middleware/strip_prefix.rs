@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
-use crate::error::{Error, ErrorNotFound};
-use crate::uri::Uri;
-use crate::{Endpoint, Middleware, Request, Response, Result};
+use crate::{
+    error::{Error, ErrorNotFound},
+    uri::Uri,
+    Endpoint, Middleware, Request, Response, Result,
+};
 
 /// Middleware for remove path prefix.
 pub struct StripPrefix {

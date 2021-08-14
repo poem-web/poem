@@ -1,6 +1,4 @@
-use std::future::Future;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{future::Future, marker::PhantomData, sync::Arc};
 
 use crate::{FromRequest, IntoResponse, Middleware, Request, Response, Result};
 

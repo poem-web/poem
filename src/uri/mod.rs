@@ -5,16 +5,20 @@ mod parts;
 mod path_and_query;
 mod scheme;
 
-use std::fmt::{self, Display, Formatter};
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 pub use authority::Authority;
 pub use parts::Parts;
 pub use path_and_query::PathAndQuery;
 pub use scheme::Scheme;
 
-use crate::error::{Error, ErrorInvalidUri};
-use crate::Result;
+use crate::{
+    error::{Error, ErrorInvalidUri},
+    Result,
+};
 
 /// The URI component of a request.
 #[derive(Debug, Clone, Hash, Default)]

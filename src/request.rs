@@ -1,8 +1,8 @@
-use std::any::Any;
-use std::convert::TryInto;
+use std::{any::Any, convert::TryInto};
 
-use crate::uri::Uri;
-use crate::{Body, Error, Extensions, HeaderMap, HeaderName, HeaderValue, Method, Result, Version};
+use crate::{
+    uri::Uri, Body, Error, Extensions, HeaderMap, HeaderName, HeaderValue, Method, Result, Version,
+};
 
 struct Parts {
     method: Method,
@@ -182,7 +182,8 @@ impl RequestBuilder {
         }))
     }
 
-    /// Consumes this builder, using the provided body to return a constructed [Request].
+    /// Consumes this builder, using the provided body to return a constructed
+    /// [Request].
     ///
     /// # Errors
     ///

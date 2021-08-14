@@ -1,7 +1,8 @@
-use std::str::FromStr;
-
-use std::borrow::Borrow;
-use std::fmt::{Display, Formatter};
+use std::{
+    borrow::Borrow,
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 use crate::error::{Error, ErrorInvalidHeaderName};
 

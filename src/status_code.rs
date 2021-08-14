@@ -1,5 +1,7 @@
-use std::convert::TryFrom;
-use std::fmt::{self, Display, Formatter};
+use std::{
+    convert::TryFrom,
+    fmt::{self, Display, Formatter},
+};
 
 use crate::error::{Error, ErrorInvalidStatusCode};
 

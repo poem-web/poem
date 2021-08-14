@@ -1,6 +1,4 @@
-use std::convert::Infallible;
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use crate::{Endpoint, Request};
 

@@ -10,7 +10,6 @@ mod query;
 use std::convert::Infallible;
 
 use bytes::Bytes;
-
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;

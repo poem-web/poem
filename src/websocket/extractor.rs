@@ -1,14 +1,12 @@
-use std::borrow::Cow;
-use std::future::Future;
+use std::{borrow::Cow, future::Future};
 
 use hyper::upgrade::OnUpgrade;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::WebSocketStream;
-use crate::websocket::utils::sign;
 use crate::{
-    Body, Error, FromRequest, HeaderName, HeaderValue, IntoResponse, Method, Request, Response,
-    Result, StatusCode,
+    websocket::utils::sign, Body, Error, FromRequest, HeaderName, HeaderValue, IntoResponse,
+    Method, Request, Response, Result, StatusCode,
 };
 
 /// An extractor that can accept websocket connections.
@@ -72,8 +70,8 @@ impl WebSocket {
     /// Set the known protocols.
     ///
     /// If the protocol name specified by `Sec-WebSocket-Protocol` header
-    /// to match any of them, the upgrade response will include `Sec-WebSocket-Protocol` header and
-    /// return the protocol name.
+    /// to match any of them, the upgrade response will include
+    /// `Sec-WebSocket-Protocol` header and return the protocol name.
     ///
     /// ```
     /// use futures_util::{StreamExt, SinkExt};
@@ -103,9 +101,11 @@ impl WebSocket {
         self
     }
 
-    /// Finalize upgrading the connection and call the provided `callback` with the stream.
+    /// Finalize upgrading the connection and call the provided `callback` with
+    /// the stream.
     ///
-    /// Note that the return value of this function must be returned from the handler.
+    /// Note that the return value of this function must be returned from the
+    /// handler.
     pub fn on_upgrade<F, Fut>(self, callback: F) -> impl IntoResponse
     where
         F: FnOnce(WebSocketStream) -> Fut + Send + 'static,

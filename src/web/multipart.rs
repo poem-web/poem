@@ -5,7 +5,8 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{Error, FromRequest, HeaderName, Request, Result};
 
-/// An extractor that parses `multipart/form-data` requests commonly used with file uploads.
+/// An extractor that parses `multipart/form-data` requests commonly used with
+/// file uploads.
 ///
 /// # Example
 ///

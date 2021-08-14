@@ -1,7 +1,9 @@
 //! Some common error types.
 
-use std::convert::Infallible;
-use std::fmt::{self, Debug, Display, Formatter};
+use std::{
+    convert::Infallible,
+    fmt::{self, Debug, Display, Formatter},
+};
 
 use crate::{Body, HeaderName, Response, StatusCode};
 
@@ -22,8 +24,8 @@ macro_rules! define_error {
 
 /// General error.
 ///
-/// In Poem, almost all functions that may return errors return this type, so you don't need to
-/// perform tedious error type conversion.
+/// In Poem, almost all functions that may return errors return this type, so
+/// you don't need to perform tedious error type conversion.
 #[derive(Debug)]
 pub struct Error {
     status: StatusCode,

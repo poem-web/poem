@@ -1,5 +1,7 @@
-use std::fmt::{self, Display, Formatter};
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 use crate::error::{Error, ErrorInvalidUri};
 
@@ -10,11 +12,13 @@ pub struct Authority(pub(crate) http::uri::Authority);
 impl Authority {
     /// Attempt to convert an [`Authority`] from a static string.
     ///
-    /// This function will not perform any copying, and the string will be checked if it is empty or contains an invalid character.
+    /// This function will not perform any copying, and the string will be
+    /// checked if it is empty or contains an invalid character.
     ///
     /// # Panics
     ///
-    /// This function panics if the argument contains invalid characters or is empty.
+    /// This function panics if the argument contains invalid characters or is
+    /// empty.
     #[inline]
     pub fn from_static(src: &'static str) -> Self {
         Authority(http::uri::Authority::from_static(src))

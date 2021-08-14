@@ -1,5 +1,7 @@
-use std::convert::TryInto;
-use std::io::{Error as IoError, ErrorKind};
+use std::{
+    convert::TryInto,
+    io::{Error as IoError, ErrorKind},
+};
 
 use sha1::Sha1;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;

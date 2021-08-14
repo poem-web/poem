@@ -4,7 +4,6 @@
 #![warn(missing_docs)]
 
 pub use http::Extensions;
-
 pub use server::Server;
 
 pub mod error;

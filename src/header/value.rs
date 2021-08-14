@@ -1,5 +1,4 @@
-use std::convert::TryFrom;
-use std::str::FromStr;
+use std::{convert::TryFrom, str::FromStr};
 
 use crate::error::{Error, ErrorInvalidHeaderValue, Result};
 
@@ -22,9 +21,11 @@ impl HeaderValue {
         self.0.as_bytes()
     }
 
-    /// Yields a &str slice if the HeaderValue only contains visible ASCII chars.
+    /// Yields a &str slice if the HeaderValue only contains visible ASCII
+    /// chars.
     ///
-    /// This function will perform a scan of the header value, checking all the characters.
+    /// This function will perform a scan of the header value, checking all the
+    /// characters.
     #[inline]
     pub fn to_str(&self) -> Result<&str> {
         self.0
@@ -34,12 +35,14 @@ impl HeaderValue {
 
     /// Convert a static string to a [`HeaderValue`].
     ///
-    /// This function will not perform any copying, however the string is checked to ensure that no
-    /// invalid characters are present. Only visible ASCII characters (32-127) are permitted.
+    /// This function will not perform any copying, however the string is
+    /// checked to ensure that no invalid characters are present. Only
+    /// visible ASCII characters (32-127) are permitted.
     ///
     /// # Panics
     ///
-    /// This function panics if the argument contains invalid header value characters.
+    /// This function panics if the argument contains invalid header value
+    /// characters.
     #[inline]
     pub fn from_static(src: &'static str) -> Self {
         Self(http::header::HeaderValue::from_static(src))

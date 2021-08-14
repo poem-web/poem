@@ -1,11 +1,11 @@
 mod model;
 
-use async_graphql::{EmptyMutation, EmptySubscription, Schema};
-use model::Episode;
-use slab::Slab;
 use std::collections::HashMap;
 
+use async_graphql::{EmptyMutation, EmptySubscription, Schema};
+use model::Episode;
 pub use model::QueryRoot;
+use slab::Slab;
 
 pub type StarWarsSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
 

@@ -1,10 +1,12 @@
 //! Route object and DSL
 
-use crate::endpoint::{FnHandler, FnHandlerWrapper};
-use crate::error::ErrorNotFound;
-use crate::method::COUNT_METHODS;
-use crate::route_recognizer::Router;
-use crate::{Endpoint, Error, Method, Request, Response, Result};
+use crate::{
+    endpoint::{FnHandler, FnHandlerWrapper},
+    error::ErrorNotFound,
+    method::COUNT_METHODS,
+    route_recognizer::Router,
+    Endpoint, Error, Method, Request, Response, Result,
+};
 
 /// Routing object
 #[derive(Default)]

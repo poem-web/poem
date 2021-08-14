@@ -1,5 +1,6 @@
-use crate::{HeaderName, HeaderValue};
 use std::iter::FromIterator;
+
+use crate::{HeaderName, HeaderValue};
 
 /// A set of HTTP headers.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -14,7 +15,8 @@ impl HeaderMap {
 
     /// Returns the number of headers the map can hold without reallocating.
     ///
-    /// This number is an approximation as certain usage patterns could cause additional allocations before the returned capacity is filled.
+    /// This number is an approximation as certain usage patterns could cause
+    /// additional allocations before the returned capacity is filled.
     pub fn capacity(&self) -> usize {
         self.0.capacity()
     }
@@ -125,7 +127,8 @@ impl HeaderMap {
     /// Remove the entry from the map.
     ///
     /// All values associated with the entry are removed and the first one is
-    /// returned. See [HeaderMap::remove_entry_mult] for an API that returns all values.
+    /// returned. See [HeaderMap::remove_entry_mult] for an API that returns all
+    /// values.
     pub fn remove_entry(&mut self, key: HeaderName) -> Option<HeaderValue> {
         if let http::header::Entry::Occupied(e) = self.0.entry(key.0) {
             let (_, value) = e.remove_entry();

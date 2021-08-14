@@ -1,5 +1,4 @@
-use std::any::Any;
-use std::convert::TryInto;
+use std::{any::Any, convert::TryInto};
 
 use crate::{
     Body, Error, Extensions, HeaderMap, HeaderName, HeaderValue, Result, StatusCode, Version,
@@ -143,7 +142,8 @@ impl ResponseBuilder {
         }))
     }
 
-    /// Consumes this builder, using the provided body to return a constructed [Response].
+    /// Consumes this builder, using the provided body to return a constructed
+    /// [Response].
     ///
     /// # Errors
     ///
