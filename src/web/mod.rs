@@ -203,3 +203,10 @@ impl FromRequest for Vec<u8> {
         Ok(req.take_body().into_bytes().await?.to_vec())
     }
 }
+
+#[async_trait::async_trait]
+impl<T: FromRequest> FromRequest for Option<T> {
+    async fn from_request(req: &mut Request) -> Result<Self> {
+        Ok(T::from_request(req).await.ok())
+    }
+}
