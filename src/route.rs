@@ -1,10 +1,13 @@
 //! Route object and DSL
 
-use crate::endpoint::{FnHandler, FnHandlerWrapper};
-use crate::error::ErrorNotFound;
-use crate::method::COUNT_METHODS;
+use std::collections::HashMap;
+
+use crate::endpoint::{Endpoint, FnHandler, FnHandlerWrapper};
+use crate::error::{Error, ErrorNotFound, Result};
+use crate::http::Method;
+use crate::request::Request;
+use crate::response::Response;
 use crate::route_recognizer::Router;
-use crate::{Endpoint, Error, Method, Request, Response, Result};
 
 /// Routing object
 #[derive(Default)]
@@ -21,7 +24,7 @@ impl Route {
     /// # Example
     ///
     /// ```
-    /// use poem::{route, get};
+    /// use poem::prelude::*;
     /// use poem::web::Path;
     ///
     /// async fn a() {}
@@ -58,7 +61,7 @@ impl Endpoint for Route {
             .router
             .recognize(req.uri().path())
             .ok()
-            .ok_or_else(|| Error::not_found(ErrorNotFound))?;
+            .ok_or_else(|| Into::<Error>::into(ErrorNotFound))?;
         req.extensions_mut().insert(m.params);
         m.handler.call(req).await
     }
@@ -74,7 +77,7 @@ macro_rules! define_method_fn {
             In: Send + Sync + 'static,
         {
             let mut router = RouteMethod::default();
-            router.router[Method::$method as usize] = Some(Box::new(FnHandlerWrapper::new(ep)) as Box<dyn Endpoint>);
+            router.router.insert(Method::$method, Box::new(FnHandlerWrapper::new(ep)) as Box<dyn Endpoint>);
             router
         }
         )*
@@ -83,31 +86,31 @@ macro_rules! define_method_fn {
 
 define_method_fn!(
     /// Set a handler to the `GET` and returns [`RouteMethod`].
-    (get, Get);
+    (get, GET);
 
     /// Set a handler to the `POST` and returns [`RouteMethod`].
-    (post, Post);
+    (post, POST);
 
     /// Set a handler to the `PUT` and returns [`RouteMethod`].
-    (put, Put);
+    (put, PUT);
 
     /// Set a handler to the `DELETE` and returns [`RouteMethod`].
-    (delete, Delete);
+    (delete, DELETE);
 
     /// Set a handler to the `HEAD` and returns [`RouteMethod`].
-    (head, Head);
+    (head, HEAD);
 
     /// Set a handler to the `OPTIONS` and returns [`RouteMethod`].
-    (options, Options);
+    (options, OPTIONS);
 
     /// Set a handler to the `CONNECT` and returns [`RouteMethod`].
-    (connect, Connect);
+    (connect, CONNECT);
 
     /// Set a handler to the `PATCH` and returns [`RouteMethod`].
-    (patch, Patch);
+    (patch, PATCH);
 
     /// Set a handler to the `TRACE` and returns [`RouteMethod`].
-    (trace, Trace);
+    (trace, TRACE);
 );
 
 macro_rules! define_methods {
@@ -119,7 +122,7 @@ macro_rules! define_methods {
             T: FnHandler<In> + 'static,
             In: Send + Sync + 'static,
         {
-            self.router[Method::$method as usize] = Some(Box::new(FnHandlerWrapper::new(ep)));
+            self.router.insert(Method::$method, Box::new(FnHandlerWrapper::new(ep)));
             self
         }
         )*
@@ -129,7 +132,7 @@ macro_rules! define_methods {
 /// HTTP methods routing object.
 #[derive(Default)]
 pub struct RouteMethod {
-    router: [Option<Box<dyn Endpoint>>; COUNT_METHODS],
+    router: HashMap<Method, Box<dyn Endpoint>>,
     any_router: Option<Box<dyn Endpoint>>,
 }
 
@@ -140,7 +143,8 @@ impl RouteMethod {
         T: FnHandler<In> + 'static,
         In: Send + Sync + 'static,
     {
-        self.router[method as usize] = Some(Box::new(FnHandlerWrapper::new(ep)));
+        self.router
+            .insert(method, Box::new(FnHandlerWrapper::new(ep)));
         self
     }
 
@@ -156,31 +160,31 @@ impl RouteMethod {
 
     define_methods!(
         /// Set a handler to the `GET`.
-        (get, Get);
+        (get, GET);
 
         /// Set a handler to the `POST`.
-        (post, Post);
+        (post, POST);
 
         /// Set a handler to the `PUT`.
-        (put, Put);
+        (put, PUT);
 
         /// Set a handler to the `DELETE`.
-        (delete, Delete);
+        (delete, DELETE);
 
         /// Set a handler to the `HEAD`.
-        (head, Head);
+        (head, HEAD);
 
         /// Set a handler to the `OPTIONS`.
-        (options, Options);
+        (options, OPTIONS);
 
         /// Set a handler to the `CONNECT`.
-        (connect, Connect);
+        (connect, CONNECT);
 
         /// Set a handler to the `PATCH`.
-        (patch, Patch);
+        (patch, PATCH);
 
         /// Set a handler to the `TRACE`.
-        (trace, Trace);
+        (trace, TRACE);
     );
 }
 
@@ -191,14 +195,10 @@ impl Endpoint for RouteMethod {
             return ep.call(req).await;
         }
 
-        if let Some(ep) = self
-            .router
-            .get(req.method() as usize)
-            .and_then(|ep| ep.as_ref())
-        {
+        if let Some(ep) = self.router.get(req.method()) {
             ep.call(req).await
         } else {
-            Err(Error::not_found(ErrorNotFound))
+            Err(ErrorNotFound.into())
         }
     }
 }

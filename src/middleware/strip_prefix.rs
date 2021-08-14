@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::error::{Error, ErrorNotFound};
-use crate::uri::Uri;
-use crate::{Endpoint, Middleware, Request, Response, Result};
+use crate::error::ErrorNotFound;
+use crate::http::Uri;
+use crate::prelude::*;
 
 /// Middleware for remove path prefix.
 pub struct StripPrefix {
@@ -47,7 +47,7 @@ impl<E: Endpoint> Endpoint for StripPrefixImpl<E> {
         {
             parts.path_and_query = Some(path.parse()?);
         } else {
-            return Err(Error::not_found(ErrorNotFound));
+            return Err(ErrorNotFound.into());
         }
 
         let new_uri = Uri::from_parts(parts)?;

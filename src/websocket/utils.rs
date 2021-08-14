@@ -5,7 +5,7 @@ use sha1::Sha1;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
 use super::{CloseCode, Message};
-use crate::HeaderValue;
+use crate::http::header::HeaderValue;
 
 pub(crate) fn sign(key: &[u8]) -> HeaderValue {
     let mut sha1 = Sha1::default();

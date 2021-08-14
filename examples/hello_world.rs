@@ -1,5 +1,5 @@
+use poem::prelude::*;
 use poem::web::Path;
-use poem::{get, route, serve};
 
 async fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)

@@ -1,9 +1,10 @@
 use std::any::Any;
-use std::convert::TryInto;
+use std::convert::TryFrom;
 
-use crate::{
-    Body, Error, Extensions, HeaderMap, HeaderName, HeaderValue, Result, StatusCode, Version,
-};
+use crate::body::Body;
+use crate::error::{Error, Result};
+use crate::http::header::{self, HeaderMap, HeaderName, HeaderValue};
+use crate::http::{Extensions, StatusCode, Version};
 
 struct Parts {
     status: StatusCode,
@@ -24,9 +25,9 @@ pub struct Response {
 impl Response {
     pub(crate) fn into_http_response(self) -> hyper::Response<hyper::Body> {
         let mut resp = hyper::Response::new(self.body.0);
-        *resp.status_mut() = self.status.0;
-        *resp.version_mut() = self.version.0;
-        *resp.headers_mut() = self.headers.0;
+        *resp.status_mut() = self.status;
+        *resp.version_mut() = self.version;
+        *resp.headers_mut() = self.headers;
         *resp.extensions_mut() = self.extensions;
         resp
     }
@@ -120,14 +121,14 @@ impl ResponseBuilder {
     /// internal [`HeaderMap`] being constructed.
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
-        K: TryInto<HeaderName>,
-        K::Error: Into<Error>,
-        V: TryInto<HeaderValue>,
-        V::Error: Into<Error>,
+        HeaderName: TryFrom<K>,
+        <HeaderName as TryFrom<K>>::Error: Into<Error>,
+        HeaderValue: TryFrom<V>,
+        <HeaderValue as TryFrom<V>>::Error: Into<Error>,
     {
         Self(self.0.and_then(move |mut parts| {
-            let key = key.try_into().map_err(Into::into)?;
-            let value = value.try_into().map_err(Into::into)?;
+            let key = <HeaderName as TryFrom<K>>::try_from(key).map_err(Into::into)?;
+            let value = <HeaderValue as TryFrom<V>>::try_from(value).map_err(Into::into)?;
             parts.headers.append(key, value);
             Ok(parts)
         }))
@@ -137,7 +138,7 @@ impl ResponseBuilder {
     pub fn content_type(self, content_type: &str) -> Self {
         Self(self.0.and_then(move |mut parts| {
             let value = content_type.parse()?;
-            parts.headers.append(HeaderName::CONTENT_TYPE, value);
+            parts.headers.append(header::CONTENT_TYPE, value);
             Ok(parts)
         }))
     }

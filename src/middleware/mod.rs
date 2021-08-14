@@ -6,7 +6,7 @@ mod strip_prefix;
 pub use add_data::AddData;
 pub use strip_prefix::StripPrefix;
 
-use crate::Endpoint;
+use crate::prelude::*;
 
 /// Represents a middleware trait.
 pub trait Middleware<E> {
@@ -16,6 +16,6 @@ pub trait Middleware<E> {
     /// some performance loss, but it is insignificant.
     type Output: Endpoint;
 
-    /// Transform the input [EndPoint] to another one.
+    /// Transform the input [`Endpoint`] to another one.
     fn transform(&self, ep: E) -> Self::Output;
 }

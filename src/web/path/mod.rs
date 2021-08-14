@@ -4,9 +4,10 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::error::{ErrorInvalidPathParams, ErrorMissingRouteParams};
+use crate::error::{Error, ErrorInvalidPathParams, ErrorMissingRouteParams, Result};
+use crate::request::Request;
 use crate::route_recognizer::Params;
-use crate::{Error, FromRequest, Request, Result};
+use crate::web::FromRequest;
 
 /// An extractor that will get captures from the URL and parse them using `serde`.
 ///
@@ -14,7 +15,7 @@ use crate::{Error, FromRequest, Request, Result};
 ///
 /// ```
 /// use poem::web::Path;
-/// use poem::{route, get};
+/// use poem::prelude::*;
 ///
 /// async fn users_teams_show(
 ///     Path((user_id, team_id)): Path<(String, String)>,
@@ -29,7 +30,7 @@ use crate::{Error, FromRequest, Request, Result};
 ///
 /// ```
 /// use poem::web::Path;
-/// use poem::{route, get};
+/// use poem::prelude::*;
 ///
 /// async fn user_info(Path(user_id): Path<String>) {
 ///     // ...
@@ -43,7 +44,7 @@ use crate::{Error, FromRequest, Request, Result};
 ///
 /// ```
 /// use poem::web::Path;
-/// use poem::{route, get};
+/// use poem::prelude::*;
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -86,9 +87,9 @@ where
         let params = req
             .extensions_mut()
             .get::<Params>()
-            .ok_or_else(|| Error::internal_server_error(ErrorMissingRouteParams))?;
+            .ok_or_else(|| Into::<Error>::into(ErrorMissingRouteParams))?;
         T::deserialize(de::PathDeserializer::new(params))
-            .map_err(|_| Error::internal_server_error(ErrorInvalidPathParams))
+            .map_err(|_| ErrorInvalidPathParams.into())
             .map(Path)
     }
 }

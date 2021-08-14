@@ -2,7 +2,11 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::{FromRequest, IntoResponse, Middleware, Request, Response, Result};
+use crate::error::Result;
+use crate::middleware::Middleware;
+use crate::request::Request;
+use crate::response::Response;
+use crate::web::{FromRequest, IntoResponse};
 
 /// Represents a handler that can handle requests.
 #[async_trait::async_trait]
@@ -100,7 +104,7 @@ where
     }
 }
 
-/// Some helper functions for [`Endpoint`].
+/// Extension trait for [`Endpoint`].
 pub trait EndpointExt {
     /// Use middleware to transform this endpoint.
     ///
@@ -109,7 +113,7 @@ pub trait EndpointExt {
     /// ```
     /// use poem::web::Data;
     /// use poem::middleware::AddData;
-    /// use poem::{EndpointExt, route, get};
+    /// use poem::prelude::*;
     ///
     /// async fn index(Data(data): Data<i32>) -> String {
     ///     format!("{}", data)

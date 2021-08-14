@@ -1,8 +1,13 @@
-use serde::de::DeserializeOwned;
 use std::ops::{Deref, DerefMut};
 
-use crate::{Error, FromRequest, HeaderName, IntoResponse, Request, Response, Result};
+use serde::de::DeserializeOwned;
 use serde::Serialize;
+
+use crate::error::{Error, Result};
+use crate::http::header;
+use crate::request::Request;
+use crate::response::Response;
+use crate::web::{FromRequest, IntoResponse};
 
 /// JSON extractor and response.
 ///
@@ -71,7 +76,7 @@ impl<T: Serialize> IntoResponse for Json<T> {
     fn into_response(self) -> Result<Response> {
         let data = serde_json::to_vec(&self.0).map_err(Error::bad_request)?;
         Response::builder()
-            .header(HeaderName::CONTENT_TYPE, "application/json")
+            .header(header::CONTENT_TYPE, "application/json")
             .body(data.into())
     }
 }

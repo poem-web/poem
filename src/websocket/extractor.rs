@@ -5,11 +5,14 @@ use hyper::upgrade::OnUpgrade;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::WebSocketStream;
+use crate::body::Body;
+use crate::error::{Error, Result};
+use crate::http::header::{self, HeaderValue};
+use crate::http::{Method, StatusCode};
+use crate::request::Request;
+use crate::response::Response;
+use crate::web::{FromRequest, IntoResponse};
 use crate::websocket::utils::sign;
-use crate::{
-    Body, Error, FromRequest, HeaderName, HeaderValue, IntoResponse, Method, Request, Response,
-    Result, StatusCode,
-};
 
 /// An extractor that can accept websocket connections.
 ///
@@ -18,7 +21,7 @@ use crate::{
 /// ```
 /// use futures_util::{StreamExt, SinkExt};
 /// use poem::websocket::{WebSocket, Message};
-/// use poem::{route, get, IntoResponse};
+/// use poem::prelude::*;
 ///
 /// async fn index(ws: WebSocket) -> impl IntoResponse {
 ///     ws.on_upgrade(|mut socket| async move {
@@ -40,22 +43,22 @@ pub struct WebSocket {
 #[async_trait::async_trait]
 impl FromRequest for WebSocket {
     async fn from_request(req: &mut Request) -> Result<Self> {
-        if req.method() != Method::Get
-            || req.headers().get(HeaderName::CONNECTION)
-                == Some(HeaderValue::from_static("upgrade"))
-            || req.headers().get(HeaderName::UPGRADE) == Some(HeaderValue::from_static("websocket"))
-            || req.headers().get(HeaderName::SEC_WEBSOCKET_VERSION)
-                == Some(HeaderValue::from_static("13"))
+        if req.method() != Method::GET
+            || req.headers().get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
+            || req.headers().get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
+            || req.headers().get(header::SEC_WEBSOCKET_VERSION)
+                == Some(&HeaderValue::from_static("13"))
         {
             return Err(Error::bad_request(anyhow::anyhow!("bad request")));
         }
 
         let key = req
             .headers()
-            .get(HeaderName::SEC_WEBSOCKET_KEY)
+            .get(header::SEC_WEBSOCKET_KEY)
+            .cloned()
             .ok_or_else(|| Error::bad_request(anyhow::anyhow!("bad request")))?;
 
-        let sec_websocket_protocol = req.headers().get(HeaderName::SEC_WEBSOCKET_PROTOCOL);
+        let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
         let req = req.take_http_request();
         let on_upgrade = hyper::upgrade::on(req);
@@ -78,7 +81,7 @@ impl WebSocket {
     /// ```
     /// use futures_util::{StreamExt, SinkExt};
     /// use poem::websocket::WebSocket;
-    /// use poem::{route, get, IntoResponse};
+    /// use poem::prelude::*;
     ///
     /// async fn index(ws: WebSocket) -> impl IntoResponse {
     ///     ws.protocols(vec!["graphql-rs", "graphql-transport-ws"]).on_upgrade(|socket| async move {
@@ -154,15 +157,15 @@ where
 
         let mut builder = Response::builder()
             .status(StatusCode::SWITCHING_PROTOCOLS)
-            .header(HeaderName::CONNECTION, "upgrade")
-            .header(HeaderName::UPGRADE, "websocket")
+            .header(header::CONNECTION, "upgrade")
+            .header(header::UPGRADE, "websocket")
             .header(
-                HeaderName::SEC_WEBSOCKET_ACCEPT,
+                header::SEC_WEBSOCKET_ACCEPT,
                 sign(self.websocket.key.as_bytes()),
             );
 
         if let Some(protocol) = protocol {
-            builder = builder.header(HeaderName::SEC_WEBSOCKET_PROTOCOL, protocol);
+            builder = builder.header(header::SEC_WEBSOCKET_PROTOCOL, protocol);
         }
 
         let resp = builder.body(Body::empty())?;

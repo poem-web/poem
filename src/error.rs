@@ -3,7 +3,18 @@
 use std::convert::Infallible;
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::{Body, HeaderName, Response, StatusCode};
+pub use crate::http::header::{
+    InvalidHeaderName as ErrorInvalidHeaderName, InvalidHeaderValue as ErrorInvalidHeaderValue,
+};
+pub use crate::http::method::InvalidMethod as ErrorInvalidMethod;
+pub use crate::http::status::InvalidStatusCode as ErrorInvalidStatusCode;
+pub use crate::http::uri::{
+    InvalidUri as ErrorInvalidUri, InvalidUriParts as ErrorInvalidUriParts,
+};
+
+use crate::body::Body;
+use crate::http::{header, StatusCode};
+use crate::response::Response;
 
 macro_rules! define_error {
     ($($(#[$docs:meta])* ($name:ident, $code:ident);)*) => {
@@ -44,7 +55,8 @@ impl Error {
     /// ```
     /// use std::num::ParseIntError;
     ///
-    /// use poem::{Error, StatusCode};
+    /// use poem::prelude::*;
+    /// use poem::http::StatusCode;
     ///
     /// let err = Error::new(StatusCode::BAD_REQUEST, "a".parse::<i32>().unwrap_err());
     /// assert!(err.downcast_ref::<ParseIntError>().is_some());
@@ -84,7 +96,7 @@ impl Error {
     pub(crate) fn as_response(&self) -> Response {
         Response::builder()
             .status(self.status)
-            .header(HeaderName::CONTENT_TYPE, "text/plain")
+            .header(header::CONTENT_TYPE, "text/plain")
             .body(Body::from_string(self.error.to_string()))
             .unwrap()
     }
@@ -172,7 +184,7 @@ impl Error {
 }
 
 macro_rules! define_simple_errors {
-    ($($(#[$docs:meta])* ($name:ident, $err_msg:literal);)*) => {
+    ($($(#[$docs:meta])* ($name:ident, $status:ident, $err_msg:literal);)*) => {
         $(
         $(#[$docs])*
         #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -185,38 +197,65 @@ macro_rules! define_simple_errors {
         }
 
         impl std::error::Error for $name {}
+
+        impl From<$name> for Error {
+            fn from(err: $name) -> Error {
+                Error::new(StatusCode::$status, err)
+            }
+        }
         )*
     };
 }
 
 define_simple_errors!(
     /// This error occurs when the path does not match.
-    (ErrorNotFound, "not found");
-
-    /// This error occurs when the method is invalid.
-    (ErrorInvalidMethod, "invalid method");
-
-    /// This error occurs when the header name is invalid.
-    (ErrorInvalidHeaderName, "invalid header name");
-
-    /// This error occurs when the header value is invalid.
-    (ErrorInvalidHeaderValue, "invalid header value");
-
-    /// This error occurs when the uri is invalid.
-    (ErrorInvalidUri, "invalid uri");
+    (ErrorNotFound, BAD_REQUEST, "not found");
 
     /// This error occurs when the status code is invalid.
-    (ErrorInvalidStatusCode, "invalid status code");
-
-    /// This error occurs when the status code is invalid.
-    (ErrorMissingRouteParams, "missing route params");
+    (ErrorMissingRouteParams, INTERNAL_SERVER_ERROR, "missing route params");
 
     /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
-    (ErrorInvalidPathParams, "invalid path params");
+    (ErrorInvalidPathParams, INTERNAL_SERVER_ERROR, "invalid path params");
 
     /// This error occurs when `Content-type` is not `application/x-www-form-urlencoded`.
-    (ErrorInvalidFormContentType, "invalid form content type");
+    (ErrorInvalidFormContentType, BAD_REQUEST, "invalid form content type");
 );
+
+impl From<ErrorInvalidUri> for Error {
+    fn from(err: ErrorInvalidUri) -> Self {
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+    }
+}
+
+impl From<ErrorInvalidUriParts> for Error {
+    fn from(err: ErrorInvalidUriParts) -> Self {
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+    }
+}
+
+impl From<ErrorInvalidHeaderName> for Error {
+    fn from(err: ErrorInvalidHeaderName) -> Self {
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+    }
+}
+
+impl From<ErrorInvalidHeaderValue> for Error {
+    fn from(err: ErrorInvalidHeaderValue) -> Self {
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+    }
+}
+
+impl From<ErrorInvalidMethod> for Error {
+    fn from(err: ErrorInvalidMethod) -> Self {
+        Error::new(StatusCode::BAD_REQUEST, err)
+    }
+}
+
+impl From<ErrorInvalidStatusCode> for Error {
+    fn from(err: ErrorInvalidStatusCode) -> Self {
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+    }
+}
 
 /// A specialized Result type for Poem.
 pub type Result<T, E = Error> = ::std::result::Result<T, E>;

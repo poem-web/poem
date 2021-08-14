@@ -2,8 +2,11 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::error::ErrorInvalidFormContentType;
-use crate::{Error, FromRequest, HeaderName, HeaderValue, Method, Request, Result};
+use crate::error::{Error, ErrorInvalidFormContentType, Result};
+use crate::http::header::{self, HeaderValue};
+use crate::http::Method;
+use crate::request::Request;
+use crate::web::FromRequest;
 
 /// An extractor that can deserialize some type from query string or body.
 ///
@@ -30,17 +33,17 @@ impl<T> DerefMut for Form<T> {
 #[async_trait::async_trait]
 impl<T: DeserializeOwned> FromRequest for Form<T> {
     async fn from_request(req: &mut Request) -> Result<Self> {
-        if req.method() == Method::Get {
+        if req.method() == Method::GET {
             serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
-                .map_err(Error::internal_server_error)
+                .map_err(Error::bad_request)
                 .map(Self)
         } else {
-            if req.headers().get(HeaderName::CONTENT_TYPE)
-                != Some(HeaderValue::from_static(
+            if req.headers().get(header::CONTENT_TYPE)
+                != Some(&HeaderValue::from_static(
                     "application/x-www-form-urlencoded",
                 ))
             {
-                return Err(Error::bad_request(ErrorInvalidFormContentType));
+                return Err(ErrorInvalidFormContentType.into());
             }
             Ok(Self(
                 serde_urlencoded::from_bytes(&req.take_body().into_bytes().await?)

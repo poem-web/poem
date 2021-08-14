@@ -1,8 +1,10 @@
 use std::any::Any;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
-use crate::uri::Uri;
-use crate::{Body, Error, Extensions, HeaderMap, HeaderName, HeaderValue, Method, Result, Version};
+use crate::body::Body;
+use crate::error::{Error, Result};
+use crate::http::header::{self, HeaderMap, HeaderName, HeaderValue};
+use crate::http::{Extensions, Method, Uri, Version};
 
 struct Parts {
     method: Method,
@@ -26,10 +28,10 @@ impl Request {
     pub(crate) fn from_http_request(req: hyper::Request<hyper::Body>) -> Result<Self> {
         let (parts, body) = req.into_parts();
         Ok(Self {
-            method: Method::from_http_method(parts.method)?,
-            uri: Uri(parts.uri),
-            version: Version(parts.version),
-            headers: HeaderMap(parts.headers),
+            method: parts.method,
+            uri: parts.uri,
+            version: parts.version,
+            headers: parts.headers,
             extensions: parts.extensions,
             body: Body(body),
         })
@@ -38,7 +40,7 @@ impl Request {
     /// Creates a request builder.
     pub fn builder() -> RequestBuilder {
         RequestBuilder(Ok(Parts {
-            method: Method::Get,
+            method: Method::GET,
             uri: Default::default(),
             version: Default::default(),
             headers: Default::default(),
@@ -48,8 +50,8 @@ impl Request {
 
     /// Returns a reference to the associated HTTP method.
     #[inline]
-    pub fn method(&self) -> Method {
-        self.method
+    pub fn method(&self) -> &Method {
+        &self.method
     }
 
     /// Sets the HTTP method for this request.
@@ -116,10 +118,10 @@ impl Request {
     pub(crate) fn take_http_request(&mut self) -> hyper::Request<hyper::Body> {
         let mut http_req = http::request::Request::default();
 
-        *http_req.method_mut() = self.method.into_http_method();
-        *http_req.uri_mut() = self.uri.0.clone();
-        *http_req.version_mut() = self.version.0;
-        *http_req.headers_mut() = self.headers.0.clone();
+        *http_req.method_mut() = self.method.clone();
+        *http_req.uri_mut() = self.uri.clone();
+        *http_req.version_mut() = self.version;
+        *http_req.headers_mut() = self.headers.clone();
         *http_req.body_mut() = self.take_body().0;
 
         http_req
@@ -132,7 +134,7 @@ pub struct RequestBuilder(Result<Parts>);
 impl RequestBuilder {
     /// Sets the HTTP method for this request.
     ///
-    /// By default this is [`Method::Get`].
+    /// By default this is [`Method::GET`].
     pub fn method(self, method: Method) -> RequestBuilder {
         Self(self.0.map(move |parts| Parts { method, ..parts }))
     }
@@ -163,12 +165,14 @@ impl RequestBuilder {
     /// internal [HeaderMap] being constructed.
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
-        K: TryInto<HeaderName, Error = Error>,
-        V: TryInto<HeaderValue, Error = Error>,
+        HeaderName: TryFrom<K>,
+        <HeaderName as TryFrom<K>>::Error: Into<Error>,
+        HeaderValue: TryFrom<V>,
+        <HeaderValue as TryFrom<V>>::Error: Into<Error>,
     {
         Self(self.0.and_then(move |mut parts| {
-            let key = key.try_into()?;
-            let value = value.try_into()?;
+            let key = <HeaderName as TryFrom<K>>::try_from(key).map_err(Into::into)?;
+            let value = <HeaderValue as TryFrom<V>>::try_from(value).map_err(Into::into)?;
             parts.headers.append(key, value);
             Ok(parts)
         }))
@@ -178,7 +182,7 @@ impl RequestBuilder {
     pub fn content_type(self, content_type: &str) -> Self {
         Self(self.0.and_then(move |mut parts| {
             let value = content_type.parse()?;
-            parts.headers.append(HeaderName::CONTENT_TYPE, value);
+            parts.headers.append(header::CONTENT_TYPE, value);
             Ok(parts)
         }))
     }

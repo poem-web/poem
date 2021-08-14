@@ -7,22 +7,48 @@ mod json;
 mod multipart;
 mod path;
 mod query;
+mod typed_header;
 
 use std::convert::Infallible;
 
 use bytes::Bytes;
+
+/// Commonly used typed headers.
+pub mod type_headers {
+    pub use typed_headers::Accept;
+    pub use typed_headers::AcceptEncoding;
+    pub use typed_headers::Allow;
+    pub use typed_headers::AuthScheme;
+    pub use typed_headers::Authorization;
+    pub use typed_headers::ContentCoding;
+    pub use typed_headers::ContentEncoding;
+    pub use typed_headers::ContentLength;
+    pub use typed_headers::ContentType;
+    pub use typed_headers::Credentials;
+    pub use typed_headers::Host;
+    pub use typed_headers::HttpDate;
+    pub use typed_headers::ProxyAuthorization;
+    pub use typed_headers::RetryAfter;
+    pub use typed_headers::Token68;
+    pub use typed_headers::{Quality, QualityItem};
+}
 
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;
 #[cfg(feature = "multipart")]
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
-pub use multipart::Multipart;
+pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
+pub use typed_header::TypedHeader;
 
-use crate::uri::Uri;
-use crate::{Body, Error, HeaderMap, Method, Request, Response, Result, StatusCode, Version};
+use crate::body::Body;
+use crate::error::{Error, Result};
+use crate::http::header::HeaderMap;
+use crate::http::{Method, StatusCode, Uri, Version};
+use crate::request::Request;
+use crate::response::Response;
 
 /// Types that can be created from requests.
 #[async_trait::async_trait]
@@ -132,7 +158,7 @@ impl FromRequest for Uri {
 #[async_trait::async_trait]
 impl FromRequest for Method {
     async fn from_request(req: &mut Request) -> Result<Self> {
-        Ok(req.method())
+        Ok(req.method().clone())
     }
 }
 

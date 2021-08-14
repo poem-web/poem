@@ -10,9 +10,9 @@
 //!
 //! # Example
 //!
-//! ```
+//! ```no_run
 //! use poem::web::Path;
-//! use poem::{get, route, serve};
+//! use poem::prelude::*;
 //!
 //! async fn hello(Path(name): Path<String>) -> String {
 //!     format!("hello: {}", name)
@@ -40,14 +40,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
-pub use http::Extensions;
-
-pub use server::Server;
-
 pub mod error;
 pub mod middleware;
 pub mod route;
-pub mod uri;
 pub mod web;
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
@@ -55,25 +50,29 @@ pub mod websocket;
 
 mod body;
 mod endpoint;
-mod header;
-mod method;
 mod request;
 mod response;
 mod route_recognizer;
 mod server;
-mod status_code;
-mod version;
 
-pub use body::Body;
-pub use endpoint::{Endpoint, EndpointExt, FnHandler};
-pub use error::{Error, Result};
-pub use header::{map::HeaderMap, name::HeaderName, value::HeaderValue};
-pub use method::Method;
-pub use middleware::Middleware;
-pub use request::{Request, RequestBuilder};
-pub use response::{Response, ResponseBuilder};
-pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
-pub use server::serve;
-pub use status_code::StatusCode;
-pub use version::Version;
-pub use web::{FromRequest, IntoResponse};
+#[doc(inline)]
+pub use http;
+
+pub use server::Server;
+#[cfg(feature = "tls")]
+pub use server::TlsServer;
+
+/// Re-exports of important traits, types, and functions used with Poem.
+pub mod prelude {
+    use super::*;
+
+    pub use body::Body;
+    pub use endpoint::{Endpoint, EndpointExt, FnHandler};
+    pub use error::{Error, Result};
+    pub use middleware::Middleware;
+    pub use request::{Request, RequestBuilder};
+    pub use response::{Response, ResponseBuilder};
+    pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
+    pub use server::serve;
+    pub use web::{FromRequest, IntoResponse};
+}
