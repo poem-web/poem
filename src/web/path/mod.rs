@@ -4,12 +4,15 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::error::{Error, ErrorInvalidPathParams, ErrorMissingRouteParams, Result};
-use crate::request::Request;
-use crate::route_recognizer::Params;
-use crate::web::FromRequest;
+use crate::{
+    error::{Error, ErrorInvalidPathParams, ErrorMissingRouteParams, Result},
+    request::Request,
+    route_recognizer::Params,
+    web::FromRequest,
+};
 
-/// An extractor that will get captures from the URL and parse them using `serde`.
+/// An extractor that will get captures from the URL and parse them using
+/// `serde`.
 ///
 /// # Example
 ///

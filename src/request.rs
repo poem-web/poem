@@ -1,10 +1,16 @@
-use std::any::Any;
-use std::convert::{TryFrom, TryInto};
+use std::{
+    any::Any,
+    convert::{TryFrom, TryInto},
+};
 
-use crate::body::Body;
-use crate::error::{Error, Result};
-use crate::http::header::{self, HeaderMap, HeaderName, HeaderValue};
-use crate::http::{Extensions, Method, Uri, Version};
+use crate::{
+    body::Body,
+    error::{Error, Result},
+    http::{
+        header::{self, HeaderMap, HeaderName, HeaderValue},
+        Extensions, Method, Uri, Version,
+    },
+};
 
 struct Parts {
     method: Method,
@@ -135,6 +141,7 @@ impl RequestBuilder {
     /// Sets the HTTP method for this request.
     ///
     /// By default this is [`Method::GET`].
+    #[must_use]
     pub fn method(self, method: Method) -> RequestBuilder {
         Self(self.0.map(move |parts| Parts { method, ..parts }))
     }
@@ -142,6 +149,7 @@ impl RequestBuilder {
     /// Sets the URI for this request.
     ///
     /// By default this is `/`.
+    #[must_use]
     pub fn uri<T>(self, uri: T) -> RequestBuilder
     where
         T: TryInto<Uri, Error = Error>,
@@ -155,6 +163,7 @@ impl RequestBuilder {
     }
 
     /// Sets the HTTP version for this request.
+    #[must_use]
     pub fn version(self, version: Version) -> RequestBuilder {
         Self(self.0.map(move |parts| Parts { version, ..parts }))
     }
@@ -163,6 +172,7 @@ impl RequestBuilder {
     ///
     /// This function will append the provided key/value as a header to the
     /// internal [HeaderMap] being constructed.
+    #[must_use]
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
         HeaderName: TryFrom<K>,
@@ -179,6 +189,7 @@ impl RequestBuilder {
     }
 
     /// Sets the `Content-Type` header on the request.
+    #[must_use]
     pub fn content_type(self, content_type: &str) -> Self {
         Self(self.0.and_then(move |mut parts| {
             let value = content_type.parse()?;
@@ -188,6 +199,7 @@ impl RequestBuilder {
     }
 
     /// Adds an extension to this request.
+    #[must_use]
     pub fn extension<T>(self, extension: T) -> Self
     where
         T: Any + Send + Sync + 'static,
@@ -198,7 +210,8 @@ impl RequestBuilder {
         }))
     }
 
-    /// Consumes this builder, using the provided body to return a constructed [Request].
+    /// Consumes this builder, using the provided body to return a constructed
+    /// [Request].
     ///
     /// # Errors
     ///

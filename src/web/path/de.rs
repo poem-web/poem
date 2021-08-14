@@ -543,9 +543,11 @@ impl<'de> SeqAccess<'de> for SeqDeserializer<'de> {
 #[cfg(test)]
 #[allow(clippy::float_cmp)]
 mod tests {
-    use super::*;
-    use serde::Deserialize;
     use std::collections::HashMap;
+
+    use serde::Deserialize;
+
+    use super::*;
 
     #[derive(Debug, Deserialize, Eq, PartialEq)]
     enum MyEnum {

@@ -1,20 +1,23 @@
 //! Some common error types.
 
-use std::convert::Infallible;
-use std::fmt::{self, Debug, Display, Formatter};
-
-pub use crate::http::header::{
-    InvalidHeaderName as ErrorInvalidHeaderName, InvalidHeaderValue as ErrorInvalidHeaderValue,
-};
-pub use crate::http::method::InvalidMethod as ErrorInvalidMethod;
-pub use crate::http::status::InvalidStatusCode as ErrorInvalidStatusCode;
-pub use crate::http::uri::{
-    InvalidUri as ErrorInvalidUri, InvalidUriParts as ErrorInvalidUriParts,
+use std::{
+    convert::Infallible,
+    fmt::{self, Debug, Display, Formatter},
 };
 
-use crate::body::Body;
-use crate::http::{header, StatusCode};
-use crate::response::Response;
+pub use crate::http::{
+    header::{
+        InvalidHeaderName as ErrorInvalidHeaderName, InvalidHeaderValue as ErrorInvalidHeaderValue,
+    },
+    method::InvalidMethod as ErrorInvalidMethod,
+    status::InvalidStatusCode as ErrorInvalidStatusCode,
+    uri::{InvalidUri as ErrorInvalidUri, InvalidUriParts as ErrorInvalidUriParts},
+};
+use crate::{
+    body::Body,
+    http::{header, StatusCode},
+    response::Response,
+};
 
 macro_rules! define_error {
     ($($(#[$docs:meta])* ($name:ident, $code:ident);)*) => {
@@ -33,8 +36,8 @@ macro_rules! define_error {
 
 /// General error.
 ///
-/// In Poem, almost all functions that may return errors return this type, so you don't need to
-/// perform tedious error type conversion.
+/// In Poem, almost all functions that may return errors return this type, so
+/// you don't need to perform tedious error type conversion.
 #[derive(Debug)]
 pub struct Error {
     status: StatusCode,

@@ -3,10 +3,12 @@ use std::io::ErrorKind;
 use futures_util::TryStreamExt;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-use crate::error::{Error, Result};
-use crate::http::header;
-use crate::request::Request;
-use crate::web::FromRequest;
+use crate::{
+    error::{Error, Result},
+    http::header,
+    request::Request,
+    web::FromRequest,
+};
 
 /// A single field in a multipart stream.
 pub struct Field(multer::Field<'static>);
@@ -65,7 +67,8 @@ impl Field {
     }
 }
 
-/// An extractor that parses `multipart/form-data` requests commonly used with file uploads.
+/// An extractor that parses `multipart/form-data` requests commonly used with
+/// file uploads.
 ///
 /// # Example
 ///

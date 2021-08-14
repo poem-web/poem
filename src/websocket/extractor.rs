@@ -1,18 +1,21 @@
-use std::borrow::Cow;
-use std::future::Future;
+use std::{borrow::Cow, future::Future};
 
 use hyper::upgrade::OnUpgrade;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::WebSocketStream;
-use crate::body::Body;
-use crate::error::{Error, Result};
-use crate::http::header::{self, HeaderValue};
-use crate::http::{Method, StatusCode};
-use crate::request::Request;
-use crate::response::Response;
-use crate::web::{FromRequest, IntoResponse};
-use crate::websocket::utils::sign;
+use crate::{
+    body::Body,
+    error::{Error, Result},
+    http::{
+        header::{self, HeaderValue},
+        Method, StatusCode,
+    },
+    request::Request,
+    response::Response,
+    web::{FromRequest, IntoResponse},
+    websocket::utils::sign,
+};
 
 /// An extractor that can accept websocket connections.
 ///
@@ -75,8 +78,8 @@ impl WebSocket {
     /// Set the known protocols.
     ///
     /// If the protocol name specified by `Sec-WebSocket-Protocol` header
-    /// to match any of them, the upgrade response will include `Sec-WebSocket-Protocol` header and
-    /// return the protocol name.
+    /// to match any of them, the upgrade response will include
+    /// `Sec-WebSocket-Protocol` header and return the protocol name.
     ///
     /// ```
     /// use futures_util::{StreamExt, SinkExt};
@@ -91,6 +94,7 @@ impl WebSocket {
     ///
     /// let app = route().at("/", get(index));
     /// ```
+    #[must_use]
     pub fn protocols<I>(mut self, protocols: I) -> Self
     where
         I: IntoIterator,
@@ -106,9 +110,12 @@ impl WebSocket {
         self
     }
 
-    /// Finalize upgrading the connection and call the provided `callback` with the stream.
+    /// Finalize upgrading the connection and call the provided `callback` with
+    /// the stream.
     ///
-    /// Note that the return value of this function must be returned from the handler.
+    /// Note that the return value of this function must be returned from the
+    /// handler.
+    #[must_use]
     pub fn on_upgrade<F, Fut>(self, callback: F) -> impl IntoResponse
     where
         F: FnOnce(WebSocketStream) -> Fut + Send + 'static,

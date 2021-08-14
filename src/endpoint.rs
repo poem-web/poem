@@ -1,12 +1,12 @@
-use std::future::Future;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{future::Future, marker::PhantomData, sync::Arc};
 
-use crate::error::Result;
-use crate::middleware::Middleware;
-use crate::request::Request;
-use crate::response::Response;
-use crate::web::{FromRequest, IntoResponse};
+use crate::{
+    error::Result,
+    middleware::Middleware,
+    request::Request,
+    response::Response,
+    web::{FromRequest, IntoResponse},
+};
 
 /// Represents a handler that can handle requests.
 #[async_trait::async_trait]
@@ -52,6 +52,18 @@ where
 {
     async fn call(&self, _req: Request) -> Result<Response> {
         self().await.into_response()
+    }
+}
+
+#[async_trait::async_trait]
+impl<F, Fut, Res> FnHandler<Request> for F
+where
+    F: Fn(Request) -> Fut + Send + Sync,
+    Fut: Future<Output = Res> + Send,
+    Res: IntoResponse,
+{
+    async fn call(&self, req: Request) -> Result<Response> {
+        self(req).await.into_response()
     }
 }
 

@@ -1,14 +1,16 @@
-use std::io::{Error as IoError, Result as IoResult};
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::{
+    io::{Error as IoError, Result as IoResult},
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
 use hyper::upgrade::Upgraded;
 
-use super::utils::tungstenite_error_to_io_error;
-use super::Message;
+use super::{utils::tungstenite_error_to_io_error, Message};
 
-/// A `WebSocket` stream, which implements [`Stream<Message>`] and [`Sink<Message>`].
+/// A `WebSocket` stream, which implements [`Stream<Message>`] and
+/// [`Sink<Message>`].
 pub struct WebSocketStream {
     inner: tokio_tungstenite::WebSocketStream<Upgraded>,
 }

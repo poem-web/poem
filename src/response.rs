@@ -1,10 +1,13 @@
-use std::any::Any;
-use std::convert::TryFrom;
+use std::{any::Any, convert::TryFrom};
 
-use crate::body::Body;
-use crate::error::{Error, Result};
-use crate::http::header::{self, HeaderMap, HeaderName, HeaderValue};
-use crate::http::{Extensions, StatusCode, Version};
+use crate::{
+    body::Body,
+    error::{Error, Result},
+    http::{
+        header::{self, HeaderMap, HeaderName, HeaderValue},
+        Extensions, StatusCode, Version,
+    },
+};
 
 struct Parts {
     status: StatusCode,
@@ -104,6 +107,7 @@ impl ResponseBuilder {
     /// Sets the HTTP status for this response.
     ///
     /// By default this is [`StatusCode::OK`].
+    #[must_use]
     pub fn status(self, status: StatusCode) -> Self {
         Self(self.0.map(|parts| Parts { status, ..parts }))
     }
@@ -111,6 +115,7 @@ impl ResponseBuilder {
     /// Sets the HTTP version for this response.
     ///
     /// By default this is [`Version::HTTP_11`]
+    #[must_use]
     pub fn version(self, version: Version) -> Self {
         Self(self.0.map(|parts| Parts { version, ..parts }))
     }
@@ -119,6 +124,7 @@ impl ResponseBuilder {
     ///
     /// This function will append the provided key/value as a header to the
     /// internal [`HeaderMap`] being constructed.
+    #[must_use]
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
         HeaderName: TryFrom<K>,
@@ -135,6 +141,7 @@ impl ResponseBuilder {
     }
 
     /// Sets the `Content-Type` header on the response.
+    #[must_use]
     pub fn content_type(self, content_type: &str) -> Self {
         Self(self.0.and_then(move |mut parts| {
             let value = content_type.parse()?;
@@ -144,6 +151,7 @@ impl ResponseBuilder {
     }
 
     /// Adds an extension to this response.
+    #[must_use]
     pub fn extension<T>(self, extension: T) -> Self
     where
         T: Any + Send + Sync + 'static,
@@ -154,7 +162,8 @@ impl ResponseBuilder {
         }))
     }
 
-    /// Consumes this builder, using the provided body to return a constructed [Response].
+    /// Consumes this builder, using the provided body to return a constructed
+    /// [Response].
     ///
     /// # Errors
     ///

@@ -1,8 +1,6 @@
 mod nfa;
 
-use std::cmp::Ordering;
-use std::collections::BTreeMap;
-use std::ops::Index;
+use std::{cmp::Ordering, collections::BTreeMap, ops::Index};
 
 use nfa::{CharacterClass, NFA};
 

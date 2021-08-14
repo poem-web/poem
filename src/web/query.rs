@@ -2,9 +2,11 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::error::{Error, Result};
-use crate::request::Request;
-use crate::web::FromRequest;
+use crate::{
+    error::{Error, Result},
+    request::Request,
+    web::FromRequest,
+};
 
 /// An extractor that can deserialize some type from query string.
 pub struct Query<T>(pub T);

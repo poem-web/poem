@@ -12,8 +12,9 @@ use crate::prelude::*;
 pub trait Middleware<E> {
     /// New endpoint type.
     ///
-    /// If you don't know what type to use, then you can use [`Box<dyn Endpoint>`], which will bring
-    /// some performance loss, but it is insignificant.
+    /// If you don't know what type to use, then you can use [`Box<dyn
+    /// Endpoint>`], which will bring some performance loss, but it is
+    /// insignificant.
     type Output: Endpoint;
 
     /// Transform the input [`Endpoint`] to another one.

@@ -1,9 +1,10 @@
-use std::convert::Infallible;
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 
 use hyper::server::conn::Http;
-use tokio::io::{AsyncRead, AsyncWrite, Result as IoResult};
-use tokio::net::{TcpListener, ToSocketAddrs};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, Result as IoResult},
+    net::{TcpListener, ToSocketAddrs},
+};
 #[cfg(feature = "tls")]
 use tokio_rustls::{
     rustls::{
@@ -13,8 +14,7 @@ use tokio_rustls::{
     TlsAcceptor,
 };
 
-use crate::endpoint::Endpoint;
-use crate::request::Request;
+use crate::{endpoint::Endpoint, request::Request};
 
 /// An HTTP Server.
 pub struct Server {
