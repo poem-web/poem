@@ -48,6 +48,7 @@ pub mod endpoint;
 pub mod error;
 pub mod middleware;
 pub mod route;
+pub mod service;
 pub mod web;
 
 mod body;

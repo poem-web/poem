@@ -17,24 +17,6 @@ use crate::{
 };
 
 /// An extractor that can accept websocket connections.
-///
-/// # Example
-///
-/// ```
-/// use futures_util::{StreamExt, SinkExt};
-/// use poem::websocket::{WebSocket, Message};
-/// use poem::prelude::*;
-///
-/// async fn index(ws: WebSocket) -> impl IntoResponse {
-///     ws.on_upgrade(|mut socket| async move {
-///         if let Some(Ok(Message::Text(text))) = socket.next().await {
-///             let _ = socket.send(Message::Text(text)).await;
-///         }
-///     })
-/// }
-///
-/// let app = route().at("/", get(index));
-/// ```
 pub struct WebSocket {
     key: HeaderValue,
     on_upgrade: OnUpgrade,
@@ -82,7 +64,7 @@ impl WebSocket {
     ///
     /// ```
     /// use futures_util::{StreamExt, SinkExt};
-    /// use poem::websocket::WebSocket;
+    /// use poem::web::websocket::WebSocket;
     /// use poem::prelude::*;
     ///
     /// async fn index(ws: WebSocket) -> impl IntoResponse {

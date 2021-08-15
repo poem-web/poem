@@ -80,7 +80,7 @@ impl Body {
     pub async fn into_bytes(self) -> Result<Bytes> {
         hyper::body::to_bytes(self.0)
             .await
-            .map_err(Error::internal_server_error)
+            .map_err(Error::bad_request)
     }
 
     /// Consumes this body object to return a reader.
