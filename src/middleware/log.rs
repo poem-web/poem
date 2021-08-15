@@ -6,11 +6,21 @@ use std::time::Instant;
 
 use super::Middleware;
 
+#[cfg(feature = "logger")]
+pub use femme::LevelFilter;
+
 /// Start logging.
 #[cfg(feature = "logger")]
 pub fn start() {
     femme::start();
     kv_log_macro::info!("Logger started", { level: "Info" });
+}
+
+/// Start logging with a log level.
+#[cfg(feature = "logger")]
+pub fn with_level(level: LevelFilter) {
+    femme::with_level(level);
+    kv_log_macro::info!("Logger started", { level: format!("{}", level) });
 }
 
 /// Log all incoming requests and responses.
