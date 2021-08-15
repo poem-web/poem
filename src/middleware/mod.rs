@@ -1,7 +1,11 @@
 //! Commonly used middleware.
-
 mod add_data;
+#[cfg(feature = "logger")]
+mod log;
 mod strip_prefix;
+
+#[cfg(feature = "logger")]
+pub use log::Logger;
 
 pub use add_data::AddData;
 pub use strip_prefix::StripPrefix;
