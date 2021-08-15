@@ -50,6 +50,15 @@ impl From<Infallible> for Error {
     }
 }
 
+impl From<StatusCode> for Error {
+    fn from(status: StatusCode) -> Self {
+        Self {
+            status,
+            error: anyhow::anyhow!("{}", status.canonical_reason().unwrap_or("unknown")),
+        }
+    }
+}
+
 impl Error {
     /// Create a new error from any error.
     ///
@@ -236,11 +245,11 @@ impl From<ErrorInvalidUriParts> for Error {
     }
 }
 
-// impl From<ErrorInvalidHeaderName> for Error {
-//     fn from(err: ErrorInvalidHeaderName) -> Self {
-//         Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
-//     }
-// }
+impl From<ErrorInvalidHeaderName> for Error {
+    fn from(err: ErrorInvalidHeaderName) -> Self {
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR, err)
+    }
+}
 
 impl From<ErrorInvalidHeaderValue> for Error {
     fn from(err: ErrorInvalidHeaderValue) -> Self {

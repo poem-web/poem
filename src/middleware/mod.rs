@@ -1,9 +1,11 @@
 //! Commonly used middleware.
 
 mod add_data;
+mod cors;
 mod strip_prefix;
 
 pub use add_data::AddData;
+pub use cors::Cors;
 pub use strip_prefix::StripPrefix;
 
 use crate::endpoint::Endpoint;
@@ -18,5 +20,5 @@ pub trait Middleware<E: Endpoint> {
     type Output: Endpoint;
 
     /// Transform the input [`Endpoint`] to another one.
-    fn transform(&self, ep: E) -> Self::Output;
+    fn transform(self, ep: E) -> Self::Output;
 }

@@ -21,7 +21,7 @@ where
 {
     type Output = AddDataImpl<E, T>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         AddDataImpl {
             inner: ep,
             value: self.value.clone(),

@@ -26,10 +26,10 @@ impl StripPrefix {
 impl<E: Endpoint> Middleware<E> for StripPrefix {
     type Output = StripPrefixImpl<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         StripPrefixImpl {
             inner: ep,
-            prefix: self.prefix.clone(),
+            prefix: self.prefix,
         }
     }
 }
