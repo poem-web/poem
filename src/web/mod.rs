@@ -7,30 +7,28 @@ mod json;
 mod multipart;
 mod path;
 mod query;
+#[cfg(feature = "sse")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
+pub mod sse;
+#[cfg(feature = "typed-headers")]
 mod typed_header;
+#[cfg(feature = "websocket")]
+#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+pub mod websocket;
 
 use std::convert::Infallible;
 
 use bytes::Bytes;
 
 /// Commonly used typed headers.
+#[cfg(feature = "typed-headers")]
+#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub mod type_headers {
-    pub use typed_headers::Accept;
-    pub use typed_headers::AcceptEncoding;
-    pub use typed_headers::Allow;
-    pub use typed_headers::AuthScheme;
-    pub use typed_headers::Authorization;
-    pub use typed_headers::ContentCoding;
-    pub use typed_headers::ContentEncoding;
-    pub use typed_headers::ContentLength;
-    pub use typed_headers::ContentType;
-    pub use typed_headers::Credentials;
-    pub use typed_headers::Host;
-    pub use typed_headers::HttpDate;
-    pub use typed_headers::ProxyAuthorization;
-    pub use typed_headers::RetryAfter;
-    pub use typed_headers::Token68;
-    pub use typed_headers::{Quality, QualityItem};
+    pub use typed_headers::{
+        Accept, AcceptEncoding, Allow, AuthScheme, Authorization, ContentCoding, ContentEncoding,
+        ContentLength, ContentType, Credentials, Host, HttpDate, ProxyAuthorization, Quality,
+        QualityItem, RetryAfter, Token68,
+    };
 }
 
 pub use data::Data;
@@ -41,14 +39,17 @@ pub use json::Json;
 pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
+#[cfg(feature = "typed-headers")]
+#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
 
-use crate::body::Body;
-use crate::error::{Error, Result};
-use crate::http::header::HeaderMap;
-use crate::http::{Method, StatusCode, Uri, Version};
-use crate::request::Request;
-use crate::response::Response;
+use crate::{
+    body::Body,
+    error::{Error, Result},
+    http::{header::HeaderMap, Method, StatusCode, Uri, Version},
+    request::Request,
+    response::Response,
+};
 
 /// Types that can be created from requests.
 #[async_trait::async_trait]
@@ -63,6 +64,12 @@ pub trait FromRequest: Sized {
 pub trait IntoResponse {
     /// Consume itself and return [`Response`].
     fn into_response(self) -> Result<Response>;
+}
+
+impl IntoResponse for Response {
+    fn into_response(self) -> Result<Response> {
+        Ok(self)
+    }
 }
 
 impl IntoResponse for String {

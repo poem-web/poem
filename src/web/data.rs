@@ -1,8 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::error::{Error, Result};
-use crate::request::Request;
-use crate::web::FromRequest;
+use crate::{
+    error::{Error, Result},
+    request::Request,
+    web::FromRequest,
+};
 
 /// An extractor that can extract data from the request extension.
 ///

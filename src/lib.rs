@@ -1,4 +1,5 @@
-//! Poem is a full-featured and easy-to-use web framework with the Rust programming language.
+//! Poem is a full-featured and easy-to-use web framework with the Rust
+//! programming language.
 //!
 //! # Usage
 //!
@@ -27,29 +28,29 @@
 //!
 //! # Features
 //!
-//! To avoid compiling unused dependencies, Poem gates certain features, all of which are disabled by default:
+//! To avoid compiling unused dependencies, Poem gates certain features, all of
+//! which are disabled by default:
 //!
 //! |Feature           |Description                     |
 //! |------------------|--------------------------------|
-//! |websocket         |Support for WebSocket           |
-//! |multipart         |Support for Multipart           |
-//! |tls               |Support HTTP server over TLS    |
+//! |websocket         | Support for WebSocket          |
+//! |multipart         | Support for Multipart          |
+//! |sse               | Server-Sent Events (SSE)       |
+//! |tls               | Support HTTP server over TLS   |
+//! |typed-headers     | Support [`typed-headers`](https://crates.io/crates/typed-headers)    |
 
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
+pub mod endpoint;
 pub mod error;
 pub mod middleware;
 pub mod route;
 pub mod web;
-#[cfg(feature = "websocket")]
-#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
-pub mod websocket;
 
 mod body;
-mod endpoint;
 mod request;
 mod response;
 mod route_recognizer;
@@ -57,15 +58,12 @@ mod server;
 
 #[doc(inline)]
 pub use http;
-
 pub use server::Server;
 #[cfg(feature = "tls")]
 pub use server::TlsServer;
 
 /// Re-exports of important traits, types, and functions used with Poem.
 pub mod prelude {
-    use super::*;
-
     pub use body::Body;
     pub use endpoint::{Endpoint, EndpointExt, FnHandler};
     pub use error::{Error, Result};
@@ -75,4 +73,6 @@ pub mod prelude {
     pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
     pub use server::serve;
     pub use web::{FromRequest, IntoResponse};
+
+    use super::*;
 }

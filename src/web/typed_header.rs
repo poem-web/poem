@@ -1,8 +1,10 @@
 use typed_headers::{Header, HeaderMapExt};
 
-use crate::error::{Error, Result};
-use crate::request::Request;
-use crate::web::FromRequest;
+use crate::{
+    error::{Error, Result},
+    request::Request,
+    web::FromRequest,
+};
 
 /// An extractor that extracts a typed header value.
 pub struct TypedHeader<T>(pub T);

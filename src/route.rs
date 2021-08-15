@@ -2,12 +2,14 @@
 
 use std::collections::HashMap;
 
-use crate::endpoint::{Endpoint, FnHandler, FnHandlerWrapper};
-use crate::error::{Error, ErrorNotFound, Result};
-use crate::http::Method;
-use crate::request::Request;
-use crate::response::Response;
-use crate::route_recognizer::Router;
+use crate::{
+    endpoint::{Endpoint, FnHandler, FnHandlerWrapper},
+    error::{Error, ErrorNotFound, Result},
+    http::Method,
+    request::Request,
+    response::Response,
+    route_recognizer::Router,
+};
 
 /// Routing object
 #[derive(Default)]
@@ -18,8 +20,8 @@ pub struct Route {
 impl Route {
     /// Add an [Endpoint] to the specified path.
     ///
-    /// You can match the full path or wildcard path, and use the [`Path`](crate::web::Path) extractor to get
-    /// the path parameters.
+    /// You can match the full path or wildcard path, and use the
+    /// [`Path`](crate::web::Path) extractor to get the path parameters.
     ///
     /// # Example
     ///

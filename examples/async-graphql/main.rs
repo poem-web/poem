@@ -1,10 +1,14 @@
 mod starwars;
 
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql::{EmptyMutation, EmptySubscription, Request, Response, Schema};
-use poem::middleware::AddData;
-use poem::web::{Data, Html, Json};
-use poem::{get, route, serve, EndpointExt, IntoResponse};
+use async_graphql::{
+    http::{playground_source, GraphQLPlaygroundConfig},
+    EmptyMutation, EmptySubscription, Request, Response, Schema,
+};
+use poem::{
+    middleware::AddData,
+    prelude::*,
+    web::{Data, Html, Json},
+};
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
 async fn graphql_handler(schema: Data<StarWarsSchema>, req: Json<Request>) -> Json<Response> {

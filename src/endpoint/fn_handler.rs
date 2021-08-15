@@ -1,12 +1,12 @@
-use std::future::Future;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{future::Future, marker::PhantomData};
 
-use crate::error::Result;
-use crate::middleware::Middleware;
-use crate::request::Request;
-use crate::response::Response;
-use crate::web::{FromRequest, IntoResponse};
+use super::Endpoint;
+use crate::{
+    error::Result,
+    request::Request,
+    response::Response,
+    web::{FromRequest, IntoResponse},
+};
 
 /// Represents a handler that can handle requests.
 #[async_trait::async_trait]
@@ -55,24 +55,15 @@ where
     }
 }
 
-/// An HTTP request handler.
 #[async_trait::async_trait]
-pub trait Endpoint: Send + Sync + 'static {
-    /// Get the response to the request.
-    async fn call(&self, req: Request) -> Result<Response>;
-}
-
-#[async_trait::async_trait]
-impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
+impl<F, Fut, Res> FnHandler<Request> for F
+where
+    F: Fn(Request) -> Fut + Send + Sync,
+    Fut: Future<Output = Res> + Send,
+    Res: IntoResponse,
+{
     async fn call(&self, req: Request) -> Result<Response> {
-        self.as_ref().call(req).await
-    }
-}
-
-#[async_trait::async_trait]
-impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
-    async fn call(&self, req: Request) -> Result<Response> {
-        self.as_ref().call(req).await
+        self(req).await.into_response()
     }
 }
 
@@ -103,31 +94,3 @@ where
         self.f.call(req).await
     }
 }
-
-/// Extension trait for [`Endpoint`].
-pub trait EndpointExt {
-    /// Use middleware to transform this endpoint.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::web::Data;
-    /// use poem::middleware::AddData;
-    /// use poem::prelude::*;
-    ///
-    /// async fn index(Data(data): Data<i32>) -> String {
-    ///     format!("{}", data)
-    /// }
-    ///
-    /// let app = route().at("/", get(index)).with(AddData::new(100i32));
-    /// ```
-    fn with<T>(self, middleware: T) -> T::Output
-    where
-        T: Middleware<Self>,
-        Self: Endpoint + Sized,
-    {
-        middleware.transform(self)
-    }
-}
-
-impl<T: Endpoint> EndpointExt for T {}

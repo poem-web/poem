@@ -10,14 +10,15 @@ pub use log::Logger;
 pub use add_data::AddData;
 pub use strip_prefix::StripPrefix;
 
-use crate::prelude::*;
+use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
-pub trait Middleware<E> {
+pub trait Middleware<E: Endpoint> {
     /// New endpoint type.
     ///
-    /// If you don't know what type to use, then you can use [`Box<dyn Endpoint>`], which will bring
-    /// some performance loss, but it is insignificant.
+    /// If you don't know what type to use, then you can use [`Box<dyn
+    /// Endpoint>`], which will bring some performance loss, but it is
+    /// insignificant.
     type Output: Endpoint;
 
     /// Transform the input [`Endpoint`] to another one.

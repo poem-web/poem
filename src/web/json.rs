@@ -1,19 +1,21 @@
 use std::ops::{Deref, DerefMut};
 
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 
-use crate::error::{Error, Result};
-use crate::http::header;
-use crate::request::Request;
-use crate::response::Response;
-use crate::web::{FromRequest, IntoResponse};
+use crate::{
+    error::{Error, Result},
+    http::header,
+    request::Request,
+    response::Response,
+    web::{FromRequest, IntoResponse},
+};
 
 /// JSON extractor and response.
 ///
 /// # Extractor
 ///
-/// To extract the specified type of JSON from the body, `T` must implement [`serde::Deserialize`].
+/// To extract the specified type of JSON from the body, `T` must implement
+/// [`serde::Deserialize`].
 ///
 /// ```
 /// use serde::Deserialize;
@@ -31,7 +33,8 @@ use crate::web::{FromRequest, IntoResponse};
 ///
 /// # Response
 ///
-/// To serialize the specified type to JSON, `T` must implement [`serde::Serialize`].
+/// To serialize the specified type to JSON, `T` must implement
+/// [`serde::Serialize`].
 ///
 /// ```
 /// use serde::Serialize;
