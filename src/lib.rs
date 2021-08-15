@@ -33,9 +33,11 @@
 //!
 //! |Feature           |Description                     |
 //! |------------------|--------------------------------|
-//! |websocket         |Support for WebSocket           |
-//! |multipart         |Support for Multipart           |
-//! |tls               |Support HTTP server over TLS    |
+//! |websocket         | Support for WebSocket          |
+//! |multipart         | Support for Multipart          |
+//! |sse               | Server-Sent Events (SSE)       |
+//! |tls               | Support HTTP server over TLS   |
+//! |typed-headers     | Support [`typed-headers`](https://crates.io/crates/typed-headers)    |
 
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
