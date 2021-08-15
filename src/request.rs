@@ -116,6 +116,7 @@ impl Request {
 
     /// Take the body from this request and sets the body to empty.
     #[inline]
+    #[must_use]
     pub fn take_body(&mut self) -> Body {
         std::mem::take(&mut self.body)
     }

@@ -95,7 +95,8 @@ impl Response {
 
     /// Take the body from this response and sets the body to empty.
     #[inline]
-    pub fn take_body(mut self) -> Body {
+    #[must_use]
+    pub fn take_body(&mut self) -> Body {
         std::mem::take(&mut self.body)
     }
 }

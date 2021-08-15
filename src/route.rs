@@ -87,10 +87,10 @@ macro_rules! define_method_fn {
 }
 
 define_method_fn!(
-    /// Set a handler to the `GET` and returns [`RouteMethod`].
+    /// Set a handler to the `GET` and returns endpoint [`RouteMethod`].
     (get, GET);
 
-    /// Set a handler to the `POST` and returns [`RouteMethod`].
+    /// Set a handler to the `POST` and returns endpoint [`RouteMethod`].
     (post, POST);
 
     /// Set a handler to the `PUT` and returns [`RouteMethod`].
@@ -193,6 +193,20 @@ impl RouteMethod {
 #[async_trait::async_trait]
 impl Endpoint for RouteMethod {
     async fn call(&self, req: Request) -> Result<Response> {
+        if req.method() == &Method::HEAD {
+            let ep = self
+                .router
+                .get(&Method::GET)
+                .or_else(|| self.any_router.as_ref());
+            return if let Some(ep) = ep {
+                let mut resp = ep.call(req).await?;
+                let _ = resp.take_body();
+                Ok(resp)
+            } else {
+                Err(ErrorNotFound.into())
+            };
+        }
+
         if let Some(ep) = &self.any_router {
             return ep.call(req).await;
         }
