@@ -42,13 +42,13 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
+pub mod endpoint;
 pub mod error;
 pub mod middleware;
 pub mod route;
 pub mod web;
 
 mod body;
-mod endpoint;
 mod request;
 mod response;
 mod route_recognizer;

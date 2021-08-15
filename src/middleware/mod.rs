@@ -9,7 +9,7 @@ pub use strip_prefix::StripPrefix;
 use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
-pub trait Middleware<E> {
+pub trait Middleware<E: Endpoint> {
     /// New endpoint type.
     ///
     /// If you don't know what type to use, then you can use [`Box<dyn
