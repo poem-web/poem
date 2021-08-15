@@ -2,11 +2,17 @@
 
 mod add_data;
 mod cors;
+#[cfg(feature = "logger")]
+#[cfg_attr(docsrs, doc(cfg(feature = "logger")))]
+pub mod log;
 mod strip_prefix;
 
 pub use add_data::AddData;
 pub use cors::Cors;
 pub use strip_prefix::StripPrefix;
+
+#[cfg(feature = "logger")]
+pub use self::log::Logger;
 
 use crate::endpoint::Endpoint;
 

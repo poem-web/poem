@@ -25,6 +25,13 @@ impl Server {
     /// Run this server.
     pub async fn run(self, addr: impl ToSocketAddrs) -> IoResult<()> {
         let listener = TcpListener::bind(addr).await?;
+
+        #[cfg(feature = "logger")]
+        kv_log_macro::info!(
+            "Server listening on http://{}",
+            listener.local_addr().unwrap()
+        );
+
         loop {
             let (socket, _) = listener.accept().await?;
             tokio::spawn(serve_connection(socket, self.ep.clone()));
