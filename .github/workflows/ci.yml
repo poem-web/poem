@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Check format
-        run: cargo fmt --all -- --check
+        run: cargo +nightly fmt --all -- --check
       - name: Build
         run: cargo build --all --verbose
       - name: Run tests with async-std
