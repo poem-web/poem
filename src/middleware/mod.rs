@@ -6,7 +6,7 @@ mod strip_prefix;
 pub use add_data::AddData;
 pub use strip_prefix::StripPrefix;
 
-use crate::prelude::*;
+use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
 pub trait Middleware<E> {

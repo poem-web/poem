@@ -3,7 +3,7 @@ use std::{borrow::Cow, future::Future};
 use hyper::upgrade::OnUpgrade;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
-use super::WebSocketStream;
+use super::{utils::sign, WebSocketStream};
 use crate::{
     body::Body,
     error::{Error, Result},
@@ -14,7 +14,6 @@ use crate::{
     request::Request,
     response::Response,
     web::{FromRequest, IntoResponse},
-    websocket::utils::sign,
 };
 
 /// An extractor that can accept websocket connections.
@@ -118,7 +117,7 @@ impl WebSocket {
     #[must_use]
     pub fn on_upgrade<F, Fut>(self, callback: F) -> impl IntoResponse
     where
-        F: FnOnce(WebSocketStream) -> Fut + Send + 'static,
+        F: Fn(WebSocketStream) -> Fut + Send + Sync + 'static,
         Fut: Future + Send + 'static,
     {
         WebSocketUpgraded {
@@ -135,7 +134,7 @@ struct WebSocketUpgraded<F> {
 
 impl<F, Fut> IntoResponse for WebSocketUpgraded<F>
 where
-    F: FnOnce(WebSocketStream) -> Fut + Send + 'static,
+    F: Fn(WebSocketStream) -> Fut + Send + Sync + 'static,
     Fut: Future + Send + 'static,
 {
     fn into_response(self) -> Result<Response> {

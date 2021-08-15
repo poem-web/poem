@@ -7,13 +7,22 @@ mod json;
 mod multipart;
 mod path;
 mod query;
+#[cfg(feature = "sse")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
+pub mod sse;
+#[cfg(feature = "typed-headers")]
 mod typed_header;
+#[cfg(feature = "websocket")]
+#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+pub mod websocket;
 
 use std::convert::Infallible;
 
 use bytes::Bytes;
 
 /// Commonly used typed headers.
+#[cfg(feature = "typed-headers")]
+#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub mod type_headers {
     pub use typed_headers::{
         Accept, AcceptEncoding, Allow, AuthScheme, Authorization, ContentCoding, ContentEncoding,
@@ -30,6 +39,8 @@ pub use json::Json;
 pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
+#[cfg(feature = "typed-headers")]
+#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
 
 use crate::{
@@ -53,6 +64,12 @@ pub trait FromRequest: Sized {
 pub trait IntoResponse {
     /// Consume itself and return [`Response`].
     fn into_response(self) -> Result<Response>;
+}
+
+impl IntoResponse for Response {
+    fn into_response(self) -> Result<Response> {
+        Ok(self)
+    }
 }
 
 impl IntoResponse for String {

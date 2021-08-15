@@ -46,9 +46,6 @@ pub mod error;
 pub mod middleware;
 pub mod route;
 pub mod web;
-#[cfg(feature = "websocket")]
-#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
-pub mod websocket;
 
 mod body;
 mod endpoint;
