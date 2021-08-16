@@ -28,6 +28,7 @@ multipart = ["multer"]
 tls = ["tokio-rustls"]
 sse = []
 compression = ["async-compression"]
+logger = ["tracing", "tracing-subscriber"]
 
 [dependencies]
 poem-derive = { path = "derive", version = "0.1.0" }
@@ -47,6 +48,9 @@ serde_urlencoded = "0.7.0"
 sha1 = "0.6.0"
 base64 = "0.13.0"
 tokio-stream = "0.1.7"
+
+tracing = { version = "0.1", optional = true }
+tracing-subscriber = { version = "0.2", optional = true }
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }

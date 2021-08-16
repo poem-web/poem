@@ -6,6 +6,13 @@ mod compression;
 mod cors;
 mod strip_prefix;
 
+#[cfg(feature = "logger")]
+/// logger
+pub mod log;
+
+#[cfg(feature = "logger")]
+pub use log::Logger;
+
 pub use add_data::AddData;
 #[cfg(feature = "compression")]
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]

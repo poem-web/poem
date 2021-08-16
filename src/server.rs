@@ -25,6 +25,12 @@ impl Server {
     /// Run this server.
     pub async fn run(self, addr: impl ToSocketAddrs) -> IoResult<()> {
         let listener = TcpListener::bind(addr).await?;
+
+        tracing::info!(
+            "Server listening on http://{}",
+            listener.local_addr().unwrap()
+        );
+
         loop {
             let (socket, _) = listener.accept().await?;
             tokio::spawn(serve_connection(socket, self.ep.clone()));
