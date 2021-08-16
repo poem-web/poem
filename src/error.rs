@@ -79,6 +79,12 @@ impl Error {
         }
     }
 
+    /// Returns the associated status code.
+    #[inline]
+    pub fn status(&self) -> StatusCode {
+        self.status
+    }
+
     /// Attempts to downcast the error to a concrete error type.
     #[inline]
     pub fn downcast_ref<T>(&self) -> Option<&T>
