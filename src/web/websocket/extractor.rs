@@ -6,14 +6,14 @@ use tokio_tungstenite::tungstenite::protocol::Role;
 use super::{utils::sign, WebSocketStream};
 use crate::{
     body::Body,
-    error::{Error, Result},
+    error::{Error, ErrorBodyHasBeenTaken, Result},
     http::{
         header::{self, HeaderValue},
         Method, StatusCode,
     },
     request::Request,
     response::Response,
-    web::{FromRequest, IntoResponse},
+    web::{FromRequest, IntoResponse, RequestParts},
 };
 
 /// An extractor that can accept websocket connections.
@@ -25,26 +25,37 @@ pub struct WebSocket {
 }
 
 #[async_trait::async_trait]
-impl FromRequest for WebSocket {
-    async fn from_request(req: &mut Request) -> Result<Self> {
-        if req.method() != Method::GET
-            || req.headers().get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
-            || req.headers().get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
-            || req.headers().get(header::SEC_WEBSOCKET_VERSION)
+impl<'a> FromRequest<'a> for WebSocket {
+    async fn from_request(parts: &'a RequestParts, body: &mut Option<Body>) -> Result<Self> {
+        if parts.method != Method::GET
+            || parts.headers.get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
+            || parts.headers.get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
+            || parts.headers.get(header::SEC_WEBSOCKET_VERSION)
                 == Some(&HeaderValue::from_static("13"))
         {
             return Err(Error::bad_request(anyhow::anyhow!("bad request")));
         }
 
-        let key = req
-            .headers()
+        let key = parts
+            .headers
             .get(header::SEC_WEBSOCKET_KEY)
             .cloned()
             .ok_or_else(|| Error::bad_request(anyhow::anyhow!("bad request")))?;
 
-        let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
+        let sec_websocket_protocol = parts.headers.get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
-        let req = req.take_http_request();
+        let mut req = {
+            let mut req = hyper::Request::default();
+
+            *req.method_mut() = parts.method.clone();
+            *req.uri_mut() = parts.uri.clone();
+            *req.version_mut() = parts.version;
+            *req.headers_mut() = parts.headers.clone();
+            *req.body_mut() = body.take().ok_or(ErrorBodyHasBeenTaken)?.0;
+
+            req
+        };
+
         let on_upgrade = hyper::upgrade::on(req);
         Ok(Self {
             key,

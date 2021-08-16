@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
+    body::Body,
     error::{Error, Result},
-    request::Request,
-    web::FromRequest,
+    web::{FromRequest, RequestParts},
 };
 
 /// An extractor that can extract data from the request extension.
@@ -38,11 +38,11 @@ impl<T> DerefMut for Data<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: Clone + Send + Sync + 'static> FromRequest for Data<T> {
-    async fn from_request(req: &mut Request) -> Result<Self> {
-        req.extensions()
+impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
+    async fn from_request(parts: &'a RequestParts, _body: &mut Option<Body>) -> Result<Self> {
+        parts
+            .extensions
             .get::<T>()
-            .cloned()
             .ok_or_else(|| {
                 Error::internal_server_error(anyhow::anyhow!(
                     "Data of type `{}` was not found.",

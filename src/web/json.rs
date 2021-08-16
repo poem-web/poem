@@ -3,11 +3,11 @@ use std::ops::{Deref, DerefMut};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    error::{Error, Result},
+    body::Body,
+    error::{Error, ErrorBodyHasBeenTaken, Result},
     http::header,
-    request::Request,
     response::Response,
-    web::{FromRequest, IntoResponse},
+    web::{FromRequest, IntoResponse, RequestParts},
 };
 
 /// JSON extractor and response.
@@ -66,9 +66,13 @@ impl<T> DerefMut for Json<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: DeserializeOwned> FromRequest for Json<T> {
-    async fn from_request(req: &mut Request) -> Result<Self> {
-        let data = req.take_body().into_bytes().await?;
+impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
+    async fn from_request(_parts: &'a RequestParts, body: &mut Option<Body>) -> Result<Self> {
+        let data = body
+            .take()
+            .ok_or(ErrorBodyHasBeenTaken)?
+            .into_bytes()
+            .await?;
         Ok(Self(
             serde_json::from_slice(&data).map_err(Error::bad_request)?,
         ))

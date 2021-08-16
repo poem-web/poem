@@ -5,10 +5,10 @@ use std::ops::{Deref, DerefMut};
 use serde::de::DeserializeOwned;
 
 use crate::{
+    body::Body,
     error::{Error, ErrorInvalidPathParams, ErrorMissingRouteParams, Result},
-    request::Request,
     route_recognizer::Params,
-    web::FromRequest,
+    web::{FromRequest, RequestParts},
 };
 
 /// An extractor that will get captures from the URL and parse them using
@@ -82,13 +82,10 @@ impl<T> DerefMut for Path<T> {
 }
 
 #[async_trait::async_trait]
-impl<T> FromRequest for Path<T>
-where
-    T: DeserializeOwned + Send,
-{
-    async fn from_request(req: &mut Request) -> Result<Self> {
-        let params = req
-            .extensions_mut()
+impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
+    async fn from_request(parts: &'a RequestParts, _body: &mut Option<Body>) -> Result<Self> {
+        let params = parts
+            .extensions
             .get::<Params>()
             .ok_or_else(|| Into::<Error>::into(ErrorMissingRouteParams))?;
         T::deserialize(de::PathDeserializer::new(params))

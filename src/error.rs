@@ -223,6 +223,9 @@ define_simple_errors!(
     /// This error occurs when the path does not match.
     (ErrorNotFound, BAD_REQUEST, "not found");
 
+    /// This error occurs when the body has been taken.
+    (ErrorBodyHasBeenTaken, INTERNAL_SERVER_ERROR, "the body has been taken");
+
     /// This error occurs when the status code is invalid.
     (ErrorMissingRouteParams, INTERNAL_SERVER_ERROR, "missing route params");
 

@@ -16,6 +16,11 @@ categories = [
     "web-programming::websocket",
 ]
 
+[workspace]
+members = [
+    "derive"
+]
+
 [features]
 default = []
 websocket = ["tokio-tungstenite"]
@@ -25,6 +30,8 @@ sse = []
 compression = ["async-compression"]
 
 [dependencies]
+poem-derive = { path = "derive", version = "0.1.0" }
+
 async-trait = "0.1.51"
 anyhow = "1.0.42"
 bytes = "1.0.1"

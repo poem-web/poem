@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    endpoint::{Endpoint, FnHandler, FnHandlerWrapper},
+    endpoint::Endpoint,
     error::{Error, ErrorNotFound, Result},
     http::Method,
     request::Request,
@@ -73,13 +73,9 @@ macro_rules! define_method_fn {
     ($($(#[$docs:meta])* ($name:ident, $method:ident);)*) => {
         $(
         $(#[$docs])*
-        pub fn $name<T, In>(ep: T) -> RouteMethod
-        where
-            T: FnHandler<In> + 'static,
-            In: Send + Sync + 'static,
-        {
+        pub fn $name(ep: impl Endpoint) -> RouteMethod {
             let mut router = RouteMethod::default();
-            router.router.insert(Method::$method, Box::new(FnHandlerWrapper::new(ep)) as Box<dyn Endpoint>);
+            router.router.insert(Method::$method, Box::new(ep));
             router
         }
         )*
@@ -119,12 +115,8 @@ macro_rules! define_methods {
     ($($(#[$docs:meta])* ($name:ident, $method:ident);)*) => {
         $(
         $(#[$docs])*
-        pub fn $name<T, In>(mut self, ep: T) -> Self
-        where
-            T: FnHandler<In> + 'static,
-            In: Send + Sync + 'static,
-        {
-            self.router.insert(Method::$method, Box::new(FnHandlerWrapper::new(ep)));
+        pub fn $name(mut self, ep: impl Endpoint) -> Self {
+            self.router.insert(Method::$method, Box::new(ep));
             self
         }
         )*
@@ -140,23 +132,14 @@ pub struct RouteMethod {
 
 impl RouteMethod {
     /// Set a [`FnHandler`] to the specified method type.
-    pub fn method<T, In>(mut self, method: Method, ep: T) -> Self
-    where
-        T: FnHandler<In> + 'static,
-        In: Send + Sync + 'static,
-    {
-        self.router
-            .insert(method, Box::new(FnHandlerWrapper::new(ep)));
+    pub fn method(mut self, method: Method, ep: impl Endpoint) -> Self {
+        self.router.insert(method, Box::new(ep));
         self
     }
 
     /// Set [`FnHandler`] to all method types.
-    pub fn any<T, In>(mut self, ep: T) -> Self
-    where
-        T: FnHandler<In> + 'static,
-        In: Send + Sync + 'static,
-    {
-        self.any_router = Some(Box::new(FnHandlerWrapper::new(ep)));
+    pub fn any(mut self, ep: impl Endpoint) -> Self {
+        self.any_router = Some(Box::new(ep));
         self
     }
 

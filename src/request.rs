@@ -10,15 +10,8 @@ use crate::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
     },
+    web::RequestParts,
 };
-
-struct Parts {
-    method: Method,
-    uri: Uri,
-    version: Version,
-    headers: HeaderMap,
-    extensions: Extensions,
-}
 
 /// Represents an HTTP request.
 pub struct Request {
@@ -45,7 +38,7 @@ impl Request {
 
     /// Creates a request builder.
     pub fn builder() -> RequestBuilder {
-        RequestBuilder(Ok(Parts {
+        RequestBuilder(Ok(RequestParts {
             method: Method::GET,
             uri: Default::default(),
             version: Default::default(),
@@ -126,22 +119,23 @@ impl Request {
         std::mem::take(&mut self.body)
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn take_http_request(&mut self) -> hyper::Request<hyper::Body> {
-        let mut http_req = http::request::Request::default();
-
-        *http_req.method_mut() = self.method.clone();
-        *http_req.uri_mut() = self.uri.clone();
-        *http_req.version_mut() = self.version;
-        *http_req.headers_mut() = self.headers.clone();
-        *http_req.body_mut() = self.take_body().0;
-
-        http_req
+    /// Converts this request into [`RequestParts`].
+    pub fn into_parts(self) -> (RequestParts, Body) {
+        (
+            RequestParts {
+                method: self.method,
+                uri: self.uri,
+                version: self.version,
+                headers: self.headers,
+                extensions: self.extensions,
+            },
+            self.body,
+        )
     }
 }
 
 /// An request builder.
-pub struct RequestBuilder(Result<Parts>);
+pub struct RequestBuilder(Result<RequestParts>);
 
 impl RequestBuilder {
     /// Sets the HTTP method for this request.
@@ -149,7 +143,7 @@ impl RequestBuilder {
     /// By default this is [`Method::GET`].
     #[must_use]
     pub fn method(self, method: Method) -> RequestBuilder {
-        Self(self.0.map(move |parts| Parts { method, ..parts }))
+        Self(self.0.map(move |parts| RequestParts { method, ..parts }))
     }
 
     /// Sets the URI for this request.
@@ -161,7 +155,7 @@ impl RequestBuilder {
         T: TryInto<Uri, Error = Error>,
     {
         Self(self.0.and_then(move |parts| {
-            Ok(Parts {
+            Ok(RequestParts {
                 uri: uri.try_into()?,
                 ..parts
             })
@@ -171,7 +165,7 @@ impl RequestBuilder {
     /// Sets the HTTP version for this request.
     #[must_use]
     pub fn version(self, version: Version) -> RequestBuilder {
-        Self(self.0.map(move |parts| Parts { version, ..parts }))
+        Self(self.0.map(move |parts| RequestParts { version, ..parts }))
     }
 
     /// Appends a header to this request builder.

@@ -21,14 +21,14 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
-        .data(StarWars::new())
-        .finish();
-
-    let app = route()
-        .at("/", get(graphql_playground).post(graphql_handler))
-        .with(AddData::new(schema));
-
-    println!("Playground: http://localhost:3000");
-    serve(app).run("0.0.0.0:3000").await.unwrap();
+    // let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+    //     .data(StarWars::new())
+    //     .finish();
+    //
+    // let app = route()
+    //     .at("/", get(graphql_playground).post(graphql_handler))
+    //     .with(AddData::new(schema));
+    //
+    // println!("Playground: http://localhost:3000");
+    // serve(app).run("0.0.0.0:3000").await.unwrap();
 }

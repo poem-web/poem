@@ -1,0 +1,15 @@
+[package]
+name = "poem-derive"
+version = "0.1.0"
+authors = ["sunli <scott_s829@163.com>"]
+edition = "2018"
+description = "Macros for poem"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro-crate = "1.0.0"
+proc-macro2 = "1.0.28"
+quote = "1.0.9"
+syn = "1.0.74"
