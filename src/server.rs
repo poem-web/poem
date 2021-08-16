@@ -14,7 +14,7 @@ use tokio_rustls::{
     TlsAcceptor,
 };
 
-use crate::{endpoint::Endpoint, request::Request};
+use crate::{Endpoint, Request};
 
 /// An HTTP Server.
 pub struct Server {

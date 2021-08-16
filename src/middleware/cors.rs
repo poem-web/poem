@@ -10,7 +10,8 @@ use crate::{
         Method, StatusCode,
     },
     middleware::Middleware,
-    prelude::{Request, Response},
+    request::Request,
+    response::Response,
 };
 
 #[derive(Default)]

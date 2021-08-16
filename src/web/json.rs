@@ -3,11 +3,8 @@ use std::ops::{Deref, DerefMut};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    body::Body,
-    error::{Error, ErrorBodyHasBeenTaken, Result},
-    http::header,
-    response::Response,
-    web::{FromRequest, IntoResponse, RequestParts},
+    error::ErrorBodyHasBeenTaken, http::header, Body, Error, FromRequest, IntoResponse, Request,
+    Response, Result,
 };
 
 /// JSON extractor and response.
@@ -18,15 +15,15 @@ use crate::{
 /// [`serde::Deserialize`].
 ///
 /// ```
-/// use serde::Deserialize;
 /// use poem::web::Json;
+/// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
 /// struct User {
 ///     name: String,
 /// }
 ///
-/// async fn index(Json(user) : Json<User>) -> String {
+/// async fn index(Json(user): Json<User>) -> String {
 ///     format!("welcome {}!", user.name)
 /// }
 /// ```
@@ -37,8 +34,8 @@ use crate::{
 /// [`serde::Serialize`].
 ///
 /// ```
-/// use serde::Serialize;
 /// use poem::web::Json;
+/// use serde::Serialize;
 ///
 /// #[derive(Serialize)]
 /// struct User {
@@ -46,7 +43,9 @@ use crate::{
 /// }
 ///
 /// async fn index() -> Json<User> {
-///     Json(User { name: "sunli".to_string() })
+///     Json(User {
+///         name: "sunli".to_string(),
+///     })
 /// }
 /// ```
 pub struct Json<T>(pub T);
@@ -67,7 +66,7 @@ impl<T> DerefMut for Json<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
-    async fn from_request(_parts: &'a RequestParts, body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(_req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
         let data = body
             .take()
             .ok_or(ErrorBodyHasBeenTaken)?

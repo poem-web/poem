@@ -1,22 +1,17 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{
-    body::Body,
-    error::{Error, Result},
-    web::{FromRequest, RequestParts},
-};
+use crate::{Body, Error, FromRequest, Request, Result};
 
 /// An extractor that can extract data from the request extension.
 ///
 /// # Example
 ///
 /// ```
-/// use poem::web::Data;
-/// use poem::middleware::AddData;
-/// use poem::prelude::*;
+/// use poem::{get, handler, middleware::AddData, route, web::Data, EndpointExt};
 ///
-/// async fn index(data: Data<i32>) {
-///     assert_eq!(data.0, 10);
+/// #[handler]
+/// async fn index(data: Data<&i32>) {
+///     assert_eq!(*data.0, 10);
 /// }
 ///
 /// let app = route().at("/", get(index)).with(AddData::new(10));
@@ -39,9 +34,8 @@ impl<T> DerefMut for Data<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
-    async fn from_request(parts: &'a RequestParts, _body: &mut Option<Body>) -> Result<Self> {
-        parts
-            .extensions
+    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+        req.extensions()
             .get::<T>()
             .ok_or_else(|| {
                 Error::internal_server_error(anyhow::anyhow!(

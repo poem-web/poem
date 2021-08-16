@@ -12,9 +12,9 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::web::Path;
-//! use poem::prelude::*;
+//! use poem::{get, handler, route, serve, web::Path};
 //!
+//! #[handler]
 //! async fn hello(Path(name): Path<String>) -> String {
 //!     format!("hello: {}", name)
 //! }
@@ -51,31 +51,26 @@ pub mod route;
 pub mod service;
 pub mod web;
 
+#[doc(inline)]
+pub use http;
+
 mod body;
 mod request;
 mod response;
 mod route_recognizer;
 mod server;
+mod utils;
 
-#[doc(inline)]
-pub use http;
-pub use server::Server;
+pub use async_trait::async_trait;
+pub use body::Body;
+pub use endpoint::{Endpoint, EndpointExt};
+pub use error::{Error, Result};
+pub use middleware::Middleware;
+pub use poem_derive::handler;
+pub use request::{Request, RequestBuilder, RequestParts};
+pub use response::{Response, ResponseBuilder};
+pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
 #[cfg(feature = "tls")]
 pub use server::TlsServer;
-
-/// Re-exports of important traits, types, and functions used with Poem.
-pub mod prelude {
-    pub use async_trait::async_trait;
-    pub use body::Body;
-    pub use endpoint::{Endpoint, EndpointExt};
-    pub use error::{Error, Result};
-    pub use middleware::Middleware;
-    pub use poem_derive::handler;
-    pub use request::{Request, RequestBuilder};
-    pub use response::{Response, ResponseBuilder};
-    pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
-    pub use server::serve;
-    pub use web::{FromRequest, IntoResponse, RequestParts};
-
-    use super::*;
-}
+pub use server::{serve, Server};
+pub use web::{FromRequest, IntoResponse};

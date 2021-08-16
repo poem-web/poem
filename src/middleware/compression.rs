@@ -1,17 +1,21 @@
 use tokio::io::BufReader;
 
-use crate::{
-    body::Body, endpoint::Endpoint, error::Result, http::header, middleware::Middleware,
-    request::Request, response::Response,
-};
+use crate::{http::header, Body, Endpoint, Middleware, Request, Response, Result};
 
+/// The compression algorithms.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum CompressionAlgo {
+    /// brotli
     BR,
+
+    /// deflate
     DEFLATE,
+
+    /// gzip
     GZIP,
 }
 
+/// Middleware for decompress the request body.
 pub struct Decompress;
 
 impl<E: Endpoint> Middleware<E> for Decompress {
@@ -38,19 +42,19 @@ impl<E: Endpoint> Endpoint for DecompressImpl<E> {
 
         match encoding {
             "br" => {
-                let body = req.take_body().into_async_read();
+                let body = req.take_body()?.into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::BrotliDecoder::new(BufReader::new(body)),
                 ));
             }
             "deflate" => {
-                let body = req.take_body().into_async_read();
+                let body = req.take_body()?.into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(body)),
                 ));
             }
             "gzip" => {
-                let body = req.take_body().into_async_read();
+                let body = req.take_body()?.into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::GzipDecoder::new(BufReader::new(body)),
                 ));
@@ -62,11 +66,13 @@ impl<E: Endpoint> Endpoint for DecompressImpl<E> {
     }
 }
 
+/// Middleware for compresses the response body with the specified algorithm.
 pub struct Compress {
     algo: CompressionAlgo,
 }
 
 impl Compress {
+    /// Creates Compress middleware used specified algorithm.
     pub fn new(algo: CompressionAlgo) -> Self {
         Self { algo }
     }
@@ -93,7 +99,7 @@ pub struct CompressImpl<E> {
 impl<E: Endpoint> Endpoint for CompressImpl<E> {
     async fn call(&self, req: Request) -> Result<Response> {
         let mut resp = self.inner.call(req).await?;
-        let body = resp.take_body().into_async_read();
+        let body = resp.take_body()?.into_async_read();
 
         match self.algo {
             CompressionAlgo::BR => {

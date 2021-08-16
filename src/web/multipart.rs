@@ -4,11 +4,7 @@ use futures_util::TryStreamExt;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
-    body::Body,
-    error::{Error, ErrorBodyHasBeenTaken, Result},
-    http::header,
-    request::Request,
-    web::{FromRequest, RequestParts},
+    error::ErrorBodyHasBeenTaken, http::header, Body, Error, FromRequest, Request, Result,
 };
 
 /// A single field in a multipart stream.
@@ -74,8 +70,7 @@ impl Field {
 /// # Example
 ///
 /// ```
-/// use poem::web::Multipart;
-/// use poem::prelude::*;
+/// use poem::{web::Multipart, Result};
 ///
 /// async fn upload(mut multipart: Multipart) -> Result<()> {
 ///     while let Some(field) = multipart.next_field().await? {
@@ -91,10 +86,9 @@ pub struct Multipart {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Multipart {
-    async fn from_request(parts: &'a RequestParts, body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
         let boundary = multer::parse_boundary(
-            parts
-                .headers
+            req.headers()
                 .get(header::CONTENT_TYPE)
                 .ok_or_else(|| Error::bad_request(anyhow::anyhow!("expect `Content-Type` header")))?
                 .to_str()

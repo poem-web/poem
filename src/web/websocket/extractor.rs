@@ -5,15 +5,12 @@ use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::{utils::sign, WebSocketStream};
 use crate::{
-    body::Body,
-    error::{Error, ErrorBodyHasBeenTaken, Result},
+    error::ErrorBodyHasBeenTaken,
     http::{
         header::{self, HeaderValue},
         Method, StatusCode,
     },
-    request::Request,
-    response::Response,
-    web::{FromRequest, IntoResponse, RequestParts},
+    Body, Error, FromRequest, IntoResponse, Request, Response, Result,
 };
 
 /// An extractor that can accept websocket connections.
@@ -26,37 +23,37 @@ pub struct WebSocket {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for WebSocket {
-    async fn from_request(parts: &'a RequestParts, body: &mut Option<Body>) -> Result<Self> {
-        if parts.method != Method::GET
-            || parts.headers.get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
-            || parts.headers.get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
-            || parts.headers.get(header::SEC_WEBSOCKET_VERSION)
+    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
+        if req.method() != Method::GET
+            || req.headers().get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
+            || req.headers().get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
+            || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 == Some(&HeaderValue::from_static("13"))
         {
             return Err(Error::bad_request(anyhow::anyhow!("bad request")));
         }
 
-        let key = parts
-            .headers
+        let key = req
+            .headers()
             .get(header::SEC_WEBSOCKET_KEY)
             .cloned()
             .ok_or_else(|| Error::bad_request(anyhow::anyhow!("bad request")))?;
 
-        let sec_websocket_protocol = parts.headers.get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
+        let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
-        let mut req = {
-            let mut req = hyper::Request::default();
+        let hyper_req = {
+            let mut hyper_req = hyper::Request::default();
 
-            *req.method_mut() = parts.method.clone();
-            *req.uri_mut() = parts.uri.clone();
-            *req.version_mut() = parts.version;
-            *req.headers_mut() = parts.headers.clone();
-            *req.body_mut() = body.take().ok_or(ErrorBodyHasBeenTaken)?.0;
+            *hyper_req.method_mut() = req.method().clone();
+            *hyper_req.uri_mut() = req.uri().clone();
+            *hyper_req.version_mut() = req.version();
+            *hyper_req.headers_mut() = req.headers().clone();
+            *hyper_req.body_mut() = body.take().ok_or(ErrorBodyHasBeenTaken)?.0;
 
-            req
+            hyper_req
         };
 
-        let on_upgrade = hyper::upgrade::on(req);
+        let on_upgrade = hyper::upgrade::on(hyper_req);
         Ok(Self {
             key,
             on_upgrade,
@@ -74,14 +71,14 @@ impl WebSocket {
     /// `Sec-WebSocket-Protocol` header and return the protocol name.
     ///
     /// ```
-    /// use futures_util::{StreamExt, SinkExt};
-    /// use poem::web::websocket::WebSocket;
-    /// use poem::prelude::*;
+    /// use futures_util::{SinkExt, StreamExt};
+    /// use poem::{get, route, web::websocket::WebSocket, IntoResponse};
     ///
     /// async fn index(ws: WebSocket) -> impl IntoResponse {
-    ///     ws.protocols(vec!["graphql-rs", "graphql-transport-ws"]).on_upgrade(|socket| async move {
-    ///         // ...
-    ///     })
+    ///     ws.protocols(vec!["graphql-rs", "graphql-transport-ws"])
+    ///         .on_upgrade(|socket| async move {
+    ///             // ...
+    ///         })
     /// }
     ///
     /// let app = route().at("/", get(index));

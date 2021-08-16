@@ -1,5 +1,4 @@
-use super::Endpoint;
-use crate::{error::Result, request::Request, response::Response};
+use crate::{Endpoint, Request, Response, Result};
 
 /// Endpoint for the [`map`](super::EndpointExt::map) method.
 pub struct Map<E, F> {

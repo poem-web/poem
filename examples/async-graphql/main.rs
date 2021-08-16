@@ -5,9 +5,11 @@ use async_graphql::{
     EmptyMutation, EmptySubscription, Request, Response, Schema,
 };
 use poem::{
+    get, handler,
     middleware::AddData,
-    prelude::*,
+    route, serve,
     web::{Data, Html, Json},
+    EndpointExt, IntoResponse,
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 

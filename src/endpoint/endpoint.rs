@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::{AndThen, Before, Map, MapErr, MapOk};
-use crate::{error::Result, middleware::Middleware, request::Request, response::Response};
+use crate::{Middleware, Request, Response, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
@@ -31,11 +31,10 @@ pub trait EndpointExt: Endpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::web::Data;
-    /// use poem::middleware::AddData;
-    /// use poem::prelude::*;
+    /// use poem::{get, handler, middleware::AddData, route, web::Data, EndpointExt};
     ///
-    /// async fn index(Data(data): Data<i32>) -> String {
+    /// #[handler]
+    /// async fn index(Data(data): Data<&i32>) -> String {
     ///     format!("{}", data)
     /// }
     ///

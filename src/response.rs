@@ -1,12 +1,12 @@
 use std::{any::Any, convert::TryFrom};
 
 use crate::{
-    body::Body,
-    error::{Error, Result},
+    error::ErrorBodyHasBeenTaken,
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, StatusCode, Version,
     },
+    Body, Error, Result,
 };
 
 struct Parts {
@@ -22,12 +22,16 @@ pub struct Response {
     version: Version,
     headers: HeaderMap,
     extensions: Extensions,
-    body: Body,
+    body: Option<Body>,
 }
 
 impl Response {
     pub(crate) fn into_http_response(self) -> hyper::Response<hyper::Body> {
-        let mut resp = hyper::Response::new(self.body.0);
+        let mut resp = hyper::Response::new(
+            self.body
+                .map(|body| body.0)
+                .unwrap_or_else(|| hyper::Body::empty()),
+        );
         *resp.status_mut() = self.status;
         *resp.version_mut() = self.version;
         *resp.headers_mut() = self.headers;
@@ -95,14 +99,14 @@ impl Response {
 
     /// Sets the body for this response.
     pub fn set_body(&mut self, body: Body) {
-        self.body = body;
+        self.body = Some(body);
     }
 
     /// Take the body from this response and sets the body to empty.
     #[inline]
     #[must_use]
-    pub fn take_body(&mut self) -> Body {
-        std::mem::take(&mut self.body)
+    pub fn take_body(&mut self) -> Result<Body> {
+        self.body.take().ok_or(ErrorBodyHasBeenTaken.into())
     }
 }
 
@@ -184,7 +188,7 @@ impl ResponseBuilder {
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body,
+            body: Some(body),
         })
     }
 }

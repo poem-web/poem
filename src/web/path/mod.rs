@@ -5,10 +5,10 @@ use std::ops::{Deref, DerefMut};
 use serde::de::DeserializeOwned;
 
 use crate::{
-    body::Body,
-    error::{Error, ErrorInvalidPathParams, ErrorMissingRouteParams, Result},
+    error::{ErrorInvalidPathParams, ErrorMissingRouteParams},
     route_recognizer::Params,
-    web::{FromRequest, RequestParts},
+    utils::InternalData,
+    Body, Error, FromRequest, Request, Result,
 };
 
 /// An extractor that will get captures from the URL and parse them using
@@ -17,12 +17,10 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// use poem::web::Path;
-/// use poem::prelude::*;
+/// use poem::{get, handler, route, web::Path};
 ///
-/// async fn users_teams_show(
-///     Path((user_id, team_id)): Path<(String, String)>,
-/// ) {
+/// #[handler]
+/// async fn users_teams_show(Path((user_id, team_id)): Path<(String, String)>) {
 ///     // ...
 /// }
 ///
@@ -32,9 +30,9 @@ use crate::{
 /// If the path contains only one parameter, then you can omit the tuple.
 ///
 /// ```
-/// use poem::web::Path;
-/// use poem::prelude::*;
+/// use poem::{get, handler, route, web::Path};
 ///
+/// #[handler]
 /// async fn user_info(Path(user_id): Path<String>) {
 ///     // ...
 /// }
@@ -46,8 +44,7 @@ use crate::{
 /// Path segment labels will be matched with struct field names.
 ///
 /// ```
-/// use poem::web::Path;
-/// use poem::prelude::*;
+/// use poem::{get, handler, route, web::Path};
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -56,9 +53,8 @@ use crate::{
 ///     team_id: String,
 /// }
 ///
-/// async fn users_teams_show(
-///     Path(Params { user_id, team_id }): Path<Params>,
-/// ) {
+/// #[handler]
+/// async fn users_teams_show(Path(Params { user_id, team_id }): Path<Params>) {
 ///     // ...
 /// }
 ///
@@ -83,10 +79,10 @@ impl<T> DerefMut for Path<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
-    async fn from_request(parts: &'a RequestParts, _body: &mut Option<Body>) -> Result<Self> {
-        let params = parts
-            .extensions
-            .get::<Params>()
+    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+        let params = req
+            .extensions()
+            .get::<InternalData<Params>>()
             .ok_or_else(|| Into::<Error>::into(ErrorMissingRouteParams))?;
         T::deserialize(de::PathDeserializer::new(params))
             .map_err(|_| ErrorInvalidPathParams.into())

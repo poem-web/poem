@@ -1,9 +1,4 @@
-use super::Endpoint;
-use crate::{
-    error::{Error, Result},
-    request::Request,
-    response::Response,
-};
+use crate::{Endpoint, Error, Request, Response, Result};
 
 /// Endpoint for the [`map_err`](super::EndpointExt::map_err) method.
 pub struct MapErr<E, F> {

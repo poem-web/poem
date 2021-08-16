@@ -1,4 +1,4 @@
-use poem::{prelude::*, web::Path};
+use poem::{get, handler, route, serve, web::Path};
 
 #[handler]
 async fn hello(Path(name): Path<String>) -> String {

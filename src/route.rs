@@ -3,12 +3,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    endpoint::Endpoint,
-    error::{Error, ErrorNotFound, Result},
-    http::Method,
-    request::Request,
-    response::Response,
-    route_recognizer::Router,
+    error::ErrorNotFound, http::Method, route_recognizer::Router, utils::InternalData, Endpoint,
+    Error, Request, Response, Result,
 };
 
 /// Routing object
@@ -26,13 +22,15 @@ impl Route {
     /// # Example
     ///
     /// ```
-    /// use poem::prelude::*;
-    /// use poem::web::Path;
+    /// use poem::{get, handler, route, web::Path};
     ///
+    /// #[handler]
     /// async fn a() {}
     ///
+    /// #[handler]
     /// async fn b(Path((group, name)): Path<(String, String)>) {}
     ///
+    /// #[handler]
     /// async fn c(Path(path): Path<String>) {}
     ///
     /// let app = route()
@@ -64,7 +62,7 @@ impl Endpoint for Route {
             .recognize(req.uri().path())
             .ok()
             .ok_or_else(|| Into::<Error>::into(ErrorNotFound))?;
-        req.extensions_mut().insert(m.params);
+        req.extensions_mut().insert(InternalData(m.params));
         m.handler.call(req).await
     }
 }

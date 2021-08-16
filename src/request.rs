@@ -5,13 +5,30 @@ use std::{
 
 use crate::{
     body::Body,
-    error::{Error, Result},
+    error::{Error, ErrorBodyHasBeenTaken, Result},
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
     },
-    web::RequestParts,
 };
+
+/// Component parts of an HTTP Request
+pub struct RequestParts {
+    /// The request’s method
+    method: Method,
+
+    /// The request’s URI
+    uri: Uri,
+
+    /// The request’s version
+    version: Version,
+
+    /// The request’s headers
+    headers: HeaderMap,
+
+    /// The request’s extensions
+    extensions: Extensions,
+}
 
 /// Represents an HTTP request.
 pub struct Request {
@@ -20,7 +37,7 @@ pub struct Request {
     version: Version,
     headers: HeaderMap,
     extensions: Extensions,
-    body: Body,
+    body: Option<Body>,
 }
 
 impl Request {
@@ -32,7 +49,7 @@ impl Request {
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body: Body(body),
+            body: Some(Body(body)),
         })
     }
 
@@ -109,28 +126,14 @@ impl Request {
 
     /// Sets the body for this request.
     pub fn set_body(&mut self, body: Body) {
-        self.body = body;
+        self.body = Some(body);
     }
 
     /// Take the body from this request and sets the body to empty.
     #[inline]
     #[must_use]
-    pub fn take_body(&mut self) -> Body {
-        std::mem::take(&mut self.body)
-    }
-
-    /// Converts this request into [`RequestParts`].
-    pub fn into_parts(self) -> (RequestParts, Body) {
-        (
-            RequestParts {
-                method: self.method,
-                uri: self.uri,
-                version: self.version,
-                headers: self.headers,
-                extensions: self.extensions,
-            },
-            self.body,
-        )
+    pub fn take_body(&mut self) -> Result<Body> {
+        self.body.take().ok_or(ErrorBodyHasBeenTaken.into())
     }
 }
 
@@ -227,7 +230,7 @@ impl RequestBuilder {
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body,
+            body: Some(body),
         })
     }
 }

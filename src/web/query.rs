@@ -2,11 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::{
-    body::Body,
-    error::{Error, Result},
-    web::{FromRequest, RequestParts},
-};
+use crate::{Body, Error, FromRequest, Request, Result};
 
 /// An extractor that can deserialize some type from query string.
 pub struct Query<T>(pub T);
@@ -27,8 +23,8 @@ impl<T> DerefMut for Query<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Query<T> {
-    async fn from_request(parts: &'a RequestParts, _body: &mut Option<Body>) -> Result<Self> {
-        serde_urlencoded::from_str(parts.uri.query().unwrap_or_default())
+    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+        serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
             .map_err(Error::bad_request)
             .map(Self)
     }

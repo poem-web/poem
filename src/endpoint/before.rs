@@ -1,5 +1,4 @@
-use super::Endpoint;
-use crate::{error::Result, request::Request, response::Response};
+use crate::{Endpoint, Request, Response, Result};
 
 /// Endpoint for the [`before`](super::EndpointExt::before) method.
 pub struct Before<E, F> {

@@ -3,7 +3,7 @@ use futures_util::{Stream, StreamExt};
 use tokio::time::Duration;
 
 use super::Event;
-use crate::{body::Body, error::Result, response::Response, web::IntoResponse};
+use crate::{Body, IntoResponse, Response, Result};
 
 /// An SSE response.
 pub struct SSE<T> {

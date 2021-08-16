@@ -1,5 +1,4 @@
-use super::Endpoint;
-use crate::{error::Result, request::Request, response::Response};
+use crate::{Endpoint, Request, Response, Result};
 
 /// Endpoint for the [`map_ok`](super::EndpointExt::map_ok) method.
 pub struct MapOk<E, F> {

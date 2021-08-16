@@ -40,7 +40,7 @@ fn generate_handler(_args: TokenStream, input: TokenStream) -> Result<TokenStrea
             let ty = &pat.ty;
             let pat = &pat.pat;
             args.push(pat);
-            extractors.push(quote! { let #pat = <#ty as #crate_name::prelude::FromRequest>::from_request(&parts, &mut body).await?; });
+            extractors.push(quote! { let #pat = <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await?; });
         }
     }
 
@@ -49,16 +49,15 @@ fn generate_handler(_args: TokenStream, input: TokenStream) -> Result<TokenStrea
         #vis struct #ident;
 
         #[async_trait::async_trait]
-        impl #crate_name::prelude::Endpoint for #ident {
+        impl #crate_name::Endpoint for #ident {
             async fn call(
                 &self,
-                req: #crate_name::prelude::Request,
-            ) -> #crate_name::prelude::Result<#crate_name::prelude::Response> {
-                let (parts, body) = req.into_parts();
-                let mut body = Some(body);
+                mut req: #crate_name::Request,
+            ) -> #crate_name::Result<#crate_name::Response> {
+                let mut body = req.take_body().ok();
                 #(#extractors)*
                 #item_fn
-                #ident(#(#args),*).await.into_response()
+                #crate_name::IntoResponse::into_response(#ident(#(#args),*).await)
             }
         }
     };

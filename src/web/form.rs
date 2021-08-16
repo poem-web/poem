@@ -3,13 +3,12 @@ use std::ops::{Deref, DerefMut};
 use serde::de::DeserializeOwned;
 
 use crate::{
-    body::Body,
-    error::{Error, ErrorBodyHasBeenTaken, ErrorInvalidFormContentType, Result},
+    error::{ErrorBodyHasBeenTaken, ErrorInvalidFormContentType},
     http::{
         header::{self, HeaderValue},
         Method,
     },
-    web::{FromRequest, RequestParts},
+    Body, Error, FromRequest, Request, Result,
 };
 
 /// An extractor that can deserialize some type from query string or body.
@@ -37,13 +36,13 @@ impl<T> DerefMut for Form<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
-    async fn from_request(parts: &'a RequestParts, body: &mut Option<Body>) -> Result<Self> {
-        if parts.method == Method::GET {
-            serde_urlencoded::from_str(parts.uri.query().unwrap_or_default())
+    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
+        if req.method() == Method::GET {
+            serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
                 .map_err(Error::bad_request)
                 .map(Self)
         } else {
-            if parts.headers.get(header::CONTENT_TYPE)
+            if req.headers().get(header::CONTENT_TYPE)
                 != Some(&HeaderValue::from_static(
                     "application/x-www-form-urlencoded",
                 ))

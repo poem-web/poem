@@ -1,5 +1,4 @@
-use super::Endpoint;
-use crate::{error::Result, request::Request, response::Response};
+use crate::{Endpoint, Request, Response, Result};
 
 /// Endpoint for the [`and_then`](super::EndpointExt::and_then) method.
 pub struct AndThen<E, F> {

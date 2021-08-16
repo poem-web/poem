@@ -1,6 +1,4 @@
-use crate::{
-    endpoint::Endpoint, error::Result, middleware::Middleware, request::Request, response::Response,
-};
+use crate::{Endpoint, Middleware, Request, Response, Result};
 
 /// Middleware for add any data to request.
 pub struct AddData<T> {

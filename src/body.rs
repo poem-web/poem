@@ -8,7 +8,7 @@ use futures_util::Stream;
 use hyper::body::HttpBody;
 use tokio::io::AsyncRead;
 
-use crate::error::{Error, Result};
+use crate::{Error, Result};
 
 /// A body object for requests and responses.
 #[derive(Default)]

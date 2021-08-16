@@ -14,9 +14,8 @@ pub use crate::http::{
     uri::{InvalidUri as ErrorInvalidUri, InvalidUriParts as ErrorInvalidUriParts},
 };
 use crate::{
-    body::Body,
     http::{header, StatusCode},
-    response::Response,
+    Body, Response,
 };
 
 macro_rules! define_error {
@@ -67,8 +66,7 @@ impl Error {
     /// ```
     /// use std::num::ParseIntError;
     ///
-    /// use poem::prelude::*;
-    /// use poem::http::StatusCode;
+    /// use poem::{http::StatusCode, Error};
     ///
     /// let err = Error::new(StatusCode::BAD_REQUEST, "a".parse::<i32>().unwrap_err());
     /// assert!(err.downcast_ref::<ParseIntError>().is_some());
@@ -234,6 +232,12 @@ define_simple_errors!(
 
     /// This error occurs when `Content-type` is not `application/x-www-form-urlencoded`.
     (ErrorInvalidFormContentType, BAD_REQUEST, "invalid form content type");
+
+    /// This error occurs when the cookie value in the request header is illegal.
+    (ErrorCookieIllegal, BAD_REQUEST, "cookie is illegal");
+
+    /// This error occurs if there is no cookie in the request header.
+    (ErrorNoCookie, BAD_REQUEST, "there is no cookie in the request header");
 );
 
 impl From<ErrorInvalidUri> for Error {

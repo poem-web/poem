@@ -3,9 +3,12 @@
 //! # Example
 //!
 //! ```
-//! use futures_util::{StreamExt, SinkExt};
-//! use poem::web::websocket::{WebSocket, Message};
-//! use poem::prelude::*;
+//! use futures_util::{SinkExt, StreamExt};
+//! use poem::{
+//!     get, route,
+//!     web::websocket::{Message, WebSocket},
+//!     IntoResponse,
+//! };
 //!
 //! async fn index(ws: WebSocket) -> impl IntoResponse {
 //!     ws.on_upgrade(|mut socket| async move {
