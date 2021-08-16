@@ -11,24 +11,26 @@ use poem::{
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
-async fn graphql_handler(schema: Data<StarWarsSchema>, req: Json<Request>) -> Json<Response> {
+#[handler]
+async fn graphql_handler(schema: Data<&StarWarsSchema>, req: Json<Request>) -> Json<Response> {
     Json(schema.execute(req.0).await)
 }
 
+#[handler]
 async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(GraphQLPlaygroundConfig::new("/")))
 }
 
 #[tokio::main]
 async fn main() {
-    // let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
-    //     .data(StarWars::new())
-    //     .finish();
-    //
-    // let app = route()
-    //     .at("/", get(graphql_playground).post(graphql_handler))
-    //     .with(AddData::new(schema));
-    //
-    // println!("Playground: http://localhost:3000");
-    // serve(app).run("0.0.0.0:3000").await.unwrap();
+    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+        .data(StarWars::new())
+        .finish();
+
+    let app = route()
+        .at("/", get(graphql_playground).post(graphql_handler))
+        .with(AddData::new(schema));
+
+    println!("Playground: http://localhost:3000");
+    serve(app).run("0.0.0.0:3000").await.unwrap();
 }
