@@ -6,8 +6,8 @@ edition = "2018"
 description = "Macros for poem"
 license = "MIT/Apache-2.0"
 documentation = "https://docs.rs/poem/"
-homepage = "https://github.com/poem/poem"
-repository = "https://github.com/poem/poem"
+homepage = "https://github.com/poem-web/poem"
+repository = "https://github.com/poem-web/poem"
 keywords = ["http", "web", "framework", "async"]
 categories = [
     "network-programming",

@@ -2,7 +2,7 @@
 
 <div align="center">
   <!-- CI -->
-  <img src="https://github.com/poem/poem/workflows/CI/badge.svg" />
+  <img src="https://github.com/poem-web/poem/workflows/CI/badge.svg" />
   <!-- codecov -->
   <img src="https://codecov.io/gh/poem-web/poem/branch/master/graph/badge.svg" />
   <!-- Crates version -->
