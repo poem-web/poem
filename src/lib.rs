@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::{get, handler, route, serve, web::Path};
+//! use poem::{get, handler, route, web::Path, Server};
 //!
 //! #[handler]
 //! async fn hello(Path(name): Path<String>) -> String {
@@ -22,7 +22,8 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     let app = route().at("/hello/:name", get(hello));
-//!     serve(app).run("127.0.0.1:3000").await.unwrap();
+//!     let server = Server::bind("127.0.0.1:3000").await.unwrap();
+//!     server.run(app).await.unwrap();
 //! }
 //! ```
 //!
