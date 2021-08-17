@@ -6,6 +6,7 @@ use tokio::io::BufReader;
 use crate::{http::header, Body, Endpoint, Error, Middleware, Request, Response, Result};
 
 /// The compression algorithms.
+#[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum CompressionAlgo {
     /// brotli
@@ -39,6 +40,7 @@ impl FromStr for CompressionAlgo {
 /// You can also specify the compression algorithm [`CompressionAlgo`] yourself,
 /// so it will always use this algorithm to compress the response body and add
 /// the `Accept-Encoding` header.
+#[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 pub struct Compression {
     compress_algo: Option<CompressionAlgo>,
 }

@@ -3,7 +3,7 @@ use std::fmt::{self, Display, Formatter};
 /// An "event", either an incoming message or some meta-action that needs to be
 /// applied to the stream.
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub enum Event {
     /// An incoming message.
     Message {

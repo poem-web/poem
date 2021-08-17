@@ -4,6 +4,7 @@ use super::Middleware;
 use crate::{Endpoint, Request, Response, Result};
 
 /// A middleware for tracing requests and responses
+#[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
 pub struct Tracing;
 
 impl<E: Endpoint> Middleware<E> for Tracing {

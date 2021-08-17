@@ -158,13 +158,13 @@ pub struct RouteMethod {
 }
 
 impl RouteMethod {
-    /// Set a [`FnHandler`] to the specified method type.
+    /// Set a [`Endpoint`] to the specified method type.
     pub fn method(mut self, method: Method, ep: impl Endpoint) -> Self {
         self.router.insert(method, Box::new(ep));
         self
     }
 
-    /// Set [`FnHandler`] to all method types.
+    /// Set [`Endpoint`] to all method types.
     pub fn any(mut self, ep: impl Endpoint) -> Self {
         self.any_router = Some(Box::new(ep));
         self

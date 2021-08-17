@@ -11,7 +11,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Error, FnArg, ItemFn, Result};
 
-/// Wrap an asynchronous function as an [`Endpoint`](poem::Endpoint).
+/// Wrap an asynchronous function as an `Endpoint`.
 #[proc_macro_attribute]
 pub fn handler(
     args: proc_macro::TokenStream,

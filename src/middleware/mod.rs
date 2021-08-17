@@ -9,12 +9,10 @@ mod tracing;
 
 pub use add_data::AddData;
 #[cfg(feature = "compression")]
-#[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 pub use compression::{Compression, CompressionAlgo};
 pub use cors::Cors;
 
 #[cfg(feature = "tracing")]
-#[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
 pub use self::tracing::Tracing;
 use crate::endpoint::Endpoint;
 

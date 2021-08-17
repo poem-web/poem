@@ -7,6 +7,7 @@ use crate::{error::ErrorBodyHasBeenTaken, Body, Error, FromRequest, Request};
 
 /// An extractor that extracts the body and writes the contents to a temporary
 /// file.
+#[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
 pub struct TempFile(File);
 
 #[async_trait::async_trait]

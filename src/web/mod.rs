@@ -37,7 +37,6 @@ pub use data::Data;
 pub use form::Form;
 pub use json::Json;
 #[cfg(feature = "multipart")]
-#[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
 pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
@@ -47,7 +46,6 @@ pub use typed_header::TypedHeader;
 
 pub use self::cookie::{Cookie, CookieJar};
 #[cfg(feature = "tempfile")]
-#[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
 pub use self::tempfile::TempFile;
 use crate::{
     body::Body,

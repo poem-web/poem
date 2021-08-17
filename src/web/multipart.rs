@@ -8,6 +8,7 @@ use crate::{
 };
 
 /// A single field in a multipart stream.
+#[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
 pub struct Field(multer::Field<'static>);
 
 impl Field {
@@ -80,6 +81,7 @@ impl Field {
 ///     Ok(())
 /// }
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
 pub struct Multipart {
     inner: multer::Multipart<'static>,
 }
