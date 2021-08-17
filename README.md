@@ -1,5 +1,32 @@
 # Poem
 
+<div align="center">
+  <!-- CI -->
+  <img src="https://github.com/poem/poem/workflows/CI/badge.svg" />
+  <!-- codecov -->
+  <img src="https://codecov.io/gh/poem-web/poem/branch/master/graph/badge.svg" />
+  <!-- Crates version -->
+  <a href="https://crates.io/crates/poem">
+    <img src="https://img.shields.io/crates/v/poem.svg?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <!-- Downloads -->
+  <a href="https://crates.io/crates/poem">
+    <img src="https://img.shields.io/crates/d/poem.svg?style=flat-square"
+      alt="Download" />
+  </a>
+  <!-- docs.rs docs -->
+  <a href="https://docs.rs/poem">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+  <a href="https://github.com/rust-secure-code/safety-dance/">
+    <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
+      alt="Unsafe Rust forbidden" />
+  </a>
+</div>
+
+
 > A  program is like a poem, you cannot write a poem without writing it. --- Dijkstra 
 
 A full-featured and easy-to-use web framework with
@@ -7,14 +34,8 @@ the Rust programming language.
 
 It is:
 
-* **Fast**: Both Ease of use and performance.
+* **Fast**: Both _Ease_ of use and performance.
 * **Minimal generalization**: Minimizing the use of generics.
-
-
-[![Crates.io][crates-badge]][crates-url]
-
-[crates-badge]: https://img.shields.io/crates/v/poem.svg
-[crates-url]: https://crates.io/crates/poem
 
 ## Example
 
