@@ -71,6 +71,10 @@ slab = "0.4.3"
 # For tracing example
 tracing-subscriber = "0.2.15"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 # Examples
 
 [[example]]
