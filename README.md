@@ -1,5 +1,12 @@
-# Poem
+<h1 align="center"><code>Poem Framework</code></h1>
 
+<p align="center"><code>A  program is like a poem, you cannot write a poem without writing it. --- Dijkstra </code></p>
+<p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
+<p align="center">
+    🏡<a href="https://poem-web.github.io/" target="_blank">HomePage</a> | 
+    🇨🇳<a href="https://github.com/auula/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
+    🌎 <a href="https://github.com/auula/poem/blob/master/README.md">English</a>
+</p>
 <div align="center">
   <!-- CI -->
   <img src="https://github.com/poem-web/poem/workflows/CI/badge.svg" />
@@ -26,13 +33,9 @@
   </a>
 </div>
 
+***
 
-> A  program is like a poem, you cannot write a poem without writing it. --- Dijkstra 
-
-A full-featured and easy-to-use web framework with
-the Rust programming language. 
-
-It is:
+## Feature
 
 * **Fast**: Both _Ease_ of use and performance.
 * **Minimal generalization**: Minimizing the use of generics.
@@ -68,8 +71,7 @@ More examples can be found [here][examples].
 
 Licensed under either of
 
-* Apache License, Version 2.0,
-  ([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* Apache License, Version 2.0,([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
   at your option.
 
