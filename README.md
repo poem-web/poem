@@ -4,8 +4,8 @@
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
 <p align="center">
     🏡<a href="https://poem-web.github.io/" target="_blank">HomePage</a> | 
-    🇨🇳<a href="https://github.com/auula/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
-    🌎 <a href="https://github.com/auula/poem/blob/master/README.md">English</a>
+    🇨🇳<a href="https://github.com/poem-web/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
+    🌎 <a href="https://github.com/poem-web/poem/blob/master/README.md">English</a>
 </p>
 <div align="center">
   <!-- CI -->
