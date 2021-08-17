@@ -1,7 +1,7 @@
 <h1 align="center"><code>Poem Framework</code></h1>
 
 <p align="center"><code>A  program is like a poem, you cannot write a poem without writing it. --- Dijkstra </code></p>
-<p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
+<p align="center">功能齐全且易于使用的 <code>Web</code> 框架，采用 <code>Rust</code> 编程语言。</p>
 <p align="center">
     🏡<a href="https://poem-web.github.io/" target="_blank">HomePage</a> | 
     🇨🇳<a href="https://github.com/auula/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
@@ -35,12 +35,11 @@
 
 ***
 
-## Feature
+## 特性
+- 快速：兼具易用性和性能。
+- 最小化泛化：最小化泛型的使用。
 
-* **Fast**: Both _Ease_ of use and performance.
-* **Minimal generalization**: Minimizing the use of generics.
-
-## Example
+## 快速示例
 
 ```rust
 use poem::{get, handler, route, web::Path, Server};
@@ -58,23 +57,20 @@ async fn main() {
 }
 ```
 
-More examples can be found [here][examples]. 
+查看更多例子[here][examples]. 
 
 [examples]: https://github.com/poem-web/poem/tree/master/examples
 
-## Contributing
 
-:balloon: Thanks for your help improving the project! We are so happy to have you! 
+## 开源协议
 
+本项目获得的许可有:
 
-## License
-
-Licensed under either of
 
 * Apache License, Version 2.0,([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
   at your option.
 
-### Contribution
+ ## 贡献代码
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Poem by you, shall be licensed as Apache, without any additional terms or conditions.
+🎈 我们欢迎更多开发者提`pr`贡献自己的代码，感谢您帮助改进项目！ 我们很高兴有你！你所提交的代码请注意使用的开源协议，并且附加许可条款或条件。
