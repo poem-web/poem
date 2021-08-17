@@ -1,6 +1,5 @@
 //! Commonly used as the type of extractor or response.
 
-#[cfg(feature = "sse")]
 mod cookie;
 mod data;
 mod form;
@@ -12,6 +11,7 @@ mod query;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
+#[cfg(feature = "tempfile")]
 mod tempfile;
 #[cfg(feature = "typed-headers")]
 mod typed_header;
@@ -45,8 +45,6 @@ pub use query::Query;
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
 
-#[cfg(feature = "cookie")]
-#[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
 pub use self::cookie::{Cookie, CookieJar};
 #[cfg(feature = "tempfile")]
 #[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]

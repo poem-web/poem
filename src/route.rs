@@ -53,11 +53,8 @@ impl Route {
         #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for MatchNest<E> {
             async fn call(&self, mut req: Request) -> Result<Response> {
-                let (name, value) = req
-                    .state
-                    .match_params
-                    .0
-                    .remove(req.state.match_params.0.len() - 1);
+                let idx = req.state().match_params.0.len() - 1;
+                let (name, value) = req.state_mut().match_params.0.remove(idx);
                 assert_eq!(name, "--poem-rest");
                 req.set_uri(
                     http::uri::Builder::new()
@@ -94,7 +91,7 @@ impl Endpoint for Route {
             .recognize(req.uri().path())
             .ok()
             .ok_or_else(|| Into::<Error>::into(ErrorNotFound))?;
-        req.state.match_params.0.extend(m.params.0);
+        req.state_mut().match_params.0.extend(m.params.0);
         m.handler.call(req).await
     }
 }

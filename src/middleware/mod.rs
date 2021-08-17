@@ -10,7 +10,7 @@ mod tracing;
 pub use add_data::AddData;
 #[cfg(feature = "compression")]
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
-pub use compression::{Compress, CompressionAlgo, Decompress};
+pub use compression::{Compression, CompressionAlgo};
 pub use cors::Cors;
 
 #[cfg(feature = "tracing")]

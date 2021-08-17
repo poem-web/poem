@@ -1,10 +1,9 @@
 use std::{
     any::Any,
     convert::{TryFrom, TryInto},
+    sync::Arc,
 };
 
-#[cfg(feature = "cookie")]
-use crate::web::CookieJar;
 use crate::{
     body::Body,
     error::{Error, ErrorBodyHasBeenTaken, Result},
@@ -13,6 +12,7 @@ use crate::{
         Extensions, Method, Uri, Version,
     },
     route_recognizer::Params,
+    web::CookieJar,
 };
 
 /// Component parts of an HTTP Request
@@ -36,8 +36,7 @@ pub struct RequestParts {
 #[derive(Default)]
 pub(crate) struct RequestState {
     pub(crate) match_params: Params,
-    #[cfg(feature = "cookie")]
-    pub(crate) cookie_jar: crate::web::CookieJar,
+    pub(crate) cookie_jar: CookieJar,
 }
 
 /// Represents an HTTP request.
@@ -48,32 +47,25 @@ pub struct Request {
     headers: HeaderMap,
     extensions: Extensions,
     body: Option<Body>,
-    pub(crate) state: RequestState,
+    state: RequestState,
 }
 
 impl Request {
     pub(crate) fn from_hyper_request(req: hyper::Request<hyper::Body>) -> Result<Self> {
         let (parts, body) = req.into_parts();
-        let state: RequestState = Default::default();
 
         // Extract cookies from the header
-        #[cfg(feature = "cookie")]
-        let state = {
-            let mut state = state;
-            let mut cookie_jar = ::cookie::CookieJar::new();
-            for header in parts.headers.get_all(header::COOKIE) {
-                if let Ok(value) = std::str::from_utf8(header.as_bytes()) {
-                    for cookie_str in value.split(';').map(str::trim) {
-                        if let Ok(cookie) = ::cookie::Cookie::parse_encoded(cookie_str) {
-                            cookie_jar.add_original(cookie.into_owned());
-                        }
+        let mut cookie_jar = ::cookie::CookieJar::new();
+
+        for header in parts.headers.get_all(header::COOKIE) {
+            if let Ok(value) = std::str::from_utf8(header.as_bytes()) {
+                for cookie_str in value.split(';').map(str::trim) {
+                    if let Ok(cookie) = ::cookie::Cookie::parse_encoded(cookie_str) {
+                        cookie_jar.add_original(cookie.into_owned());
                     }
                 }
             }
-            state.cookie_jar =
-                crate::web::CookieJar(std::sync::Arc::new(parking_lot::Mutex::new(cookie_jar)));
-            state
-        };
+        }
 
         Ok(Self {
             method: parts.method,
@@ -82,7 +74,10 @@ impl Request {
             headers: parts.headers,
             extensions: parts.extensions,
             body: Some(Body(body)),
-            state,
+            state: RequestState {
+                match_params: Default::default(),
+                cookie_jar: CookieJar(Arc::new(parking_lot::Mutex::new(cookie_jar))),
+            },
         })
     }
 
@@ -165,8 +160,6 @@ impl Request {
     }
 
     /// Returns a reference to the [`CookieJar`]
-    #[cfg(feature = "cookie")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
     #[inline]
     pub fn cookie(&self) -> &CookieJar {
         &self.state.cookie_jar
@@ -181,6 +174,16 @@ impl Request {
     #[inline]
     pub fn take_body(&mut self) -> Result<Body> {
         self.body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
+    }
+
+    #[inline]
+    pub(crate) fn state(&self) -> &RequestState {
+        &self.state
+    }
+
+    #[inline]
+    pub(crate) fn state_mut(&mut self) -> &mut RequestState {
+        &mut self.state
     }
 }
 

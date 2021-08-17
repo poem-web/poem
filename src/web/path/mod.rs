@@ -75,7 +75,7 @@ impl<T> DerefMut for Path<T> {
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
     async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
-        T::deserialize(de::PathDeserializer::new(&req.state.match_params))
+        T::deserialize(de::PathDeserializer::new(&req.state().match_params))
             .map_err(|_| ErrorInvalidPathParams.into())
             .map(Path)
     }

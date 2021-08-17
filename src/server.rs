@@ -192,21 +192,15 @@ async fn serve_connection(
                     Ok(req) => req,
                     Err(err) => return Ok(err.as_response().into_hyper_response()),
                 };
-                #[cfg(feature = "cookie")]
-                let cookie = req.state.cookie_jar.clone();
+                let cookie_jar = req.cookie().clone();
 
-                let resp = match ep.call(req).await {
+                let mut resp = match ep.call(req).await {
                     Ok(resp) => resp.into_hyper_response(),
                     Err(err) => err.as_response().into_hyper_response(),
                 };
 
-                #[cfg(feature = "cookie")]
-                let resp = {
-                    // Appends cookies to header
-                    let mut resp = resp;
-                    cookie.append_delta_to_headers(resp.headers_mut());
-                    resp
-                };
+                // Appends cookies to response headers
+                cookie_jar.append_delta_to_headers(resp.headers_mut());
 
                 Ok::<_, Infallible>(resp)
             }

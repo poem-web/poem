@@ -48,7 +48,7 @@ impl CookieJar {
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CookieJar {
     async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
-        Ok(&req.cookie())
+        Ok(req.cookie())
     }
 }
 

@@ -38,7 +38,6 @@
 //! |sse               | Support Server-Sent Events (SSE)       |
 //! |tls               | Support for HTTP server over TLS   |
 //! |typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
-//! |cookie            | Support for Cookie & CookieJar with [`cookie-rs`](https://crates.io/crates/cookie)  |
 //! |tracing           | Support for Tracing middleware |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 

@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use hyper::http::HeaderValue;
 use tokio::io::BufReader;
 
-use crate::{http::header, Body, Endpoint, Middleware, Request, Response, Result};
+use crate::{http::header, Body, Endpoint, Error, Middleware, Request, Response, Result};
 
 /// The compression algorithms.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -16,116 +18,146 @@ pub enum CompressionAlgo {
     GZIP,
 }
 
-/// Middleware for decompress the request body.
-pub struct Decompress;
+impl FromStr for CompressionAlgo {
+    type Err = ();
 
-impl<E: Endpoint> Middleware<E> for Decompress {
-    type Output = DecompressImpl<E>;
+    fn from_str(s: &str) -> std::prelude::rust_2015::Result<Self, Self::Err> {
+        Ok(match s {
+            "br" => CompressionAlgo::BR,
+            "deflate" => CompressionAlgo::DEFLATE,
+            "gzip" => CompressionAlgo::GZIP,
+            _ => return Err(()),
+        })
+    }
+}
+
+/// Middleware for compression.
+///
+/// It decompresses the request body according to `Content-Encoding`, and
+/// compresses the response body according to `Accept-Encoding`.
+///
+/// You can also specify the compression algorithm [`CompressionAlgo`] yourself,
+/// so it will always use this algorithm to compress the response body and add
+/// the `Accept-Encoding` header.
+pub struct Compression {
+    compress_algo: Option<CompressionAlgo>,
+}
+
+impl Compression {
+    /// Specify the compression algorithm for the response body.
+    pub fn algorithm(self, algo: CompressionAlgo) -> Self {
+        Self {
+            compress_algo: Some(algo),
+        }
+    }
+}
+
+impl<E: Endpoint> Middleware<E> for Compression {
+    type Output = CompressionImpl<E>;
 
     fn transform(self, ep: E) -> Self::Output {
-        DecompressImpl { inner: ep }
+        CompressionImpl {
+            inner: ep,
+            compress_algo: self.compress_algo,
+        }
     }
 }
 
 #[doc(hidden)]
-pub struct DecompressImpl<E> {
+pub struct CompressionImpl<E> {
     inner: E,
+    compress_algo: Option<CompressionAlgo>,
 }
 
 #[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for DecompressImpl<E> {
+impl<E: Endpoint> Endpoint for CompressionImpl<E> {
     async fn call(&self, mut req: Request) -> Result<Response> {
-        let encoding = req
+        let encoding = match req
             .headers()
             .get(header::CONTENT_ENCODING)
             .and_then(|value| value.to_str().ok())
-            .unwrap_or_default();
+        {
+            Some(encoding) => Some(encoding.parse::<CompressionAlgo>().map_err(|_| {
+                Error::bad_request(anyhow::anyhow!(
+                    "unsupported compression algorithm in `Content-Encoding`: `{}`",
+                    encoding
+                ))
+            })?),
+            None => None,
+        };
+
+        let accept_encoding = match req
+            .headers()
+            .get(header::ACCEPT_ENCODING)
+            .and_then(|value| value.to_str().ok())
+        {
+            Some(encoding) => Some(encoding.parse::<CompressionAlgo>().map_err(|_| {
+                Error::bad_request(anyhow::anyhow!(
+                    "unsupported compression algorithm in `Accept-Encoding`: `{}`",
+                    encoding
+                ))
+            })?),
+            None => None,
+        };
 
         match encoding {
-            "br" => {
+            Some(CompressionAlgo::BR) => {
                 let body = req.take_body()?.into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::BrotliDecoder::new(BufReader::new(body)),
                 ));
             }
-            "deflate" => {
+            Some(CompressionAlgo::DEFLATE) => {
                 let body = req.take_body()?.into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(body)),
                 ));
             }
-            "gzip" => {
+            Some(CompressionAlgo::GZIP) => {
                 let body = req.take_body()?.into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::GzipDecoder::new(BufReader::new(body)),
                 ));
             }
-            _ => {}
+            None => {}
         }
 
-        self.inner.call(req).await
-    }
-}
-
-/// Middleware for compresses the response body with the specified algorithm.
-pub struct Compress {
-    algo: CompressionAlgo,
-}
-
-impl Compress {
-    /// Creates Compress middleware used specified algorithm.
-    pub fn new(algo: CompressionAlgo) -> Self {
-        Self { algo }
-    }
-}
-
-impl<E: Endpoint> Middleware<E> for Compress {
-    type Output = CompressImpl<E>;
-
-    fn transform(self, ep: E) -> Self::Output {
-        CompressImpl {
-            inner: ep,
-            algo: self.algo,
-        }
-    }
-}
-
-#[doc(hidden)]
-pub struct CompressImpl<E> {
-    inner: E,
-    algo: CompressionAlgo,
-}
-
-#[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for CompressImpl<E> {
-    async fn call(&self, req: Request) -> Result<Response> {
         let mut resp = self.inner.call(req).await?;
-        let body = resp.take_body()?.into_async_read();
 
-        match self.algo {
-            CompressionAlgo::BR => {
+        match accept_encoding.or(self.compress_algo) {
+            Some(CompressionAlgo::BR) => {
+                let body = resp.take_body()?;
                 resp.headers_mut()
                     .append(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
                 resp.set_body(Body::from_async_read(
-                    async_compression::tokio::bufread::BrotliEncoder::new(BufReader::new(body)),
+                    async_compression::tokio::bufread::BrotliEncoder::new(BufReader::new(
+                        body.into_async_read(),
+                    )),
                 ));
             }
-            CompressionAlgo::DEFLATE => {
+            Some(CompressionAlgo::DEFLATE) => {
+                let body = resp.take_body()?;
                 resp.headers_mut().append(
                     header::CONTENT_ENCODING,
                     HeaderValue::from_static("deflate"),
                 );
                 resp.set_body(Body::from_async_read(
-                    async_compression::tokio::bufread::DeflateEncoder::new(BufReader::new(body)),
+                    async_compression::tokio::bufread::DeflateEncoder::new(BufReader::new(
+                        body.into_async_read(),
+                    )),
                 ));
             }
-            CompressionAlgo::GZIP => {
+            Some(CompressionAlgo::GZIP) => {
+                let body = resp.take_body()?;
                 resp.headers_mut()
                     .append(header::CONTENT_ENCODING, HeaderValue::from_static("gzip"));
                 resp.set_body(Body::from_async_read(
-                    async_compression::tokio::bufread::GzipEncoder::new(BufReader::new(body)),
+                    async_compression::tokio::bufread::GzipEncoder::new(BufReader::new(
+                        body.into_async_read(),
+                    )),
                 ));
             }
+            None => {}
         }
 
         Ok(resp)
