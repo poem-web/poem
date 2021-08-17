@@ -224,9 +224,6 @@ define_simple_errors!(
     /// This error occurs when the body has been taken.
     (ErrorBodyHasBeenTaken, INTERNAL_SERVER_ERROR, "the body has been taken");
 
-    /// This error occurs when the status code is invalid.
-    (ErrorMissingRouteParams, INTERNAL_SERVER_ERROR, "missing route params");
-
     /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
     (ErrorInvalidPathParams, INTERNAL_SERVER_ERROR, "invalid path params");
 

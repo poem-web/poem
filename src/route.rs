@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::ErrorNotFound, http::Method, route_recognizer::Router, utils::InternalData, Endpoint,
-    Error, Request, Response, Result,
+    error::ErrorNotFound, http::Method, route_recognizer::Router, Endpoint, Error, Request,
+    Response, Result,
 };
 
 /// Routing object
@@ -45,6 +45,37 @@ impl Route {
         self.router.add(path, Box::new(ep));
         self
     }
+
+    pub fn nest(mut self, path: &str, ep: impl Endpoint) -> Self {
+        struct MatchNest<T>(T);
+
+        #[async_trait::async_trait]
+        impl<E: Endpoint> Endpoint for MatchNest<E> {
+            async fn call(&self, mut req: Request) -> Result<Response> {
+                let (name, value) = req
+                    .state
+                    .match_params
+                    .0
+                    .remove(req.state.match_params.0.len() - 1);
+                assert_eq!(name, "--poem-rest");
+                req.set_uri(
+                    http::uri::Builder::new()
+                        .path_and_query(value)
+                        .build()
+                        .unwrap(),
+                );
+                self.0.call(req).await
+            }
+        }
+
+        assert!(
+            path.find('*').is_none(),
+            "wildcards are not allowed in the nest path."
+        );
+        let path = format!("{}/*--poem-rest", path);
+        self.router.add(&path, Box::new(MatchNest(ep)));
+        self
+    }
 }
 
 /// Create a new routing object.
@@ -62,7 +93,7 @@ impl Endpoint for Route {
             .recognize(req.uri().path())
             .ok()
             .ok_or_else(|| Into::<Error>::into(ErrorNotFound))?;
-        req.extensions_mut().insert(InternalData(m.params));
+        req.state.match_params.0.extend(m.params.0);
         m.handler.call(req).await
     }
 }

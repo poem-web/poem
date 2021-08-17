@@ -4,14 +4,12 @@ mod add_data;
 #[cfg(feature = "compression")]
 mod compression;
 mod cors;
-mod strip_prefix;
 
 pub use add_data::AddData;
 #[cfg(feature = "compression")]
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 pub use compression::{Compress, CompressionAlgo, Decompress};
 pub use cors::Cors;
-pub use strip_prefix::StripPrefix;
 
 use crate::endpoint::Endpoint;
 

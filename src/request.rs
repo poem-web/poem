@@ -10,6 +10,7 @@ use crate::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
     },
+    route_recognizer::Params,
 };
 
 /// Component parts of an HTTP Request
@@ -30,6 +31,11 @@ pub struct RequestParts {
     extensions: Extensions,
 }
 
+#[derive(Default)]
+pub(crate) struct RequestState {
+    pub(crate) match_params: Params,
+}
+
 /// Represents an HTTP request.
 pub struct Request {
     method: Method,
@@ -38,6 +44,7 @@ pub struct Request {
     headers: HeaderMap,
     extensions: Extensions,
     body: Option<Body>,
+    pub(crate) state: RequestState,
 }
 
 impl Request {
@@ -50,6 +57,7 @@ impl Request {
             headers: parts.headers,
             extensions: parts.extensions,
             body: Some(Body(body)),
+            state: Default::default(),
         })
     }
 
@@ -231,6 +239,7 @@ impl RequestBuilder {
             headers: parts.headers,
             extensions: parts.extensions,
             body: Some(body),
+            state: Default::default(),
         })
     }
 }

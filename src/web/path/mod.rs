@@ -4,12 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::{
-    error::{ErrorInvalidPathParams, ErrorMissingRouteParams},
-    route_recognizer::Params,
-    utils::InternalData,
-    Body, Error, FromRequest, Request, Result,
-};
+use crate::{error::ErrorInvalidPathParams, Body, FromRequest, Request, Result};
 
 /// An extractor that will get captures from the URL and parse them using
 /// `serde`.
@@ -80,11 +75,7 @@ impl<T> DerefMut for Path<T> {
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
     async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
-        let params = req
-            .extensions()
-            .get::<InternalData<Params>>()
-            .ok_or_else(|| Into::<Error>::into(ErrorMissingRouteParams))?;
-        T::deserialize(de::PathDeserializer::new(params))
+        T::deserialize(de::PathDeserializer::new(&req.state.match_params))
             .map_err(|_| ErrorInvalidPathParams.into())
             .map(Path)
     }
