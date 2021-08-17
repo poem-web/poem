@@ -37,11 +37,6 @@ impl Server {
     pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
         let ep = Arc::new(ep);
 
-        tracing::info!(
-            local_addr = listener.local_addr().unwrap(),
-            "server listening",
-        );
-
         loop {
             let (socket, _) = self.listener.accept().await?;
             tokio::spawn(serve_connection(socket, ep.clone()));

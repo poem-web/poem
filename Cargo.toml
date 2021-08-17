@@ -28,7 +28,6 @@ multipart = ["multer"]
 tls = ["tokio-rustls"]
 sse = []
 compression = ["async-compression"]
-logger = ["tracing", "tracing-subscriber"]
 
 [dependencies]
 poem-derive = { path = "derive", version = "0.1.0" }
@@ -50,8 +49,6 @@ base64 = "0.13.0"
 tokio-stream = "0.1.7"
 parking_lot = "0.11.1"
 
-tracing = { version = "0.1", optional = true }
-
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.15.0", optional = true }
@@ -61,10 +58,20 @@ async-compression = { version = "0.3.8", optional = true, features = ["tokio", "
 # Feature optional dependencies
 typed-headers = { version = "0.2.0", optional = true }
 cookie = { version = "0.15.1", features = ["percent-encode"], optional = true }
+tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.9.0", features = ["rt-multi-thread", "macros"] }
 
-# for async-graphql example
+# For async-graphql example
 async-graphql = "2.9.10"
 slab = "0.4.3"
+
+# For tracing example
+tracing-subscriber = "0.2.15"
+
+# Examples
+
+[[example]]
+name = "tracing"
+required-features = ["tracing"]

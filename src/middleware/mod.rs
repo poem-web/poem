@@ -4,13 +4,8 @@ mod add_data;
 #[cfg(feature = "compression")]
 mod compression;
 mod cors;
-
-#[cfg(feature = "logger")]
-/// logger
-pub mod log;
-
-#[cfg(feature = "logger")]
-pub use log::Logger;
+#[cfg(feature = "tracing")]
+mod tracing;
 
 pub use add_data::AddData;
 #[cfg(feature = "compression")]
@@ -18,6 +13,9 @@ pub use add_data::AddData;
 pub use compression::{Compress, CompressionAlgo, Decompress};
 pub use cors::Cors;
 
+#[cfg(feature = "tracing")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
+pub use self::tracing::Tracing;
 use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.

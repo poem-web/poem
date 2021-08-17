@@ -43,6 +43,12 @@ pub struct Error {
     error: anyhow::Error,
 }
 
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.status, self.error)
+    }
+}
+
 impl From<Infallible> for Error {
     fn from(_: Infallible) -> Self {
         unreachable!()
