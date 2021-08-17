@@ -3,6 +3,8 @@ use std::{
     convert::{TryFrom, TryInto},
 };
 
+#[cfg(feature = "cookie")]
+use crate::web::CookieJar;
 use crate::{
     body::Body,
     error::{Error, ErrorBodyHasBeenTaken, Result},
@@ -34,6 +36,8 @@ pub struct RequestParts {
 #[derive(Default)]
 pub(crate) struct RequestState {
     pub(crate) match_params: Params,
+    #[cfg(feature = "cookie")]
+    pub(crate) cookie_jar: crate::web::CookieJar,
 }
 
 /// Represents an HTTP request.
@@ -48,8 +52,29 @@ pub struct Request {
 }
 
 impl Request {
-    pub(crate) fn from_http_request(req: hyper::Request<hyper::Body>) -> Result<Self> {
+    pub(crate) fn from_hyper_request(req: hyper::Request<hyper::Body>) -> Result<Self> {
         let (parts, body) = req.into_parts();
+        let state: RequestState = Default::default();
+
+        // Extract cookies from the header
+        #[cfg(feature = "cookie")]
+        let state = {
+            let mut state = state;
+            let mut cookie_jar = ::cookie::CookieJar::new();
+            for header in parts.headers.get_all(header::COOKIE) {
+                if let Ok(value) = std::str::from_utf8(header.as_bytes()) {
+                    for cookie_str in value.split(';').map(str::trim) {
+                        if let Ok(cookie) = ::cookie::Cookie::parse_encoded(cookie_str) {
+                            cookie_jar.add_original(cookie.into_owned());
+                        }
+                    }
+                }
+            }
+            state.cookie_jar =
+                crate::web::CookieJar(std::sync::Arc::new(parking_lot::Mutex::new(cookie_jar)));
+            state
+        };
+
         Ok(Self {
             method: parts.method,
             uri: parts.uri,
@@ -57,7 +82,7 @@ impl Request {
             headers: parts.headers,
             extensions: parts.extensions,
             body: Some(Body(body)),
-            state: Default::default(),
+            state,
         })
     }
 
@@ -132,6 +157,14 @@ impl Request {
         &mut self.extensions
     }
 
+    /// Returns a reference to the [`CookieJar`]
+    #[cfg(feature = "cookie")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
+    #[inline]
+    pub fn cookie(&self) -> &CookieJar {
+        &self.state.cookie_jar
+    }
+
     /// Sets the body for this request.
     pub fn set_body(&mut self, body: Body) {
         self.body = Some(body);
@@ -139,9 +172,8 @@ impl Request {
 
     /// Take the body from this request and sets the body to empty.
     #[inline]
-    #[must_use]
     pub fn take_body(&mut self) -> Result<Body> {
-        self.body.take().ok_or(ErrorBodyHasBeenTaken.into())
+        self.body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
     }
 }
 

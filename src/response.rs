@@ -26,11 +26,11 @@ pub struct Response {
 }
 
 impl Response {
-    pub(crate) fn into_http_response(self) -> hyper::Response<hyper::Body> {
+    pub(crate) fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
         let mut resp = hyper::Response::new(
             self.body
                 .map(|body| body.0)
-                .unwrap_or_else(|| hyper::Body::empty()),
+                .unwrap_or_else(hyper::Body::empty),
         );
         *resp.status_mut() = self.status;
         *resp.version_mut() = self.version;
@@ -104,9 +104,8 @@ impl Response {
 
     /// Take the body from this response and sets the body to empty.
     #[inline]
-    #[must_use]
     pub fn take_body(&mut self) -> Result<Body> {
-        self.body.take().ok_or(ErrorBodyHasBeenTaken.into())
+        self.body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
     }
 }
 

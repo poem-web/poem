@@ -1,4 +1,4 @@
-use std::{convert::Infallible, sync::Arc};
+use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use hyper::server::conn::Http;
 use tokio::{
@@ -18,16 +18,27 @@ use crate::{Endpoint, Request};
 
 /// An HTTP Server.
 pub struct Server {
-    ep: Arc<dyn Endpoint>,
+    listener: TcpListener,
 }
 
 impl Server {
-    /// Run this server.
-    pub async fn run(self, addr: impl ToSocketAddrs) -> IoResult<()> {
+    /// Binds to the provided address, and returns a [`Server`].
+    pub async fn bind(addr: impl ToSocketAddrs) -> IoResult<Self> {
         let listener = TcpListener::bind(addr).await?;
+        Ok(Self { listener })
+    }
+
+    /// Returns the local address that this server is bound to.
+    pub fn local_addr(&self) -> IoResult<SocketAddr> {
+        self.listener.local_addr()
+    }
+
+    /// Run this server.
+    pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
+        let ep = Arc::new(ep);
         loop {
-            let (socket, _) = listener.accept().await?;
-            tokio::spawn(serve_connection(socket, self.ep.clone()));
+            let (socket, _) = self.listener.accept().await?;
+            tokio::spawn(serve_connection(socket, ep.clone()));
         }
     }
 
@@ -36,18 +47,13 @@ impl Server {
     #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
     pub fn tls(self) -> TlsServer {
         TlsServer {
-            ep: self.ep,
+            listener: self.listener,
             cert: Vec::new(),
             key: Vec::new(),
             client_auth: TlsClientAuth::Off,
             ocsp_resp: Vec::new(),
         }
     }
-}
-
-/// Create a Server with the endpoint.
-pub fn serve(ep: impl Endpoint) -> Server {
-    Server { ep: Arc::new(ep) }
 }
 
 #[cfg(feature = "tls")]
@@ -61,7 +67,7 @@ enum TlsClientAuth {
 #[cfg(feature = "tls")]
 #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
 pub struct TlsServer {
-    ep: Arc<dyn Endpoint>,
+    listener: TcpListener,
     cert: Vec<u8>,
     key: Vec<u8>,
     client_auth: TlsClientAuth,
@@ -101,9 +107,10 @@ impl TlsServer {
     }
 
     /// Run this server.
-    pub async fn run(self, addr: impl ToSocketAddrs) -> IoResult<()> {
+    pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
         use std::io::{Error as IoError, ErrorKind};
 
+        let ep = Arc::new(ep);
         let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut self.cert.as_slice())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
         let key = {
@@ -159,11 +166,10 @@ impl TlsServer {
         config.set_protocols(&["h2".into(), "http/1.1".into()]);
 
         let acceptor = TlsAcceptor::from(Arc::new(config));
-        let listener = TcpListener::bind(addr).await?;
         loop {
-            let (socket, _) = listener.accept().await?;
+            let (socket, _) = self.listener.accept().await?;
             let acceptor = acceptor.clone();
-            let ep = self.ep.clone();
+            let ep = ep.clone();
             tokio::spawn(async move {
                 if let Ok(tls_socket) = acceptor.accept(socket).await {
                     serve_connection(tls_socket, ep).await;
@@ -181,15 +187,26 @@ async fn serve_connection(
         move |req: hyper::Request<hyper::Body>| {
             let ep = ep.clone();
             async move {
-                let req = match Request::from_http_request(req) {
+                let req = match Request::from_hyper_request(req) {
                     Ok(req) => req,
-                    Err(err) => return Ok(err.as_response().into_http_response()),
+                    Err(err) => return Ok(err.as_response().into_hyper_response()),
                 };
+                #[cfg(feature = "cookie")]
+                let cookie = req.state.cookie_jar.clone();
 
                 let resp = match ep.call(req).await {
-                    Ok(resp) => resp.into_http_response(),
-                    Err(err) => err.as_response().into_http_response(),
+                    Ok(resp) => resp.into_hyper_response(),
+                    Err(err) => err.as_response().into_hyper_response(),
                 };
+
+                #[cfg(feature = "cookie")]
+                let resp = {
+                    // Appends cookies to header
+                    let mut resp = resp;
+                    cookie.append_delta_to_headers(resp.headers_mut());
+                    resp
+                };
+
                 Ok::<_, Infallible>(resp)
             }
         }

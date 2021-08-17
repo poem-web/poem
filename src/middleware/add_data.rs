@@ -22,7 +22,7 @@ where
     fn transform(self, ep: E) -> Self::Output {
         AddDataImpl {
             inner: ep,
-            value: self.value.clone(),
+            value: self.value,
         }
     }
 }

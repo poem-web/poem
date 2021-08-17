@@ -70,7 +70,7 @@ pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder, RequestParts};
 pub use response::{Response, ResponseBuilder};
 pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
+pub use server::Server;
 #[cfg(feature = "tls")]
 pub use server::TlsServer;
-pub use server::{serve, Server};
 pub use web::{FromRequest, IntoResponse};

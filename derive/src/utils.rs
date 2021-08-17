@@ -9,5 +9,5 @@ pub(crate) fn get_crate_name() -> TokenStream {
         Ok(FoundCrate::Itself) | Err(_) => "poem".to_string(),
     };
     let name = Ident::new(&name, Span::call_site());
-    quote!(#name).into()
+    quote!(#name)
 }

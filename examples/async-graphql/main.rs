@@ -7,9 +7,9 @@ use async_graphql::{
 use poem::{
     get, handler,
     middleware::AddData,
-    route, serve,
+    route,
     web::{Data, Html, Json},
-    EndpointExt, IntoResponse,
+    EndpointExt, IntoResponse, Server,
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
@@ -34,5 +34,7 @@ async fn main() {
         .with(AddData::new(schema));
 
     println!("Playground: http://localhost:3000");
-    serve(app).run("0.0.0.0:3000").await.unwrap();
+
+    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+    server.run(app).await.unwrap();
 }

@@ -25,6 +25,7 @@ struct Config {
 }
 
 /// Middleware for CORS
+#[derive(Default)]
 pub struct Cors {
     config: Config,
 }
@@ -50,7 +51,7 @@ impl Cors {
 
     /// Add an allow header.
     #[must_use]
-    pub fn allow_header<T>(mut self: Self, header: T) -> Self
+    pub fn allow_header<T>(mut self, header: T) -> Self
     where
         HeaderName: TryFrom<T>,
     {
@@ -64,7 +65,7 @@ impl Cors {
 
     /// Add an allow method.
     #[must_use]
-    pub fn allow_method<T>(mut self: Self, method: T) -> Self
+    pub fn allow_method<T>(mut self, method: T) -> Self
     where
         Method: TryFrom<T>,
     {
@@ -78,7 +79,7 @@ impl Cors {
 
     /// Add an allow origin.
     #[must_use]
-    pub fn allow_origin<T>(mut self: Self, origin: T) -> Self
+    pub fn allow_origin<T>(mut self, origin: T) -> Self
     where
         HeaderValue: TryFrom<T>,
     {
@@ -92,7 +93,7 @@ impl Cors {
 
     /// Add an expose method.
     #[must_use]
-    pub fn expose_header<T>(mut self: Self, header: T) -> Self
+    pub fn expose_header<T>(mut self, header: T) -> Self
     where
         HeaderName: TryFrom<T>,
     {
@@ -180,7 +181,7 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
             return Err(StatusCode::UNAUTHORIZED.into());
         }
 
-        if req.method() == &Method::OPTIONS {
+        if req.method() == Method::OPTIONS {
             return self.build_preflight_response();
         }
 

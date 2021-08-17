@@ -2,6 +2,7 @@
 
 mod and_then;
 mod before;
+#[allow(clippy::module_inception)]
 mod endpoint;
 mod map;
 mod map_err;

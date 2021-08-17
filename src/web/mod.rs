@@ -18,10 +18,6 @@ mod typed_header;
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub mod websocket;
 
-use std::convert::Infallible;
-
-use bytes::Bytes;
-
 /// Commonly used typed headers.
 #[cfg(feature = "typed-headers")]
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
@@ -33,9 +29,9 @@ pub mod type_headers {
     };
 }
 
-#[cfg(feature = "cookie")]
-#[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
-pub use ::cookie::CookieJar;
+use std::convert::Infallible;
+
+use bytes::Bytes;
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;
@@ -50,7 +46,7 @@ pub use typed_header::TypedHeader;
 
 #[cfg(feature = "cookie")]
 #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
-pub use self::cookie::Cookie;
+pub use self::cookie::{Cookie, CookieJar};
 use crate::{
     body::Body,
     error::{Error, ErrorBodyHasBeenTaken, Result},
@@ -194,7 +190,7 @@ impl<'a> FromRequest<'a> for &'a HeaderMap {
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Body {
     async fn from_request(_req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
-        body.take().ok_or(ErrorBodyHasBeenTaken.into())
+        body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
     }
 }
 

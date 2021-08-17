@@ -46,6 +46,7 @@ impl Route {
         self
     }
 
+    /// Nest a `Endpoint` to the specified path.
     pub fn nest(mut self, path: &str, ep: impl Endpoint) -> Self {
         struct MatchNest<T>(T);
 
@@ -205,7 +206,7 @@ impl RouteMethod {
 #[async_trait::async_trait]
 impl Endpoint for RouteMethod {
     async fn call(&self, req: Request) -> Result<Response> {
-        if req.method() == &Method::HEAD {
+        if req.method() == Method::HEAD {
             let ep = self
                 .router
                 .get(&Method::GET)
