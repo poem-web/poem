@@ -35,6 +35,7 @@ pub struct RequestParts {
 
 #[derive(Default)]
 pub(crate) struct RequestState {
+    pub(crate) original_uri: Uri,
     pub(crate) match_params: Params,
     pub(crate) cookie_jar: CookieJar,
 }
@@ -69,12 +70,13 @@ impl Request {
 
         Ok(Self {
             method: parts.method,
-            uri: parts.uri,
+            uri: parts.uri.clone(),
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
             body: Some(Body(body)),
             state: RequestState {
+                original_uri: parts.uri,
                 match_params: Default::default(),
                 cookie_jar: CookieJar(Arc::new(parking_lot::Mutex::new(cookie_jar))),
             },
@@ -108,6 +110,12 @@ impl Request {
     #[inline]
     pub fn uri(&self) -> &Uri {
         &self.uri
+    }
+
+    /// Returns a reference to the associated original URI.
+    #[inline]
+    pub fn original_uri(&self) -> &Uri {
+        &self.state.original_uri
     }
 
     /// Sets the URI for this request.

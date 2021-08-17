@@ -1,6 +1,6 @@
 //! Route object and DSL
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     error::ErrorNotFound, http::Method, route_recognizer::Router, Endpoint, Error, Request,
@@ -31,7 +31,7 @@ impl Route {
     /// async fn b(Path((group, name)): Path<(String, String)>) {}
     ///
     /// #[handler]
-    /// async fn c(Path(path): Path<String>) {}
+    /// async fn c(Path(path): Path<String>) -> String {}
     ///
     /// let app = route()
     ///     // full path
@@ -48,10 +48,13 @@ impl Route {
 
     /// Nest a `Endpoint` to the specified path.
     pub fn nest(mut self, path: &str, ep: impl Endpoint) -> Self {
-        struct MatchNest<T>(T);
+        let ep = Arc::new(ep);
+        let path = path.trim_end_matches('/');
+
+        struct Nest<T>(T);
 
         #[async_trait::async_trait]
-        impl<E: Endpoint> Endpoint for MatchNest<E> {
+        impl<E: Endpoint> Endpoint for Nest<E> {
             async fn call(&self, mut req: Request) -> Result<Response> {
                 let idx = req.state().match_params.0.len() - 1;
                 let (name, value) = req.state_mut().match_params.0.remove(idx);
@@ -66,12 +69,30 @@ impl Route {
             }
         }
 
+        struct Root<T>(T);
+
+        #[async_trait::async_trait]
+        impl<E: Endpoint> Endpoint for Root<E> {
+            async fn call(&self, mut req: Request) -> Result<Response> {
+                req.set_uri(
+                    http::uri::Builder::new()
+                        .path_and_query("/")
+                        .build()
+                        .unwrap(),
+                );
+                self.0.call(req).await
+            }
+        }
+
         assert!(
             path.find('*').is_none(),
             "wildcards are not allowed in the nest path."
         );
-        let path = format!("{}/*--poem-rest", path);
-        self.router.add(&path, Box::new(MatchNest(ep)));
+        self.router.add(
+            &format!("{}/*--poem-rest", path),
+            Box::new(Nest(ep.clone())),
+        );
+        self.router.add(path, Box::new(Root(ep)));
         self
     }
 }

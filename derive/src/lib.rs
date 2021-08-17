@@ -48,7 +48,7 @@ fn generate_handler(_args: TokenStream, input: TokenStream) -> Result<TokenStrea
         #[allow(non_camel_case_types)]
         #vis struct #ident;
 
-        #[async_trait::async_trait]
+        #[#crate_name::async_trait]
         impl #crate_name::Endpoint for #ident {
             async fn call(
                 &self,

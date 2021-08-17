@@ -49,6 +49,7 @@ base64 = "0.13.0"
 tokio-stream = "0.1.7"
 cookie = { version = "0.15.1", features = ["percent-encode"] }
 parking_lot = "0.11.1"
+askama = "0.10.5"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }

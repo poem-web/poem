@@ -4,8 +4,8 @@
 <p align="center">功能齐全且易于使用的 <code>Web</code> 框架，采用 <code>Rust</code> 编程语言。</p>
 <p align="center">
     🏡<a href="https://poem-web.github.io/" target="_blank">HomePage</a> | 
-    🇨🇳<a href="https://github.com/auula/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
-    🌎 <a href="https://github.com/auula/poem/blob/master/README.md">English</a>
+    🇨🇳<a href="https://github.com/poem-web/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
+    🌎 <a href="https://github.com/poem-web/poem/blob/master/README.md">English</a>
 </p>
 <div align="center">
   <!-- CI -->
