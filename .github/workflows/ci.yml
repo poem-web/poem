@@ -17,6 +17,7 @@ jobs:
         with:
           toolchain: nightly
           override: true
+          components: rustfmt, clippy
       - name: Check format
         run: cargo fmt --all -- --check
 
@@ -24,6 +25,7 @@ jobs:
         with:
           toolchain: stable
           override: true
+          components: rustfmt, clippy
       - name: Build without features
         run: cargo build --all --verbose
       - name: Build without all features
