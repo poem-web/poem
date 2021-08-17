@@ -1,3 +1,4 @@
+use hyper::http::HeaderValue;
 use tokio::io::BufReader;
 
 use crate::{http::header, Body, Endpoint, Middleware, Request, Response, Result};
@@ -103,16 +104,24 @@ impl<E: Endpoint> Endpoint for CompressImpl<E> {
 
         match self.algo {
             CompressionAlgo::BR => {
+                resp.headers_mut()
+                    .append(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
                 resp.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::BrotliEncoder::new(BufReader::new(body)),
                 ));
             }
             CompressionAlgo::DEFLATE => {
+                resp.headers_mut().append(
+                    header::CONTENT_ENCODING,
+                    HeaderValue::from_static("deflate"),
+                );
                 resp.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::DeflateEncoder::new(BufReader::new(body)),
                 ));
             }
             CompressionAlgo::GZIP => {
+                resp.headers_mut()
+                    .append(header::CONTENT_ENCODING, HeaderValue::from_static("gzip"));
                 resp.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::GzipEncoder::new(BufReader::new(body)),
                 ));

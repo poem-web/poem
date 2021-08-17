@@ -35,9 +35,12 @@
 //! |------------------|--------------------------------|
 //! |websocket         | Support for WebSocket          |
 //! |multipart         | Support for Multipart          |
-//! |sse               | Server-Sent Events (SSE)       |
-//! |tls               | Support HTTP server over TLS   |
-//! |typed-headers     | Support [`typed-headers`](https://crates.io/crates/typed-headers)    |
+//! |sse               | Support Server-Sent Events (SSE)       |
+//! |tls               | Support for HTTP server over TLS   |
+//! |typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
+//! |cookie            | Support for Cookie & CookieJar with [`cookie-rs`](https://crates.io/crates/cookie)  |
+//! |tracing           | Support for Tracing middleware |
+//! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]

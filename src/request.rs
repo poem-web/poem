@@ -145,6 +145,13 @@ impl Request {
         &mut self.headers
     }
 
+    /// Returns the content type of this request.
+    pub fn content_type(&self) -> Option<&str> {
+        self.headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+    }
+
     /// Returns a reference to the associated extensions.
     #[inline]
     pub fn extensions(&self) -> &Extensions {

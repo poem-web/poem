@@ -12,6 +12,7 @@ mod query;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
+mod tempfile;
 #[cfg(feature = "typed-headers")]
 mod typed_header;
 #[cfg(feature = "websocket")]
@@ -47,6 +48,9 @@ pub use typed_header::TypedHeader;
 #[cfg(feature = "cookie")]
 #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
 pub use self::cookie::{Cookie, CookieJar};
+#[cfg(feature = "tempfile")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
+pub use self::tempfile::TempFile;
 use crate::{
     body::Body,
     error::{Error, ErrorBodyHasBeenTaken, Result},
