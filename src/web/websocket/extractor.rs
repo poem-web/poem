@@ -5,12 +5,11 @@ use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::{utils::sign, WebSocketStream};
 use crate::{
-    error::ErrorBodyHasBeenTaken,
     http::{
         header::{self, HeaderValue},
         Method, StatusCode,
     },
-    Body, Error, FromRequest, IntoResponse, Request, Response, Result,
+    Body, Error, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
 };
 
 /// An extractor that can accept websocket connections.
@@ -23,7 +22,7 @@ pub struct WebSocket {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for WebSocket {
-    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         if req.method() != Method::GET
             || req.headers().get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
             || req.headers().get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
@@ -48,7 +47,7 @@ impl<'a> FromRequest<'a> for WebSocket {
             *hyper_req.uri_mut() = req.uri().clone();
             *hyper_req.version_mut() = req.version();
             *hyper_req.headers_mut() = req.headers().clone();
-            *hyper_req.body_mut() = body.take().ok_or(ErrorBodyHasBeenTaken)?.0;
+            *hyper_req.body_mut() = body.take()?.0;
 
             hyper_req
         };
@@ -165,7 +164,7 @@ where
             builder = builder.header(header::SEC_WEBSOCKET_PROTOCOL, protocol);
         }
 
-        let resp = builder.body(Body::empty())?;
+        let resp = builder.body(Body::empty());
 
         tokio::spawn(async move {
             let upgraded = match self.websocket.on_upgrade.await {

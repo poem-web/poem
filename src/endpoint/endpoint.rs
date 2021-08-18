@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 
-use super::{AndThen, Before, Map, MapErr, MapOk};
-use crate::{Middleware, Request, Response, Result};
+use super::{AndThen, Map, MapErr, MapOk, MapRequest};
+use crate::{Error, Middleware, Request, Response, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
@@ -49,18 +49,20 @@ pub trait EndpointExt: Endpoint {
     }
 
     /// Maps the request of this endpoint.
-    fn before<F>(self, f: F) -> Before<Self, F>
+    fn map_request<F, Fut>(self, f: F) -> MapRequest<Self, F>
     where
-        F: Fn(Request) -> Result<Request>,
+        F: Fn(Request) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<Request>> + Send + 'static,
         Self: Sized,
     {
-        Before::new(self, f)
+        MapRequest::new(self, f)
     }
 
-    /// Maps the result of this endpoint.
-    fn map<F>(self, f: F) -> Map<Self, F>
+    /// Maps the response of this endpoint.
+    fn map<F, Fut>(self, f: F) -> Map<Self, F>
     where
-        F: Fn(Result<Response>) -> Result<Response>,
+        F: Fn(Result<Response>) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<Response>> + Send + 'static,
         Self: Sized,
     {
         Map::new(self, f)
@@ -68,27 +70,30 @@ pub trait EndpointExt: Endpoint {
 
     /// calls `f` if the result is `Ok`, otherwise returns the `Err` value of
     /// self.
-    fn and_then<F>(self, f: F) -> AndThen<Self, F>
+    fn and_then<F, Fut>(self, f: F) -> AndThen<Self, F>
     where
-        F: Fn(Response) -> Result<Response>,
+        F: Fn(Response) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<Response>> + Send + 'static,
         Self: Sized,
     {
         AndThen::new(self, f)
     }
 
     /// Maps the response of this endpoint.
-    fn map_ok<F>(self, f: F) -> MapOk<Self, F>
+    fn map_ok<F, Fut>(self, f: F) -> MapOk<Self, F>
     where
-        F: Fn(Response) -> Response,
+        F: Fn(Response) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Response> + Send + 'static,
         Self: Sized,
     {
         MapOk::new(self, f)
     }
 
     /// Maps the error of this endpoint.
-    fn map_err<F>(self, f: F) -> MapErr<Self, F>
+    fn map_err<F, Fut>(self, f: F) -> MapErr<Self, F>
     where
-        F: Fn(Response) -> Response,
+        F: Fn(Error) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Error> + Send + 'static,
         Self: Sized,
     {
         MapErr::new(self, f)
@@ -96,3 +101,144 @@ pub trait EndpointExt: Endpoint {
 }
 
 impl<T: Endpoint> EndpointExt for T {}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        http::{Method, StatusCode},
+        *,
+    };
+
+    #[handler(internal)]
+    async fn handler_request(method: Method) -> String {
+        method.to_string()
+    }
+
+    #[handler(internal)]
+    async fn handler() -> &'static str {
+        "abc"
+    }
+
+    #[handler(internal)]
+    async fn handler_err() -> Result<&'static str> {
+        Err(Error::status(StatusCode::BAD_REQUEST))
+    }
+    #[tokio::test]
+    async fn test_map_request() {
+        assert_eq!(
+            handler_request
+                .map_request(|mut req| async move {
+                    req.set_method(Method::POST);
+                    Ok(req)
+                })
+                .call(Request::default())
+                .await
+                .unwrap()
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "POST"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_map() {
+        assert_eq!(
+            handler
+                .map(|_| async { Ok("def".into()) })
+                .call(Request::default())
+                .await
+                .unwrap()
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "def"
+        );
+
+        let err = handler
+            .map(|_| async { Err(Error::status(StatusCode::FORBIDDEN)) })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.as_response().status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn test_and_then() {
+        assert_eq!(
+            handler
+                .and_then(|mut resp| async move {
+                    Ok((resp.take_body().into_string().await.unwrap() + "def").into())
+                })
+                .call(Request::default())
+                .await
+                .unwrap()
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "abcdef"
+        );
+
+        let err = handler_err
+            .and_then(|mut resp| async move {
+                Ok((resp.take_body().into_string().await.unwrap() + "def").into())
+            })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_map_ok() {
+        assert_eq!(
+            handler
+                .map_ok(|mut resp| async move {
+                    (resp.take_body().into_string().await.unwrap() + "def").into()
+                })
+                .call(Request::default())
+                .await
+                .unwrap()
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "abcdef"
+        );
+
+        let err = handler_err
+            .map_ok(|mut resp| async move {
+                (resp.take_body().into_string().await.unwrap() + "def").into()
+            })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_map_err() {
+        assert_eq!(
+            handler
+                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+                .call(Request::default())
+                .await
+                .unwrap()
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "abc"
+        );
+
+        let err = handler_err
+            .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+    }
+}

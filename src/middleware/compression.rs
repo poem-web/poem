@@ -104,19 +104,19 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
 
         match encoding {
             Some(CompressionAlgo::BR) => {
-                let body = req.take_body()?.into_async_read();
+                let body = req.take_body().into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::BrotliDecoder::new(BufReader::new(body)),
                 ));
             }
             Some(CompressionAlgo::DEFLATE) => {
-                let body = req.take_body()?.into_async_read();
+                let body = req.take_body().into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(body)),
                 ));
             }
             Some(CompressionAlgo::GZIP) => {
-                let body = req.take_body()?.into_async_read();
+                let body = req.take_body().into_async_read();
                 req.set_body(Body::from_async_read(
                     async_compression::tokio::bufread::GzipDecoder::new(BufReader::new(body)),
                 ));
@@ -128,7 +128,7 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
 
         match accept_encoding.or(self.compress_algo) {
             Some(CompressionAlgo::BR) => {
-                let body = resp.take_body()?;
+                let body = resp.take_body();
                 resp.headers_mut()
                     .append(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
                 resp.set_body(Body::from_async_read(
@@ -138,7 +138,7 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
                 ));
             }
             Some(CompressionAlgo::DEFLATE) => {
-                let body = resp.take_body()?;
+                let body = resp.take_body();
                 resp.headers_mut().append(
                     header::CONTENT_ENCODING,
                     HeaderValue::from_static("deflate"),
@@ -150,7 +150,7 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
                 ));
             }
             Some(CompressionAlgo::GZIP) => {
-                let body = resp.take_body()?;
+                let body = resp.take_body();
                 resp.headers_mut()
                     .append(header::CONTENT_ENCODING, HeaderValue::from_static("gzip"));
                 resp.set_body(Body::from_async_read(

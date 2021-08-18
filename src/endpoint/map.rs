@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use crate::{Endpoint, Request, Response, Result};
 
 /// Endpoint for the [`map`](super::EndpointExt::map) method.
@@ -14,12 +16,13 @@ impl<E, F> Map<E, F> {
 }
 
 #[async_trait::async_trait]
-impl<E, F> Endpoint for Map<E, F>
+impl<E, F, Fut> Endpoint for Map<E, F>
 where
     E: Endpoint,
-    F: Fn(Result<Response>) -> Result<Response> + Send + Sync + 'static,
+    F: Fn(Result<Response>) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<Response>> + Send + 'static,
 {
     async fn call(&self, req: Request) -> Result<Response> {
-        (self.f)(self.inner.call(req).await)
+        (self.f)(self.inner.call(req).await).await
     }
 }

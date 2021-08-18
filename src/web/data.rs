@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{Body, Error, FromRequest, Request, Result};
+use crate::{Error, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that can extract data from the request extension.
 ///
@@ -34,7 +34,7 @@ impl<T> DerefMut for Data<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
-    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         req.extensions()
             .get::<T>()
             .ok_or_else(|| {
@@ -44,5 +44,22 @@ impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
                 ))
             })
             .map(Data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{handler, middleware::AddData, Endpoint, EndpointExt};
+
+    #[tokio::test]
+    async fn test_data_extractor() {
+        #[handler(internal)]
+        async fn index(value: Data<&i32>) {
+            assert_eq!(value.0, &100);
+        }
+
+        let app = index.with(AddData::new(100i32));
+        app.call(Request::builder().finish()).await.unwrap();
     }
 }

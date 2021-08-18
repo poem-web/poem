@@ -3,13 +3,18 @@ use std::ops::{Deref, DerefMut};
 use serde::de::DeserializeOwned;
 
 use crate::{
-    error::{ErrorBodyHasBeenTaken, ErrorInvalidFormContentType},
     http::{
         header::{self, HeaderValue},
         Method,
     },
-    Body, Error, FromRequest, Request, Result,
+    web::RequestBody,
+    Error, FromRequest, Request, Result,
 };
+
+define_simple_errors!(
+    /// This error occurs when `Content-type` is not `application/x-www-form-urlencoded`.
+    (ErrorInvalidFormContentType, BAD_REQUEST, "invalid form content type");
+);
 
 /// An extractor that can deserialize some type from query string or body.
 ///
@@ -36,7 +41,7 @@ impl<T> DerefMut for Form<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
-    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         if req.method() == Method::GET {
             serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
                 .map_err(Error::bad_request)
@@ -51,15 +56,66 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
             }
 
             Ok(Self(
-                serde_urlencoded::from_bytes(
-                    &body
-                        .take()
-                        .ok_or(ErrorBodyHasBeenTaken)?
-                        .into_bytes()
-                        .await?,
-                )
-                .map_err(Error::bad_request)?,
+                serde_urlencoded::from_bytes(&body.take()?.into_bytes().await?)
+                    .map_err(Error::bad_request)?,
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::Deserialize;
+
+    use super::*;
+    use crate::{
+        handler,
+        http::{StatusCode, Uri},
+        Endpoint,
+    };
+
+    #[tokio::test]
+    async fn test_form_extractor() {
+        #[derive(Deserialize)]
+        struct CreateResource {
+            name: String,
+            value: i32,
+        }
+
+        #[handler(internal)]
+        async fn index(form: Form<CreateResource>) {
+            assert_eq!(form.name, "abc");
+            assert_eq!(form.value, 100);
+        }
+
+        index
+            .call(
+                Request::builder()
+                    .uri(Uri::from_static("/?name=abc&value=100"))
+                    .finish(),
+            )
+            .await
+            .unwrap();
+
+        index
+            .call(
+                Request::builder()
+                    .method(Method::POST)
+                    .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+                    .body("name=abc&value=100".into()),
+            )
+            .await
+            .unwrap();
+
+        let err = index
+            .call(
+                Request::builder()
+                    .method(Method::POST)
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body("name=abc&value=100".into()),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
     }
 }

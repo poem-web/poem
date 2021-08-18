@@ -47,6 +47,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
+#[macro_use]
+mod macros;
+
 pub mod endpoint;
 pub mod error;
 pub mod middleware;
@@ -67,13 +70,13 @@ mod utils;
 pub use async_trait::async_trait;
 pub use body::Body;
 pub use endpoint::{Endpoint, EndpointExt};
-pub use error::{Error, Result};
+pub use error::{Error, ResponseError, Result};
 pub use middleware::Middleware;
 pub use poem_derive::handler;
-pub use request::{Request, RequestBuilder, RequestParts};
+pub use request::{Request, RequestBuilder};
 pub use response::{Response, ResponseBuilder};
 pub use route::{connect, delete, get, head, options, patch, post, put, route, trace};
 pub use server::Server;
 #[cfg(feature = "tls")]
 pub use server::TlsServer;
-pub use web::{FromRequest, IntoResponse};
+pub use web::{FromRequest, IntoResponse, RequestBody};

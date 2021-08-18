@@ -8,7 +8,7 @@ use futures_util::Stream;
 use hyper::body::HttpBody;
 use tokio::io::AsyncRead;
 
-use crate::{Error, Result};
+use crate::{error::ErrorInternalServerError, Error, Result};
 
 /// A body object for requests and responses.
 #[derive(Default)]
@@ -80,7 +80,19 @@ impl Body {
     pub async fn into_bytes(self) -> Result<Bytes> {
         hyper::body::to_bytes(self.0)
             .await
-            .map_err(Error::bad_request)
+            .map_err(ErrorInternalServerError::new)
+            .map_err(Into::into)
+    }
+
+    /// Consumes this body object to return a [`String`] that contains all data.
+    pub async fn into_string(self) -> Result<String> {
+        Ok(String::from_utf8(
+            self.into_bytes()
+                .await
+                .map_err(Error::internal_server_error)?
+                .to_vec(),
+        )
+        .map_err(|err| Error::new(ErrorInternalServerError::new(err)))?)
     }
 
     /// Consumes this body object to return a reader.

@@ -52,10 +52,10 @@ where
             .boxed();
         }
 
-        Response::builder()
+        Ok(Response::builder()
             .content_type("text/event-stream")
             .body(Body::from_async_read(tokio_util::io::StreamReader::new(
                 stream,
-            )))
+            ))))
     }
 }

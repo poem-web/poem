@@ -188,15 +188,14 @@ async fn serve_connection(
         move |req: hyper::Request<hyper::Body>| {
             let ep = ep.clone();
             async move {
-                let req = match Request::from_hyper_request(req) {
-                    Ok(req) => req,
-                    Err(err) => return Ok(err.as_response().into_hyper_response()),
-                };
+                let req = Request::from_hyper_request(req);
                 let cookie_jar = req.cookie().clone();
 
                 let mut resp = match ep.call(req).await {
                     Ok(resp) => resp.into_hyper_response(),
-                    Err(err) => err.as_response().into_hyper_response(),
+                    Err(err) => {
+                        return Ok(err.as_response().into_hyper_response());
+                    }
                 };
 
                 // Appends cookies to response headers

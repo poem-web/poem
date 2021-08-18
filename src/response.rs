@@ -1,37 +1,46 @@
-use std::{any::Any, convert::TryFrom};
+use std::{
+    any::Any,
+    convert::TryInto,
+    fmt::{self, Debug, Formatter},
+};
 
 use crate::{
-    error::ErrorBodyHasBeenTaken,
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, StatusCode, Version,
     },
-    Body, Error, Result,
+    Body,
 };
 
-struct Parts {
-    status: StatusCode,
-    version: Version,
-    headers: HeaderMap,
-    extensions: Extensions,
-}
-
 /// Represents an HTTP response.
+#[derive(Default)]
 pub struct Response {
     status: StatusCode,
     version: Version,
     headers: HeaderMap,
     extensions: Extensions,
-    body: Option<Body>,
+    body: Body,
+}
+
+impl Debug for Response {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Response")
+            .field("status", &self.status)
+            .field("version", &self.version)
+            .field("headers", &self.headers)
+            .finish()
+    }
+}
+
+impl<T: Into<Body>> From<T> for Response {
+    fn from(body: T) -> Self {
+        Response::builder().body(body.into())
+    }
 }
 
 impl Response {
-    pub(crate) fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
-        let mut resp = hyper::Response::new(
-            self.body
-                .map(|body| body.0)
-                .unwrap_or_else(hyper::Body::empty),
-        );
+    pub(crate) fn into_hyper_response(mut self) -> hyper::Response<hyper::Body> {
+        let mut resp = hyper::Response::new(std::mem::take(&mut self.body).0);
         *resp.status_mut() = self.status;
         *resp.version_mut() = self.version;
         *resp.headers_mut() = self.headers;
@@ -41,12 +50,12 @@ impl Response {
 
     /// Creates a response builder.
     pub fn builder() -> ResponseBuilder {
-        ResponseBuilder(Ok(Parts {
+        ResponseBuilder {
             status: StatusCode::OK,
             version: Default::default(),
             headers: Default::default(),
             extensions: Default::default(),
-        }))
+        }
     }
 
     /// Returns the associated status code.
@@ -99,18 +108,23 @@ impl Response {
 
     /// Sets the body for this response.
     pub fn set_body(&mut self, body: Body) {
-        self.body = Some(body);
+        self.body = body;
     }
 
     /// Take the body from this response and sets the body to empty.
     #[inline]
-    pub fn take_body(&mut self) -> Result<Body> {
-        self.body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
+    pub fn take_body(&mut self) -> Body {
+        std::mem::take(&mut self.body)
     }
 }
 
 /// An response builder.
-pub struct ResponseBuilder(Result<Parts>);
+pub struct ResponseBuilder {
+    status: StatusCode,
+    version: Version,
+    headers: HeaderMap,
+    extensions: Extensions,
+}
 
 impl ResponseBuilder {
     /// Sets the HTTP status for this response.
@@ -118,7 +132,7 @@ impl ResponseBuilder {
     /// By default this is [`StatusCode::OK`].
     #[must_use]
     pub fn status(self, status: StatusCode) -> Self {
-        Self(self.0.map(|parts| Parts { status, ..parts }))
+        Self { status, ..self }
     }
 
     /// Sets the HTTP version for this response.
@@ -126,68 +140,58 @@ impl ResponseBuilder {
     /// By default this is [`Version::HTTP_11`]
     #[must_use]
     pub fn version(self, version: Version) -> Self {
-        Self(self.0.map(|parts| Parts { version, ..parts }))
+        Self { version, ..self }
     }
 
     /// Appends a header to this response builder.
-    ///
-    /// This function will append the provided key/value as a header to the
-    /// internal [`HeaderMap`] being constructed.
     #[must_use]
-    pub fn header<K, V>(self, key: K, value: V) -> Self
+    pub fn header<K, V>(mut self, key: K, value: V) -> Self
     where
-        HeaderName: TryFrom<K>,
-        <HeaderName as TryFrom<K>>::Error: Into<Error>,
-        HeaderValue: TryFrom<V>,
-        <HeaderValue as TryFrom<V>>::Error: Into<Error>,
+        K: TryInto<HeaderName>,
+        V: TryInto<HeaderValue>,
     {
-        Self(self.0.and_then(move |mut parts| {
-            let key = <HeaderName as TryFrom<K>>::try_from(key).map_err(Into::into)?;
-            let value = <HeaderValue as TryFrom<V>>::try_from(value).map_err(Into::into)?;
-            parts.headers.append(key, value);
-            Ok(parts)
-        }))
+        let key = key.try_into();
+        let value = value.try_into();
+        if let (Ok(key), Ok(value)) = (key, value) {
+            self.headers.insert(key, value);
+        }
+        self
     }
 
     /// Sets the `Content-Type` header on the response.
     #[must_use]
-    pub fn content_type(self, content_type: &str) -> Self {
-        Self(self.0.and_then(move |mut parts| {
-            let value = content_type.parse()?;
-            parts.headers.append(header::CONTENT_TYPE, value);
-            Ok(parts)
-        }))
+    pub fn content_type(mut self, content_type: &str) -> Self {
+        if let Ok(value) = content_type.try_into() {
+            self.headers.insert(header::CONTENT_TYPE, value);
+        }
+        self
     }
 
     /// Adds an extension to this response.
     #[must_use]
-    pub fn extension<T>(self, extension: T) -> Self
+    pub fn extension<T>(mut self, extension: T) -> Self
     where
         T: Any + Send + Sync + 'static,
     {
-        Self(self.0.map(move |mut parts| {
-            parts.extensions.insert(extension);
-            parts
-        }))
+        self.extensions.insert(extension);
+        self
     }
 
     /// Consumes this builder, using the provided body to return a constructed
     /// [Response].
-    ///
-    /// # Errors
-    ///
-    /// This function may return an error if any previously configured argument
-    /// failed to parse or get converted to the internal representation. For
-    /// example if an invalid `head` was specified via `header("Foo",
-    /// "Bar\r\n")` the error will be returned when this function is called
-    /// rather than when `header` was called.
-    pub fn body(self, body: Body) -> Result<Response> {
-        self.0.map(move |parts| Response {
-            status: parts.status,
-            version: parts.version,
-            headers: parts.headers,
-            extensions: parts.extensions,
-            body: Some(body),
-        })
+    pub fn body(self, body: Body) -> Response {
+        Response {
+            status: self.status,
+            version: self.version,
+            headers: self.headers,
+            extensions: self.extensions,
+            body,
+        }
+    }
+
+    /// Consumes this builder, using an empty body to return a constructed
+    /// [Response].
+    pub fn finish(self) -> Response {
+        self.body(Body::empty())
     }
 }

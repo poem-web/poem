@@ -49,17 +49,37 @@ pub use self::cookie::{Cookie, CookieJar};
 pub use self::tempfile::TempFile;
 use crate::{
     body::Body,
-    error::{Error, ErrorBodyHasBeenTaken, Result},
+    error::{Error, Result},
     http::{header::HeaderMap, Method, StatusCode, Uri, Version},
     request::Request,
     response::Response,
 };
 
+define_simple_errors! (
+    /// This error occurs when the body has been taken.
+    (ErrorBodyHasBeenTaken, INTERNAL_SERVER_ERROR, "the body has been taken");
+);
+
+/// The body parameter type of [`FromRequest::from_request`] method.
+pub struct RequestBody(Option<Body>);
+
+impl RequestBody {
+    pub(crate) fn new(body: Option<Body>) -> Self {
+        Self(body)
+    }
+
+    /// Take a body, if it has already been taken, an error with the status code
+    /// [`INTERNAL_SERVER_ERROR`] is returned.
+    pub fn take(&mut self) -> Result<Body> {
+        self.0.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
+    }
+}
+
 /// Types that can be created from requests.
 #[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
     /// Perform the extraction.
-    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self>;
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
 }
 
 /// Trait for generating responses.
@@ -78,49 +98,49 @@ impl IntoResponse for Response {
 
 impl IntoResponse for String {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(self.into())
+        Ok(Response::builder().body(self.into()))
     }
 }
 
 impl IntoResponse for &'static str {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(self.into())
+        Ok(Response::builder().body(self.into()))
     }
 }
 
 impl IntoResponse for &'static [u8] {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(self.into())
+        Ok(Response::builder().body(self.into()))
     }
 }
 
 impl IntoResponse for Bytes {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(self.into())
+        Ok(Response::builder().body(self.into()))
     }
 }
 
 impl IntoResponse for Vec<u8> {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(self.into())
+        Ok(Response::builder().body(self.into()))
     }
 }
 
 impl IntoResponse for () {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(Body::empty())
+        Ok(Response::builder().body(Body::empty()))
     }
 }
 
 impl IntoResponse for Infallible {
     fn into_response(self) -> Result<Response> {
-        Response::builder().body(Body::empty())
+        Ok(Response::builder().body(Body::empty()))
     }
 }
 
 impl IntoResponse for StatusCode {
     fn into_response(self) -> Result<Response> {
-        Response::builder().status(self).body(Body::empty())
+        Ok(Response::builder().status(self).finish())
     }
 }
 
@@ -153,87 +173,78 @@ pub struct Html<T>(pub T);
 
 impl<T: Into<String>> IntoResponse for Html<T> {
     fn into_response(self) -> Result<Response> {
-        Response::builder()
+        Ok(Response::builder()
             .content_type("text/html")
-            .body(self.0.into().into())
+            .body(self.0.into().into()))
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a> FromRequest<'a> for &'a Request {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Ok(req)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Uri {
-    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.uri())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Method {
-    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.method().clone())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Version {
-    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.version())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a HeaderMap {
-    async fn from_request(req: &'a Request, _body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.headers())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Body {
-    async fn from_request(_req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
-        body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        body.take()
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
-    async fn from_request(_req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
-        String::from_utf8(
-            body.take()
-                .ok_or(ErrorBodyHasBeenTaken)?
-                .into_bytes()
-                .await?
-                .to_vec(),
-        )
-        .map_err(Error::bad_request)
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        String::from_utf8(body.take()?.into_bytes().await?.to_vec()).map_err(Error::bad_request)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Bytes {
-    async fn from_request(_req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
-        Ok(body
-            .take()
-            .ok_or(ErrorBodyHasBeenTaken)?
-            .into_bytes()
-            .await?)
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(body.take()?.into_bytes().await?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Vec<u8> {
-    async fn from_request(_req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
-        Ok(body
-            .take()
-            .ok_or(ErrorBodyHasBeenTaken)?
-            .into_bytes()
-            .await?
-            .to_vec())
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(body.take()?.into_bytes().await?.to_vec())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
-    async fn from_request(req: &'a Request, body: &mut Option<Body>) -> Result<Self> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await.ok())
     }
 }

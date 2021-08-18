@@ -1,37 +1,19 @@
 use std::{
     any::Any,
-    convert::{TryFrom, TryInto},
-    sync::Arc,
+    convert::TryInto,
+    fmt::{self, Debug, Formatter},
 };
 
 use crate::{
     body::Body,
-    error::{Error, ErrorBodyHasBeenTaken, Result},
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
     },
     route_recognizer::Params,
     web::CookieJar,
+    RequestBody,
 };
-
-/// Component parts of an HTTP Request
-pub struct RequestParts {
-    /// The request’s method
-    method: Method,
-
-    /// The request’s URI
-    uri: Uri,
-
-    /// The request’s version
-    version: Version,
-
-    /// The request’s headers
-    headers: HeaderMap,
-
-    /// The request’s extensions
-    extensions: Extensions,
-}
 
 #[derive(Default)]
 pub(crate) struct RequestState {
@@ -41,57 +23,64 @@ pub(crate) struct RequestState {
 }
 
 /// Represents an HTTP request.
+#[derive(Default)]
 pub struct Request {
     method: Method,
     uri: Uri,
     version: Version,
     headers: HeaderMap,
     extensions: Extensions,
-    body: Option<Body>,
+    body: Body,
     state: RequestState,
 }
 
+impl Debug for Request {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Request")
+            .field("method", &self.method)
+            .field("uri", &self.uri)
+            .field("version", &self.version)
+            .field("headers", &self.headers)
+            .finish()
+    }
+}
+
 impl Request {
-    pub(crate) fn from_hyper_request(req: hyper::Request<hyper::Body>) -> Result<Self> {
+    pub(crate) fn from_hyper_request(req: hyper::Request<hyper::Body>) -> Self {
         let (parts, body) = req.into_parts();
 
         // Extract cookies from the header
-        let mut cookie_jar = ::cookie::CookieJar::new();
+        let cookie_jar = parts
+            .headers
+            .get(header::COOKIE)
+            .and_then(|value| std::str::from_utf8(value.as_bytes()).ok())
+            .and_then(|value| value.parse().ok())
+            .unwrap_or_default();
 
-        for header in parts.headers.get_all(header::COOKIE) {
-            if let Ok(value) = std::str::from_utf8(header.as_bytes()) {
-                for cookie_str in value.split(';').map(str::trim) {
-                    if let Ok(cookie) = ::cookie::Cookie::parse_encoded(cookie_str) {
-                        cookie_jar.add_original(cookie.into_owned());
-                    }
-                }
-            }
-        }
-
-        Ok(Self {
+        Self {
             method: parts.method,
             uri: parts.uri.clone(),
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body: Some(Body(body)),
+            body: Body(body),
             state: RequestState {
                 original_uri: parts.uri,
                 match_params: Default::default(),
-                cookie_jar: CookieJar(Arc::new(parking_lot::Mutex::new(cookie_jar))),
+                cookie_jar,
             },
-        })
+        }
     }
 
     /// Creates a request builder.
     pub fn builder() -> RequestBuilder {
-        RequestBuilder(Ok(RequestParts {
+        RequestBuilder {
             method: Method::GET,
             uri: Default::default(),
             version: Default::default(),
             headers: Default::default(),
             extensions: Default::default(),
-        }))
+        }
     }
 
     /// Returns a reference to the associated HTTP method.
@@ -175,13 +164,13 @@ impl Request {
 
     /// Sets the body for this request.
     pub fn set_body(&mut self, body: Body) {
-        self.body = Some(body);
+        self.body = body;
     }
 
     /// Take the body from this request and sets the body to empty.
     #[inline]
-    pub fn take_body(&mut self) -> Result<Body> {
-        self.body.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
+    pub fn take_body(&mut self) -> Body {
+        std::mem::take(&mut self.body)
     }
 
     #[inline]
@@ -193,10 +182,22 @@ impl Request {
     pub(crate) fn state_mut(&mut self) -> &mut RequestState {
         &mut self.state
     }
+
+    #[doc(hidden)]
+    pub fn split_body(mut self) -> (Request, RequestBody) {
+        let body = self.take_body();
+        (self, RequestBody::new(Some(body)))
+    }
 }
 
 /// An request builder.
-pub struct RequestBuilder(Result<RequestParts>);
+pub struct RequestBuilder {
+    method: Method,
+    uri: Uri,
+    version: Version,
+    headers: HeaderMap,
+    extensions: Extensions,
+}
 
 impl RequestBuilder {
     /// Sets the HTTP method for this request.
@@ -204,92 +205,74 @@ impl RequestBuilder {
     /// By default this is [`Method::GET`].
     #[must_use]
     pub fn method(self, method: Method) -> RequestBuilder {
-        Self(self.0.map(move |parts| RequestParts { method, ..parts }))
+        Self { method, ..self }
     }
 
     /// Sets the URI for this request.
     ///
     /// By default this is `/`.
     #[must_use]
-    pub fn uri<T>(self, uri: T) -> RequestBuilder
-    where
-        T: TryInto<Uri, Error = Error>,
-    {
-        Self(self.0.and_then(move |parts| {
-            Ok(RequestParts {
-                uri: uri.try_into()?,
-                ..parts
-            })
-        }))
+    pub fn uri(self, uri: Uri) -> RequestBuilder {
+        Self { uri, ..self }
     }
 
     /// Sets the HTTP version for this request.
     #[must_use]
     pub fn version(self, version: Version) -> RequestBuilder {
-        Self(self.0.map(move |parts| RequestParts { version, ..parts }))
+        Self { version, ..self }
     }
 
-    /// Appends a header to this request builder.
-    ///
-    /// This function will append the provided key/value as a header to the
-    /// internal [HeaderMap] being constructed.
+    /// Appends a header to this response builder.
     #[must_use]
-    pub fn header<K, V>(self, key: K, value: V) -> Self
+    pub fn header<K, V>(mut self, key: K, value: V) -> Self
     where
-        HeaderName: TryFrom<K>,
-        <HeaderName as TryFrom<K>>::Error: Into<Error>,
-        HeaderValue: TryFrom<V>,
-        <HeaderValue as TryFrom<V>>::Error: Into<Error>,
+        K: TryInto<HeaderName>,
+        V: TryInto<HeaderValue>,
     {
-        Self(self.0.and_then(move |mut parts| {
-            let key = <HeaderName as TryFrom<K>>::try_from(key).map_err(Into::into)?;
-            let value = <HeaderValue as TryFrom<V>>::try_from(value).map_err(Into::into)?;
-            parts.headers.append(key, value);
-            Ok(parts)
-        }))
+        let key = key.try_into();
+        let value = value.try_into();
+        if let (Ok(key), Ok(value)) = (key, value) {
+            self.headers.insert(key, value);
+        }
+        self
     }
 
-    /// Sets the `Content-Type` header on the request.
+    /// Sets the `Content-Type` header on the response.
     #[must_use]
-    pub fn content_type(self, content_type: &str) -> Self {
-        Self(self.0.and_then(move |mut parts| {
-            let value = content_type.parse()?;
-            parts.headers.append(header::CONTENT_TYPE, value);
-            Ok(parts)
-        }))
+    pub fn content_type(mut self, content_type: &str) -> Self {
+        if let Ok(value) = content_type.try_into() {
+            self.headers.insert(header::CONTENT_TYPE, value);
+        }
+        self
     }
 
     /// Adds an extension to this request.
     #[must_use]
-    pub fn extension<T>(self, extension: T) -> Self
+    pub fn extension<T>(mut self, extension: T) -> Self
     where
         T: Any + Send + Sync + 'static,
     {
-        Self(self.0.map(move |mut parts| {
-            parts.extensions.insert(extension);
-            parts
-        }))
+        self.extensions.insert(extension);
+        self
     }
 
     /// Consumes this builder, using the provided body to return a constructed
     /// [Request].
-    ///
-    /// # Errors
-    ///
-    /// This function may return an error if any previously configured argument
-    /// failed to parse or get converted to the internal representation. For
-    /// example if an invalid `head` was specified via `header("Foo",
-    /// "Bar\r\n")` the error will be returned when this function is called
-    /// rather than when `header` was called.
-    pub fn body(self, body: Body) -> Result<Request> {
-        self.0.map(move |parts| Request {
-            method: parts.method,
-            uri: parts.uri,
-            version: parts.version,
-            headers: parts.headers,
-            extensions: parts.extensions,
-            body: Some(body),
+    pub fn body(self, body: Body) -> Request {
+        Request {
+            method: self.method,
+            uri: self.uri,
+            version: self.version,
+            headers: self.headers,
+            extensions: self.extensions,
+            body,
             state: Default::default(),
-        })
+        }
+    }
+
+    /// Consumes this builder, using an empty body to return a constructed
+    /// [Request].
+    pub fn finish(self) -> Request {
+        self.body(Body::empty())
     }
 }

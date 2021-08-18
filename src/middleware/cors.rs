@@ -12,6 +12,7 @@ use crate::{
     middleware::Middleware,
     request::Request,
     response::Response,
+    Error,
 };
 
 #[derive(Default)]
@@ -140,7 +141,7 @@ impl<E> CorsImpl<E> {
         })
     }
 
-    fn build_preflight_response(&self) -> Result<Response> {
+    fn build_preflight_response(&self) -> Response {
         let mut builder = Response::builder();
 
         for origin in &self.config.allow_origins {
@@ -178,11 +179,11 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
                 .and_then(|value| value.to_str().ok())
                 .unwrap_or_default(),
         ) {
-            return Err(StatusCode::UNAUTHORIZED.into());
+            return Err(Error::status(StatusCode::UNAUTHORIZED));
         }
 
         if req.method() == Method::OPTIONS {
-            return self.build_preflight_response();
+            return Ok(self.build_preflight_response());
         }
 
         let mut resp = self.inner.call(req).await?;

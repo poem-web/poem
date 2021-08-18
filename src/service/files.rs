@@ -1,6 +1,5 @@
 use std::{
     ffi::OsStr,
-    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
@@ -8,6 +7,7 @@ use askama::Template;
 use tokio::fs::File;
 
 use crate::{
+    error::ErrorInternalServerError,
     http::{Method, StatusCode},
     Body, Endpoint, Error, Request, Response, Result,
 };
@@ -94,7 +94,7 @@ impl Files {
 impl Endpoint for Files {
     async fn call(&self, req: Request) -> Result<Response> {
         if req.method() != Method::GET {
-            return Err(StatusCode::METHOD_NOT_ALLOWED.into());
+            return Err(Error::status(StatusCode::METHOD_NOT_ALLOWED));
         }
 
         let path = req.uri().path();
@@ -112,11 +112,11 @@ impl Endpoint for Files {
         }
 
         if !file_path.starts_with(&self.path) {
-            return Err(StatusCode::FORBIDDEN.into());
+            return Err(Error::status(StatusCode::FORBIDDEN));
         }
 
         if !file_path.exists() {
-            return Err(StatusCode::NOT_FOUND.into());
+            return Err(Error::status(StatusCode::NOT_FOUND));
         }
 
         if file_path.is_file() {
@@ -132,14 +132,15 @@ impl Endpoint for Files {
             if self.show_files_listing {
                 let read_dir = file_path
                     .read_dir()
-                    .map_err(|_| Error::from(StatusCode::INTERNAL_SERVER_ERROR))?;
+                    .map_err(|_| Error::status(StatusCode::INTERNAL_SERVER_ERROR))?;
                 let mut template = DirectoryTemplate {
                     path: req.uri().path(),
                     files: Vec::new(),
                 };
 
                 for res in read_dir {
-                    let entry = res.map_err(|_| Error::from(StatusCode::INTERNAL_SERVER_ERROR))?;
+                    let entry =
+                        res.map_err(|_| Error::status(StatusCode::INTERNAL_SERVER_ERROR))?;
                     if let Some(filename) = entry.file_name().to_str() {
                         let mut base_url = req.original_uri().path().to_string();
                         if !base_url.ends_with('/') {
@@ -155,20 +156,18 @@ impl Endpoint for Files {
 
                 let html = template
                     .render()
-                    .map_err(|_| Error::from(StatusCode::INTERNAL_SERVER_ERROR))?;
-                Response::builder().body(Body::from_string(html))
+                    .map_err(|_| Error::status(StatusCode::INTERNAL_SERVER_ERROR))?;
+                Ok(Response::builder().body(Body::from_string(html)))
             } else {
-                Err(Error::from(StatusCode::NOT_FOUND))
+                Err(Error::status(StatusCode::NOT_FOUND))
             }
         }
     }
 }
 
 async fn create_file_response(path: &Path) -> Result<Response> {
-    let file = File::open(path).await.map_err(|err| match err.kind() {
-        ErrorKind::NotFound => Error::from(StatusCode::NOT_FOUND),
-        ErrorKind::PermissionDenied => Error::from(StatusCode::FORBIDDEN),
-        _ => Error::internal_server_error(err),
-    })?;
-    Response::builder().body(Body::from_async_read(file))
+    let file = File::open(path)
+        .await
+        .map_err(ErrorInternalServerError::new)?;
+    Ok(Response::builder().body(Body::from_async_read(file)))
 }

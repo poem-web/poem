@@ -2,10 +2,9 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    error::ErrorNotFound, http::Method, route_recognizer::Router, Endpoint, Error, Request,
-    Response, Result,
-};
+use http::StatusCode;
+
+use crate::{http::Method, route_recognizer::Router, Endpoint, Error, Request, Response, Result};
 
 /// Routing object
 #[derive(Default)]
@@ -110,8 +109,7 @@ impl Endpoint for Route {
         let m = self
             .router
             .recognize(req.uri().path())
-            .ok()
-            .ok_or_else(|| Into::<Error>::into(ErrorNotFound))?;
+            .map_err(|_| Error::status(StatusCode::NOT_FOUND))?;
         req.state_mut().match_params.0.extend(m.params.0);
         m.handler.call(req).await
     }
@@ -234,7 +232,7 @@ impl Endpoint for RouteMethod {
                 let _ = resp.take_body();
                 Ok(resp)
             } else {
-                Err(ErrorNotFound.into())
+                Err(Error::status(StatusCode::NOT_FOUND))
             };
         }
 
@@ -245,7 +243,7 @@ impl Endpoint for RouteMethod {
         if let Some(ep) = self.router.get(req.method()) {
             ep.call(req).await
         } else {
-            Err(ErrorNotFound.into())
+            Err(Error::status(StatusCode::NOT_FOUND))
         }
     }
 }
