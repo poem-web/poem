@@ -31,7 +31,7 @@ impl Route {
     /// async fn b(Path((group, name)): Path<(String, String)>) {}
     ///
     /// #[handler]
-    /// async fn c(Path(path): Path<String>) -> String {}
+    /// async fn c(Path(path): Path<String>) {}
     ///
     /// let app = route()
     ///     // full path
