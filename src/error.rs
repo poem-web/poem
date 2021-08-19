@@ -100,6 +100,18 @@ impl Error {
         self.error.downcast_ref::<T>()
     }
 
+    /// Attempts to downcast the error to a concrete error type.
+    #[inline]
+    pub fn downcast<T>(self) -> Result<T>
+    where
+        T: Display + Debug + Send + Sync + 'static,
+    {
+        let status = self.status;
+        self.error
+            .downcast::<T>()
+            .map_err(|error| Error { status, error })
+    }
+
     /// Returns true if the concrete error type is the same as T.
     #[inline]
     pub fn is<T>(&self) -> bool
