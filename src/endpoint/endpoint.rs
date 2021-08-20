@@ -1,6 +1,6 @@
 use std::{future::Future, sync::Arc};
 
-use super::{AndThen, Map, MapErr, MapOk, MapRequest};
+use super::{AndThen, Map, MapErr, MapOk, MapRequest, MapToResponse};
 use crate::{Error, Middleware, Request, Response, Result};
 
 /// An HTTP request handler.
@@ -68,7 +68,7 @@ pub trait EndpointExt: Endpoint {
         Map::new(self, f)
     }
 
-    /// calls `f` if the result is `Ok`, otherwise returns the `Err` value of
+    /// Calls `f` if the result is `Ok`, otherwise returns the `Err` value of
     /// self.
     fn and_then<F, Fut>(self, f: F) -> AndThen<Self, F>
     where
@@ -97,6 +97,17 @@ pub trait EndpointExt: Endpoint {
         Self: Sized,
     {
         MapErr::new(self, f)
+    }
+
+    /// Wrap this endpoint that does not return an error.
+    ///
+    /// if this endpoint returns an error, the error will be converted into a
+    /// response using [`ResponseError::as_response`].
+    fn map_to_response(self) -> MapToResponse<Self>
+    where
+        Self: Sized,
+    {
+        MapToResponse::new(self)
     }
 }
 
@@ -240,5 +251,18 @@ mod test {
             .await
             .unwrap_err();
         assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[tokio::test]
+    async fn test_map_to_response() {
+        assert_eq!(
+            handler_err
+                .map_to_response()
+                .call(Request::default())
+                .await
+                .unwrap()
+                .status(),
+            StatusCode::BAD_REQUEST
+        );
     }
 }
