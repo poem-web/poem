@@ -1,7 +1,7 @@
 use poem::{get, handler, route, web::Path, Server};
 
 #[handler]
-async fn hello(Path(name): Path<String>) -> String {
+fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }
 

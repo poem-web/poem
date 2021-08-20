@@ -4,7 +4,7 @@ use tracing_subscriber::{
 };
 
 #[handler]
-async fn hello(Path(name): Path<String>) -> String {
+fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }
 

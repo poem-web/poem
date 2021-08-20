@@ -19,7 +19,7 @@ async fn graphql_handler(schema: Data<&StarWarsSchema>, req: Json<Request>) -> J
 }
 
 #[handler]
-async fn graphql_playground() -> impl IntoResponse {
+fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(GraphQLPlaygroundConfig::new("/")))
 }
 
