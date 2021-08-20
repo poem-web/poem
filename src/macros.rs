@@ -19,7 +19,7 @@ macro_rules! define_simple_errors {
 
         impl crate::ResponseError for $name {
             fn as_response(&self) -> crate::Response {
-                crate::Response::builder().status(crate::http::StatusCode::$status).body($err_msg.into())
+                crate::Response::builder().status(crate::http::StatusCode::$status).body($err_msg)
             }
         }
         )*

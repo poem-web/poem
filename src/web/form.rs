@@ -102,7 +102,7 @@ mod tests {
                 Request::builder()
                     .method(Method::POST)
                     .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-                    .body("name=abc&value=100".into()),
+                    .body("name=abc&value=100"),
             )
             .await
             .unwrap();
@@ -112,7 +112,7 @@ mod tests {
                 Request::builder()
                     .method(Method::POST)
                     .header(header::CONTENT_TYPE, "application/json")
-                    .body("name=abc&value=100".into()),
+                    .body("name=abc&value=100"),
             )
             .await
             .unwrap_err();

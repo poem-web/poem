@@ -29,3 +29,35 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Query<T> {
             .map(Self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde::Deserialize;
+
+    use super::*;
+    use crate::{handler, http::Uri, Endpoint};
+
+    #[tokio::test]
+    async fn test_query_extractor() {
+        #[derive(Deserialize)]
+        struct CreateResource {
+            name: String,
+            value: i32,
+        }
+
+        #[handler(internal)]
+        async fn index(query: Query<CreateResource>) {
+            assert_eq!(query.name, "abc");
+            assert_eq!(query.value, 100);
+        }
+
+        index
+            .call(
+                Request::builder()
+                    .uri(Uri::from_static("/?name=abc&value=100"))
+                    .finish(),
+            )
+            .await
+            .unwrap();
+    }
+}

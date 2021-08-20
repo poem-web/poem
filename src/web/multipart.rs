@@ -113,3 +113,38 @@ impl Multipart {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{handler, Endpoint};
+
+    #[tokio::test]
+    async fn test_multipart_extractor() {
+        #[handler(internal)]
+        async fn index(mut multipart: Multipart) {
+            let field = multipart.next_field().await.unwrap().unwrap();
+            assert_eq!(field.name(), Some("my_text_field"));
+            assert_eq!(field.text().await.unwrap(), "abcd");
+
+            let field = multipart.next_field().await.unwrap().unwrap();
+            assert_eq!(field.name(), Some("my_file_field"));
+            assert_eq!(field.file_name(), Some("a-text-file.txt"));
+            assert_eq!(field.content_type(), Some("text/plain"));
+            assert_eq!(
+                field.text().await.unwrap(),
+                "Hello world\nHello\r\nWorld\rAgain"
+            );
+        }
+
+        let data = "--X-BOUNDARY\r\nContent-Disposition: form-data; name=\"my_text_field\"\r\n\r\nabcd\r\n--X-BOUNDARY\r\nContent-Disposition: form-data; name=\"my_file_field\"; filename=\"a-text-file.txt\"\r\nContent-Type: text/plain\r\n\r\nHello world\nHello\r\nWorld\rAgain\r\n--X-BOUNDARY--\r\n";
+        index
+            .call(
+                Request::builder()
+                    .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
+                    .body(data),
+            )
+            .await
+            .unwrap();
+    }
+}

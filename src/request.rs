@@ -258,14 +258,14 @@ impl RequestBuilder {
 
     /// Consumes this builder, using the provided body to return a constructed
     /// [Request].
-    pub fn body(self, body: Body) -> Request {
+    pub fn body(self, body: impl Into<Body>) -> Request {
         Request {
             method: self.method,
             uri: self.uri,
             version: self.version,
             headers: self.headers,
             extensions: self.extensions,
-            body,
+            body: body.into(),
             state: Default::default(),
         }
     }

@@ -78,6 +78,46 @@ impl<T: Serialize> IntoResponse for Json<T> {
         let data = serde_json::to_vec(&self.0).map_err(Error::bad_request)?;
         Ok(Response::builder()
             .header(header::CONTENT_TYPE, "application/json")
-            .body(data.into()))
+            .body(data))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::Deserialize;
+
+    use super::*;
+    use crate::{handler, http::Method, Endpoint};
+
+    #[tokio::test]
+    async fn test_json_extractor() {
+        #[derive(Deserialize)]
+        struct CreateResource {
+            name: String,
+            value: i32,
+        }
+
+        #[handler(internal)]
+        async fn index(query: Json<CreateResource>) {
+            assert_eq!(query.name, "abc");
+            assert_eq!(query.value, 100);
+        }
+
+        index
+            .call(
+                Request::builder()
+                    .method(Method::POST)
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(
+                        r#"
+                    {
+                        "name": "abc",
+                        "value": 100
+                    }
+                    "#,
+                    ),
+            )
+            .await
+            .unwrap();
     }
 }

@@ -98,31 +98,31 @@ impl IntoResponse for Response {
 
 impl IntoResponse for String {
     fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self.into()))
+        Ok(Response::builder().body(self))
     }
 }
 
 impl IntoResponse for &'static str {
     fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self.into()))
+        Ok(Response::builder().body(self))
     }
 }
 
 impl IntoResponse for &'static [u8] {
     fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self.into()))
+        Ok(Response::builder().body(self))
     }
 }
 
 impl IntoResponse for Bytes {
     fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self.into()))
+        Ok(Response::builder().body(self))
     }
 }
 
 impl IntoResponse for Vec<u8> {
     fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self.into()))
+        Ok(Response::builder().body(self))
     }
 }
 
@@ -175,7 +175,7 @@ impl<T: Into<String>> IntoResponse for Html<T> {
     fn into_response(self) -> Result<Response> {
         Ok(Response::builder()
             .content_type("text/html")
-            .body(self.0.into().into()))
+            .body(self.0.into()))
     }
 }
 

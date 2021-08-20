@@ -1,6 +1,11 @@
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+
 use tokio::{
     fs::File,
-    io::{AsyncSeekExt, SeekFrom},
+    io::{AsyncRead, AsyncSeekExt, ReadBuf, SeekFrom},
 };
 
 use crate::{Error, FromRequest, Request, RequestBody};
@@ -25,5 +30,38 @@ impl<'a> FromRequest<'a> for TempFile {
             .await
             .map_err(Error::internal_server_error)?;
         Ok(Self(file))
+    }
+}
+
+impl AsyncRead for TempFile {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        Pin::new(&mut self.0).poll_read(cx, buf)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tokio::io::AsyncReadExt;
+
+    use super::*;
+    use crate::{handler, Endpoint};
+
+    #[tokio::test]
+    async fn test_tempfile_extractor() {
+        #[handler(internal)]
+        async fn index123(mut file: TempFile) {
+            let mut s = String::new();
+            file.read_to_string(&mut s).await.unwrap();
+            assert_eq!(s, "abcdef");
+        }
+
+        index123
+            .call(Request::builder().body("abcdef"))
+            .await
+            .unwrap();
     }
 }

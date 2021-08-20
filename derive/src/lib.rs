@@ -50,13 +50,13 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
 
     let mut extractors = Vec::new();
     let mut args = Vec::new();
-    for input in &item_fn.sig.inputs {
+    for (idx, input) in item_fn.sig.inputs.clone().into_iter().enumerate() {
         if let FnArg::Typed(pat) = input {
             let ty = &pat.ty;
-            let pat = &pat.pat;
-            args.push(pat);
+            let id = quote::format_ident!("p{}", idx);
+            args.push(id.clone());
             extractors.push(quote! {
-                let #pat = <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await?;
+                let #id = <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await?;
             });
         }
     }

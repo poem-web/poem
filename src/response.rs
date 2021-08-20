@@ -179,13 +179,13 @@ impl ResponseBuilder {
 
     /// Consumes this builder, using the provided body to return a constructed
     /// [Response].
-    pub fn body(self, body: Body) -> Response {
+    pub fn body(self, body: impl Into<Body>) -> Response {
         Response {
             status: self.status,
             version: self.version,
             headers: self.headers,
             extensions: self.extensions,
-            body,
+            body: body.into(),
         }
     }
 
