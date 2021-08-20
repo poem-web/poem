@@ -69,7 +69,7 @@ impl RequestBody {
     }
 
     /// Take a body, if it has already been taken, an error with the status code
-    /// [`INTERNAL_SERVER_ERROR`] is returned.
+    /// [`StatusCode::INTERNAL_SERVER_ERROR`] is returned.
     pub fn take(&mut self) -> Result<Body> {
         self.0.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
     }

@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use crate::{Endpoint, Request, Response, Result};
+use crate::{Endpoint, IntoResponse, Request, Response, Result};
 
 /// Endpoint for the [`map_ok`](super::EndpointExt::map_ok) method.
 pub struct MapOk<E, F> {
@@ -16,15 +16,16 @@ impl<E, F> MapOk<E, F> {
 }
 
 #[async_trait::async_trait]
-impl<E, F, Fut> Endpoint for MapOk<E, F>
+impl<E, F, Fut, R> Endpoint for MapOk<E, F>
 where
     E: Endpoint,
     F: Fn(Response) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Response> + Send + 'static,
+    Fut: Future<Output = R> + Send + 'static,
+    R: IntoResponse,
 {
     async fn call(&self, req: Request) -> Result<Response> {
         match self.inner.call(req).await {
-            Ok(resp) => Ok((self.f)(resp).await),
+            Ok(resp) => (self.f)(resp).await.into_response(),
             Err(err) => Err(err),
         }
     }

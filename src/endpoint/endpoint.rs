@@ -1,7 +1,7 @@
 use std::{future::Future, sync::Arc};
 
 use super::{AndThen, Map, MapErr, MapOk, MapRequest, MapToResponse};
-use crate::{Error, Middleware, Request, Response, Result};
+use crate::{Error, IntoResponse, Middleware, Request, Response, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
@@ -49,20 +49,72 @@ pub trait EndpointExt: Endpoint {
     }
 
     /// Maps the request of this endpoint.
-    fn map_request<F, Fut>(self, f: F) -> MapRequest<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result};
+    ///
+    /// #[handler]
+    /// async fn index(data: String) -> String {
+    ///     data
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let res = index
+    ///     .map_request(|mut req| async move {
+    ///         req.set_body("abc");
+    ///         Ok(req)
+    ///     })
+    ///     .call(Request::default())
+    ///     .await;
+    /// match res {
+    ///     Ok(mut resp) => resp.take_body().into_string().await.unwrap() == "abc",
+    ///     Err(_) => unreachable!(),
+    /// }
+    /// # });
+    fn map_request<F, Fut, Err>(self, f: F) -> MapRequest<Self, F>
     where
         F: Fn(Request) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<Request>> + Send + 'static,
+        Fut: Future<Output = Result<Request, Err>> + Send + 'static,
+        Err: Into<Error>,
         Self: Sized,
     {
         MapRequest::new(self, f)
     }
 
     /// Maps the response of this endpoint.
-    fn map<F, Fut>(self, f: F) -> Map<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result};
+    ///
+    /// #[handler]
+    /// async fn index() -> &'static str {
+    ///     "abc"
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let res = index
+    ///     .map(|mut res| async move {
+    ///         match res {
+    ///             Ok(mut resp) => Ok(resp.take_body().into_string().await.unwrap() + "def"),
+    ///             Err(err) => Err(err),
+    ///         }
+    ///     })
+    ///     .call(Request::default())
+    ///     .await;
+    /// match res {
+    ///     Ok(mut resp) => resp.take_body().into_string().await.unwrap() == "abcdef",
+    ///     Err(_) => unreachable!(),
+    /// }
+    /// # });
+    fn map<F, Fut, R>(self, f: F) -> Map<Self, F>
     where
         F: Fn(Result<Response>) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<Response>> + Send + 'static,
+        Fut: Future<Output = Result<R>> + Send + 'static,
+        R: IntoResponse,
         Self: Sized,
     {
         Map::new(self, f)
@@ -70,26 +122,96 @@ pub trait EndpointExt: Endpoint {
 
     /// Calls `f` if the result is `Ok`, otherwise returns the `Err` value of
     /// self.
-    fn and_then<F, Fut>(self, f: F) -> AndThen<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result};
+    ///
+    /// #[handler]
+    /// async fn index() -> &'static str {
+    ///     "abc"
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let res = index
+    ///     .and_then(
+    ///         |mut resp| async move { Ok(resp.take_body().into_string().await.unwrap() + "def") },
+    ///     )
+    ///     .call(Request::default())
+    ///     .await;
+    /// match res {
+    ///     Ok(mut resp) => resp.take_body().into_string().await.unwrap() == "abcdef",
+    ///     Err(_) => unreachable!(),
+    /// }
+    /// # });
+    /// ```
+    fn and_then<F, Fut, R>(self, f: F) -> AndThen<Self, F>
     where
         F: Fn(Response) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<Response>> + Send + 'static,
+        Fut: Future<Output = Result<R>> + Send + 'static,
+        R: IntoResponse,
         Self: Sized,
     {
         AndThen::new(self, f)
     }
 
     /// Maps the response of this endpoint.
-    fn map_ok<F, Fut>(self, f: F) -> MapOk<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request};
+    ///
+    /// #[handler]
+    /// async fn index() -> &'static str {
+    ///     "abc"
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let res = index
+    ///     .map_ok(|mut resp| async move { resp.take_body().into_string().await.unwrap() + "def" })
+    ///     .call(Request::default())
+    ///     .await;
+    /// match res {
+    ///     Ok(mut resp) => resp.take_body().into_string().await.unwrap() == "abcdef",
+    ///     Err(_) => unreachable!(),
+    /// }
+    /// # });
+    /// ```
+    fn map_ok<F, Fut, R>(self, f: F) -> MapOk<Self, F>
     where
         F: Fn(Response) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Response> + Send + 'static,
+        Fut: Future<Output = R> + Send + 'static,
+        R: IntoResponse,
         Self: Sized,
     {
         MapOk::new(self, f)
     }
 
     /// Maps the error of this endpoint.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request};
+    ///
+    /// #[handler]
+    /// async fn index() -> Result<(), Error> {
+    ///     Err(Error::status(StatusCode::BAD_GATEWAY))
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let res = index
+    ///     .map_err(|_| async { Error::status(StatusCode::FORBIDDEN) })
+    ///     .call(Request::default())
+    ///     .await;
+    /// match res {
+    ///     Ok(_) => unreachable!(),
+    ///     Err(err) => err.as_response().status() == StatusCode::FORBIDDEN,
+    /// }
+    /// # });
+    /// ```
     fn map_err<F, Fut>(self, f: F) -> MapErr<Self, F>
     where
         F: Fn(Error) -> Fut + Send + Sync + 'static,
@@ -102,7 +224,27 @@ pub trait EndpointExt: Endpoint {
     /// Wrap this endpoint that does not return an error.
     ///
     /// if this endpoint returns an error, the error will be converted into a
-    /// response using [`ResponseError::as_response`].
+    /// response using
+    /// [`ResponseError::as_response`](crate::ResponseError::as_response).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request};
+    ///
+    /// #[handler]
+    /// async fn index() -> Result<(), Error> {
+    ///     Err(Error::status(StatusCode::BAD_GATEWAY))
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let res = index.map_to_response().call(Request::default()).await;
+    /// match res {
+    ///     Ok(resp) => assert_eq!(resp.status(), StatusCode::BAD_GATEWAY),
+    ///     Err(_) => unreachable!(),
+    /// }
+    /// # });
+    /// ```
     fn map_to_response(self) -> MapToResponse<Self>
     where
         Self: Sized,
@@ -157,7 +299,7 @@ mod test {
     async fn test_map() {
         assert_eq!(
             handler
-                .map(|_| async { Ok("def".into()) })
+                .map(|_| async { Ok("def") })
                 .call(Request::default())
                 .await
                 .unwrap()
@@ -169,7 +311,7 @@ mod test {
         );
 
         let err = handler
-            .map(|_| async { Err(Error::status(StatusCode::FORBIDDEN)) })
+            .map(|_| async { Err::<(), _>(Error::status(StatusCode::FORBIDDEN)) })
             .call(Request::default())
             .await
             .unwrap_err();
@@ -181,7 +323,7 @@ mod test {
         assert_eq!(
             handler
                 .and_then(|mut resp| async move {
-                    Ok((resp.take_body().into_string().await.unwrap() + "def").into())
+                    Ok(resp.take_body().into_string().await.unwrap() + "def")
                 })
                 .call(Request::default())
                 .await
@@ -195,7 +337,7 @@ mod test {
 
         let err = handler_err
             .and_then(|mut resp| async move {
-                Ok((resp.take_body().into_string().await.unwrap() + "def").into())
+                Ok(resp.take_body().into_string().await.unwrap() + "def")
             })
             .call(Request::default())
             .await
@@ -207,9 +349,9 @@ mod test {
     async fn test_map_ok() {
         assert_eq!(
             handler
-                .map_ok(|mut resp| async move {
-                    (resp.take_body().into_string().await.unwrap() + "def").into()
-                })
+                .map_ok(
+                    |mut resp| async move { resp.take_body().into_string().await.unwrap() + "def" }
+                )
                 .call(Request::default())
                 .await
                 .unwrap()
@@ -221,9 +363,7 @@ mod test {
         );
 
         let err = handler_err
-            .map_ok(|mut resp| async move {
-                (resp.take_body().into_string().await.unwrap() + "def").into()
-            })
+            .map_ok(|mut resp| async move { resp.take_body().into_string().await.unwrap() + "def" })
             .call(Request::default())
             .await
             .unwrap_err();

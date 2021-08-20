@@ -163,8 +163,8 @@ impl Request {
     }
 
     /// Sets the body for this request.
-    pub fn set_body(&mut self, body: Body) {
-        self.body = body;
+    pub fn set_body(&mut self, body: impl Into<Body>) {
+        self.body = body.into();
     }
 
     /// Take the body from this request and sets the body to empty.

@@ -38,7 +38,7 @@ impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
         req.extensions()
             .get::<T>()
             .ok_or_else(|| {
-                Error::internal_server_error(anyhow::anyhow!(
+                Error::internal_server_error(format!(
                     "Data of type `{}` was not found.",
                     std::any::type_name::<T>()
                 ))

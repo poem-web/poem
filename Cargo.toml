@@ -33,7 +33,6 @@ compression = ["async-compression"]
 poem-derive = { path = "derive", version = "0.2.0" }
 
 async-trait = "0.1.51"
-anyhow = "1.0.42"
 bytes = "1.0.1"
 futures-util = { version = "0.3.16", features = ["sink"] }
 http = "0.2.4"
