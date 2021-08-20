@@ -5,12 +5,12 @@
 //! ```
 //! use futures_util::{SinkExt, StreamExt};
 //! use poem::{
-//!     get, handler, route,
+//!     get, route,
 //!     web::websocket::{Message, WebSocket},
 //!     IntoResponse,
 //! };
 //!
-//! #[handler]
+//! #[get]
 //! async fn index(ws: WebSocket) -> impl IntoResponse {
 //!     ws.on_upgrade(|mut socket| async move {
 //!         if let Some(Ok(Message::Text(text))) = socket.next().await {
@@ -19,7 +19,7 @@
 //!     })
 //! }
 //!
-//! let app = route().at("/", get(index));
+//! let app = route().at("/", index);
 //! ```
 
 mod extractor;

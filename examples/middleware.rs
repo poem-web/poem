@@ -1,6 +1,4 @@
-use poem::{
-    async_trait, get, handler, route, Endpoint, EndpointExt, Middleware, Request, Response, Server,
-};
+use poem::{async_trait, get, route, Endpoint, EndpointExt, Middleware, Request, Response, Server};
 
 struct Log;
 
@@ -29,14 +27,14 @@ impl<E: Endpoint> Endpoint for LogImpl<E> {
     }
 }
 
-#[handler]
+#[get]
 fn index() -> String {
     format!("hello")
 }
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/", get(index)).with(Log);
+    let app = route().at("/", index).with(Log);
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

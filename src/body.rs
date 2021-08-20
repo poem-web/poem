@@ -80,8 +80,16 @@ impl Body {
     pub async fn into_bytes(self) -> Result<Bytes> {
         hyper::body::to_bytes(self.0)
             .await
-            .map_err(ErrorInternalServerError::new)
-            .map_err(Into::into)
+            .map_err(Error::internal_server_error)
+    }
+
+    /// Consumes this body object to return a [`Vec<u8>`] that contains all
+    /// data.
+    pub async fn into_vec(self) -> Result<Vec<u8>> {
+        Ok(hyper::body::to_bytes(self.0)
+            .await
+            .map_err(ErrorInternalServerError::new)?
+            .to_vec())
     }
 
     /// Consumes this body object to return a [`String`] that contains all data.
@@ -92,7 +100,7 @@ impl Body {
                 .map_err(Error::internal_server_error)?
                 .to_vec(),
         )
-        .map_err(|err| Error::new(ErrorInternalServerError::new(err)))?)
+        .map_err(ErrorInternalServerError::new)?)
     }
 
     /// Consumes this body object to return a reader.

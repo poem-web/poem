@@ -224,7 +224,8 @@ impl<'a> FromRequest<'a> for Body {
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        String::from_utf8(body.take()?.into_bytes().await?.to_vec()).map_err(Error::bad_request)
+        let data = body.take()?.into_bytes().await?;
+        String::from_utf8(data.to_vec()).map_err(Error::bad_request)
     }
 }
 

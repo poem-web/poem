@@ -29,14 +29,14 @@ impl<'a> FromRequest<'a> for WebSocket {
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 == Some(&HeaderValue::from_static("13"))
         {
-            return Err(Error::bad_request(anyhow::anyhow!("bad request")));
+            return Err(Error::status(StatusCode::BAD_REQUEST));
         }
 
         let key = req
             .headers()
             .get(header::SEC_WEBSOCKET_KEY)
             .cloned()
-            .ok_or_else(|| Error::bad_request(anyhow::anyhow!("bad request")))?;
+            .ok_or_else(|| Error::status(StatusCode::BAD_REQUEST))?;
 
         let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
@@ -71,9 +71,9 @@ impl WebSocket {
     ///
     /// ```
     /// use futures_util::{SinkExt, StreamExt};
-    /// use poem::{get, handler, route, web::websocket::WebSocket, IntoResponse};
+    /// use poem::{get, route, web::websocket::WebSocket, IntoResponse};
     ///
-    /// #[handler]
+    /// #[get]
     /// async fn index(ws: WebSocket) -> impl IntoResponse {
     ///     ws.protocols(vec!["graphql-rs", "graphql-transport-ws"])
     ///         .on_upgrade(|socket| async move {
@@ -81,7 +81,7 @@ impl WebSocket {
     ///         })
     /// }
     ///
-    /// let app = route().at("/", get(index));
+    /// let app = route().at("/", index);
     /// ```
     #[must_use]
     pub fn protocols<I>(mut self, protocols: I) -> Self
@@ -146,7 +146,7 @@ where
             Some(protocol) => Some(
                 protocol
                     .parse::<HeaderValue>()
-                    .map_err(|_| Error::bad_request(anyhow::anyhow!("bad request")))?,
+                    .map_err(|_| Error::status(StatusCode::BAD_REQUEST))?,
             ),
             None => None,
         };

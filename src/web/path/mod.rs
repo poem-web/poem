@@ -17,34 +17,34 @@ define_simple_errors!(
 /// # Example
 ///
 /// ```
-/// use poem::{get, handler, route, web::Path};
+/// use poem::{get, route, web::Path};
 ///
-/// #[handler]
+/// #[get]
 /// async fn users_teams_show(Path((user_id, team_id)): Path<(String, String)>) {
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let app = route().at("/users/:user_id/team/:team_id", users_teams_show);
 /// ```
 ///
 /// If the path contains only one parameter, then you can omit the tuple.
 ///
 /// ```
-/// use poem::{get, handler, route, web::Path};
+/// use poem::{get, route, web::Path};
 ///
-/// #[handler]
+/// #[get]
 /// async fn user_info(Path(user_id): Path<String>) {
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id", get(user_info));
+/// let app = route().at("/users/:user_id", user_info);
 /// ```
 ///
 /// Path segments also can be deserialized into any type that implements [`serde::Deserialize`](https://docs.rs/serde/1.0.127/serde/trait.Deserialize.html).
 /// Path segment labels will be matched with struct field names.
 ///
 /// ```
-/// use poem::{get, handler, route, web::Path};
+/// use poem::{get, route, web::Path};
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -53,12 +53,12 @@ define_simple_errors!(
 ///     team_id: String,
 /// }
 ///
-/// #[handler]
+/// #[get]
 /// async fn users_teams_show(Path(Params { user_id, team_id }): Path<Params>) {
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let app = route().at("/users/:user_id/team/:team_id", users_teams_show);
 /// ```
 #[derive(Debug)]
 pub struct Path<T>(pub T);

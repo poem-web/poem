@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use typed_headers::{Header, HeaderMapExt};
 
-use crate::{Error, FromRequest, Request, RequestBody, Result};
+use crate::{http::StatusCode, Error, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that extracts a typed header value.
 pub struct TypedHeader<T>(pub T);
@@ -25,9 +25,9 @@ impl<T> DerefMut for TypedHeader<T> {
 impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let value = req.headers().typed_get::<T>().map_err(Error::bad_request)?;
-        Ok(Self(value.ok_or_else(|| {
-            Error::bad_request(anyhow::anyhow!("bad request"))
-        })?))
+        Ok(Self(
+            value.ok_or_else(|| Error::status(StatusCode::BAD_REQUEST))?,
+        ))
     }
 }
 

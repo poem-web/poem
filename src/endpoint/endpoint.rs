@@ -1,11 +1,17 @@
 use std::{future::Future, sync::Arc};
 
-use super::{AndThen, Map, MapErr, MapOk, MapRequest, MapToResponse};
-use crate::{Error, IntoResponse, Middleware, Request, Response, Result};
+use super::{AndThen, GuardEndpoint, Map, MapErr, MapOk, MapRequest, MapToResponse, Or};
+use crate::{Error, Guard, IntoResponse, Middleware, Request, Response, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
 pub trait Endpoint: Send + Sync + 'static {
+    /// Check if request matches predicate for route selection.
+    #[allow(unused_variables)]
+    fn check(&self, req: &Request) -> bool {
+        true
+    }
+
     /// Get the response to the request.
     async fn call(&self, req: Request) -> Result<Response>;
 }
@@ -31,14 +37,14 @@ pub trait EndpointExt: Endpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{get, handler, middleware::AddData, route, web::Data, EndpointExt};
+    /// use poem::{get, middleware::AddData, route, web::Data, EndpointExt};
     ///
-    /// #[handler]
+    /// #[get]
     /// async fn index(Data(data): Data<&i32>) -> String {
     ///     format!("{}", data)
     /// }
     ///
-    /// let app = route().at("/", get(index)).with(AddData::new(100i32));
+    /// let app = route().at("/", index).with(AddData::new(100i32));
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
@@ -46,6 +52,15 @@ pub trait EndpointExt: Endpoint {
         Self: Sized,
     {
         middleware.transform(self)
+    }
+
+    /// Composes a new endpoint of either this or the other endpoint.
+    fn or<T>(self, other: T) -> Or<Self, T>
+    where
+        T: Endpoint,
+        Self: Sized,
+    {
+        Or::new(self, other)
     }
 
     /// Maps the request of this endpoint.
@@ -250,6 +265,15 @@ pub trait EndpointExt: Endpoint {
         Self: Sized,
     {
         MapToResponse::new(self)
+    }
+
+    /// Add guard to the endpoint.
+    fn guard<T>(self, guard: T) -> GuardEndpoint<Self, T>
+    where
+        T: Guard,
+        Self: Sized,
+    {
+        GuardEndpoint::new(self, guard)
     }
 }
 

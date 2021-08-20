@@ -41,6 +41,7 @@ impl FromStr for CompressionAlgo {
 /// so it will always use this algorithm to compress the response body and add
 /// the `Accept-Encoding` header.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
+#[derive(Default)]
 pub struct Compression {
     compress_algo: Option<CompressionAlgo>,
 }
@@ -80,7 +81,7 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
             .and_then(|value| value.to_str().ok())
         {
             Some(encoding) => Some(encoding.parse::<CompressionAlgo>().map_err(|_| {
-                Error::bad_request(anyhow::anyhow!(
+                Error::bad_request(format!(
                     "unsupported compression algorithm in `Content-Encoding`: `{}`",
                     encoding
                 ))
@@ -94,13 +95,20 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
             .and_then(|value| value.to_str().ok())
         {
             Some(encoding) => Some(encoding.parse::<CompressionAlgo>().map_err(|_| {
-                Error::bad_request(anyhow::anyhow!(
+                Error::bad_request(format!(
                     "unsupported compression algorithm in `Accept-Encoding`: `{}`",
                     encoding
                 ))
             })?),
             None => None,
         };
+
+        // let mut rdr = async_compression::tokio::bufread::BrotliDecoder::new(
+        //     tokio::io::BufReader::with_capacity(256,
+        // req.take_body().into_async_read()), );
+        // loop {
+        //     dbg!(rdr.read_u8().await.unwrap());
+        // }
 
         match encoding {
             Some(CompressionAlgo::BR) => {
@@ -163,5 +171,95 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
         }
 
         Ok(resp)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    use super::*;
+    use crate::{handler, EndpointExt};
+
+    async fn compress_data(algo: CompressionAlgo, data: &str) -> Vec<u8> {
+        let mut output = Vec::new();
+
+        match algo {
+            CompressionAlgo::BR => {
+                let mut enc = async_compression::tokio::write::BrotliEncoder::new(&mut output);
+                enc.write_all(data.as_bytes()).await.unwrap();
+                enc.flush().await.unwrap();
+                enc.shutdown().await.unwrap();
+            }
+            CompressionAlgo::DEFLATE => {
+                let mut enc = async_compression::tokio::write::DeflateEncoder::new(&mut output);
+                enc.write_all(data.as_bytes()).await.unwrap();
+                enc.flush().await.unwrap();
+                enc.shutdown().await.unwrap();
+            }
+            CompressionAlgo::GZIP => {
+                let mut enc = async_compression::tokio::write::GzipEncoder::new(&mut output);
+                enc.write_all(data.as_bytes()).await.unwrap();
+                enc.flush().await.unwrap();
+                enc.shutdown().await.unwrap();
+            }
+        }
+
+        output
+    }
+
+    async fn decompress_data(algo: CompressionAlgo, data: &[u8]) -> String {
+        let mut output = Vec::new();
+
+        match algo {
+            CompressionAlgo::BR => {
+                let mut dec =
+                    async_compression::tokio::bufread::BrotliDecoder::new(BufReader::new(data));
+                dec.read_to_end(&mut output).await.unwrap();
+            }
+            CompressionAlgo::DEFLATE => {
+                let mut dec =
+                    async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(data));
+                dec.read_to_end(&mut output).await.unwrap();
+            }
+            CompressionAlgo::GZIP => {
+                let mut dec =
+                    async_compression::tokio::bufread::GzipDecoder::new(BufReader::new(data));
+                dec.read_to_end(&mut output).await.unwrap();
+            }
+        }
+
+        String::from_utf8(output).unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_compression() {
+        const DATA: &str = "abcdefghijklmnopqrstuvwxyz1234567890";
+
+        #[handler(internal)]
+        async fn index(data: String) -> String {
+            assert_eq!(data, DATA);
+            data
+        }
+
+        let app = index.with(Compression::default());
+
+        for (algo, algo_name) in [
+            (CompressionAlgo::BR, "br"),
+            (CompressionAlgo::DEFLATE, "deflate"),
+            (CompressionAlgo::GZIP, "gzip"),
+        ] {
+            let mut resp = app
+                .call(
+                    Request::builder()
+                        .header(header::CONTENT_ENCODING, algo_name)
+                        .header(header::ACCEPT_ENCODING, algo_name)
+                        .body(compress_data(algo, DATA).await),
+                )
+                .await
+                .unwrap();
+            let data = decompress_data(algo, &resp.take_body().into_vec().await.unwrap()).await;
+            assert_eq!(data, DATA);
+        }
     }
 }

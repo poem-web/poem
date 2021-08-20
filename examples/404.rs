@@ -1,6 +1,6 @@
-use poem::{get, handler, http::StatusCode, route, web::Path, EndpointExt, Response, Server};
+use poem::{get, http::StatusCode, route, web::Path, EndpointExt, Response, Server};
 
-#[handler]
+#[get]
 fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }
@@ -8,7 +8,7 @@ fn hello(Path(name): Path<String>) -> String {
 #[tokio::main]
 async fn main() {
     let app = route()
-        .at("/hello/:name", get(hello))
+        .at("/hello/:name", hello)
         .map_to_response()
         .map(|res| async move {
             match res {

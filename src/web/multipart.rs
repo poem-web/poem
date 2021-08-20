@@ -90,7 +90,7 @@ impl<'a> FromRequest<'a> for Multipart {
         let boundary = multer::parse_boundary(
             req.headers()
                 .get(header::CONTENT_TYPE)
-                .ok_or_else(|| Error::bad_request(anyhow::anyhow!("expect `Content-Type` header")))?
+                .ok_or_else(|| Error::bad_request("expect `Content-Type` header"))?
                 .to_str()
                 .map_err(Error::bad_request)?,
         )

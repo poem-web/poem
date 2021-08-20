@@ -1,12 +1,12 @@
-use poem::{get, handler, route, route::Route, Server};
+use poem::{get, route, route::Route, Server};
 
-#[handler]
+#[get]
 fn hello() -> String {
     format!("hello")
 }
 
 fn api() -> Route {
-    let route = route().at("/hello", get(hello));
+    let route = route().at("/hello", hello);
     route
 }
 

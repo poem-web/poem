@@ -12,30 +12,146 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Result};
 
+macro_rules! impl_wrappers {
+    ($method:expr, $args:ident, $input:expr) => {{
+        let args = match HandlerArgs::from_list(&parse_macro_input!($args as AttributeArgs)) {
+            Ok(args) => args,
+            Err(err) => return err.write_errors().into(),
+        };
+
+        match generate_handler($method, args, $input.into()) {
+            Ok(stream) => stream.into(),
+            Err(err) => err.into_compile_error().into(),
+        }
+    }};
+}
+
 /// Wrap an asynchronous function as an `Endpoint`.
+///
+/// # Attributes
+///
+/// host=`"host name"` - Add a host guard.
+/// header(`"header name"`, `"header value`) - Add a header value guard.
+///
+/// # Example
+///
+/// ```ignore
+/// #[handler(
+///     host = "example.com",
+///     header(name = "Custom-header", value = "true")
+/// )]
+/// async fn example() {
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn handler(
     args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let args = match HandlerArgs::from_list(&parse_macro_input!(args as AttributeArgs)) {
-        Ok(args) => args,
-        Err(err) => return err.write_errors().into(),
-    };
+    impl_wrappers!(None, args, input)
+}
 
-    match generate_handler(args, input.into()) {
-        Ok(stream) => stream.into(),
-        Err(err) => err.into_compile_error().into(),
-    }
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::get`.
+#[proc_macro_attribute]
+pub fn get(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("get"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::post`.
+#[proc_macro_attribute]
+pub fn post(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("post"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::put`.
+#[proc_macro_attribute]
+pub fn put(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("put"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::delete`.
+#[proc_macro_attribute]
+pub fn delete(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("delete"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::head`.
+#[proc_macro_attribute]
+pub fn head(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("head"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::options`.
+#[proc_macro_attribute]
+pub fn options(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("options"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::connect`.
+#[proc_macro_attribute]
+pub fn connect(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("connect"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::patch`.
+#[proc_macro_attribute]
+pub fn patch(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("patch"), args, input)
+}
+
+/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::trace`.
+#[proc_macro_attribute]
+pub fn trace(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    impl_wrappers!(Some("trace"), args, input)
+}
+
+#[derive(FromMeta, Default)]
+struct Header {
+    name: String,
+    value: String,
 }
 
 #[derive(FromMeta, Default)]
 #[darling(default)]
 struct HandlerArgs {
     internal: bool,
+    host: Option<String>,
+    #[darling(multiple, rename = "header")]
+    headers: Vec<Header>,
 }
 
-fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream> {
+fn generate_handler(
+    method: Option<&str>,
+    args: HandlerArgs,
+    input: TokenStream,
+) -> Result<TokenStream> {
     let crate_name = utils::get_crate_name(args.internal);
     let item_fn = syn::parse2::<ItemFn>(input)?;
     let vis = &item_fn.vis;
@@ -44,6 +160,37 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
         Some(quote::quote!(.await))
     } else {
         None
+    };
+    let mut guards = Vec::new();
+
+    if let Some(method) = method {
+        let method = quote::format_ident!("{}", method);
+        guards.push(quote::quote!(#crate_name::guard::#method()));
+    }
+
+    if let Some(host) = args.host {
+        guards.push(quote::quote!(#crate_name::guard::host(#host)));
+    }
+
+    for header in args.headers {
+        let Header { name, value } = header;
+        guards.push(quote::quote!(#crate_name::guard::header(#name, #value)));
+    }
+
+    let guard = {
+        let guards = guards.into_iter().map(|guard| {
+            quote! {
+                if !#crate_name::Guard::check(&#guard, &req) {
+                    return false;
+                }
+            }
+        });
+        quote! {
+            fn check(&self, req: &#crate_name::Request) -> bool {
+                #(#guards)*
+                true
+            }
+        }
     };
 
     let mut extractors = Vec::new();
@@ -65,6 +212,8 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
 
         #[#crate_name::async_trait]
         impl #crate_name::Endpoint for #ident {
+            #guard
+
             async fn call(&self, mut req: #crate_name::Request) -> #crate_name::Result<#crate_name::Response> {
                 let (req, mut body) = req.split_body();
                 #(#extractors)*
