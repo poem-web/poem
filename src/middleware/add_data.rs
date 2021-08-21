@@ -6,7 +6,7 @@ pub struct AddData<T> {
 }
 
 impl<T: Clone + Send + Sync + 'static> AddData<T> {
-    /// Create new [AddData] middleware with any value.
+    /// Create new `AddData` middleware with any value.
     pub fn new(value: T) -> Self {
         AddData { value }
     }

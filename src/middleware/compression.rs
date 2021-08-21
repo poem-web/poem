@@ -47,7 +47,16 @@ pub struct Compression {
 }
 
 impl Compression {
+    /// Create new `Compression` middleware.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            compress_algo: None,
+        }
+    }
+
     /// Specify the compression algorithm for the response body.
+    #[must_use]
     pub fn algorithm(self, algo: CompressionAlgo) -> Self {
         Self {
             compress_algo: Some(algo),

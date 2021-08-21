@@ -17,7 +17,7 @@ pub struct SetHeader {
 }
 
 impl SetHeader {
-    /// Create new [SetHeader] middleware.
+    /// Create new `SetHeader` middleware.
     #[must_use]
     pub fn new() -> Self {
         Default::default()

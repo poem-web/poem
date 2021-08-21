@@ -32,7 +32,7 @@ pub struct Cors {
 }
 
 impl Cors {
-    /// Creates a new CORS middleware.
+    /// Creates a new `CORS` middleware.
     #[must_use]
     pub fn new() -> Self {
         Self {

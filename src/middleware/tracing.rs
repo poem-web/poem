@@ -5,7 +5,16 @@ use crate::{Endpoint, Request, Response, Result};
 
 /// A middleware for tracing requests and responses
 #[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
+#[derive(Default)]
 pub struct Tracing;
+
+impl Tracing {
+    /// Create new `Tracing` middleware.
+    #[must_use]
+    pub fn new() -> Self {
+        Self
+    }
+}
 
 impl<E: Endpoint> Middleware<E> for Tracing {
     type Output = TracingImpl<E>;

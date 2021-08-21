@@ -30,7 +30,7 @@ pub mod type_headers {
     };
 }
 
-use std::convert::Infallible;
+use std::convert::{Infallible, TryInto};
 
 use bytes::Bytes;
 pub use data::Data;
@@ -50,7 +50,10 @@ pub use self::tempfile::TempFile;
 use crate::{
     body::Body,
     error::{Error, Result},
-    http::{header::HeaderMap, Method, StatusCode, Uri, Version},
+    http::{
+        header::{HeaderMap, HeaderName},
+        HeaderValue, Method, StatusCode, Uri, Version,
+    },
     request::Request,
     response::Response,
 };
@@ -88,6 +91,63 @@ pub trait FromRequest<'a>: Sized {
 pub trait IntoResponse {
     /// Consume itself and return [`Response`].
     fn into_response(self) -> Result<Response>;
+
+    /// Wrap an `impl IntoResponse` to add a header.
+    fn with_header<K, V>(self, key: K, value: V) -> WithHeader<Self>
+    where
+        K: TryInto<HeaderName>,
+        V: TryInto<HeaderValue>,
+        Self: Sized,
+    {
+        let key = key.try_into().ok();
+        let value = value.try_into().ok();
+
+        WithHeader {
+            inner: self,
+            header: key.zip(value),
+        }
+    }
+
+    /// Wrap an `impl IntoResponse` to set a status code.
+    fn with_status(self, status: StatusCode) -> WithStatus<Self>
+    where
+        Self: Sized,
+    {
+        WithStatus {
+            inner: self,
+            status,
+        }
+    }
+}
+
+/// Returned by [`with_header`](IntoResponse::with_header) method.
+pub struct WithHeader<T> {
+    inner: T,
+    header: Option<(HeaderName, HeaderValue)>,
+}
+
+impl<T: IntoResponse> IntoResponse for WithHeader<T> {
+    fn into_response(self) -> Result<Response> {
+        let mut resp = self.inner.into_response()?;
+        if let Some((key, value)) = &self.header {
+            resp.headers_mut().append(key.clone(), value.clone());
+        }
+        Ok(resp)
+    }
+}
+
+/// Returned by [`with_header`](IntoResponse::with_status) method.
+pub struct WithStatus<T> {
+    inner: T,
+    status: StatusCode,
+}
+
+impl<T: IntoResponse> IntoResponse for WithStatus<T> {
+    fn into_response(self) -> Result<Response> {
+        let mut resp = self.inner.into_response()?;
+        resp.set_status(self.status);
+        Ok(resp)
+    }
 }
 
 impl IntoResponse for Response {
