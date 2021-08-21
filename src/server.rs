@@ -4,7 +4,12 @@ use hyper::server::conn::Http;
 use tokio::{
     io::{AsyncRead, AsyncWrite, Result as IoResult},
     net::{TcpListener, ToSocketAddrs},
+    time::{sleep, Duration},
 };
+
+#[cfg(target_family = "unix")]
+use tokio::signal::unix::{signal, SignalKind};
+
 #[cfg(feature = "tls")]
 use tokio_rustls::{
     rustls::{
@@ -19,13 +24,18 @@ use crate::{Endpoint, Request};
 /// An HTTP Server.
 pub struct Server {
     listener: TcpListener,
+    shutdown_delay: Duration,
 }
 
 impl Server {
     /// Binds to the provided address, and returns a [`Server`].
     pub async fn bind(addr: impl ToSocketAddrs) -> IoResult<Self> {
         let listener = TcpListener::bind(addr).await?;
-        Ok(Self { listener })
+        let shutdown_delay = Duration::from_secs(0);
+        Ok(Self {
+            listener,
+            shutdown_delay,
+        })
     }
 
     /// Returns the local address that this server is bound to.
@@ -33,9 +43,23 @@ impl Server {
         self.listener.local_addr()
     }
 
+    /// set grace shutdown delay duration
+    #[cfg(target_family = "unix")]
+    pub fn shutdown_delay(mut self, secs: u64) -> Self {
+        self.shutdown_delay = Duration::from_secs(secs);
+        Self {
+            listener: self.listener,
+            shutdown_delay: self.shutdown_delay
+        }
+    }
+
     /// Run this server.
     pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
         let ep = Arc::new(ep);
+
+        if cfg!(unix) {
+            tokio::spawn(handle_signal(self.shutdown_delay));
+        }
 
         loop {
             let (socket, _) = self.listener.accept().await?;
@@ -179,6 +203,23 @@ impl TlsServer {
         }
     }
 }
+
+#[cfg(target_family = "unix")]
+async fn handle_signal(shutdown_delay: Duration) {
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    let mut sigquit = signal(SignalKind::quit()).unwrap();
+
+    tokio::select! {
+         _ = sigint.recv() => {}
+         _ = sigterm.recv() => {}
+         _ = sigquit.recv() => {}
+        };
+
+    sleep(shutdown_delay).await;
+    std::process::exit(0);
+}
+
 
 async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Unpin + 'static,
