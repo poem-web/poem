@@ -44,7 +44,6 @@ impl Server {
     }
 
     /// set grace shutdown delay duration
-    #[cfg(target_family = "unix")]
     pub fn shutdown_delay(mut self, secs: u64) -> Self {
         self.shutdown_delay = Duration::from_secs(secs);
         Self {
