@@ -62,7 +62,7 @@ tracing = { version = "0.1", optional = true }
 tempfile = { version = "3.2.0", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.9.0", features = ["rt-multi-thread", "macros", "time", "signal"] }
+tokio = { version = "1.9.0", features = ["rt-multi-thread", "macros", "signal"] }
 
 # For async-graphql example
 async-graphql = "2.9.10"
