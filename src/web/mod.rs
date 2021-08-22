@@ -221,11 +221,11 @@ impl<T: IntoResponse> IntoResponse for (StatusCode, HeaderMap, T) {
     }
 }
 
-impl<T: IntoResponse, E: Into<Error>> IntoResponse for Result<T, E> {
+impl<T: IntoResponse> IntoResponse for Result<T> {
     fn into_response(self) -> Response {
         match self {
             Ok(resp) => resp.into_response(),
-            Err(err) => err.into().as_response(),
+            Err(err) => err.as_response(),
         }
     }
 }

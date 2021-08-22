@@ -1,4 +1,4 @@
-use poem::{post, route, web::Json, EndpointExt, Error, IntoResponse, Server};
+use poem::{post, route, web::Json, EndpointExt, IntoResponse, Server};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -30,7 +30,7 @@ async fn main() {
             }))
             .into_response());
         }
-        Ok::<_, Error>(resp)
+        Ok(resp)
     });
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
