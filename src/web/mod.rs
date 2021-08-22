@@ -58,11 +58,6 @@ use crate::{
     response::Response,
 };
 
-define_simple_errors! (
-    /// This error occurs when the body has been taken.
-    (ErrorBodyHasBeenTaken, INTERNAL_SERVER_ERROR, "the body has been taken");
-);
-
 /// The body parameter type of [`FromRequest::from_request`] method.
 pub struct RequestBody(Option<Body>);
 
@@ -74,7 +69,9 @@ impl RequestBody {
     /// Take a body, if it has already been taken, an error with the status code
     /// [`StatusCode::INTERNAL_SERVER_ERROR`] is returned.
     pub fn take(&mut self) -> Result<Body> {
-        self.0.take().ok_or_else(|| ErrorBodyHasBeenTaken.into())
+        self.0
+            .take()
+            .ok_or_else(|| Error::internal_server_error("the body has been taken"))
     }
 }
 

@@ -181,7 +181,7 @@ impl TlsServer {
 }
 
 async fn serve_connection(
-    socket: impl AsyncRead + AsyncWrite + Unpin + 'static,
+    socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
     ep: Arc<dyn Endpoint>,
 ) {
     let service = hyper::service::service_fn({
@@ -200,5 +200,8 @@ async fn serve_connection(
             }
         }
     });
-    let _ = Http::new().serve_connection(socket, service).await;
+    let _ = Http::new()
+        .serve_connection(socket, service)
+        .with_upgrades()
+        .await;
 }

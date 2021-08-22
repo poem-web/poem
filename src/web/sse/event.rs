@@ -38,9 +38,13 @@ impl Display for Event {
                 for line in data.lines() {
                     writeln!(f, "data: {}", line)?;
                 }
+                writeln!(f)?;
                 Ok(())
             }
-            Event::Retry { retry } => writeln!(f, "retry: {}", retry),
+            Event::Retry { retry } => {
+                writeln!(f, "retry: {}", retry)?;
+                writeln!(f)
+            }
         }
     }
 }

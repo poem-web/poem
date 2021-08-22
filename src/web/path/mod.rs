@@ -4,12 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::{FromRequest, Request, RequestBody, Result};
-
-define_simple_errors!(
-    /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
-    (ErrorInvalidPathParams, INTERNAL_SERVER_ERROR, "invalid path params");
-);
+use crate::{Error, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that will get captures from the URL and parse them using
 /// `serde`.
@@ -81,7 +76,7 @@ impl<T> DerefMut for Path<T> {
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         T::deserialize(de::PathDeserializer::new(&req.state().match_params))
-            .map_err(|_| ErrorInvalidPathParams.into())
+            .map_err(|err| Error::bad_request(format!("invalid path params: {}", err)))
             .map(Path)
     }
 }

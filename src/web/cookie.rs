@@ -5,16 +5,8 @@ use parking_lot::Mutex;
 
 use crate::{
     http::{header, HeaderMap},
-    FromRequest, Request, RequestBody, Result,
+    Error, FromRequest, Request, RequestBody, Result,
 };
-
-define_simple_errors!(
-    /// This error occurs when the cookie value in the request header is illegal.
-    (ErrorCookieIllegal, BAD_REQUEST, "cookie is illegal");
-
-    /// This error occurs if there is no cookie in the request header.
-    (ErrorNoCookie, BAD_REQUEST, "there is no cookie in the request header");
-);
 
 /// Representation of an HTTP cookie.
 pub type Cookie = cookie::Cookie<'static>;
@@ -22,9 +14,15 @@ pub type Cookie = cookie::Cookie<'static>;
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Cookie {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
-        let value = req.headers().get(header::COOKIE).ok_or(ErrorNoCookie)?;
-        let value = value.to_str().map_err(|_| ErrorCookieIllegal)?;
-        let cookie = cookie::Cookie::parse(value.to_string()).map_err(|_| ErrorCookieIllegal)?;
+        let value = req
+            .headers()
+            .get(header::COOKIE)
+            .ok_or_else(|| Error::bad_request("there is no cookie in the request header"))?;
+        let value = value
+            .to_str()
+            .map_err(|err| Error::bad_request(format!("cookie is illegal: {}", err)))?;
+        let cookie = cookie::Cookie::parse(value.to_string())
+            .map_err(|err| Error::bad_request(format!("cookie is illegal: {}", err)))?;
         Ok(cookie)
     }
 }

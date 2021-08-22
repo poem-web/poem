@@ -4,6 +4,9 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
+use hyper::upgrade::OnUpgrade;
+use parking_lot::Mutex;
+
 use crate::{
     body::Body,
     http::{
@@ -20,6 +23,7 @@ pub(crate) struct RequestState {
     pub(crate) original_uri: Uri,
     pub(crate) match_params: Params,
     pub(crate) cookie_jar: CookieJar,
+    pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
 }
 
 /// Represents an HTTP request.
@@ -47,7 +51,7 @@ impl Debug for Request {
 
 impl Request {
     pub(crate) fn from_hyper_request(req: hyper::Request<hyper::Body>) -> Self {
-        let (parts, body) = req.into_parts();
+        let (mut parts, body) = req.into_parts();
 
         // Extract cookies from the header
         let cookie_jar = parts
@@ -56,6 +60,8 @@ impl Request {
             .and_then(|value| std::str::from_utf8(value.as_bytes()).ok())
             .and_then(|value| value.parse().ok())
             .unwrap_or_default();
+
+        let on_upgrade = Mutex::new(parts.extensions.remove::<OnUpgrade>());
 
         Self {
             method: parts.method,
@@ -68,6 +74,7 @@ impl Request {
                 original_uri: parts.uri,
                 match_params: Default::default(),
                 cookie_jar,
+                on_upgrade,
             },
         }
     }

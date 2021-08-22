@@ -1,24 +1,21 @@
 use bytes::Bytes;
-use futures_util::{Stream, StreamExt};
+use futures_util::{stream::BoxStream, Stream, StreamExt};
 use tokio::time::Duration;
 
 use super::Event;
 use crate::{Body, IntoResponse, Response};
 
 /// An SSE response.
-pub struct SSE<T> {
-    stream: T,
+pub struct SSE {
+    stream: BoxStream<'static, Event>,
     keep_alive: Option<Duration>,
 }
 
-impl<T> SSE<T>
-where
-    T: Stream<Item = Event> + Send + 'static,
-{
+impl SSE {
     /// Create an SSE response using an event stream.
-    pub fn new(stream: T) -> Self {
+    pub fn new(stream: impl Stream<Item = Event> + Send + 'static) -> Self {
         Self {
-            stream,
+            stream: stream.boxed(),
             keep_alive: None,
         }
     }
@@ -33,10 +30,7 @@ where
     }
 }
 
-impl<T> IntoResponse for SSE<T>
-where
-    T: Stream<Item = Event> + Send + 'static,
-{
+impl IntoResponse for SSE {
     fn into_response(self) -> Response {
         let mut stream = self
             .stream

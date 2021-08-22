@@ -22,12 +22,12 @@ pub struct WebSocket {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for WebSocket {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         if req.method() != Method::GET
-            || req.headers().get(header::CONNECTION) == Some(&HeaderValue::from_static("upgrade"))
-            || req.headers().get(header::UPGRADE) == Some(&HeaderValue::from_static("websocket"))
+            || req.headers().get(header::CONNECTION) != Some(&HeaderValue::from_static("Upgrade"))
+            || req.headers().get(header::UPGRADE) != Some(&HeaderValue::from_static("websocket"))
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
-                == Some(&HeaderValue::from_static("13"))
+                != Some(&HeaderValue::from_static("13"))
         {
             return Err(Error::status(StatusCode::BAD_REQUEST));
         }
@@ -40,19 +40,11 @@ impl<'a> FromRequest<'a> for WebSocket {
 
         let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
-        let hyper_req = {
-            let mut hyper_req = hyper::Request::default();
-
-            *hyper_req.method_mut() = req.method().clone();
-            *hyper_req.uri_mut() = req.uri().clone();
-            *hyper_req.version_mut() = req.version();
-            *hyper_req.headers_mut() = req.headers().clone();
-            *hyper_req.body_mut() = body.take()?.0;
-
-            hyper_req
+        let on_upgrade = match req.state().on_upgrade.lock().take() {
+            Some(on_upgrade) => on_upgrade,
+            None => return Err(Error::status(StatusCode::INTERNAL_SERVER_ERROR)),
         };
 
-        let on_upgrade = hyper::upgrade::on(hyper_req);
         Ok(Self {
             key,
             on_upgrade,
@@ -107,7 +99,7 @@ impl WebSocket {
     #[must_use]
     pub fn on_upgrade<F, Fut>(self, callback: F) -> impl IntoResponse
     where
-        F: Fn(WebSocketStream) -> Fut + Send + Sync + 'static,
+        F: FnOnce(WebSocketStream) -> Fut + Send + Sync + 'static,
         Fut: Future + Send + 'static,
     {
         WebSocketUpgraded {
@@ -124,7 +116,7 @@ struct WebSocketUpgraded<F> {
 
 impl<F, Fut> IntoResponse for WebSocketUpgraded<F>
 where
-    F: Fn(WebSocketStream) -> Fut + Send + Sync + 'static,
+    F: FnOnce(WebSocketStream) -> Fut + Send + Sync + 'static,
     Fut: Future + Send + 'static,
 {
     fn into_response(self) -> Response {

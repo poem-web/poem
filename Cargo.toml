@@ -38,7 +38,7 @@ futures-util = { version = "0.3.16", features = ["sink"] }
 http = "0.2.4"
 hyper = { version = "0.14.11", features = ["http1", "http2", "server", "runtime", "stream"] }
 mime = "0.3.16"
-tokio = { version = "1.10.0", features = ["sync", "rt", "net", "fs"] }
+tokio = { version = "1.10.0", features = ["sync", "rt", "net", "fs", "time"] }
 tokio-util = { version = "0.6.7", features = ["io"] }
 serde = { version = "1.0.127", features = ["derive"] }
 serde_json = "1.0.66"
@@ -83,3 +83,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 [[example]]
 name = "tracing"
 required-features = ["tracing"]
+
+[[example]]
+name = "sse"
+required-features = ["sse"]
+
+[[example]]
+name = "chat"
+required-features = ["websocket"]

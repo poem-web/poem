@@ -47,9 +47,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
-#[macro_use]
-mod macros;
-
 pub mod endpoint;
 pub mod error;
 pub mod guard;
