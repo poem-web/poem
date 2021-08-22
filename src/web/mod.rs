@@ -8,6 +8,7 @@ mod json;
 mod multipart;
 mod path;
 mod query;
+mod redirect;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
@@ -40,6 +41,7 @@ pub use json::Json;
 pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
+pub use redirect::Redirect;
 #[cfg(feature = "typed-headers")]
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
@@ -115,6 +117,17 @@ pub trait IntoResponse {
             status,
         }
     }
+
+    /// Wrap an `impl IntoResponse` to set a body.
+    fn with_body(self, body: impl Into<Body>) -> WithBody<Self>
+    where
+        Self: Sized,
+    {
+        WithBody {
+            inner: self,
+            body: body.into(),
+        }
+    }
 }
 
 /// Returned by [`with_header`](IntoResponse::with_header) method.
@@ -143,6 +156,20 @@ impl<T: IntoResponse> IntoResponse for WithStatus<T> {
     fn into_response(self) -> Response {
         let mut resp = self.inner.into_response();
         resp.set_status(self.status);
+        resp
+    }
+}
+
+/// Returned by [`with_body`](IntoResponse::with_body) method.
+pub struct WithBody<T> {
+    inner: T,
+    body: Body,
+}
+
+impl<T: IntoResponse> IntoResponse for WithBody<T> {
+    fn into_response(self) -> Response {
+        let mut resp = self.inner.into_response();
+        resp.set_body(self.body);
         resp
     }
 }
