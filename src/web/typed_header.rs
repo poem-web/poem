@@ -39,13 +39,12 @@ mod tests {
     #[tokio::test]
     async fn test_typed_header_extractor() {
         #[handler(internal)]
-        async fn index123(content_length: TypedHeader<typed_headers::ContentLength>) {
+        async fn index(content_length: TypedHeader<typed_headers::ContentLength>) {
             assert_eq!(content_length.0 .0, 3);
         }
 
-        index123
+        index
             .call(Request::builder().header("content-length", 3).body("abc"))
-            .await
-            .unwrap();
+            .await;
     }
 }

@@ -14,16 +14,15 @@ struct LogImpl<E>(E);
 
 #[async_trait]
 impl<E: Endpoint> Endpoint for LogImpl<E> {
-    async fn call(&self, req: Request) -> poem::Result<Response> {
+    async fn call(&self, req: Request) -> Response {
         println!("request: {}", req.uri().path());
-        let res = self.0.call(req).await;
-        match &res {
-            Ok(resp) => {
-                println!("response: {}", resp.status())
-            }
-            Err(err) => println!("error: {}", err),
+        let resp = self.0.call(req).await;
+        if resp.status().is_success() {
+            println!("response: {}", resp.status());
+        } else {
+            println!("error: {}", resp.status());
         }
-        res
+        resp
     }
 }
 

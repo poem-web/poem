@@ -1,7 +1,7 @@
 use tracing::{Instrument, Level};
 
 use super::Middleware;
-use crate::{Endpoint, Request, Response, Result};
+use crate::{Endpoint, Request, Response};
 
 /// A middleware for tracing requests and responses
 #[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
@@ -34,7 +34,7 @@ impl<E> Endpoint for TracingImpl<E>
 where
     E: Endpoint,
 {
-    async fn call(&self, req: Request) -> Result<Response> {
+    async fn call(&self, req: Request) -> Response {
         let span = tracing::span!(
             Level::INFO,
             "handle request",
@@ -46,9 +46,10 @@ where
         async move {
             let resp = fut.await;
 
-            match &resp {
-                Ok(resp) => ::tracing::info!(status = %resp.status(), "send response"),
-                Err(err) => ::tracing::error!(error = %err, "an error occurred"),
+            if resp.status().is_success() {
+                ::tracing::info!(status = %resp.status(), "send response");
+            } else {
+                ::tracing::error!(status = %resp.status(), "an error occurred");
             }
 
             resp

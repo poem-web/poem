@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use http::StatusCode;
 
-use crate::{route_recognizer::Router, Endpoint, Error, Request, Response, Result};
+use crate::{route_recognizer::Router, Endpoint, Request, Response};
 
 /// Routing object
 #[derive(Default)]
@@ -54,7 +54,7 @@ impl Route {
 
         #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Nest<E> {
-            async fn call(&self, mut req: Request) -> Result<Response> {
+            async fn call(&self, mut req: Request) -> Response {
                 let idx = req.state().match_params.0.len() - 1;
                 let (name, value) = req.state_mut().match_params.0.remove(idx);
                 assert_eq!(name, "--poem-rest");
@@ -72,7 +72,7 @@ impl Route {
 
         #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Root<E> {
-            async fn call(&self, mut req: Request) -> Result<Response> {
+            async fn call(&self, mut req: Request) -> Response {
                 req.set_uri(
                     http::uri::Builder::new()
                         .path_and_query("/")
@@ -105,14 +105,14 @@ pub fn route() -> Route {
 
 #[async_trait::async_trait]
 impl Endpoint for Route {
-    async fn call(&self, mut req: Request) -> Result<Response> {
-        let m = self
-            .router
-            .recognize(req.uri().path())
-            .map_err(|_| Error::status(StatusCode::NOT_FOUND))?;
+    async fn call(&self, mut req: Request) -> Response {
+        let m = match self.router.recognize(req.uri().path()) {
+            Ok(m) => m,
+            Err(_) => return StatusCode::NOT_FOUND.into(),
+        };
 
         if !m.handler.check(&req) {
-            return Err(Error::status(StatusCode::NOT_FOUND));
+            return StatusCode::NOT_FOUND.into();
         }
 
         req.state_mut().match_params.0.extend(m.params.0);

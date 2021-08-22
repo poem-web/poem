@@ -3,7 +3,9 @@ use std::str::FromStr;
 use hyper::http::HeaderValue;
 use tokio::io::BufReader;
 
-use crate::{http::header, Body, Endpoint, Error, Middleware, Request, Response, Result};
+use crate::{
+    http::header, Body, Endpoint, Error, IntoResponse, Middleware, Request, Response, Result,
+};
 
 /// The compression algorithms.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
@@ -81,9 +83,8 @@ pub struct CompressionImpl<E> {
     compress_algo: Option<CompressionAlgo>,
 }
 
-#[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for CompressionImpl<E> {
-    async fn call(&self, mut req: Request) -> Result<Response> {
+impl<E: Endpoint> CompressionImpl<E> {
+    async fn do_call(&self, mut req: Request) -> Result<Response> {
         let encoding = match req
             .headers()
             .get(header::CONTENT_ENCODING)
@@ -112,13 +113,6 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
             None => None,
         };
 
-        // let mut rdr = async_compression::tokio::bufread::BrotliDecoder::new(
-        //     tokio::io::BufReader::with_capacity(256,
-        // req.take_body().into_async_read()), );
-        // loop {
-        //     dbg!(rdr.read_u8().await.unwrap());
-        // }
-
         match encoding {
             Some(CompressionAlgo::BR) => {
                 let body = req.take_body().into_async_read();
@@ -141,7 +135,10 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
             None => {}
         }
 
-        let mut resp = self.inner.call(req).await?;
+        let mut resp = self.inner.call(req).await;
+        if !resp.status().is_success() {
+            return Ok(resp);
+        }
 
         match accept_encoding.or(self.compress_algo) {
             Some(CompressionAlgo::BR) => {
@@ -180,6 +177,13 @@ impl<E: Endpoint> Endpoint for CompressionImpl<E> {
         }
 
         Ok(resp)
+    }
+}
+
+#[async_trait::async_trait]
+impl<E: Endpoint> Endpoint for CompressionImpl<E> {
+    async fn call(&self, req: Request) -> Response {
+        self.do_call(req).await.into_response()
     }
 }
 
@@ -265,8 +269,7 @@ mod tests {
                         .header(header::ACCEPT_ENCODING, algo_name)
                         .body(compress_data(algo, DATA).await),
                 )
-                .await
-                .unwrap();
+                .await;
             let data = decompress_data(algo, &resp.take_body().into_vec().await.unwrap()).await;
             assert_eq!(data, DATA);
         }

@@ -3,7 +3,7 @@ use futures_util::{Stream, StreamExt};
 use tokio::time::Duration;
 
 use super::Event;
-use crate::{Body, IntoResponse, Response, Result};
+use crate::{Body, IntoResponse, Response};
 
 /// An SSE response.
 pub struct SSE<T> {
@@ -37,7 +37,7 @@ impl<T> IntoResponse for SSE<T>
 where
     T: Stream<Item = Event> + Send + 'static,
 {
-    fn into_response(self) -> Result<Response> {
+    fn into_response(self) -> Response {
         let mut stream = self
             .stream
             .map(|event| Ok::<_, std::io::Error>(Bytes::from(event.to_string())))
@@ -52,10 +52,10 @@ where
             .boxed();
         }
 
-        Ok(Response::builder()
+        Response::builder()
             .content_type("text/event-stream")
             .body(Body::from_async_read(tokio_util::io::StreamReader::new(
                 stream,
-            ))))
+            )))
     }
 }

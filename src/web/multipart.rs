@@ -144,7 +144,6 @@ mod tests {
                     .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
                     .body(data),
             )
-            .await
-            .unwrap();
+            .await;
     }
 }

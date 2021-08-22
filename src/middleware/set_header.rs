@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use crate::{
     http::{header::HeaderName, HeaderValue},
-    Endpoint, Middleware, Request, Response, Result,
+    Endpoint, Middleware, Request, Response,
 };
 
 enum Action {
@@ -81,8 +81,8 @@ impl<E> Endpoint for SetHeaderImpl<E>
 where
     E: Endpoint,
 {
-    async fn call(&self, req: Request) -> Result<Response> {
-        let mut resp = self.inner.call(req).await?;
+    async fn call(&self, req: Request) -> Response {
+        let mut resp = self.inner.call(req).await;
         let headers = resp.headers_mut();
 
         for action in &self.actions {
@@ -96,7 +96,7 @@ where
             }
         }
 
-        Ok(resp)
+        resp
     }
 }
 
@@ -119,8 +119,7 @@ mod tests {
                     .appending("custom-b", "b"),
             )
             .call(Request::default())
-            .await
-            .unwrap();
+            .await;
 
         assert_eq!(
             resp.headers()

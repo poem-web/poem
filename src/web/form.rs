@@ -94,8 +94,7 @@ mod tests {
                     .uri(Uri::from_static("/?name=abc&value=100"))
                     .finish(),
             )
-            .await
-            .unwrap();
+            .await;
 
         index
             .call(
@@ -104,18 +103,16 @@ mod tests {
                     .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
                     .body("name=abc&value=100"),
             )
-            .await
-            .unwrap();
+            .await;
 
-        let err = index
+        let resp = index
             .call(
                 Request::builder()
                     .method(Method::POST)
                     .header(header::CONTENT_TYPE, "application/json")
                     .body("name=abc&value=100"),
             )
-            .await
-            .unwrap_err();
-        assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
+            .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 }

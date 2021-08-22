@@ -74,11 +74,14 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
 }
 
 impl<T: Serialize> IntoResponse for Json<T> {
-    fn into_response(self) -> Result<Response> {
-        let data = serde_json::to_vec(&self.0).map_err(Error::bad_request)?;
-        Ok(Response::builder()
+    fn into_response(self) -> Response {
+        let data = match serde_json::to_vec(&self.0) {
+            Ok(data) => data,
+            Err(err) => return Error::bad_request(err).as_response(),
+        };
+        Response::builder()
             .header(header::CONTENT_TYPE, "application/json")
-            .body(data))
+            .body(data)
     }
 }
 
@@ -117,7 +120,6 @@ mod tests {
                     "#,
                     ),
             )
-            .await
-            .unwrap();
+            .await;
     }
 }

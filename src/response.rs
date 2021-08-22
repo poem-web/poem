@@ -9,7 +9,7 @@ use crate::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, StatusCode, Version,
     },
-    Body,
+    Body, Error,
 };
 
 /// Represents an HTTP response.
@@ -35,6 +35,24 @@ impl Debug for Response {
 impl<T: Into<Body>> From<T> for Response {
     fn from(body: T) -> Self {
         Response::builder().body(body.into())
+    }
+}
+
+impl From<StatusCode> for Response {
+    fn from(status: StatusCode) -> Self {
+        Response::builder().status(status).finish()
+    }
+}
+
+impl From<Error> for Response {
+    fn from(err: Error) -> Self {
+        err.as_response()
+    }
+}
+
+impl<T: Into<Body>> From<(StatusCode, T)> for Response {
+    fn from((status, body): (StatusCode, T)) -> Self {
+        Response::builder().status(status).body(body.into())
     }
 }
 

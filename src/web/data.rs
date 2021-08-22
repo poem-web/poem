@@ -60,6 +60,6 @@ mod tests {
         }
 
         let app = index.with(AddData::new(100i32));
-        app.call(Request::builder().finish()).await.unwrap();
+        app.call(Request::builder().finish()).await;
     }
 }

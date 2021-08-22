@@ -59,9 +59,6 @@ mod tests {
             assert_eq!(s, "abcdef");
         }
 
-        index123
-            .call(Request::builder().body("abcdef"))
-            .await
-            .unwrap();
+        index123.call(Request::builder().body("abcdef")).await;
     }
 }

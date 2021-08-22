@@ -127,7 +127,7 @@ where
     F: Fn(WebSocketStream) -> Fut + Send + Sync + 'static,
     Fut: Future + Send + 'static,
 {
-    fn into_response(self) -> Result<Response> {
+    fn into_response(self) -> Response {
         // check requested protocols
         let protocol = self
             .websocket
@@ -142,15 +142,6 @@ where
                     .find(|req_p| protocols.iter().any(|p| p == req_p))
             });
 
-        let protocol = match protocol {
-            Some(protocol) => Some(
-                protocol
-                    .parse::<HeaderValue>()
-                    .map_err(|_| Error::status(StatusCode::BAD_REQUEST))?,
-            ),
-            None => None,
-        };
-
         let mut builder = Response::builder()
             .status(StatusCode::SWITCHING_PROTOCOLS)
             .header(header::CONNECTION, "upgrade")
@@ -161,7 +152,10 @@ where
             );
 
         if let Some(protocol) = protocol {
-            builder = builder.header(header::SEC_WEBSOCKET_PROTOCOL, protocol);
+            builder = builder.header(
+                header::SEC_WEBSOCKET_PROTOCOL,
+                HeaderValue::from_str(protocol).unwrap(),
+            );
         }
 
         let resp = builder.body(Body::empty());
@@ -178,6 +172,6 @@ where
             (self.callback)(WebSocketStream::new(stream)).await;
         });
 
-        Ok(resp)
+        resp
     }
 }

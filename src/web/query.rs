@@ -57,7 +57,6 @@ mod tests {
                     .uri(Uri::from_static("/?name=abc&value=100"))
                     .finish(),
             )
-            .await
-            .unwrap();
+            .await;
     }
 }

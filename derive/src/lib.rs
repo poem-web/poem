@@ -201,7 +201,10 @@ fn generate_handler(
             let id = quote::format_ident!("p{}", idx);
             args.push(id.clone());
             extractors.push(quote! {
-                let #id = <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await?;
+                let #id = match <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await {
+                    Ok(value) => value,
+                    Err(err) => return err.as_response(),
+                };
             });
         }
     }
@@ -214,7 +217,7 @@ fn generate_handler(
         impl #crate_name::Endpoint for #ident {
             #guard
 
-            async fn call(&self, mut req: #crate_name::Request) -> #crate_name::Result<#crate_name::Response> {
+            async fn call(&self, mut req: #crate_name::Request) -> #crate_name::Response {
                 let (req, mut body) = req.split_body();
                 #(#extractors)*
                 #item_fn

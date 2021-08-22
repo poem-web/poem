@@ -90,7 +90,7 @@ pub trait FromRequest<'a>: Sized {
 /// Types that implement [IntoResponse] can be returned from endpoints/handlers.
 pub trait IntoResponse {
     /// Consume itself and return [`Response`].
-    fn into_response(self) -> Result<Response>;
+    fn into_response(self) -> Response;
 
     /// Wrap an `impl IntoResponse` to add a header.
     fn with_header<K, V>(self, key: K, value: V) -> WithHeader<Self>
@@ -127,12 +127,12 @@ pub struct WithHeader<T> {
 }
 
 impl<T: IntoResponse> IntoResponse for WithHeader<T> {
-    fn into_response(self) -> Result<Response> {
-        let mut resp = self.inner.into_response()?;
+    fn into_response(self) -> Response {
+        let mut resp = self.inner.into_response();
         if let Some((key, value)) = &self.header {
             resp.headers_mut().append(key.clone(), value.clone());
         }
-        Ok(resp)
+        resp
     }
 }
 
@@ -143,88 +143,90 @@ pub struct WithStatus<T> {
 }
 
 impl<T: IntoResponse> IntoResponse for WithStatus<T> {
-    fn into_response(self) -> Result<Response> {
-        let mut resp = self.inner.into_response()?;
+    fn into_response(self) -> Response {
+        let mut resp = self.inner.into_response();
         resp.set_status(self.status);
-        Ok(resp)
+        resp
     }
 }
 
 impl IntoResponse for Response {
-    fn into_response(self) -> Result<Response> {
-        Ok(self)
+    fn into_response(self) -> Response {
+        self
     }
 }
 
 impl IntoResponse for String {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self))
+    fn into_response(self) -> Response {
+        Response::builder().body(self)
     }
 }
 
 impl IntoResponse for &'static str {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self))
+    fn into_response(self) -> Response {
+        Response::builder().body(self)
     }
 }
 
 impl IntoResponse for &'static [u8] {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self))
+    fn into_response(self) -> Response {
+        Response::builder().body(self)
     }
 }
 
 impl IntoResponse for Bytes {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self))
+    fn into_response(self) -> Response {
+        Response::builder().body(self)
     }
 }
 
 impl IntoResponse for Vec<u8> {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(self))
+    fn into_response(self) -> Response {
+        Response::builder().body(self)
     }
 }
 
 impl IntoResponse for () {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(Body::empty()))
+    fn into_response(self) -> Response {
+        Response::builder().body(Body::empty())
     }
 }
 
 impl IntoResponse for Infallible {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().body(Body::empty()))
+    fn into_response(self) -> Response {
+        Response::builder().body(Body::empty())
     }
 }
 
 impl IntoResponse for StatusCode {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder().status(self).finish())
+    fn into_response(self) -> Response {
+        Response::builder().status(self).finish()
     }
 }
 
 impl<T: IntoResponse> IntoResponse for (StatusCode, T) {
-    fn into_response(self) -> Result<Response> {
-        let mut resp = self.1.into_response()?;
+    fn into_response(self) -> Response {
+        let mut resp = self.1.into_response();
         resp.set_status(self.0);
-        Ok(resp)
+        resp
     }
 }
 
 impl<T: IntoResponse> IntoResponse for (StatusCode, HeaderMap, T) {
-    fn into_response(self) -> Result<Response> {
-        let mut resp = self.2.into_response()?;
+    fn into_response(self) -> Response {
+        let mut resp = self.2.into_response();
         resp.set_status(self.0);
         resp.headers_mut().extend(self.1.into_iter());
-        Ok(resp)
+        resp
     }
 }
 
 impl<T: IntoResponse, E: Into<Error>> IntoResponse for Result<T, E> {
-    fn into_response(self) -> Result<Response> {
-        self.map_err(Into::into)
-            .and_then(IntoResponse::into_response)
+    fn into_response(self) -> Response {
+        match self {
+            Ok(resp) => resp.into_response(),
+            Err(err) => err.into().as_response(),
+        }
     }
 }
 
@@ -232,10 +234,10 @@ impl<T: IntoResponse, E: Into<Error>> IntoResponse for Result<T, E> {
 pub struct Html<T>(pub T);
 
 impl<T: Into<String>> IntoResponse for Html<T> {
-    fn into_response(self) -> Result<Response> {
-        Ok(Response::builder()
+    fn into_response(self) -> Response {
+        Response::builder()
             .content_type("text/html")
-            .body(self.0.into()))
+            .body(self.0.into())
     }
 }
 

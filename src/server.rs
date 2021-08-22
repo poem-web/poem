@@ -191,12 +191,7 @@ async fn serve_connection(
                 let req = Request::from_hyper_request(req);
                 let cookie_jar = req.cookie().clone();
 
-                let mut resp = match ep.call(req).await {
-                    Ok(resp) => resp.into_hyper_response(),
-                    Err(err) => {
-                        return Ok(err.as_response().into_hyper_response());
-                    }
-                };
+                let mut resp = ep.call(req).await.into_hyper_response();
 
                 // Appends cookies to response headers
                 cookie_jar.append_delta_to_headers(resp.headers_mut());

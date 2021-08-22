@@ -1,4 +1,4 @@
-use crate::{Endpoint, Guard, Request, Response, Result};
+use crate::{Endpoint, Guard, Request, Response};
 
 /// Endpoint for the [`guard`](super::EndpointExt::guard) method.
 pub struct GuardEndpoint<E, T> {
@@ -26,7 +26,7 @@ where
         self.inner.check(req)
     }
 
-    async fn call(&self, req: Request) -> Result<Response> {
+    async fn call(&self, req: Request) -> Response {
         self.inner.call(req).await
     }
 }
