@@ -193,7 +193,7 @@ impl RequestBody {
 /// token from the `MyToken` header.
 ///
 /// ```
-/// use poem::{handler, route, Error, FromRequest, Request, RequestBody};
+/// use poem::{handler, route, Endpoint, Error, FromRequest, Request, RequestBody};
 ///
 /// struct Token(String);
 ///
@@ -211,10 +211,16 @@ impl RequestBody {
 ///
 /// #[handler]
 /// async fn index(token: Token) {
-///     println!("Token: {}", token.0);
+///     assert_eq!(token.0, "token123");
 /// }
 ///
 /// let app = route().at("/", index);
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let _ = index
+///     .call(Request::builder().header("MyToken", "token123").finish())
+///     .await;
+/// # });
 /// ```
 
 #[async_trait::async_trait]
@@ -296,6 +302,63 @@ pub trait FromRequest<'a>: Sized {
 ///     Sets the status to `OK` and the `Content-Type` to `text/event-stream`
 /// with an event stream body. Use the [`SSE::new`](sse::SSE::new) function to
 /// create it.
+///
+/// # Custom response
+///
+/// ```
+/// use poem::{handler, http::Uri, web::Query, Endpoint, IntoResponse, Request, Response};
+/// use serde::Deserialize;
+///
+/// struct Hello(Option<String>);
+///
+/// impl IntoResponse for Hello {
+///     fn into_response(self) -> Response {
+///         let msg = match self.0 {
+///             Some(name) => format!("hello {}", name),
+///             None => format!("hello"),
+///         };
+///         msg.into_response()
+///     }
+/// }
+///
+/// #[derive(Deserialize)]
+/// struct Params {
+///     name: Option<String>,
+/// }
+///
+/// #[handler]
+/// async fn index(params: Query<Params>) -> impl IntoResponse {
+///     Hello(params.0.name)
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// assert_eq!(
+///     index
+///         .call(
+///             Request::builder()
+///                 .uri(Uri::from_static("/?name=sunli"))
+///                 .finish()
+///         )
+///         .await
+///         .take_body()
+///         .into_string()
+///         .await
+///         .unwrap(),
+///     "hello sunli"
+/// );
+///
+/// assert_eq!(
+///     index
+///         .call(Request::builder().uri(Uri::from_static("/")).finish())
+///         .await
+///         .take_body()
+///         .into_string()
+///         .await
+///         .unwrap(),
+///     "hello"
+/// );
+/// # });
+/// ```
 
 pub trait IntoResponse {
     /// Consume itself and return [`Response`].

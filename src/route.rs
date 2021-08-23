@@ -105,6 +105,10 @@ pub fn route() -> Route {
 
 #[async_trait::async_trait]
 impl Endpoint for Route {
+    fn check(&self, req: &Request) -> bool {
+        self.router.recognize(req.uri().path()).is_ok()
+    }
+
     async fn call(&self, mut req: Request) -> Response {
         let m = match self.router.recognize(req.uri().path()) {
             Ok(m) => m,

@@ -16,9 +16,9 @@ use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Result};
 ///
 /// # Attributes
 ///
-/// method - Add a method guard.
-/// host=`"host name"` - Add a host guard.
-/// header(`"header name"`, `"header value`) - Add a header value guard.
+/// - **method** - Add a method guard.
+/// - **host**=`"host name"` - Add a host guard.
+/// - **header**(`"header name"`, `"header value`) - Add a header value guard.
 ///
 /// # Example
 ///

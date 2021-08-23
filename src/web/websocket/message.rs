@@ -126,3 +126,84 @@ pub enum Message {
     /// A close message with the optional close frame.
     Close(Option<(CloseCode, String)>),
 }
+
+impl Message {
+    /// Construct a new text message.
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text(text.into())
+    }
+
+    /// Construct a new binary message.
+    pub fn binary(data: impl Into<Vec<u8>>) -> Self {
+        Self::Binary(data.into())
+    }
+
+    /// Construct a new ping message.
+    pub fn ping(data: impl Into<Vec<u8>>) -> Self {
+        Self::Ping(data.into())
+    }
+
+    /// Construct a new pong message.
+    pub fn pong(data: impl Into<Vec<u8>>) -> Self {
+        Self::Pong(data.into())
+    }
+
+    /// Construct the default close message.
+    pub fn close() -> Self {
+        Self::Close(None)
+    }
+
+    /// Construct a close message with a code and reason.
+    pub fn close_with(code: impl Into<CloseCode>, reason: impl Into<String>) -> Self {
+        Self::Close(Some((code.into(), reason.into())))
+    }
+
+    /// Returns true if this message is a Text message.
+    #[inline]
+    pub fn is_text(&self) -> bool {
+        matches!(self, Message::Text(_))
+    }
+
+    /// Returns true if this message is a Binary message.
+    #[inline]
+    pub fn is_binary(&self) -> bool {
+        matches!(self, Message::Binary(_))
+    }
+
+    /// Returns true if this message is a Ping message.
+    pub fn is_ping(&self) -> bool {
+        matches!(self, Message::Ping(_))
+    }
+
+    /// Returns true if this message is a Pong message.
+    pub fn is_pong(&self) -> bool {
+        matches!(self, Message::Pong(_))
+    }
+
+    /// Returns true if this message a is a Close message.
+    pub fn is_close(&self) -> bool {
+        matches!(self, Message::Close(_))
+    }
+
+    /// Destructure this message into binary data.
+    pub fn into_bytes(self) -> Vec<u8> {
+        match self {
+            Message::Text(data) => data.into_bytes(),
+            Message::Binary(data) => data,
+            Message::Ping(data) => data,
+            Message::Pong(data) => data,
+            Message::Close(_) => Default::default(),
+        }
+    }
+
+    /// Return the bytes of this message, if the message can contain data.
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            Message::Text(data) => data.as_bytes(),
+            Message::Binary(data) => data,
+            Message::Ping(data) => data,
+            Message::Pong(data) => data,
+            Message::Close(_) => &[],
+        }
+    }
+}

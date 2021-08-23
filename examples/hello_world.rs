@@ -1,4 +1,4 @@
-use poem::{handler, route, web::Path, Server};
+use poem::{handler, route, web::Path, EndpointExt, Server};
 
 #[handler(method = "get")]
 fn hello(Path(name): Path<String>) -> String {
