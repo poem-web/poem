@@ -191,8 +191,8 @@ impl Request {
         &mut self.state
     }
 
-    #[doc(hidden)]
-    pub fn split_body(mut self) -> (Request, RequestBody) {
+    /// Returns the parameters used by the extractor.
+    pub fn split(mut self) -> (Request, RequestBody) {
         let body = self.take_body();
         (self, RequestBody::new(Some(body)))
     }

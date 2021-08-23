@@ -160,7 +160,7 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
             #guard
 
             async fn call(&self, mut req: #crate_name::Request) -> #crate_name::Response {
-                let (req, mut body) = req.split_body();
+                let (req, mut body) = req.split();
                 #(#extractors)*
                 #item_fn
                 #crate_name::IntoResponse::into_response(#ident(#(#args),*)#call_await)

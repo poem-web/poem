@@ -144,7 +144,7 @@ mod tests {
         let req = Request::builder()
             .header(header::COOKIE, Cookie::new("a", "1").to_string())
             .finish();
-        let (req, mut body) = req.split_body();
+        let (req, mut body) = req.split();
         let cookie = Cookie::from_request(&req, &mut body).await.unwrap();
         assert_eq!(cookie.name(), "a");
         assert_eq!(cookie.value(), "1");
