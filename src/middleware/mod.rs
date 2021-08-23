@@ -1,16 +1,12 @@
 //! Commonly used middleware.
 
 mod add_data;
-#[cfg(feature = "compression")]
-mod compression;
 mod cors;
 mod set_header;
 #[cfg(feature = "tracing")]
 mod tracing;
 
 pub use add_data::AddData;
-#[cfg(feature = "compression")]
-pub use compression::{Compression, CompressionAlgo};
 pub use cors::Cors;
 pub use set_header::SetHeader;
 

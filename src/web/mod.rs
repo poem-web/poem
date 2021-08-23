@@ -1,5 +1,7 @@
 //! Commonly used as the type of extractor or response.
 
+#[cfg(feature = "compression")]
+mod compress;
 mod cookie;
 mod data;
 mod form;
@@ -34,6 +36,8 @@ pub mod type_headers {
 use std::convert::{Infallible, TryInto};
 
 use bytes::Bytes;
+#[cfg(feature = "compression")]
+pub use compress::{Compress, CompressionAlgo};
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;

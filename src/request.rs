@@ -23,6 +23,7 @@ pub(crate) struct RequestState {
     pub(crate) original_uri: Uri,
     pub(crate) match_params: Params,
     pub(crate) cookie_jar: CookieJar,
+    #[allow(dead_code)]
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
 }
 
