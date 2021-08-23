@@ -6,7 +6,7 @@
 //! Depend on poem in Cargo.toml:
 //!
 //! ```toml
-//! poem = "0.1"
+//! poem = "*"
 //! ```
 //!
 //! # Example
