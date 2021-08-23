@@ -66,7 +66,11 @@ impl<T> DerefMut for Json<T> {
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        let data = body.take()?.into_bytes().await?;
+        let data = body
+            .take()?
+            .into_bytes()
+            .await
+            .map_err(Error::bad_request)?;
         Ok(Self(
             serde_json::from_slice(&data).map_err(Error::bad_request)?,
         ))

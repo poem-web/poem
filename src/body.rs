@@ -1,4 +1,5 @@
 use std::{
+    io::{Error as IoError, ErrorKind},
     pin::Pin,
     task::{Context, Poll},
 };
@@ -7,8 +8,6 @@ use bytes::Bytes;
 use futures_util::Stream;
 use hyper::body::HttpBody;
 use tokio::io::AsyncRead;
-
-use crate::{error::ErrorInternalServerError, Error, Result};
 
 /// A body object for requests and responses.
 #[derive(Default)]
@@ -77,30 +76,30 @@ impl Body {
     }
 
     /// Consumes this body object to return a [`Bytes`] that contains all data.
-    pub async fn into_bytes(self) -> Result<Bytes> {
+    pub async fn into_bytes(self) -> Result<Bytes, IoError> {
         hyper::body::to_bytes(self.0)
             .await
-            .map_err(Error::internal_server_error)
+            .map_err(|err| IoError::new(ErrorKind::Other, err))
     }
 
     /// Consumes this body object to return a [`Vec<u8>`] that contains all
     /// data.
-    pub async fn into_vec(self) -> Result<Vec<u8>> {
+    pub async fn into_vec(self) -> Result<Vec<u8>, IoError> {
         Ok(hyper::body::to_bytes(self.0)
             .await
-            .map_err(ErrorInternalServerError::new)?
+            .map_err(|err| IoError::new(ErrorKind::Other, err))?
             .to_vec())
     }
 
     /// Consumes this body object to return a [`String`] that contains all data.
-    pub async fn into_string(self) -> Result<String> {
+    pub async fn into_string(self) -> Result<String, IoError> {
         Ok(String::from_utf8(
             self.into_bytes()
                 .await
-                .map_err(Error::internal_server_error)?
+                .map_err(|err| IoError::new(ErrorKind::Other, err))?
                 .to_vec(),
         )
-        .map_err(ErrorInternalServerError::new)?)
+        .map_err(|err| IoError::new(ErrorKind::Other, err))?)
     }
 
     /// Consumes this body object to return a reader.

@@ -1,4 +1,4 @@
-use poem::{handler, route, web::Json, EndpointExt, IntoResponse, Server};
+use poem::{handler, route, web::Json, EndpointExt, Error, IntoResponse, Server};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -23,7 +23,11 @@ async fn main() {
     let app = route().at("/hello", hello).after(|mut resp| async move {
         if !resp.status().is_success() {
             // returns the custom json error
-            let reason = resp.take_body().into_string().await?;
+            let reason = resp
+                .take_body()
+                .into_string()
+                .await
+                .map_err(Error::bad_request)?;
             return Ok(Json(serde_json::json!( {
                 "code": 1,
                 "message": reason,

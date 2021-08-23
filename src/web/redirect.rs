@@ -12,7 +12,7 @@ use crate::{
 ///
 /// #[handler]
 /// async fn index() -> Redirect {
-///     Redirect::redirect(Uri::from_static("https://www.google.com"))
+///     Redirect::moved_permanent(Uri::from_static("https://www.google.com"))
 /// }
 /// ```
 pub struct Redirect {
@@ -30,7 +30,7 @@ impl Redirect {
     }
 
     /// A simple `301` permanent redirect to a different location.
-    pub fn redirect(uri: Uri) -> Self {
+    pub fn moved_permanent(uri: Uri) -> Self {
         Self {
             status: StatusCode::MOVED_PERMANENTLY,
             uri,

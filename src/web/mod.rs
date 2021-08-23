@@ -589,7 +589,11 @@ impl<'a> FromRequest<'a> for Body {
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        let data = body.take()?.into_bytes().await?;
+        let data = body
+            .take()?
+            .into_bytes()
+            .await
+            .map_err(Error::bad_request)?;
         String::from_utf8(data.to_vec()).map_err(Error::bad_request)
     }
 }
@@ -597,14 +601,23 @@ impl<'a> FromRequest<'a> for String {
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Bytes {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        Ok(body.take()?.into_bytes().await?)
+        Ok(body
+            .take()?
+            .into_bytes()
+            .await
+            .map_err(Error::bad_request)?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Vec<u8> {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        Ok(body.take()?.into_bytes().await?.to_vec())
+        Ok(body
+            .take()?
+            .into_bytes()
+            .await
+            .map_err(Error::bad_request)?
+            .to_vec())
     }
 }
 
