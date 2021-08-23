@@ -7,9 +7,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 /// # Example
 ///
 /// ```
-/// use poem::{get, middleware::AddData, route, web::Data, EndpointExt};
+/// use poem::{handler, middleware::AddData, route, web::Data, EndpointExt};
 ///
-/// #[get]
+/// #[handler]
 /// async fn index(data: Data<&i32>) {
 ///     assert_eq!(*data.0, 10);
 /// }

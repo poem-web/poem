@@ -21,15 +21,15 @@ impl Route {
     /// # Example
     ///
     /// ```
-    /// use poem::{get, route, web::Path};
+    /// use poem::{handler, route, web::Path};
     ///
-    /// #[get]
+    /// #[handler]
     /// async fn a() {}
     ///
-    /// #[get]
+    /// #[handler]
     /// async fn b(Path((group, name)): Path<(String, String)>) {}
     ///
-    /// #[get]
+    /// #[handler]
     /// async fn c(Path(path): Path<String>) {}
     ///
     /// let app = route()

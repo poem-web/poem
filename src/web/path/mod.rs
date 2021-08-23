@@ -12,9 +12,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 /// # Example
 ///
 /// ```
-/// use poem::{get, route, web::Path};
+/// use poem::{handler, route, web::Path};
 ///
-/// #[get]
+/// #[handler]
 /// async fn users_teams_show(Path((user_id, team_id)): Path<(String, String)>) {
 ///     // ...
 /// }
@@ -25,9 +25,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 /// If the path contains only one parameter, then you can omit the tuple.
 ///
 /// ```
-/// use poem::{get, route, web::Path};
+/// use poem::{handler, route, web::Path};
 ///
-/// #[get]
+/// #[handler]
 /// async fn user_info(Path(user_id): Path<String>) {
 ///     // ...
 /// }
@@ -39,7 +39,7 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 /// Path segment labels will be matched with struct field names.
 ///
 /// ```
-/// use poem::{get, route, web::Path};
+/// use poem::{handler, route, web::Path};
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -48,7 +48,7 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     team_id: String,
 /// }
 ///
-/// #[get]
+/// #[handler]
 /// async fn users_teams_show(Path(Params { user_id, team_id }): Path<Params>) {
 ///     // ...
 /// }

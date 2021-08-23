@@ -8,10 +8,9 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// use peom::get;
-/// use poem::{http::Uri, web::Redirect};
+/// use poem::{handler, http::Uri, web::Redirect};
 ///
-/// #[get]
+/// #[handler]
 /// async fn index() -> Redirect {
 ///     Redirect::redirect(Uri::from_static("https://www.google.com"))
 /// }

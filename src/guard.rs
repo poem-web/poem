@@ -237,13 +237,13 @@ mod tests {
 
     #[test]
     fn test_handler_macro() {
-        #[get(internal)]
+        #[handler(internal, method = "get")]
         fn method_get() {}
 
         assert!(method_get.check(&Request::builder().method(Method::GET).finish()));
         assert!(!method_get.check(&Request::builder().method(Method::PUT).finish()));
 
-        #[get(internal, host = "test.com")]
+        #[handler(internal, method = "get", host = "test.com")]
         fn method_get_host() {}
 
         assert!(method_get_host.check(
@@ -265,7 +265,11 @@ mod tests {
                 .finish()
         ));
 
-        #[get(internal, header(name = "custom-header", value = "true"))]
+        #[handler(
+            internal,
+            method = "get",
+            header(name = "custom-header", value = "true")
+        )]
         fn method_header() {}
 
         assert!(method_header.check(
@@ -287,8 +291,9 @@ mod tests {
                 .finish()
         ));
 
-        #[get(
+        #[handler(
             internal,
+            method = "get",
             header(name = "custom-header1", value = "true"),
             header(name = "custom-header2", value = "true")
         )]

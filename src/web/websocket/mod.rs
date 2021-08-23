@@ -5,12 +5,12 @@
 //! ```
 //! use futures_util::{SinkExt, StreamExt};
 //! use poem::{
-//!     get, route,
+//!     handler, route,
 //!     web::websocket::{Message, WebSocket},
 //!     IntoResponse,
 //! };
 //!
-//! #[get]
+//! #[handler(method = "get")]
 //! async fn index(ws: WebSocket) -> impl IntoResponse {
 //!     ws.on_upgrade(|mut socket| async move {
 //!         if let Some(Ok(Message::Text(text))) = socket.next().await {

@@ -1,6 +1,6 @@
-use poem::{get, route, route::Route, Server};
+use poem::{handler, route, route::Route, Server};
 
-#[get]
+#[handler]
 fn hello() -> String {
     format!("hello")
 }

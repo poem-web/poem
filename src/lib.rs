@@ -12,9 +12,9 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::{get, route, web::Path, Server};
+//! use poem::{handler, route, web::Path, Server};
 //!
-//! #[get]
+//! #[handler(method = "get")]
 //! async fn hello(Path(name): Path<String>) -> String {
 //!     format!("hello: {}", name)
 //! }
@@ -71,7 +71,7 @@ pub use endpoint::{Endpoint, EndpointExt};
 pub use error::{Error, ResponseError, Result};
 pub use guard::Guard;
 pub use middleware::Middleware;
-pub use poem_derive::{connect, delete, get, handler, head, options, patch, post, put, trace};
+pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder};
 pub use response::{Response, ResponseBuilder};
 pub use route::route;

@@ -1,5 +1,5 @@
 use derive_more::Display;
-use poem::{get, http::StatusCode, route, Error, Response, ResponseError, Result, Server};
+use poem::{handler, http::StatusCode, route, Error, Response, ResponseError, Result, Server};
 
 #[derive(Debug, Display)]
 struct CustomError;
@@ -12,7 +12,7 @@ impl ResponseError for CustomError {
     }
 }
 
-#[get]
+#[handler(method = "get")]
 fn index() -> Result<String> {
     Err(Error::new(CustomError))
 }

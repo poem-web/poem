@@ -1,4 +1,4 @@
-use poem::{post, route, web::Json, EndpointExt, IntoResponse, Server};
+use poem::{handler, route, web::Json, EndpointExt, IntoResponse, Server};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -6,7 +6,7 @@ struct JsonType1 {
     name: String,
 }
 
-#[post]
+#[handler(method = "post")]
 fn hello(Json(json1): Json<JsonType1>) -> String {
     format!(r#"{{"code": 0, "message": "{}"}}"#, json1.name)
 }

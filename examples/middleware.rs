@@ -1,4 +1,6 @@
-use poem::{async_trait, get, route, Endpoint, EndpointExt, Middleware, Request, Response, Server};
+use poem::{
+    async_trait, handler, route, Endpoint, EndpointExt, Middleware, Request, Response, Server,
+};
 
 struct Log;
 
@@ -26,7 +28,7 @@ impl<E: Endpoint> Endpoint for LogImpl<E> {
     }
 }
 
-#[get]
+#[handler(method = "get")]
 fn index() -> String {
     format!("hello")
 }

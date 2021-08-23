@@ -12,24 +12,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Result};
 
-macro_rules! impl_wrappers {
-    ($method:expr, $args:ident, $input:expr) => {{
-        let args = match HandlerArgs::from_list(&parse_macro_input!($args as AttributeArgs)) {
-            Ok(args) => args,
-            Err(err) => return err.write_errors().into(),
-        };
-
-        match generate_handler($method, args, $input.into()) {
-            Ok(stream) => stream.into(),
-            Err(err) => err.into_compile_error().into(),
-        }
-    }};
-}
-
 /// Wrap an asynchronous function as an `Endpoint`.
 ///
 /// # Attributes
 ///
+/// method - Add a method guard.
 /// host=`"host name"` - Add a host guard.
 /// header(`"header name"`, `"header value`) - Add a header value guard.
 ///
@@ -37,6 +24,7 @@ macro_rules! impl_wrappers {
 ///
 /// ```ignore
 /// #[handler(
+///     method = "get",
 ///     host = "example.com",
 ///     header(name = "Custom-header", value = "true")
 /// )]
@@ -48,88 +36,45 @@ pub fn handler(
     args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    impl_wrappers!(None, args, input)
+    let args = match HandlerArgs::from_list(&parse_macro_input!(args as AttributeArgs)) {
+        Ok(args) => args,
+        Err(err) => return err.write_errors().into(),
+    };
+
+    match generate_handler(args, input.into()) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.into_compile_error().into(),
+    }
 }
 
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::get`.
-#[proc_macro_attribute]
-pub fn get(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("get"), args, input)
+#[derive(Debug, Copy, Clone, FromMeta)]
+#[darling(rename_all = "lowercase")]
+enum Method {
+    Get,
+    Post,
+    Put,
+    Delete,
+    Head,
+    Options,
+    Connect,
+    Patch,
+    Trace,
 }
 
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::post`.
-#[proc_macro_attribute]
-pub fn post(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("post"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::put`.
-#[proc_macro_attribute]
-pub fn put(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("put"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::delete`.
-#[proc_macro_attribute]
-pub fn delete(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("delete"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::head`.
-#[proc_macro_attribute]
-pub fn head(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("head"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::options`.
-#[proc_macro_attribute]
-pub fn options(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("options"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::connect`.
-#[proc_macro_attribute]
-pub fn connect(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("connect"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::patch`.
-#[proc_macro_attribute]
-pub fn patch(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("patch"), args, input)
-}
-
-/// Wrap an asynchronous function as an `Endpoint` with `poem::guard::trace`.
-#[proc_macro_attribute]
-pub fn trace(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    impl_wrappers!(Some("trace"), args, input)
+impl Method {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Method::Get => "get",
+            Method::Post => "post",
+            Method::Put => "put",
+            Method::Delete => "delete",
+            Method::Head => "head",
+            Method::Options => "options",
+            Method::Connect => "connect",
+            Method::Patch => "patch",
+            Method::Trace => "trace",
+        }
+    }
 }
 
 #[derive(FromMeta, Default)]
@@ -142,16 +87,13 @@ struct Header {
 #[darling(default)]
 struct HandlerArgs {
     internal: bool,
+    method: Option<Method>,
     host: Option<String>,
     #[darling(multiple, rename = "header")]
     headers: Vec<Header>,
 }
 
-fn generate_handler(
-    method: Option<&str>,
-    args: HandlerArgs,
-    input: TokenStream,
-) -> Result<TokenStream> {
+fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream> {
     let crate_name = utils::get_crate_name(args.internal);
     let item_fn = syn::parse2::<ItemFn>(input)?;
     let vis = &item_fn.vis;
@@ -163,8 +105,8 @@ fn generate_handler(
     };
     let mut guards = Vec::new();
 
-    if let Some(method) = method {
-        let method = quote::format_ident!("{}", method);
+    if let Some(method) = args.method {
+        let method = quote::format_ident!("{}", method.as_str());
         guards.push(quote::quote!(#crate_name::guard::#method()));
     }
 

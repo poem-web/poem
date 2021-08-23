@@ -1,6 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
 use poem::{
-    get,
+    handler,
     middleware::AddData,
     route,
     web::{
@@ -10,7 +10,7 @@ use poem::{
     EndpointExt, IntoResponse, Server,
 };
 
-#[get]
+#[handler(method = "get")]
 fn index() -> Html<&'static str> {
     Html(
         r###"
@@ -60,7 +60,7 @@ fn index() -> Html<&'static str> {
     )
 }
 
-#[get]
+#[handler(method = "get")]
 fn ws(
     Path(name): Path<String>,
     ws: WebSocket,

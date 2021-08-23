@@ -1,9 +1,9 @@
-use poem::{get, middleware::Tracing, route, web::Path, EndpointExt, Server};
+use poem::{handler, middleware::Tracing, route, web::Path, EndpointExt, Server};
 use tracing_subscriber::{
     fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
-#[get]
+#[handler(method = "get")]
 fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }

@@ -81,16 +81,222 @@ impl RequestBody {
     }
 }
 
-/// Types that can be created from requests.
+/// Represents an type that can be extract from requests.
+///
+/// # Provided Implementations
+///
+/// - **Option&lt;T>**
+///
+///    Extracts `T` from the incoming request, returns [`None`] if it
+/// fails.
+///
+/// - **&Request**
+///
+///    Extracts the [`Request`] from the incoming request.
+///
+/// - **Method**
+///
+///    Extracts the [`Method`] from the incoming request.
+///
+/// - **Version**
+///
+///    Extracts the [`Version`] from the incoming request.
+///
+/// - **&Uri**
+///
+///    Extracts the [`Uri`] from the incoming request.
+///
+/// - **&HeaderMap**
+///
+///    Extracts the [`HeaderMap`] from the incoming request.
+///
+/// - **Data&lt;&T>**
+///
+///    Extracts the [`Data`] from the incoming request.
+///
+/// - **TypedHeader&lt;T>**
+///
+///    Extracts the [`TypedHeader`] from the incoming request.
+///
+/// - **Path&lt;T>**
+///
+///    Extracts the [`Path`] from the incoming request.
+///
+/// - **Query&lt;T>**
+///
+///    Extracts the [`Query`] from the incoming request.
+///
+/// - **Form&lt;T>**
+///
+///    Extracts the [`Form`] from the incoming request.
+///
+/// - **Json&lt;T>**
+///
+///    Extracts the [`Json`] from the incoming request.
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **TempFile**
+///
+///    Extracts the [`TempFile`] from the incoming request.
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **Multipart**
+///
+///    Extracts the [`Multipart`] from the incoming request.
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **Body**
+///
+///    Extracts the [`Body`] from the incoming request.
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **String**
+///
+///    Extracts the body from the incoming request and parse it into utf8
+/// [`String].
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **Vec&lt;u8>**
+///
+///    Extracts the body from the incoming request and collect it into
+/// [`Vec<u8>`].
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **Bytes**
+///
+///    Extracts the body from the incoming request and collect it into
+/// [`Bytes`].
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **WebSocket**
+///
+///    Ready to accept a websocket [`WebSocket`](websocket::WebSocket)
+/// connection.
+///
+/// # Custom extractor
+///
+/// The following is an example of a custom token extractor, which extracts the
+/// token from the `MyToken` header.
+///
+/// ```
+/// use poem::{handler, route, Error, FromRequest, Request, RequestBody};
+///
+/// struct Token(String);
+///
+/// #[poem::async_trait]
+/// impl<'a> FromRequest<'a> for Token {
+///     async fn from_request(req: &'a Request, body: &mut RequestBody) -> poem::Result<Self> {
+///         let token = req
+///             .headers()
+///             .get("MyToken")
+///             .and_then(|value| value.to_str().ok())
+///             .ok_or_else(|| Error::bad_request("missing token"))?;
+///         Ok(Token(token.to_string()))
+///     }
+/// }
+///
+/// #[handler]
+/// async fn index(token: Token) {
+///     println!("Token: {}", token.0);
+/// }
+///
+/// let app = route().at("/", index);
+/// ```
+
 #[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
     /// Perform the extraction.
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
 }
 
-/// Trait for generating responses.
+/// Represents a type that can convert into response.
 ///
-/// Types that implement [IntoResponse] can be returned from endpoints/handlers.
+/// # Provided Implementations
+///
+/// - **()**
+///
+///    Sets the status to `OK` with an empty body.
+///
+/// - **&'static str**
+///
+///    Sets the status to `OK` and the `Content-Type` to `text/plain`. The
+/// string is used as the body of the response.
+///
+/// - **String**
+///
+///    Sets the status to `OK` and the `Content-Type` to `text/plain`. The
+/// string is used as the body of the response.
+///
+/// - **&'static [u8]**
+///
+///    Sets the status to `OK` and the `Content-Type` to
+/// `application/octet-stream`. The slice is used as the body of the response.
+///
+/// - **Html&lt;T>**
+///
+///    Sets the status to `OK` and the `Content-Type` to `text/html`. `T` is
+/// used as the body of the response.
+///
+/// - **Json&lt;T>**
+///
+///    Sets the status to `OK` and the `Content-Type` to `application/json`. Use
+/// [`serde_json`](https://crates.io/crates/serde_json) to serialize `T` into a json string.
+///
+/// - **Bytes**
+///
+///    Sets the status to `OK` and the `Content-Type` to
+/// `application/octet-stream`. The bytes is used as the body of the response.
+///
+/// - **Vec&lt;u8>**
+///
+///    Sets the status to `OK` and the `Content-Type` to
+/// `application/octet-stream`. The vector’s data is used as the body of the
+/// response.
+///
+/// - **StatusCode**
+///
+///    Sets the status to the specified status code [`StatusCode`] with an empty
+/// body.
+///
+/// - **(StatusCode, T)**
+///
+///    Convert `T` to response and set the specified status code [`StatusCode`].
+///
+/// - **(StatusCode, HeaderMap, T)**
+///
+///    Convert `T` to response and set the specified status code [`StatusCode`],
+/// and then merge the specified [`HeaderMap`].
+///
+/// - **Response**
+///
+///    The implementation for [`Response`] always returns itself.
+///
+/// - **Compress&lt;T>**
+///
+///    Call `T::into_response` to get the response, then compress the response
+/// body with the specified algorithm, and set the correct `Content-Encoding`
+/// header.
+///
+/// - **SSE**
+///
+///     Sets the status to `OK` and the `Content-Type` to `text/event-stream`
+/// with an event stream body. Use the [`SSE::new`](sse::SSE::new) function to
+/// create it.
+
 pub trait IntoResponse {
     /// Consume itself and return [`Response`].
     fn into_response(self) -> Response;
@@ -186,31 +392,37 @@ impl IntoResponse for Response {
 
 impl IntoResponse for String {
     fn into_response(self) -> Response {
-        Response::builder().body(self)
+        Response::builder().content_type("text/plain").body(self)
     }
 }
 
 impl IntoResponse for &'static str {
     fn into_response(self) -> Response {
-        Response::builder().body(self)
+        Response::builder().content_type("text/plain").body(self)
     }
 }
 
 impl IntoResponse for &'static [u8] {
     fn into_response(self) -> Response {
-        Response::builder().body(self)
+        Response::builder()
+            .content_type("application/octet-stream")
+            .body(self)
     }
 }
 
 impl IntoResponse for Bytes {
     fn into_response(self) -> Response {
-        Response::builder().body(self)
+        Response::builder()
+            .content_type("application/octet-stream")
+            .body(self)
     }
 }
 
 impl IntoResponse for Vec<u8> {
     fn into_response(self) -> Response {
-        Response::builder().body(self)
+        Response::builder()
+            .content_type("application/octet-stream")
+            .body(self)
     }
 }
 

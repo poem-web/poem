@@ -1,6 +1,6 @@
-use poem::{get, http::StatusCode, route, web::Path, EndpointExt, Response, Server};
+use poem::{handler, http::StatusCode, route, web::Path, EndpointExt, Response, Server};
 
-#[get]
+#[handler(method = "get")]
 fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }

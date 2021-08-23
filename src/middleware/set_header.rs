@@ -103,11 +103,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{get, EndpointExt};
+    use crate::{handler, EndpointExt};
 
     #[tokio::test]
     async fn test_set_header() {
-        #[get(internal)]
+        #[handler(internal, method = "get")]
         fn index() {}
 
         let resp = index

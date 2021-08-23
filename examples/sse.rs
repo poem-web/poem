@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use futures_util::StreamExt;
 use poem::{
-    get, route,
+    handler, route,
     web::{
         sse::{Event, SSE},
         Html,
@@ -11,7 +11,7 @@ use poem::{
 };
 use tokio::time::Duration;
 
-#[get]
+#[handler(method = "get")]
 fn index() -> Html<&'static str> {
     Html(
         r#"
@@ -25,7 +25,7 @@ fn index() -> Html<&'static str> {
     )
 }
 
-#[get]
+#[handler(method = "get")]
 fn event() -> SSE {
     let now = Instant::now();
     SSE::new(

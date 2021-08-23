@@ -60,11 +60,11 @@ impl Display for CompressionAlgo {
 ///
 /// ```
 /// use poem::{
-///     get,
+///     handler,
 ///     web::{Compress, CompressionAlgo},
 /// };
 ///
-/// #[get]
+/// #[handler]
 /// fn index() -> Compress<String> {
 ///     Compress::new("abcdef".to_string(), CompressionAlgo::GZIP)
 /// }
@@ -125,7 +125,7 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{get, Endpoint, EndpointExt, Request};
+    use crate::{handler, Endpoint, EndpointExt, Request};
 
     async fn decompress_data(algo: CompressionAlgo, data: &[u8]) -> String {
         let mut output = Vec::new();
@@ -154,7 +154,7 @@ mod tests {
     async fn test_algo(algo: CompressionAlgo) {
         const DATA: &str = "abcdefghijklmnopqrstuvwxyz1234567890";
 
-        #[get(internal)]
+        #[handler(internal)]
         async fn index() -> &'static str {
             DATA
         }

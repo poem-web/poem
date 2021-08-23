@@ -37,9 +37,9 @@ pub trait EndpointExt: Endpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{get, middleware::AddData, route, web::Data, EndpointExt};
+    /// use poem::{handler, middleware::AddData, route, web::Data, EndpointExt};
     ///
-    /// #[get]
+    /// #[handler]
     /// async fn index(Data(data): Data<&i32>) -> String {
     ///     format!("{}", data)
     /// }

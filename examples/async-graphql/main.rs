@@ -5,20 +5,20 @@ use async_graphql::{
     EmptyMutation, EmptySubscription, Request, Response, Schema,
 };
 use poem::{
-    get,
+    handler,
     middleware::AddData,
-    post, route,
+    route,
     web::{Data, Html, Json},
     EndpointExt, IntoResponse, Server,
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
-#[post]
+#[handler(method = "post")]
 async fn graphql_handler(schema: Data<&StarWarsSchema>, req: Json<Request>) -> Json<Response> {
     Json(schema.execute(req.0).await)
 }
 
-#[get]
+#[handler(method = "get")]
 fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(GraphQLPlaygroundConfig::new("/")))
 }

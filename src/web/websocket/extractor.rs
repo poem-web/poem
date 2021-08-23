@@ -63,9 +63,9 @@ impl WebSocket {
     ///
     /// ```
     /// use futures_util::{SinkExt, StreamExt};
-    /// use poem::{get, route, web::websocket::WebSocket, IntoResponse};
+    /// use poem::{handler, route, web::websocket::WebSocket, IntoResponse};
     ///
-    /// #[get]
+    /// #[handler(method = "get")]
     /// async fn index(ws: WebSocket) -> impl IntoResponse {
     ///     ws.protocols(vec!["graphql-rs", "graphql-transport-ws"])
     ///         .on_upgrade(|socket| async move {
