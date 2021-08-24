@@ -91,3 +91,7 @@ required-features = ["sse"]
 [[example]]
 name = "chat"
 required-features = ["websocket"]
+
+[[example]]
+name = "tls"
+required-features = ["tls"]
