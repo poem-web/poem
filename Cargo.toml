@@ -30,7 +30,7 @@ sse = []
 compression = ["async-compression"]
 
 [dependencies]
-poem-derive = { path = "derive", version = "0.3.0" }
+poem-derive = { path = "derive", version = "0.3.6" }
 
 async-trait = "0.1.51"
 bytes = "1.0.1"
