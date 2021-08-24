@@ -162,7 +162,8 @@ mod tests {
         let mut resp = index
             .after(move |resp| async move { Compress::new(resp, algo) })
             .call(Request::default())
-            .await;
+            .await
+            .into_response();
         assert_eq!(
             resp.headers().get(header::CONTENT_ENCODING),
             Some(&HeaderValue::from_static(algo.as_str()))

@@ -77,7 +77,7 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
     }
 }
 
-impl<T: Serialize> IntoResponse for Json<T> {
+impl<T: Serialize + Send> IntoResponse for Json<T> {
     fn into_response(self) -> Response {
         let data = match serde_json::to_vec(&self.0) {
             Ok(data) => data,

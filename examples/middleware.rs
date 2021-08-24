@@ -1,5 +1,6 @@
 use poem::{
-    async_trait, handler, route, Endpoint, EndpointExt, Middleware, Request, Response, Server,
+    async_trait, handler, route, Endpoint, EndpointExt, IntoResponse, Middleware, Request,
+    Response, Server,
 };
 
 struct Log;
@@ -16,9 +17,11 @@ struct LogImpl<E>(E);
 
 #[async_trait]
 impl<E: Endpoint> Endpoint for LogImpl<E> {
-    async fn call(&self, req: Request) -> Response {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Self::Output {
         println!("request: {}", req.uri().path());
-        let resp = self.0.call(req).await;
+        let resp = self.0.call(req).await.into_response();
         if resp.status().is_success() {
             println!("response: {}", resp.status());
         } else {

@@ -91,7 +91,9 @@ impl Files {
 
 #[async_trait::async_trait]
 impl Endpoint for Files {
-    async fn call(&self, req: Request) -> Response {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Self::Output {
         if req.method() != Method::GET {
             return StatusCode::METHOD_NOT_ALLOWED.into();
         }

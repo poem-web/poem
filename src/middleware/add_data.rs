@@ -1,4 +1,4 @@
-use crate::{Endpoint, Middleware, Request, Response};
+use crate::{Endpoint, Middleware, Request};
 
 /// Middleware for add any data to request.
 pub struct AddData<T> {
@@ -39,7 +39,9 @@ where
     E: Endpoint,
     T: Clone + Send + Sync + 'static,
 {
-    async fn call(&self, mut req: Request) -> Response {
+    type Output = E::Output;
+
+    async fn call(&self, mut req: Request) -> Self::Output {
         req.extensions_mut().insert(self.value.clone());
         self.inner.call(req).await
     }

@@ -11,6 +11,7 @@ use crate::{
     middleware::Middleware,
     request::Request,
     response::Response,
+    Error, IntoResponse, Result,
 };
 
 #[derive(Default)]
@@ -170,23 +171,25 @@ impl<E> CorsImpl<E> {
 
 #[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CorsImpl<E> {
-    async fn call(&self, req: Request) -> Response {
+    type Output = Result<Response>;
+
+    async fn call(&self, req: Request) -> Self::Output {
         if !self.is_valid_origin(
             req.headers()
                 .get(header::ORIGIN)
                 .and_then(|value| value.to_str().ok())
                 .unwrap_or_default(),
         ) {
-            return StatusCode::UNAUTHORIZED.into();
+            return Err(Error::status(StatusCode::UNAUTHORIZED));
         }
 
         if req.method() == Method::OPTIONS {
-            return self.build_preflight_response();
+            return Ok(self.build_preflight_response());
         }
 
-        let mut resp = self.inner.call(req).await;
+        let mut resp = self.inner.call(req).await.into_response();
         if !resp.status().is_success() {
-            return resp;
+            return Ok(resp);
         }
 
         resp.headers_mut().extend(
@@ -210,6 +213,6 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
                 .map(|value| (header::ACCESS_CONTROL_EXPOSE_HEADERS, value.clone().into())),
         );
 
-        resp
+        Ok(resp)
     }
 }

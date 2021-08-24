@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use crate::{Endpoint, Request, Response};
+use crate::{Endpoint, Request};
 
 /// Endpoint for the [`before`](super::EndpointExt::before) method.
 pub struct Before<E, F> {
@@ -22,7 +22,9 @@ where
     F: Fn(Request) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Request> + Send + 'static,
 {
-    async fn call(&self, req: Request) -> Response {
+    type Output = E::Output;
+
+    async fn call(&self, req: Request) -> Self::Output {
         self.inner.call((self.f)(req).await).await
     }
 }

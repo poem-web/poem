@@ -1,11 +1,14 @@
 use std::{future::Future, sync::Arc};
 
-use super::{After, Before, GuardEndpoint, Or};
-use crate::{Guard, IntoResponse, Middleware, Request, Response};
+use super::{After, AndThen, Before, GuardEndpoint, MapErr, MapOk, MapToResponse, MapToResult, Or};
+use crate::{Error, Guard, IntoResponse, Middleware, Request, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
 pub trait Endpoint: Send + Sync + 'static {
+    /// Represents the response of the endpoint.
+    type Output: IntoResponse;
+
     /// Check if request matches predicate for route selection.
     #[allow(unused_variables)]
     fn check(&self, req: &Request) -> bool {
@@ -13,19 +16,62 @@ pub trait Endpoint: Send + Sync + 'static {
     }
 
     /// Get the response to the request.
-    async fn call(&self, req: Request) -> Response;
+    async fn call(&self, req: Request) -> Self::Output;
+}
+
+struct FnEndpoint<F>(F);
+
+#[async_trait::async_trait]
+impl<F, R> Endpoint for FnEndpoint<F>
+where
+    F: Fn(Request) -> R + Send + Sync + 'static,
+    R: IntoResponse,
+{
+    type Output = R;
+
+    async fn call(&self, req: Request) -> Self::Output {
+        (self.0)(req)
+    }
+}
+
+/// Create an endpoint with a function.
+///
+/// # Example
+///
+/// ```
+/// use poem::{fn_endpoint, http::Method, Endpoint, Request};
+///
+/// let ep = fn_endpoint(|req| req.method().to_string());
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = ep
+///     .call(Request::builder().method(Method::GET).finish())
+///     .await;
+/// assert_eq!(resp, "GET");
+/// # });
+/// ```
+pub fn fn_endpoint<F, R>(f: F) -> impl Endpoint<Output = R>
+where
+    F: Fn(Request) -> R + Send + Sync + 'static,
+    R: IntoResponse,
+{
+    FnEndpoint(f)
 }
 
 #[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
-    async fn call(&self, req: Request) -> Response {
+    type Output = T::Output;
+
+    async fn call(&self, req: Request) -> Self::Output {
         self.as_ref().call(req).await
     }
 }
 
 #[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
-    async fn call(&self, req: Request) -> Response {
+    type Output = T::Output;
+
+    async fn call(&self, req: Request) -> Self::Output {
         self.as_ref().call(req).await
     }
 }
@@ -94,7 +140,7 @@ pub trait EndpointExt: Endpoint {
         Before::new(self, f)
     }
 
-    /// Maps the response of this endpoint.
+    /// Maps the output of this endpoint.
     ///
     /// # Example
     ///
@@ -113,16 +159,70 @@ pub trait EndpointExt: Endpoint {
     ///     })
     ///     .call(Request::default())
     ///     .await;
-    /// assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
+    /// assert_eq!(resp, "abcdef");
     /// # });
     fn after<F, Fut, R>(self, f: F) -> After<Self, F>
     where
-        F: Fn(Response) -> Fut + Send + Sync + 'static,
+        F: Fn(Self::Output) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = R> + Send + 'static,
         R: IntoResponse,
         Self: Sized,
     {
         After::new(self, f)
+    }
+
+    /// Convert the output of this endpoint into a response.
+    /// [`Response`](crate::Response).
+    fn map_to_response(self) -> MapToResponse<Self>
+    where
+        Self: Sized,
+    {
+        MapToResponse::new(self)
+    }
+
+    /// Convert the output of this endpoint into a result `Result<Response>`.
+    /// [`Response`](crate::Response).
+    fn map_to_result(self) -> MapToResult<Self>
+    where
+        Self: Sized,
+    {
+        MapToResult::new(self)
+    }
+
+    /// Calls `f` if the result is `Ok`, otherwise returns the `Err` value of
+    /// self.
+    fn and_then<F, Fut, R, R2>(self, f: F) -> AndThen<Self, F>
+    where
+        F: Fn(R) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<R2>> + Send + 'static,
+        R: IntoResponse,
+        R2: IntoResponse,
+        Self: Endpoint<Output = Result<R>> + Sized,
+    {
+        AndThen::new(self, f)
+    }
+
+    /// Maps the response of this endpoint.
+    fn map_ok<F, Fut, R, R2>(self, f: F) -> MapOk<Self, F>
+    where
+        F: Fn(R) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = R2> + Send + 'static,
+        R: IntoResponse,
+        R2: IntoResponse,
+        Self: Endpoint<Output = Result<R>> + Sized,
+    {
+        MapOk::new(self, f)
+    }
+
+    /// Maps the error of this endpoint.
+    fn map_err<F, Fut, R>(self, f: F) -> MapErr<Self, F>
+    where
+        F: Fn(Error) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Error> + Send + 'static,
+        R: IntoResponse,
+        Self: Endpoint<Output = Result<R>> + Sized,
+    {
+        MapErr::new(self, f)
     }
 
     /// Add guard to the endpoint.
@@ -144,35 +244,16 @@ mod test {
         *,
     };
 
-    #[handler(internal)]
-    async fn handler_request(method: Method) -> String {
-        method.to_string()
-    }
-
-    #[handler(internal)]
-    async fn handler() -> &'static str {
-        "abc"
-    }
-
-    #[handler(internal)]
-    async fn handler_err() -> Result<&'static str> {
-        Err(Error::status(StatusCode::BAD_REQUEST))
-    }
-
     #[tokio::test]
     async fn test_before() {
         assert_eq!(
-            handler_request
+            fn_endpoint(|req| req.method().to_string())
                 .before(|mut req| async move {
                     req.set_method(Method::POST);
                     req
                 })
                 .call(Request::default())
-                .await
-                .take_body()
-                .into_string()
-                .await
-                .unwrap(),
+                .await,
             "POST"
         );
     }
@@ -180,21 +261,123 @@ mod test {
     #[tokio::test]
     async fn test_after() {
         assert_eq!(
-            handler
+            fn_endpoint(|_| "abc")
                 .after(|_| async { "def" })
+                .call(Request::default())
+                .await,
+            "def"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_map_to_result() {
+        assert_eq!(
+            fn_endpoint(|_| Response::builder().status(StatusCode::OK).body("abc"))
+                .map_to_result()
+                .call(Request::default())
+                .await
+                .unwrap()
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "abc"
+        );
+
+        assert_eq!(
+            fn_endpoint(|_| Response::builder().status(StatusCode::BAD_REQUEST).finish())
+                .map_to_result()
+                .call(Request::default())
+                .await
+                .unwrap_err(),
+            Error::status(StatusCode::BAD_REQUEST)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_map_to_response() {
+        assert_eq!(
+            fn_endpoint(|_| Ok::<_, Error>("abc"))
+                .map_to_response()
                 .call(Request::default())
                 .await
                 .take_body()
                 .into_string()
                 .await
                 .unwrap(),
-            "def"
+            "abc"
         );
 
-        let resp = handler
-            .after(|_| async { Err::<(), _>(Error::status(StatusCode::FORBIDDEN)) })
-            .call(Request::default())
-            .await;
-        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        assert_eq!(
+            fn_endpoint(|_| Err::<(), Error>(Error::status(StatusCode::BAD_REQUEST)))
+                .map_to_response()
+                .call(Request::default())
+                .await
+                .status(),
+            StatusCode::BAD_REQUEST
+        );
+    }
+
+    #[tokio::test]
+    async fn test_and_then() {
+        assert_eq!(
+            fn_endpoint(|_| Ok("abc"))
+                .and_then(|resp| async move { Ok(resp.to_string() + "def") })
+                .call(Request::default())
+                .await
+                .unwrap(),
+            "abcdef"
+        );
+
+        assert_eq!(
+            fn_endpoint(|_| Err::<String, _>(Error::status(StatusCode::BAD_REQUEST)))
+                .and_then(|resp| async move { Ok(resp + "def") })
+                .call(Request::default())
+                .await
+                .unwrap_err(),
+            Error::status(StatusCode::BAD_REQUEST)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_map_ok() {
+        assert_eq!(
+            fn_endpoint(|_| Ok("abc"))
+                .map_ok(|resp| async move { resp.to_string() + "def" })
+                .call(Request::default())
+                .await
+                .unwrap(),
+            "abcdef"
+        );
+
+        assert_eq!(
+            fn_endpoint(|_| Err::<String, Error>(Error::status(StatusCode::BAD_REQUEST)))
+                .map_ok(|resp| async move { resp.to_string() + "def" })
+                .call(Request::default())
+                .await
+                .unwrap_err(),
+            Error::status(StatusCode::BAD_REQUEST)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_map_err() {
+        assert_eq!(
+            fn_endpoint(|_| Ok("abc"))
+                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+                .call(Request::default())
+                .await
+                .unwrap(),
+            "abc"
+        );
+
+        assert_eq!(
+            fn_endpoint(|_| Err::<String, Error>(Error::status(StatusCode::BAD_REQUEST)))
+                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+                .call(Request::default())
+                .await
+                .unwrap_err(),
+            Error::status(StatusCode::BAD_GATEWAY)
+        );
     }
 }

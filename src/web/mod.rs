@@ -360,7 +360,7 @@ pub trait FromRequest<'a>: Sized {
 /// # });
 /// ```
 
-pub trait IntoResponse {
+pub trait IntoResponse: Send {
     /// Consume itself and return [`Response`].
     fn into_response(self) -> Response;
 
@@ -536,7 +536,7 @@ impl<T: IntoResponse> IntoResponse for Result<T> {
 /// An HTML response.
 pub struct Html<T>(pub T);
 
-impl<T: Into<String>> IntoResponse for Html<T> {
+impl<T: Into<String> + Send> IntoResponse for Html<T> {
     fn into_response(self) -> Response {
         Response::builder()
             .content_type("text/html")

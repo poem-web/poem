@@ -2,296 +2,149 @@
 
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::{http::StatusCode, Body, Response};
+use crate::{http::StatusCode, Response};
 
 macro_rules! define_error {
-    ($($(#[$docs:meta])* ($name:ident, $err:ident);)*) => {
+    ($($(#[$docs:meta])* ($name:ident, $status:ident);)*) => {
         $(
         $(#[$docs])*
         #[inline]
         pub fn $name(err: impl Display) -> Self {
-            Error::new($err::new(err))
+            Self::new(StatusCode::$status, err)
         }
         )*
     };
 }
 
-/// Errors that can generate responses.
-pub trait ResponseError: Display + Debug + Send + Sync + 'static {
-    /// Creates full response for error.
-    fn as_response(&self) -> Response;
-}
-
 /// General error.
-pub struct Error(Box<dyn ResponseError>);
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct Error {
+    status: StatusCode,
+    reason: Option<String>,
+}
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-impl Debug for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, f)
-    }
-}
-
-impl<T: ResponseError> From<T> for Error {
-    fn from(err: T) -> Self {
-        Self(Box::new(err))
+        write!(
+            f,
+            "{}: {}",
+            self.status.as_u16(),
+            self.reason
+                .as_deref()
+                .or_else(|| self.status.canonical_reason())
+                .unwrap_or("unknown")
+        )
     }
 }
 
 impl Error {
     /// Create a new error
     #[inline]
-    pub fn new(err: impl ResponseError) -> Self {
-        Self(Box::new(err))
+    pub fn new(status: StatusCode, reason: impl Display) -> Self {
+        Self {
+            status,
+            reason: Some(reason.to_string()),
+        }
     }
 
     /// Create a new error with status code.
     #[inline]
     pub fn status(status: StatusCode) -> Self {
-        struct StatusError(StatusCode);
-
-        impl Display for StatusError {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                Display::fmt(&self.0, f)
-            }
+        Self {
+            status,
+            reason: None,
         }
-
-        impl Debug for StatusError {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                Debug::fmt(&self.0, f)
-            }
-        }
-
-        impl ResponseError for StatusError {
-            fn as_response(&self) -> Response {
-                Response::builder().status(self.0).body(Body::from_string(
-                    self.0
-                        .canonical_reason()
-                        .unwrap_or_else(|| self.0.as_str())
-                        .to_string(),
-                ))
-            }
-        }
-
-        Self::new(StatusError(status))
     }
 
-    /// Creates full response for error.
+    /// Creates full response for this error.
     #[inline]
     pub fn as_response(&self) -> Response {
-        self.0.as_response()
+        Response::builder()
+            .status(self.status)
+            .body(self.to_string())
     }
 
     define_error!(
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::BAD_REQUEST`].
-        (bad_request, ErrorBadRequest);
+        (bad_request, BAD_REQUEST);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::UNAUTHORIZED`].
-        (unauthorized, ErrorUnauthorized);
+        (unauthorized, UNAUTHORIZED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::PAYMENT_REQUIRED`].
-        (payment_required, ErrorPaymentRequired);
+        (payment_required, PAYMENT_REQUIRED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::FORBIDDEN`].
-        (forbidden, ErrorForbidden);
+        (forbidden, FORBIDDEN);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::NOT_FOUND`].
-        (not_found, ErrorNotFound);
+        (not_found, NOT_FOUND);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::METHOD_NOT_ALLOWED`].
-        (method_not_allowed, ErrorMethodNotAllowed);
+        (method_not_allowed, METHOD_NOT_ALLOWED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::NOT_ACCEPTABLE`].
-        (not_acceptable, ErrorNotAcceptable);
+        (not_acceptable, NOT_ACCEPTABLE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::PROXY_AUTHENTICATION_REQUIRED`].
-        (proxy_authentication_required, ErrorProxyAuthenticationRequired);
+        (proxy_authentication_required, PROXY_AUTHENTICATION_REQUIRED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::REQUEST_TIMEOUT`].
-        (request_timeout, ErrorRequestTimeout);
+        (request_timeout, REQUEST_TIMEOUT);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::CONFLICT`].
-        (conflict, ErrorConflict);
+        (conflict, CONFLICT);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::GONE`].
-        (gone, ErrorGone);
+        (gone, GONE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::LENGTH_REQUIRED`].
-        (length_required, ErrorLengthRequired);
+        (length_required, LENGTH_REQUIRED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::PAYLOAD_TOO_LARGE`].
-        (payload_too_large, ErrorPayloadTooLarge);
+        (payload_too_large, PAYLOAD_TOO_LARGE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::URI_TOO_LONG`].
-        (uri_too_long, ErrorUriTooLong);
+        (uri_too_long, URI_TOO_LONG);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::UNSUPPORTED_MEDIA_TYPE`].
-        (unsupported_media_type, ErrorUnsupportedMediaType);
+        (unsupported_media_type, UNSUPPORTED_MEDIA_TYPE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::RANGE_NOT_SATISFIABLE`].
-        (range_not_satisfiable, ErrorRangeNotSatisfiable);
+        (range_not_satisfiable, RANGE_NOT_SATISFIABLE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::IM_A_TEAPOT`].
-        (im_a_teapot, ErrorImATeapot);
+        (im_a_teapot, IM_A_TEAPOT);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::MISDIRECTED_REQUEST`].
-        (misdirected_request, ErrorMisdirectedRequest);
+        (misdirected_request, MISDIRECTED_REQUEST);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::UNPROCESSABLE_ENTITY`].
-        (unprocessable_entity, ErrorUnprocessableEntity);
+        (unprocessable_entity, UNPROCESSABLE_ENTITY);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::LOCKED`].
-        (locked, ErrorLocked);
+        (locked, LOCKED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::FAILED_DEPENDENCY`].
-        (failed_dependency, ErrorFailedDependency);
+        (failed_dependency, FAILED_DEPENDENCY);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::UPGRADE_REQUIRED`].
-        (upgrade_required, ErrorUpgradeRequired);
+        (upgrade_required, UPGRADE_REQUIRED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::PRECONDITION_FAILED`].
-        (precondition_failed, ErrorPreconditionFailed);
+        (precondition_failed, PRECONDITION_FAILED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::PRECONDITION_REQUIRED`].
-        (precondition_required, ErrorPreconditionRequired);
+        (precondition_required, PRECONDITION_REQUIRED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::TOO_MANY_REQUESTS`].
-        (too_many_requests, ErrorTooManyRequests);
+        (too_many_requests, TOO_MANY_REQUESTS);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE`].
-        (request_header_fields_too_large, ErrorRequestHeaderFieldsTooLarge);
+        (request_header_fields_too_large, REQUEST_HEADER_FIELDS_TOO_LARGE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS`].
-        (unavailable_for_legal_reasons, ErrorUnavailableForLegalReasons);
+        (unavailable_for_legal_reasons, UNAVAILABLE_FOR_LEGAL_REASONS);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::EXPECTATION_FAILED`].
-        (expectation_failed, ErrorExpectationFailed);
+        (expectation_failed, EXPECTATION_FAILED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::INTERNAL_SERVER_ERROR`].
-        (internal_server_error, ErrorInternalServerError);
+        (internal_server_error, INTERNAL_SERVER_ERROR);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::NOT_IMPLEMENTED`].
-        (not_implemented, ErrorNotImplemented);
+        (not_implemented, NOT_IMPLEMENTED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::BAD_GATEWAY`].
-        (bad_gateway, ErrorBadGateway);
+        (bad_gateway, BAD_GATEWAY);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::SERVICE_UNAVAILABLE`].
-        (service_unavailable, ErrorServiceUnavailable);
+        (service_unavailable, SERVICE_UNAVAILABLE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::GATEWAY_TIMEOUT`].
-        (gateway_timeout, ErrorGatewayTimeout);
+        (gateway_timeout, GATEWAY_TIMEOUT);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::HTTP_VERSION_NOT_SUPPORTED`].
-        (http_version_not_supported, ErrorHttpVersionNotSupported);
+        (http_version_not_supported, HTTP_VERSION_NOT_SUPPORTED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::VARIANT_ALSO_NEGOTIATES`].
-        (variant_also_negotiates, ErrorVariantAlsoNegotiates);
+        (variant_also_negotiates, VARIANT_ALSO_NEGOTIATES);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::INSUFFICIENT_STORAGE`].
-        (insufficient_storage, ErrorInsufficientStorage);
+        (insufficient_storage, INSUFFICIENT_STORAGE);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::LOOP_DETECTED`].
-        (loop_detected, ErrorLoopDetected);
+        (loop_detected, LOOP_DETECTED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::NOT_EXTENDED`].
-        (not_extended, ErrorNotExtended);
+        (not_extended, NOT_EXTENDED);
         /// Wraps any error into [`Error`] and the status code is [`StatusCode::NETWORK_AUTHENTICATION_REQUIRED`].
-        (network_authentication_required, ErrorNetworkAuthenticationRequired);
+        (network_authentication_required, NETWORK_AUTHENTICATION_REQUIRED);
     );
 }
-
-macro_rules! define_status_error {
-    ($($(#[$docs:meta])* ($name:ident, $code:ident);)*) => {
-        $(
-        $(#[$docs])*
-        pub struct $name(String);
-
-        impl Default for $name {
-            fn default() -> Self {
-                Self(StatusCode::$code.canonical_reason().unwrap().to_string())
-            }
-        }
-
-        impl $name {
-            /// Create an error.
-            #[inline]
-            pub fn new(err: impl Display) -> Self {
-                $name(err.to_string())
-            }
-        }
-
-        impl ResponseError for $name {
-            fn as_response(&self) -> Response {
-                Response::builder()
-                    .status(StatusCode::$code)
-                    .body(Body::from_string(self.0.clone()))
-            }
-        }
-
-        impl Display for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                write!(f, "{}", self.0)
-            }
-        }
-
-        impl Debug for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                write!(f, "{}", self.0)
-            }
-        }
-        )*
-    };
-}
-
-define_status_error!(
-    /// An error type with a status code of [`StatusCode::BAD_REQUEST`].
-    (ErrorBadRequest, BAD_REQUEST);
-    /// An error type with a status code of [`StatusCode::UNAUTHORIZED`].
-    (ErrorUnauthorized, UNAUTHORIZED);
-    /// An error type with a status code of [`StatusCode::PAYMENT_REQUIRED`].
-    (ErrorPaymentRequired, PAYMENT_REQUIRED);
-    /// An error type with a status code of [`StatusCode::FORBIDDEN`].
-    (ErrorForbidden, FORBIDDEN);
-    /// An error type with a status code of [`StatusCode::NOT_FOUND`].
-    (ErrorNotFound, NOT_FOUND);
-    /// An error type with a status code of [`StatusCode::METHOD_NOT_ALLOWED`].
-    (ErrorMethodNotAllowed, METHOD_NOT_ALLOWED);
-    /// An error type with a status code of [`StatusCode::NOT_ACCEPTABLE`].
-    (ErrorNotAcceptable, NOT_ACCEPTABLE);
-    /// An error type with a status code of [`StatusCode::PROXY_AUTHENTICATION_REQUIRED`].
-    (ErrorProxyAuthenticationRequired, PROXY_AUTHENTICATION_REQUIRED);
-    /// An error type with a status code of [`StatusCode::REQUEST_TIMEOUT`].
-    (ErrorRequestTimeout, REQUEST_TIMEOUT);
-    /// An error type with a status code of [`StatusCode::CONFLICT`].
-    (ErrorConflict, CONFLICT);
-    /// An error type with a status code of [`StatusCode::GONE`].
-    (ErrorGone, GONE);
-    /// An error type with a status code of [`StatusCode::LENGTH_REQUIRED`].
-    (ErrorLengthRequired, LENGTH_REQUIRED);
-    /// An error type with a status code of [`StatusCode::PAYLOAD_TOO_LARGE`].
-    (ErrorPayloadTooLarge, PAYLOAD_TOO_LARGE);
-    /// An error type with a status code of [`StatusCode::URI_TOO_LONG`].
-    (ErrorUriTooLong, URI_TOO_LONG);
-    /// An error type with a status code of [`StatusCode::UNSUPPORTED_MEDIA_TYPE`].
-    (ErrorUnsupportedMediaType, UNSUPPORTED_MEDIA_TYPE);
-    /// An error type with a status code of [`StatusCode::RANGE_NOT_SATISFIABLE`].
-    (ErrorRangeNotSatisfiable, RANGE_NOT_SATISFIABLE);
-    /// An error type with a status code of [`StatusCode::IM_A_TEAPOT`].
-    (ErrorImATeapot, IM_A_TEAPOT);
-    /// An error type with a status code of [`StatusCode::MISDIRECTED_REQUEST`].
-    (ErrorMisdirectedRequest, MISDIRECTED_REQUEST);
-    /// An error type with a status code of [`StatusCode::UNPROCESSABLE_ENTITY`].
-    (ErrorUnprocessableEntity, UNPROCESSABLE_ENTITY);
-    /// An error type with a status code of [`StatusCode::LOCKED`].
-    (ErrorLocked, LOCKED);
-    /// An error type with a status code of [`StatusCode::FAILED_DEPENDENCY`].
-    (ErrorFailedDependency, FAILED_DEPENDENCY);
-    /// An error type with a status code of [`StatusCode::UPGRADE_REQUIRED`].
-    (ErrorUpgradeRequired, UPGRADE_REQUIRED);
-    /// An error type with a status code of [`StatusCode::PRECONDITION_FAILED`].
-    (ErrorPreconditionFailed, PRECONDITION_FAILED);
-    /// An error type with a status code of [`StatusCode::PRECONDITION_REQUIRED`].
-    (ErrorPreconditionRequired, PRECONDITION_REQUIRED);
-    /// An error type with a status code of [`StatusCode::TOO_MANY_REQUESTS`].
-    (ErrorTooManyRequests, TOO_MANY_REQUESTS);
-    /// An error type with a status code of [`StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE`].
-    (ErrorRequestHeaderFieldsTooLarge, REQUEST_HEADER_FIELDS_TOO_LARGE);
-    /// An error type with a status code of [`StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS`].
-    (ErrorUnavailableForLegalReasons, UNAVAILABLE_FOR_LEGAL_REASONS);
-    /// An error type with a status code of [`StatusCode::EXPECTATION_FAILED`].
-    (ErrorExpectationFailed, EXPECTATION_FAILED);
-    /// An error type with a status code of [`StatusCode::INTERNAL_SERVER_ERROR`].
-    (ErrorInternalServerError, INTERNAL_SERVER_ERROR);
-    /// An error type with a status code of [`StatusCode::NOT_IMPLEMENTED`].
-    (ErrorNotImplemented, NOT_IMPLEMENTED);
-    /// An error type with a status code of [`StatusCode::BAD_GATEWAY`].
-    (ErrorBadGateway, BAD_GATEWAY);
-    /// An error type with a status code of [`StatusCode::SERVICE_UNAVAILABLE`].
-    (ErrorServiceUnavailable, SERVICE_UNAVAILABLE);
-    /// An error type with a status code of [`StatusCode::GATEWAY_TIMEOUT`].
-    (ErrorGatewayTimeout, GATEWAY_TIMEOUT);
-    /// An error type with a status code of [`StatusCode::HTTP_VERSION_NOT_SUPPORTED`].
-    (ErrorHttpVersionNotSupported, HTTP_VERSION_NOT_SUPPORTED);
-    /// An error type with a status code of [`StatusCode::VARIANT_ALSO_NEGOTIATES`].
-    (ErrorVariantAlsoNegotiates, VARIANT_ALSO_NEGOTIATES);
-    /// An error type with a status code of [`StatusCode::INSUFFICIENT_STORAGE`].
-    (ErrorInsufficientStorage, INSUFFICIENT_STORAGE);
-    /// An error type with a status code of [`StatusCode::LOOP_DETECTED`].
-    (ErrorLoopDetected, LOOP_DETECTED);
-    /// An error type with a status code of [`StatusCode::NOT_EXTENDED`].
-    (ErrorNotExtended, NOT_EXTENDED);
-    /// An error type with a status code of [`StatusCode::NETWORK_AUTHENTICATION_REQUIRED`].
-    (ErrorNetworkAuthenticationRequired, NETWORK_AUTHENTICATION_REQUIRED);
-);
 
 /// A specialized Result type for Poem.
 pub type Result<T, E = Error> = ::std::result::Result<T, E>;

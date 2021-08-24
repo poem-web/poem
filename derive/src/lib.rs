@@ -157,9 +157,11 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
 
         #[#crate_name::async_trait]
         impl #crate_name::Endpoint for #ident {
+            type Output = #crate_name::Response;
+
             #guard
 
-            async fn call(&self, mut req: #crate_name::Request) -> #crate_name::Response {
+            async fn call(&self, mut req: #crate_name::Request) -> Self::Output {
                 let (req, mut body) = req.split();
                 #(#extractors)*
                 #item_fn

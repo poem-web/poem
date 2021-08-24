@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use http::StatusCode;
 
-use crate::{route_recognizer::Router, Endpoint, Request, Response};
+use crate::{route_recognizer::Router, Endpoint, EndpointExt, IntoResponse, Request, Response};
 
 /// Routing object
 #[derive(Default)]
 pub struct Route {
-    router: Router<Box<dyn Endpoint>>,
+    router: Router<Box<dyn Endpoint<Output = Response>>>,
 }
 
 impl Route {
@@ -41,7 +41,7 @@ impl Route {
     ///     .at("/c/*path", c);
     /// ```
     pub fn at(mut self, path: &str, ep: impl Endpoint) -> Self {
-        self.router.add(path, Box::new(ep));
+        self.router.add(path, Box::new(ep.map_to_response()));
         self
     }
 
@@ -54,7 +54,9 @@ impl Route {
 
         #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Nest<E> {
-            async fn call(&self, mut req: Request) -> Response {
+            type Output = Response;
+
+            async fn call(&self, mut req: Request) -> Self::Output {
                 let idx = req.state().match_params.0.len() - 1;
                 let (name, value) = req.state_mut().match_params.0.remove(idx);
                 assert_eq!(name, "--poem-rest");
@@ -64,7 +66,7 @@ impl Route {
                         .build()
                         .unwrap(),
                 );
-                self.0.call(req).await
+                self.0.call(req).await.into_response()
             }
         }
 
@@ -72,14 +74,16 @@ impl Route {
 
         #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Root<E> {
-            async fn call(&self, mut req: Request) -> Response {
+            type Output = Response;
+
+            async fn call(&self, mut req: Request) -> Self::Output {
                 req.set_uri(
                     http::uri::Builder::new()
                         .path_and_query("/")
                         .build()
                         .unwrap(),
                 );
-                self.0.call(req).await
+                self.0.call(req).await.into_response()
             }
         }
 
@@ -105,11 +109,13 @@ pub fn route() -> Route {
 
 #[async_trait::async_trait]
 impl Endpoint for Route {
+    type Output = Response;
+
     fn check(&self, req: &Request) -> bool {
         self.router.recognize(req.uri().path()).is_ok()
     }
 
-    async fn call(&self, mut req: Request) -> Response {
+    async fn call(&self, mut req: Request) -> Self::Output {
         let m = match self.router.recognize(req.uri().path()) {
             Ok(m) => m,
             Err(_) => return StatusCode::NOT_FOUND.into(),

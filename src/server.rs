@@ -14,7 +14,7 @@ use tokio_rustls::{
     TlsAcceptor,
 };
 
-use crate::{Endpoint, Request};
+use crate::{Endpoint, EndpointExt, Request, Response};
 
 /// An HTTP Server.
 pub struct Server {
@@ -35,7 +35,7 @@ impl Server {
 
     /// Run this server.
     pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
-        let ep = Arc::new(ep);
+        let ep = Arc::new(ep.map_to_response());
 
         loop {
             let (socket, _) = self.listener.accept().await?;
@@ -111,7 +111,7 @@ impl TlsServer {
     pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
         use std::io::{Error as IoError, ErrorKind};
 
-        let ep = Arc::new(ep);
+        let ep = Arc::new(ep.map_to_response());
         let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut self.cert.as_slice())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
         let key = {
@@ -182,7 +182,7 @@ impl TlsServer {
 
 async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
-    ep: Arc<dyn Endpoint>,
+    ep: Arc<dyn Endpoint<Output = Response>>,
 ) {
     let service = hyper::service::service_fn({
         move |req: hyper::Request<hyper::Body>| {

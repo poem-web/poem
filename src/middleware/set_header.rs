@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use crate::{
     http::{header::HeaderName, HeaderValue},
-    Endpoint, Middleware, Request, Response,
+    Endpoint, IntoResponse, Middleware, Request, Response,
 };
 
 enum Action {
@@ -77,12 +77,11 @@ pub struct SetHeaderImpl<E> {
 }
 
 #[async_trait::async_trait]
-impl<E> Endpoint for SetHeaderImpl<E>
-where
-    E: Endpoint,
-{
-    async fn call(&self, req: Request) -> Response {
-        let mut resp = self.inner.call(req).await;
+impl<E: Endpoint> Endpoint for SetHeaderImpl<E> {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Self::Output {
+        let mut resp = self.inner.call(req).await.into_response();
         let headers = resp.headers_mut();
 
         for action in &self.actions {
