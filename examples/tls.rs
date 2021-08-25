@@ -57,14 +57,16 @@ T+uzn0sroycBiBfVB949LExnzGDFUkhG0i2c2InarQYLTsIyHCIDEA==
 -----END RSA PRIVATE KEY-----
 "#;
 
-#[handler(method = "get")]
-fn hello() -> &'static str {
+#[handler]
+fn index() -> &'static str {
     "hello world"
 }
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/", hello);
+    let mut app = route();
+    app.at("/").get(index);
+
     Server::bind("127.0.0.1:3000")
         .await
         .unwrap()

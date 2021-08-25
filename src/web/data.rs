@@ -14,7 +14,8 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     assert_eq!(*data.0, 10);
 /// }
 ///
-/// let app = route().at("/", index).with(AddData::new(10));
+/// let mut app = route();
+/// app.at("/").get(index.with(AddData::new(10)));
 /// ```
 pub struct Data<T>(pub T);
 

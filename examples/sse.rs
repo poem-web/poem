@@ -11,7 +11,7 @@ use poem::{
 };
 use tokio::time::Duration;
 
-#[handler(method = "get")]
+#[handler]
 fn index() -> Html<&'static str> {
     Html(
         r#"
@@ -25,7 +25,7 @@ fn index() -> Html<&'static str> {
     )
 }
 
-#[handler(method = "get")]
+#[handler]
 fn event() -> SSE {
     let now = Instant::now();
     SSE::new(
@@ -37,7 +37,11 @@ fn event() -> SSE {
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/", index).at("/event", event);
+    let mut app = route();
+
+    app.at("/").get(index);
+    app.at("/event").get(event);
+
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

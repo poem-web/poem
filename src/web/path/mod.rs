@@ -19,7 +19,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", users_teams_show);
+/// let mut app = route();
+/// app.at("/users/:user_id/team/:team_id")
+///     .get(users_teams_show);
 /// ```
 ///
 /// If the path contains only one parameter, then you can omit the tuple.
@@ -32,7 +34,8 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id", user_info);
+/// let mut app = route();
+/// app.at("/users/:user_id").get(user_info);
 /// ```
 ///
 /// Path segments also can be deserialized into any type that implements [`serde::Deserialize`](https://docs.rs/serde/1.0.127/serde/trait.Deserialize.html).
@@ -53,7 +56,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", users_teams_show);
+/// let mut app = route();
+/// app.at("/users/:user_id/team/:team_id")
+///     .get(users_teams_show);
 /// ```
 #[derive(Debug)]
 pub struct Path<T>(pub T);

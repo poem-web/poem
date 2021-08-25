@@ -3,7 +3,7 @@ use tracing_subscriber::{
     fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
-#[handler(method = "get")]
+#[handler]
 fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }
@@ -23,7 +23,8 @@ async fn main() {
         )
         .init();
 
-    let app = route().at("/hello/:name", hello).with(Tracing);
+    let mut app = route();
+    app.at("/hello/:name").get(hello.with(Tracing));
 
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();

@@ -31,14 +31,15 @@ impl<E: Endpoint> Endpoint for LogImpl<E> {
     }
 }
 
-#[handler(method = "get")]
+#[handler]
 fn index() -> String {
     format!("hello")
 }
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/", index).with(Log);
+    let mut app = route();
+    app.at("/").get(index.with(Log));
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

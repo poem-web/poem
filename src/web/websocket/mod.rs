@@ -10,7 +10,7 @@
 //!     IntoResponse,
 //! };
 //!
-//! #[handler(method = "get")]
+//! #[handler]
 //! async fn index(ws: WebSocket) -> impl IntoResponse {
 //!     ws.on_upgrade(|mut socket| async move {
 //!         if let Some(Ok(Message::Text(text))) = socket.next().await {
@@ -19,7 +19,8 @@
 //!     })
 //! }
 //!
-//! let app = route().at("/", index);
+//! let mut app = route();
+//! app.at("/").get(index);
 //! ```
 
 mod extractor;

@@ -1,15 +1,18 @@
 //! Route object and DSL
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use http::StatusCode;
 
-use crate::{route_recognizer::Router, Endpoint, EndpointExt, IntoResponse, Request, Response};
+use crate::{
+    http::Method, route_recognizer::Router, Endpoint, EndpointExt, IntoResponse, Request, Response,
+};
 
 /// Routing object
 #[derive(Default)]
 pub struct Route {
-    router: Router<Box<dyn Endpoint<Output = Response>>>,
+    router: HashMap<Method, Router<Box<dyn Endpoint<Output = Response>>>>,
+    all_method_router: Router<Box<dyn Endpoint<Output = Response>>>,
 }
 
 impl Route {
@@ -32,17 +35,19 @@ impl Route {
     /// #[handler]
     /// async fn c(Path(path): Path<String>) {}
     ///
-    /// let app = route()
-    ///     // full path
-    ///     .at("/a/b", a)
-    ///     // capture parameters
-    ///     .at("/b/:group/:name", b)
-    ///     // capture tail path
-    ///     .at("/c/*path", c);
+    /// let mut app = route();
+    ///
+    /// // full path
+    /// app.at("/a/b").get(a);
+    ///
+    /// // capture parameters
+    /// app.at("/b/:group/:name").get(b);
+    ///
+    /// // capture tail path
+    /// app.at("/c/*path").get(c);
     /// ```
-    pub fn at(mut self, path: &str, ep: impl Endpoint) -> Self {
-        self.router.add(path, Box::new(ep.map_to_response()));
-        self
+    pub fn at<'a>(&'a mut self, path: &'a str) -> RouteMethod<'a> {
+        RouteMethod { path, router: self }
     }
 
     /// Nest a `Endpoint` to the specified path.
@@ -91,11 +96,11 @@ impl Route {
             path.find('*').is_none(),
             "wildcards are not allowed in the nest path."
         );
-        self.router.add(
+        self.all_method_router.add(
             &format!("{}/*--poem-rest", path),
             Box::new(Nest(ep.clone())),
         );
-        self.router.add(path, Box::new(Root(ep)));
+        self.all_method_router.add(path, Box::new(Root(ep)));
         self
     }
 }
@@ -104,6 +109,7 @@ impl Route {
 pub fn route() -> Route {
     Route {
         router: Default::default(),
+        all_method_router: Default::default(),
     }
 }
 
@@ -111,21 +117,89 @@ pub fn route() -> Route {
 impl Endpoint for Route {
     type Output = Response;
 
-    fn check(&self, req: &Request) -> bool {
-        self.router.recognize(req.uri().path()).is_ok()
+    async fn call(&self, mut req: Request) -> Self::Output {
+        match self
+            .router
+            .get(req.method())
+            .and_then(|router| router.recognize(req.uri().path()).ok())
+            .or_else(|| self.all_method_router.recognize(req.uri().path()).ok())
+        {
+            Some(matches) => {
+                req.state_mut().match_params.0.extend(matches.params.0);
+                matches.handler.call(req).await
+            }
+            None => StatusCode::NOT_FOUND.into(),
+        }
+    }
+}
+
+/// Used to set the endpoint of the HTTP methods.
+pub struct RouteMethod<'a> {
+    path: &'a str,
+    router: &'a mut Route,
+}
+
+impl<'a> RouteMethod<'a> {
+    /// Sets the endpoint for specified `method`.
+    pub fn method(&mut self, method: Method, ep: impl Endpoint) -> &mut Self {
+        self.router
+            .router
+            .entry(method)
+            .or_default()
+            .add(self.path, Box::new(ep.map_to_response()));
+        self
     }
 
-    async fn call(&self, mut req: Request) -> Self::Output {
-        let m = match self.router.recognize(req.uri().path()) {
-            Ok(m) => m,
-            Err(_) => return StatusCode::NOT_FOUND.into(),
-        };
+    /// Sets the endpoint for `GET`.
+    pub fn get(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::GET, ep)
+    }
 
-        if !m.handler.check(&req) {
-            return StatusCode::NOT_FOUND.into();
-        }
+    /// Sets the endpoint for `POST`.
+    pub fn post(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::POST, ep)
+    }
 
-        req.state_mut().match_params.0.extend(m.params.0);
-        m.handler.call(req).await
+    /// Sets the endpoint for `PUT`.
+    pub fn put(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::PUT, ep)
+    }
+
+    /// Sets the endpoint for `DELETE`.
+    pub fn delete(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::DELETE, ep)
+    }
+
+    /// Sets the endpoint for `HEAD`.
+    pub fn head(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::HEAD, ep)
+    }
+
+    /// Sets the endpoint for `OPTIONS`.
+    pub fn options(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::OPTIONS, ep)
+    }
+
+    /// Sets the endpoint for `CONNECT`.
+    pub fn connect(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::CONNECT, ep)
+    }
+
+    /// Sets the endpoint for `PATCH`.
+    pub fn patch(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::PATCH, ep)
+    }
+
+    /// Sets the endpoint for `TRACE`.
+    pub fn trace(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.method(Method::TRACE, ep)
+    }
+
+    /// Sets the endpoint for all methods.
+    pub fn all(&mut self, ep: impl Endpoint) -> &mut Self {
+        self.router
+            .all_method_router
+            .add(self.path, Box::new(ep.map_to_response()));
+        self
     }
 }

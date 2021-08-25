@@ -14,14 +14,15 @@
 //! ```no_run
 //! use poem::{handler, route, web::Path, Server};
 //!
-//! #[handler(method = "get")]
+//! #[handler]
 //! async fn hello(Path(name): Path<String>) -> String {
 //!     format!("hello: {}", name)
 //! }
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let app = route().at("/hello/:name", hello);
+//!     let mut app = route();
+//!     app.at("/hello/:name").get(hello);
 //!     let server = Server::bind("127.0.0.1:3000").await.unwrap();
 //!     server.run(app).await.unwrap();
 //! }
@@ -49,7 +50,6 @@
 
 pub mod endpoint;
 pub mod error;
-pub mod guard;
 pub mod middleware;
 pub mod route;
 pub mod service;
@@ -69,7 +69,6 @@ pub use async_trait::async_trait;
 pub use body::Body;
 pub use endpoint::{fn_endpoint, Endpoint, EndpointExt};
 pub use error::{Error, Result};
-pub use guard::Guard;
 pub use middleware::Middleware;
 pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder};

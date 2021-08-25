@@ -1,19 +1,13 @@
 use std::{future::Future, sync::Arc};
 
-use super::{After, AndThen, Before, GuardEndpoint, MapErr, MapOk, MapToResponse, MapToResult, Or};
-use crate::{Error, Guard, IntoResponse, Middleware, Request, Result};
+use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
+use crate::{Error, IntoResponse, Middleware, Request, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
 pub trait Endpoint: Send + Sync + 'static {
     /// Represents the response of the endpoint.
     type Output: IntoResponse;
-
-    /// Check if request matches predicate for route selection.
-    #[allow(unused_variables)]
-    fn check(&self, req: &Request) -> bool {
-        true
-    }
 
     /// Get the response to the request.
     async fn call(&self, req: Request) -> Self::Output;
@@ -90,7 +84,8 @@ pub trait EndpointExt: Endpoint {
     ///     format!("{}", data)
     /// }
     ///
-    /// let app = route().at("/", index).with(AddData::new(100i32));
+    /// let mut app = route();
+    /// app.at("/").get(index.with(AddData::new(100i32)));
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
@@ -98,15 +93,6 @@ pub trait EndpointExt: Endpoint {
         Self: Sized,
     {
         middleware.transform(self)
-    }
-
-    /// Composes a new endpoint of either this or the other endpoint.
-    fn or<T>(self, other: T) -> Or<Self, T>
-    where
-        T: Endpoint,
-        Self: Sized,
-    {
-        Or::new(self, other)
     }
 
     /// Maps the request of this endpoint.
@@ -223,15 +209,6 @@ pub trait EndpointExt: Endpoint {
         Self: Endpoint<Output = Result<R>> + Sized,
     {
         MapErr::new(self, f)
-    }
-
-    /// Add guard to the endpoint.
-    fn guard<T>(self, guard: T) -> GuardEndpoint<Self, T>
-    where
-        T: Guard,
-        Self: Sized,
-    {
-        GuardEndpoint::new(self, guard)
     }
 }
 

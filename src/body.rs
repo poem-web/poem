@@ -48,6 +48,13 @@ impl From<String> for Body {
     }
 }
 
+impl From<()> for Body {
+    #[inline]
+    fn from(_: ()) -> Self {
+        Body::empty()
+    }
+}
+
 impl Body {
     /// Create a body objecj from [`Bytes`].
     #[inline]
