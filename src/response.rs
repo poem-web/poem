@@ -82,6 +82,12 @@ impl Response {
         self.status
     }
 
+    /// Check if status is within 200-299.
+    #[inline]
+    pub fn is_success(&self) -> bool {
+        self.status.is_success()
+    }
+
     /// Sets the status code for this response.
     #[inline]
     pub fn set_status(&mut self, status: StatusCode) {
