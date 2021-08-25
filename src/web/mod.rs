@@ -655,3 +655,10 @@ impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
         Ok(T::from_request(req, body).await.ok())
     }
 }
+
+#[async_trait::async_trait]
+impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(T::from_request(req, body).await)
+    }
+}
