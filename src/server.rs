@@ -38,8 +38,8 @@ impl Server {
         let ep = Arc::new(ep.map_to_response());
 
         loop {
-            let (socket, _) = self.listener.accept().await?;
-            tokio::spawn(serve_connection(socket, ep.clone()));
+            let (socket, remote_addr) = self.listener.accept().await?;
+            tokio::spawn(serve_connection(socket, remote_addr, ep.clone()));
         }
     }
 
@@ -168,12 +168,12 @@ impl TlsServer {
 
         let acceptor = TlsAcceptor::from(Arc::new(config));
         loop {
-            let (socket, _) = self.listener.accept().await?;
+            let (socket, remote_addr) = self.listener.accept().await?;
             let acceptor = acceptor.clone();
             let ep = ep.clone();
             tokio::spawn(async move {
                 if let Ok(tls_socket) = acceptor.accept(socket).await {
-                    serve_connection(tls_socket, ep).await;
+                    serve_connection(tls_socket, remote_addr, ep).await;
                 }
             });
         }
@@ -182,13 +182,16 @@ impl TlsServer {
 
 async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
+    remote_addr: SocketAddr,
     ep: Arc<dyn Endpoint<Output = Response>>,
 ) {
     let service = hyper::service::service_fn({
         move |req: hyper::Request<hyper::Body>| {
             let ep = ep.clone();
             async move {
-                let req = Request::from_hyper_request(req);
+                let mut req = Request::from_hyper_request(req, remote_addr);
+                req.state_mut().remote_addr = remote_addr;
+
                 let cookie_jar = req.cookie().clone();
 
                 let mut resp = ep.call(req).await.into_hyper_response();

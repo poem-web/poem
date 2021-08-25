@@ -34,7 +34,10 @@ pub mod type_headers {
     };
 }
 
-use std::convert::{Infallible, TryInto};
+use std::{
+    convert::{Infallible, TryInto},
+    net::{IpAddr, SocketAddr},
+};
 
 use bytes::Bytes;
 #[cfg(feature = "compression")]
@@ -95,6 +98,14 @@ impl RequestBody {
 /// - **&Request**
 ///
 ///    Extracts the [`Request`] from the incoming request.
+///
+/// - **SocketAddr**
+///
+///    Extracts the remote address [`SocketAddr`] from request.
+///
+/// - **IpAddr**
+///
+///    Extracts the remote ip address [`SocketAddr`] from request.
 ///
 /// - **Method**
 ///
@@ -621,6 +632,20 @@ impl<'a> FromRequest<'a> for Vec<u8> {
             .await
             .map_err(Error::bad_request)?
             .to_vec())
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a> FromRequest<'a> for SocketAddr {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Ok(req.state().remote_addr)
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a> FromRequest<'a> for IpAddr {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Ok(req.state().remote_addr.ip())
     }
 }
 

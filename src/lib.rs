@@ -63,7 +63,6 @@ mod request;
 mod response;
 mod route_recognizer;
 mod server;
-mod utils;
 
 pub use async_trait::async_trait;
 pub use body::Body;
