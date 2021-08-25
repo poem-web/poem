@@ -11,6 +11,39 @@ use crate::{
 };
 
 /// Represents a guard used for route selection.
+///
+/// # Custom guards
+///
+/// ```
+/// use http::Method;
+/// use poem::{handler, http::StatusCode, route, Endpoint, EndpointExt, Guard, Request};
+///
+/// struct HeaderExists(&'static str);
+///
+/// impl Guard for HeaderExists {
+///     fn check(&self, req: &Request) -> bool {
+///         req.headers().contains_key(self.0)
+///     }
+/// }
+///
+/// #[handler]
+/// async fn index() {}
+///
+/// let app = route().at("/", index.guard(HeaderExists("hello")));
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// assert_eq!(
+///     app.call(Request::default()).await.status(),
+///     StatusCode::NOT_FOUND
+/// );
+/// assert_eq!(
+///     app.call(Request::builder().header("hello", "true").finish())
+///         .await
+///         .status(),
+///     StatusCode::OK
+/// );
+/// # });
+/// ```
 pub trait Guard: Send + Sync + 'static {
     /// Check if request matches predicate for route selection.
     fn check(&self, req: &Request) -> bool;

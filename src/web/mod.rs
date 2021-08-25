@@ -16,6 +16,7 @@ mod redirect;
 pub mod sse;
 #[cfg(feature = "tempfile")]
 mod tempfile;
+mod template;
 #[cfg(feature = "typed-headers")]
 mod typed_header;
 #[cfg(feature = "websocket")]
@@ -46,6 +47,7 @@ pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
 pub use redirect::Redirect;
+pub use template::Template;
 #[cfg(feature = "typed-headers")]
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
