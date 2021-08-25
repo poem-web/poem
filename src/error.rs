@@ -10,7 +10,7 @@ macro_rules! define_error {
         $(#[$docs])*
         #[inline]
         pub fn $name(err: impl Display) -> Self {
-            Self::new(StatusCode::$status, err)
+            Self::new(StatusCode::$status).with_reason(err)
         }
         )*
     };
@@ -38,22 +38,34 @@ impl Display for Error {
 }
 
 impl Error {
-    /// Create a new error
-    #[inline]
-    pub fn new(status: StatusCode, reason: impl Display) -> Self {
-        Self {
-            status,
-            reason: Some(reason.to_string()),
-        }
-    }
-
     /// Create a new error with status code.
     #[inline]
-    pub fn status(status: StatusCode) -> Self {
+    pub fn new(status: StatusCode) -> Self {
         Self {
             status,
             reason: None,
         }
+    }
+
+    /// Create a new error
+    #[inline]
+    pub fn with_reason(self, reason: impl Display) -> Self {
+        Self {
+            reason: Some(reason.to_string()),
+            ..self
+        }
+    }
+
+    /// Returns the status code of this error.
+    #[inline]
+    pub fn status(&self) -> StatusCode {
+        self.status
+    }
+
+    /// Returns the reason of this error.
+    #[inline]
+    pub fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
     }
 
     /// Creates full response for this error.

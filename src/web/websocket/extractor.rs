@@ -29,20 +29,20 @@ impl<'a> FromRequest<'a> for WebSocket {
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 != Some(&HeaderValue::from_static("13"))
         {
-            return Err(Error::status(StatusCode::BAD_REQUEST));
+            return Err(Error::new(StatusCode::BAD_REQUEST));
         }
 
         let key = req
             .headers()
             .get(header::SEC_WEBSOCKET_KEY)
             .cloned()
-            .ok_or_else(|| Error::status(StatusCode::BAD_REQUEST))?;
+            .ok_or_else(|| Error::new(StatusCode::BAD_REQUEST))?;
 
         let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
         let on_upgrade = match req.state().on_upgrade.lock().take() {
             Some(on_upgrade) => on_upgrade,
-            None => return Err(Error::status(StatusCode::INTERNAL_SERVER_ERROR)),
+            None => return Err(Error::new(StatusCode::INTERNAL_SERVER_ERROR)),
         };
 
         Ok(Self {

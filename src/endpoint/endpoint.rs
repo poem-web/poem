@@ -267,7 +267,7 @@ mod test {
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_REQUEST)
+            Error::new(StatusCode::BAD_REQUEST)
         );
     }
 
@@ -286,7 +286,7 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<(), Error>(Error::status(StatusCode::BAD_REQUEST)))
+            fn_endpoint(|_| Err::<(), Error>(Error::new(StatusCode::BAD_REQUEST)))
                 .map_to_response()
                 .call(Request::default())
                 .await
@@ -307,12 +307,12 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<String, _>(Error::status(StatusCode::BAD_REQUEST)))
+            fn_endpoint(|_| Err::<String, _>(Error::new(StatusCode::BAD_REQUEST)))
                 .and_then(|resp| async move { Ok(resp + "def") })
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_REQUEST)
+            Error::new(StatusCode::BAD_REQUEST)
         );
     }
 
@@ -328,12 +328,12 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<String, Error>(Error::status(StatusCode::BAD_REQUEST)))
+            fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
                 .map_ok(|resp| async move { resp.to_string() + "def" })
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_REQUEST)
+            Error::new(StatusCode::BAD_REQUEST)
         );
     }
 
@@ -341,7 +341,7 @@ mod test {
     async fn test_map_err() {
         assert_eq!(
             fn_endpoint(|_| Ok("abc"))
-                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+                .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
                 .call(Request::default())
                 .await
                 .unwrap(),
@@ -349,12 +349,12 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<String, Error>(Error::status(StatusCode::BAD_REQUEST)))
-                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+            fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
+                .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_GATEWAY)
+            Error::new(StatusCode::BAD_GATEWAY)
         );
     }
 }

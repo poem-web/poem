@@ -26,7 +26,7 @@ impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let value = req.headers().typed_get::<T>().map_err(Error::bad_request)?;
         Ok(Self(
-            value.ok_or_else(|| Error::status(StatusCode::BAD_REQUEST))?,
+            value.ok_or_else(|| Error::new(StatusCode::BAD_REQUEST))?,
         ))
     }
 }

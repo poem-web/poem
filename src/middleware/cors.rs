@@ -180,7 +180,7 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
                 .and_then(|value| value.to_str().ok())
                 .unwrap_or_default(),
         ) {
-            return Err(Error::status(StatusCode::UNAUTHORIZED));
+            return Err(Error::new(StatusCode::UNAUTHORIZED));
         }
 
         if req.method() == Method::OPTIONS {

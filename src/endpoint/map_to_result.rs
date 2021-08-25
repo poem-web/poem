@@ -22,7 +22,7 @@ impl<E: Endpoint> Endpoint for MapToResult<E> {
         if resp.is_success() {
             Ok(resp)
         } else {
-            Err(Error::status(resp.status()))
+            Err(Error::new(resp.status()))
         }
     }
 }
