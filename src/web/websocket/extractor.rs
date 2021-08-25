@@ -5,11 +5,12 @@ use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::{utils::sign, WebSocketStream};
 use crate::{
+    error::WebSocketError,
     http::{
         header::{self, HeaderValue},
         Method, StatusCode,
     },
-    Body, Error, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
+    Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
 };
 
 /// An extractor that can accept websocket connections.
@@ -22,27 +23,29 @@ pub struct WebSocket {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for WebSocket {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = WebSocketError;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         if req.method() != Method::GET
             || req.headers().get(header::CONNECTION) != Some(&HeaderValue::from_static("Upgrade"))
             || req.headers().get(header::UPGRADE) != Some(&HeaderValue::from_static("websocket"))
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 != Some(&HeaderValue::from_static("13"))
         {
-            return Err(Error::new(StatusCode::BAD_REQUEST));
+            return Err(WebSocketError::InvalidProtocol);
         }
 
         let key = req
             .headers()
             .get(header::SEC_WEBSOCKET_KEY)
             .cloned()
-            .ok_or_else(|| Error::new(StatusCode::BAD_REQUEST))?;
+            .ok_or(WebSocketError::InvalidProtocol)?;
 
         let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
         let on_upgrade = match req.state().on_upgrade.lock().take() {
             Some(on_upgrade) => on_upgrade,
-            None => return Err(Error::new(StatusCode::INTERNAL_SERVER_ERROR)),
+            None => return Err(WebSocketError::NoUpgrade),
         };
 
         Ok(Self {

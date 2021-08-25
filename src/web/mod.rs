@@ -60,7 +60,7 @@ pub use self::cookie::{Cookie, CookieJar};
 pub use self::tempfile::TempFile;
 use crate::{
     body::Body,
-    error::{Error, Result},
+    error::{Error, ReadBodyError, Result},
     http::{
         header::{HeaderMap, HeaderName},
         HeaderValue, Method, StatusCode, Uri, Version,
@@ -79,10 +79,8 @@ impl RequestBody {
 
     /// Take a body, if it has already been taken, an error with the status code
     /// [`StatusCode::INTERNAL_SERVER_ERROR`] is returned.
-    pub fn take(&mut self) -> Result<Body> {
-        self.0
-            .take()
-            .ok_or_else(|| Error::internal_server_error("the body has been taken"))
+    pub fn take(&mut self) -> Result<Body, ReadBodyError> {
+        self.0.take().ok_or(ReadBodyError::BodyHasBeenTaken)
     }
 }
 
@@ -212,7 +210,12 @@ impl RequestBody {
 ///
 /// #[poem::async_trait]
 /// impl<'a> FromRequest<'a> for Token {
-///     async fn from_request(req: &'a Request, body: &mut RequestBody) -> poem::Result<Self> {
+///     type Error = Error;
+///
+///     async fn from_request(
+///         req: &'a Request,
+///         body: &mut RequestBody,
+///     ) -> Result<Self, Self::Error> {
 ///         let token = req
 ///             .headers()
 ///             .get("MyToken")
@@ -239,8 +242,13 @@ impl RequestBody {
 
 #[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
+    /// The error type of this extractor.
+    ///
+    /// If you don't know what type you should use, you can use [`Error`].
+    type Error: Into<Error>;
+
     /// Perform the extraction.
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error>;
 }
 
 /// Represents a type that can convert into response.
@@ -560,105 +568,123 @@ impl<T: Into<String> + Send> IntoResponse for Html<T> {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Request {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Uri {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.uri())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Method {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.method().clone())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Version {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.version())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a HeaderMap {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.headers())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Body {
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+    type Error = ReadBodyError;
+
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         body.take()
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        let data = body
-            .take()?
-            .into_bytes()
-            .await
-            .map_err(Error::bad_request)?;
-        String::from_utf8(data.to_vec()).map_err(Error::bad_request)
+    type Error = ReadBodyError;
+
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+        let data = body.take()?.into_bytes().await.map_err(ReadBodyError::Io)?;
+        String::from_utf8(data.to_vec()).map_err(ReadBodyError::Utf8)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Bytes {
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        Ok(body
-            .take()?
-            .into_bytes()
-            .await
-            .map_err(Error::bad_request)?)
+    type Error = ReadBodyError;
+
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+        Ok(body.take()?.into_bytes().await.map_err(ReadBodyError::Io)?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Vec<u8> {
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+    type Error = ReadBodyError;
+
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(body
             .take()?
             .into_bytes()
             .await
-            .map_err(Error::bad_request)?
+            .map_err(ReadBodyError::Io)?
             .to_vec())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for SocketAddr {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.state().remote_addr)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for IpAddr {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.state().remote_addr.ip())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+    type Error = T::Error;
+
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(T::from_request(req, body).await.ok())
     }
 }
 
 #[async_trait::async_trait]
-impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T, T::Error> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(T::from_request(req, body).await)
     }
 }

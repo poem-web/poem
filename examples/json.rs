@@ -1,4 +1,4 @@
-use poem::{handler, route, web::Json, Result, Server};
+use poem::{error::ParseJsonError, handler, route, web::Json, Result, Server};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -7,7 +7,7 @@ struct CreateSomething {
 }
 
 #[handler]
-fn hello(res: Result<Json<CreateSomething>>) -> Json<serde_json::Value> {
+fn hello(res: Result<Json<CreateSomething>, ParseJsonError>) -> Json<serde_json::Value> {
     let res = match res {
         Ok(Json(req)) => serde_json::json! ({
             "code": 0,
@@ -15,7 +15,7 @@ fn hello(res: Result<Json<CreateSomething>>) -> Json<serde_json::Value> {
         }),
         Err(err) => serde_json::json! ({
             "code": 1,
-            "message": err.reason()
+            "message": err.to_string()
         }),
     };
     Json(res)

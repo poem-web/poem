@@ -4,8 +4,9 @@ use http::HeaderValue;
 use parking_lot::Mutex;
 
 use crate::{
+    error::ParseCookieError,
     http::{header, HeaderMap},
-    Error, FromRequest, Request, RequestBody, Result,
+    FromRequest, Request, RequestBody, Result,
 };
 
 /// Representation of an HTTP cookie.
@@ -13,16 +14,18 @@ pub type Cookie = cookie::Cookie<'static>;
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Cookie {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = ParseCookieError;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         let value = req
             .headers()
             .get(header::COOKIE)
-            .ok_or_else(|| Error::bad_request("there is no cookie in the request header"))?;
+            .ok_or(ParseCookieError::CookieHeaderRequired)?;
         let value = value
             .to_str()
-            .map_err(|err| Error::bad_request(format!("cookie is illegal: {}", err)))?;
+            .map_err(|_| ParseCookieError::CookieIllegal)?;
         let cookie = cookie::Cookie::parse(value.to_string())
-            .map_err(|err| Error::bad_request(format!("cookie is illegal: {}", err)))?;
+            .map_err(|_| ParseCookieError::CookieIllegal)?;
         Ok(cookie)
     }
 }
@@ -73,7 +76,9 @@ impl FromStr for CookieJar {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CookieJar {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(req.cookie())
     }
 }

@@ -1,9 +1,13 @@
-use std::io::ErrorKind;
+use std::{
+    io::{Error as IoError, ErrorKind},
+    str::FromStr,
+};
 
 use futures_util::TryStreamExt;
+use mime::Mime;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-use crate::{http::header, Error, FromRequest, Request, RequestBody, Result};
+use crate::{error::ParseMultipartError, http::header, FromRequest, Request, RequestBody, Result};
 
 /// A single field in a multipart stream.
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
@@ -29,15 +33,12 @@ impl Field {
     }
 
     /// Get the full data of the field as Bytes.
-    pub async fn bytes(self) -> Result<Vec<u8>> {
+    pub async fn bytes(self) -> Result<Vec<u8>, IoError> {
         let mut data = Vec::new();
         let mut buf = [0; 2048];
         let mut reader = self.into_async_read();
         loop {
-            let sz = reader
-                .read(&mut buf[..])
-                .await
-                .map_err(Error::bad_request)?;
+            let sz = reader.read(&mut buf[..]).await?;
             if sz > 0 {
                 data.extend_from_slice(&buf[..sz]);
             } else {
@@ -50,8 +51,8 @@ impl Field {
 
     /// Get the full field data as text.
     #[inline]
-    pub async fn text(self) -> Result<String> {
-        String::from_utf8(self.bytes().await?).map_err(Error::bad_request)
+    pub async fn text(self) -> Result<String, IoError> {
+        String::from_utf8(self.bytes().await?).map_err(|err| IoError::new(ErrorKind::Other, err))
     }
 
     /// Consume this field to return a reader.
@@ -69,11 +70,11 @@ impl Field {
 /// # Example
 ///
 /// ```
-/// use poem::{web::Multipart, Result};
+/// use poem::{error::Error, web::Multipart, Result};
 ///
 /// async fn upload(mut multipart: Multipart) -> Result<()> {
 ///     while let Some(field) = multipart.next_field().await? {
-///         let data = field.bytes().await?;
+///         let data = field.bytes().await.map_err(Error::bad_request)?;
 ///         println!("{} bytes", data.len());
 ///     }
 ///     Ok(())
@@ -86,15 +87,23 @@ pub struct Multipart {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Multipart {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        let boundary = multer::parse_boundary(
-            req.headers()
-                .get(header::CONTENT_TYPE)
-                .ok_or_else(|| Error::bad_request("expect `Content-Type` header"))?
-                .to_str()
-                .map_err(Error::bad_request)?,
-        )
-        .map_err(Error::bad_request)?;
+    type Error = ParseMultipartError;
+
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+        let content_type = req
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|err| err.to_str().ok())
+            .and_then(|value| Mime::from_str(value).ok())
+            .ok_or(ParseMultipartError::ContentTypeRequired)?;
+
+        if content_type != mime::MULTIPART_FORM_DATA {
+            return Err(ParseMultipartError::InvalidContentType(
+                content_type.essence_str().to_string(),
+            ));
+        }
+
+        let boundary = multer::parse_boundary(content_type.as_ref())?;
         Ok(Self {
             inner: multer::Multipart::new(
                 tokio_util::io::ReaderStream::new(body.take()?.into_async_read()),
@@ -106,8 +115,8 @@ impl<'a> FromRequest<'a> for Multipart {
 
 impl Multipart {
     /// Yields the next [`Field`] if available.
-    pub async fn next_field(&mut self) -> Result<Option<Field>> {
-        match self.inner.next_field().await.map_err(Error::bad_request)? {
+    pub async fn next_field(&mut self) -> Result<Option<Field>, ParseMultipartError> {
+        match self.inner.next_field().await? {
             Some(field) => Ok(Some(Field(field))),
             None => Ok(None),
         }
@@ -117,7 +126,28 @@ impl Multipart {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, Endpoint};
+    use crate::{handler, http::StatusCode, Endpoint};
+
+    #[tokio::test]
+    async fn test_multipart_extractor_content_type() {
+        #[handler(internal)]
+        async fn index(_multipart: Multipart) {
+            todo!()
+        }
+
+        let mut resp = index
+            .call(
+                Request::builder()
+                    .header("content-type", "multipart/json; boundary=X-BOUNDARY")
+                    .body(()),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.take_body().into_string().await.unwrap(),
+            "invalid content type `multipart/json`, expect: `application/x-www-form-urlencoded`"
+        );
+    }
 
     #[tokio::test]
     async fn test_multipart_extractor() {

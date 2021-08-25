@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{Error, FromRequest, Request, RequestBody, Result};
+use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that can extract data from the request extension.
 ///
@@ -35,15 +35,12 @@ impl<T> DerefMut for Data<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = GetDataError;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         req.extensions()
             .get::<T>()
-            .ok_or_else(|| {
-                Error::internal_server_error(format!(
-                    "Data of type `{}` was not found.",
-                    std::any::type_name::<T>()
-                ))
-            })
+            .ok_or_else(|| GetDataError(std::any::type_name::<T>()))
             .map(Data)
     }
 }

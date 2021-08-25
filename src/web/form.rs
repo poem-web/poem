@@ -3,12 +3,13 @@ use std::ops::{Deref, DerefMut};
 use serde::de::DeserializeOwned;
 
 use crate::{
+    error::ParseFormError,
     http::{
         header::{self, HeaderValue},
         Method,
     },
     web::RequestBody,
-    Error, FromRequest, Request, Result,
+    FromRequest, Request, Result,
 };
 
 /// An extractor that can deserialize some type from query string or body.
@@ -36,30 +37,31 @@ impl<T> DerefMut for Form<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+    type Error = ParseFormError;
+
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         if req.method() == Method::GET {
-            serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
-                .map_err(Error::bad_request)
-                .map(Self)
+            Ok(serde_urlencoded::from_str(req.uri().query().unwrap_or_default()).map(Self)?)
         } else {
-            if req.headers().get(header::CONTENT_TYPE)
+            let content_type = req.headers().get(header::CONTENT_TYPE);
+            if content_type
                 != Some(&HeaderValue::from_static(
                     "application/x-www-form-urlencoded",
                 ))
             {
-                return Err(Error::bad_request("invalid form content type"));
+                return match content_type.and_then(|value| value.to_str().ok()) {
+                    Some(ty) => Err(ParseFormError::InvalidContentType(ty.to_string())),
+                    None => Err(ParseFormError::ContentTypeRequired),
+                };
             }
 
-            Ok(Self(
-                serde_urlencoded::from_bytes(
-                    &body
-                        .take()?
-                        .into_bytes()
-                        .await
-                        .map_err(Error::bad_request)?,
-                )
-                .map_err(Error::bad_request)?,
-            ))
+            Ok(Self(serde_urlencoded::from_bytes(
+                &body
+                    .take()?
+                    .into_bytes()
+                    .await
+                    .map_err(|err| ParseFormError::ReadBody(err.into()))?,
+            )?))
         }
     }
 }

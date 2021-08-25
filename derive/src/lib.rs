@@ -64,7 +64,7 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
             extractors.push(quote! {
                 let #id = match <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await {
                     Ok(value) => value,
-                    Err(err) => return err.as_response(),
+                    Err(err) => return ::std::convert::Into::<#crate_name::Error>::into(err).as_response(),
                 };
             });
         }
