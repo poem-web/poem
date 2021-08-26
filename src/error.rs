@@ -6,7 +6,7 @@ use std::{
     string::FromUtf8Error,
 };
 
-use crate::{http::StatusCode, Response};
+use crate::{http::StatusCode, IntoResponse, Response};
 
 macro_rules! define_error {
     ($($(#[$docs:meta])* ($name:ident, $status:ident);)*) => {
@@ -25,6 +25,12 @@ macro_rules! define_error {
 pub struct Error {
     status: StatusCode,
     reason: Option<String>,
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        self.as_response()
+    }
 }
 
 impl From<Infallible> for Error {

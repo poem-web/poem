@@ -546,11 +546,15 @@ impl<T: IntoResponse> IntoResponse for (StatusCode, HeaderMap, T) {
     }
 }
 
-impl<T: IntoResponse> IntoResponse for Result<T> {
+impl<T, E> IntoResponse for core::result::Result<T, E>
+where
+    T: IntoResponse,
+    E: IntoResponse,
+{
     fn into_response(self) -> Response {
         match self {
             Ok(resp) => resp.into_response(),
-            Err(err) => err.as_response(),
+            Err(err) => err.into_response(),
         }
     }
 }
