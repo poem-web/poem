@@ -10,7 +10,7 @@ use poem::{
     EndpointExt, IntoResponse, Server,
 };
 
-#[handler(method = "get")]
+#[handler]
 fn index() -> Html<&'static str> {
     Html(
         r###"
@@ -60,7 +60,7 @@ fn index() -> Html<&'static str> {
     )
 }
 
-#[handler(method = "get")]
+#[handler]
 fn ws(
     Path(name): Path<String>,
     ws: WebSocket,
@@ -93,12 +93,13 @@ fn ws(
 
 #[tokio::main]
 async fn main() {
-    let app = route()
-        .at("/", index)
-        .at("/ws/:name", ws)
-        .with(AddData::new(
-            tokio::sync::broadcast::channel::<String>(32).0,
-        ));
+    let mut app = route();
+
+    app.at("/").get(index);
+    app.at("/ws/:name").get(ws.with(AddData::new(
+        tokio::sync::broadcast::channel::<String>(32).0,
+    )));
+
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

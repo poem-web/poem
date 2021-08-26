@@ -2,6 +2,7 @@ use std::{
     any::Any,
     convert::TryInto,
     fmt::{self, Debug, Formatter},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
 };
 
 use hyper::upgrade::OnUpgrade;
@@ -18,13 +19,25 @@ use crate::{
     RequestBody,
 };
 
-#[derive(Default)]
 pub(crate) struct RequestState {
+    pub(crate) remote_addr: SocketAddr,
     pub(crate) original_uri: Uri,
     pub(crate) match_params: Params,
     pub(crate) cookie_jar: CookieJar,
     #[allow(dead_code)]
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
+}
+
+impl Default for RequestState {
+    fn default() -> Self {
+        Self {
+            remote_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 0)),
+            original_uri: Default::default(),
+            match_params: Default::default(),
+            cookie_jar: Default::default(),
+            on_upgrade: Default::default(),
+        }
+    }
 }
 
 /// Represents an HTTP request.
@@ -51,7 +64,10 @@ impl Debug for Request {
 }
 
 impl Request {
-    pub(crate) fn from_hyper_request(req: hyper::Request<hyper::Body>) -> Self {
+    pub(crate) fn from_hyper_request(
+        req: hyper::Request<hyper::Body>,
+        remote_addr: SocketAddr,
+    ) -> Self {
         let (mut parts, body) = req.into_parts();
 
         // Extract cookies from the header
@@ -72,6 +88,7 @@ impl Request {
             extensions: parts.extensions,
             body: Body(body),
             state: RequestState {
+                remote_addr,
                 original_uri: parts.uri,
                 match_params: Default::default(),
                 cookie_jar,

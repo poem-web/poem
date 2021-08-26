@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::{Error, FromRequest, Request, RequestBody, Result};
+use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that will get captures from the URL and parse them using
 /// `serde`.
@@ -19,7 +19,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", users_teams_show);
+/// let mut app = route();
+/// app.at("/users/:user_id/team/:team_id")
+///     .get(users_teams_show);
 /// ```
 ///
 /// If the path contains only one parameter, then you can omit the tuple.
@@ -32,7 +34,8 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id", user_info);
+/// let mut app = route();
+/// app.at("/users/:user_id").get(user_info);
 /// ```
 ///
 /// Path segments also can be deserialized into any type that implements [`serde::Deserialize`](https://docs.rs/serde/1.0.127/serde/trait.Deserialize.html).
@@ -53,7 +56,9 @@ use crate::{Error, FromRequest, Request, RequestBody, Result};
 ///     // ...
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", users_teams_show);
+/// let mut app = route();
+/// app.at("/users/:user_id/team/:team_id")
+///     .get(users_teams_show);
 /// ```
 #[derive(Debug)]
 pub struct Path<T>(pub T);
@@ -74,9 +79,11 @@ impl<T> DerefMut for Path<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    type Error = ErrorInvalidPathParams;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         T::deserialize(de::PathDeserializer::new(&req.state().match_params))
-            .map_err(|err| Error::bad_request(format!("invalid path params: {}", err)))
+            .map_err(|_| ErrorInvalidPathParams)
             .map(Path)
     }
 }

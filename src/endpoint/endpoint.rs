@@ -1,19 +1,13 @@
 use std::{future::Future, sync::Arc};
 
-use super::{After, AndThen, Before, GuardEndpoint, MapErr, MapOk, MapToResponse, MapToResult, Or};
-use crate::{Error, Guard, IntoResponse, Middleware, Request, Result};
+use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
+use crate::{Error, IntoResponse, Middleware, Request, Result};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
 pub trait Endpoint: Send + Sync + 'static {
     /// Represents the response of the endpoint.
     type Output: IntoResponse;
-
-    /// Check if request matches predicate for route selection.
-    #[allow(unused_variables)]
-    fn check(&self, req: &Request) -> bool {
-        true
-    }
 
     /// Get the response to the request.
     async fn call(&self, req: Request) -> Self::Output;
@@ -90,7 +84,8 @@ pub trait EndpointExt: Endpoint {
     ///     format!("{}", data)
     /// }
     ///
-    /// let app = route().at("/", index).with(AddData::new(100i32));
+    /// let mut app = route();
+    /// app.at("/").get(index.with(AddData::new(100i32)));
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
@@ -98,15 +93,6 @@ pub trait EndpointExt: Endpoint {
         Self: Sized,
     {
         middleware.transform(self)
-    }
-
-    /// Composes a new endpoint of either this or the other endpoint.
-    fn or<T>(self, other: T) -> Or<Self, T>
-    where
-        T: Endpoint,
-        Self: Sized,
-    {
-        Or::new(self, other)
     }
 
     /// Maps the request of this endpoint.
@@ -224,15 +210,6 @@ pub trait EndpointExt: Endpoint {
     {
         MapErr::new(self, f)
     }
-
-    /// Add guard to the endpoint.
-    fn guard<T>(self, guard: T) -> GuardEndpoint<Self, T>
-    where
-        T: Guard,
-        Self: Sized,
-    {
-        GuardEndpoint::new(self, guard)
-    }
 }
 
 impl<T: Endpoint> EndpointExt for T {}
@@ -290,7 +267,7 @@ mod test {
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_REQUEST)
+            Error::new(StatusCode::BAD_REQUEST)
         );
     }
 
@@ -309,7 +286,7 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<(), Error>(Error::status(StatusCode::BAD_REQUEST)))
+            fn_endpoint(|_| Err::<(), Error>(Error::new(StatusCode::BAD_REQUEST)))
                 .map_to_response()
                 .call(Request::default())
                 .await
@@ -330,12 +307,12 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<String, _>(Error::status(StatusCode::BAD_REQUEST)))
+            fn_endpoint(|_| Err::<String, _>(Error::new(StatusCode::BAD_REQUEST)))
                 .and_then(|resp| async move { Ok(resp + "def") })
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_REQUEST)
+            Error::new(StatusCode::BAD_REQUEST)
         );
     }
 
@@ -351,12 +328,12 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<String, Error>(Error::status(StatusCode::BAD_REQUEST)))
+            fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
                 .map_ok(|resp| async move { resp.to_string() + "def" })
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_REQUEST)
+            Error::new(StatusCode::BAD_REQUEST)
         );
     }
 
@@ -364,7 +341,7 @@ mod test {
     async fn test_map_err() {
         assert_eq!(
             fn_endpoint(|_| Ok("abc"))
-                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+                .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
                 .call(Request::default())
                 .await
                 .unwrap(),
@@ -372,12 +349,12 @@ mod test {
         );
 
         assert_eq!(
-            fn_endpoint(|_| Err::<String, Error>(Error::status(StatusCode::BAD_REQUEST)))
-                .map_err(|_| async move { Error::status(StatusCode::BAD_GATEWAY) })
+            fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
+                .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
                 .call(Request::default())
                 .await
                 .unwrap_err(),
-            Error::status(StatusCode::BAD_GATEWAY)
+            Error::new(StatusCode::BAD_GATEWAY)
         );
     }
 }

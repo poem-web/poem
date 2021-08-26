@@ -13,12 +13,12 @@ use poem::{
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
-#[handler(method = "post")]
+#[handler]
 async fn graphql_handler(schema: Data<&StarWarsSchema>, req: Json<Request>) -> Json<Response> {
     Json(schema.execute(req.0).await)
 }
 
-#[handler(method = "get")]
+#[handler]
 fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(GraphQLPlaygroundConfig::new("/")))
 }
@@ -29,9 +29,9 @@ async fn main() {
         .data(StarWars::new())
         .finish();
 
-    let app = route()
-        .at("/", graphql_playground.or(graphql_handler))
-        .with(AddData::new(schema));
+    let mut app = route();
+    app.at("/").get(graphql_playground).post(graphql_handler);
+    let app = app.with(AddData::new(schema));
 
     println!("Playground: http://localhost:3000");
 

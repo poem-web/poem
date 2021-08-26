@@ -106,7 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_header() {
-        #[handler(internal, method = "get")]
+        #[handler(internal)]
         fn index() {}
 
         let resp = index

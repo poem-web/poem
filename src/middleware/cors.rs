@@ -180,7 +180,7 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
                 .and_then(|value| value.to_str().ok())
                 .unwrap_or_default(),
         ) {
-            return Err(Error::status(StatusCode::UNAUTHORIZED));
+            return Err(Error::new(StatusCode::UNAUTHORIZED));
         }
 
         if req.method() == Method::OPTIONS {
@@ -188,7 +188,7 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
         }
 
         let mut resp = self.inner.call(req).await.into_response();
-        if !resp.status().is_success() {
+        if !resp.is_success() {
             return Ok(resp);
         }
 

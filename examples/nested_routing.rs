@@ -6,7 +6,8 @@ fn hello() -> String {
 }
 
 fn api() -> Route {
-    let route = route().at("/hello", hello);
+    let mut route = route();
+    route.at("/hello").get(hello);
     route
 }
 

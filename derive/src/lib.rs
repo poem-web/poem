@@ -14,20 +14,10 @@ use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Result};
 
 /// Wrap an asynchronous function as an `Endpoint`.
 ///
-/// # Attributes
-///
-/// - **method** - Add a method guard.
-/// - **host**=`"host name"` - Add a host guard.
-/// - **header**(`"header name"`, `"header value`) - Add a header value guard.
-///
 /// # Example
 ///
 /// ```ignore
-/// #[handler(
-///     method = "get",
-///     host = "example.com",
-///     header(name = "Custom-header", value = "true")
-/// )]
+/// #[handler]
 /// async fn example() {
 /// }
 /// ```
@@ -47,50 +37,10 @@ pub fn handler(
     }
 }
 
-#[derive(Debug, Copy, Clone, FromMeta)]
-#[darling(rename_all = "lowercase")]
-enum Method {
-    Get,
-    Post,
-    Put,
-    Delete,
-    Head,
-    Options,
-    Connect,
-    Patch,
-    Trace,
-}
-
-impl Method {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Method::Get => "get",
-            Method::Post => "post",
-            Method::Put => "put",
-            Method::Delete => "delete",
-            Method::Head => "head",
-            Method::Options => "options",
-            Method::Connect => "connect",
-            Method::Patch => "patch",
-            Method::Trace => "trace",
-        }
-    }
-}
-
-#[derive(FromMeta, Default)]
-struct Header {
-    name: String,
-    value: String,
-}
-
 #[derive(FromMeta, Default)]
 #[darling(default)]
 struct HandlerArgs {
     internal: bool,
-    method: Option<Method>,
-    host: Option<String>,
-    #[darling(multiple, rename = "header")]
-    headers: Vec<Header>,
 }
 
 fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream> {
@@ -103,37 +53,6 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
     } else {
         None
     };
-    let mut guards = Vec::new();
-
-    if let Some(method) = args.method {
-        let method = quote::format_ident!("{}", method.as_str());
-        guards.push(quote::quote!(#crate_name::guard::#method()));
-    }
-
-    if let Some(host) = args.host {
-        guards.push(quote::quote!(#crate_name::guard::host(#host)));
-    }
-
-    for header in args.headers {
-        let Header { name, value } = header;
-        guards.push(quote::quote!(#crate_name::guard::header(#name, #value)));
-    }
-
-    let guard = {
-        let guards = guards.into_iter().map(|guard| {
-            quote! {
-                if !#crate_name::Guard::check(&#guard, &req) {
-                    return false;
-                }
-            }
-        });
-        quote! {
-            fn check(&self, req: &#crate_name::Request) -> bool {
-                #(#guards)*
-                true
-            }
-        }
-    };
 
     let mut extractors = Vec::new();
     let mut args = Vec::new();
@@ -145,7 +64,7 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
             extractors.push(quote! {
                 let #id = match <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await {
                     Ok(value) => value,
-                    Err(err) => return err.as_response(),
+                    Err(err) => return ::std::convert::Into::<#crate_name::Error>::into(err).as_response(),
                 };
             });
         }
@@ -158,8 +77,6 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
         #[#crate_name::async_trait]
         impl #crate_name::Endpoint for #ident {
             type Output = #crate_name::Response;
-
-            #guard
 
             async fn call(&self, mut req: #crate_name::Request) -> Self::Output {
                 let (req, mut body) = req.split();

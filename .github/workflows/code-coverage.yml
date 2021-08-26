@@ -10,15 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: '0.15.0'
-#          args: --out Xml --all --all-features
+          version: '0.18.0'
+          args: --avoid-cfg-tarpaulin
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.0.2
         with:
