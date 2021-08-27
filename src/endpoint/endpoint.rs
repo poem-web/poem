@@ -49,9 +49,9 @@ where
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make, http::Method, Endpoint, Request};
+/// use poem::{endpoint::make_sync, http::Method, Endpoint, Request};
 ///
-/// let ep = make(|req| req.method().to_string());
+/// let ep = make_sync(|req| req.method().to_string());
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = ep
@@ -73,9 +73,9 @@ where
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make_async, http::Method, Endpoint, Request};
+/// use poem::{endpoint::make, http::Method, Endpoint, Request};
 ///
-/// let ep = make_async(|req| async { req.method().to_string() });
+/// let ep = make(|req| async move { req.method().to_string() });
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = ep
