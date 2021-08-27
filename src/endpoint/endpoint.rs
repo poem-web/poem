@@ -261,14 +261,12 @@ mod test {
             "abc"
         );
 
-        assert_eq!(
-            fn_endpoint(|_| Response::builder().status(StatusCode::BAD_REQUEST).finish())
-                .map_to_result()
-                .call(Request::default())
-                .await
-                .unwrap_err(),
-            Error::new(StatusCode::BAD_REQUEST)
-        );
+        let err = fn_endpoint(|_| Response::builder().status(StatusCode::BAD_REQUEST).finish())
+            .map_to_result()
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
@@ -306,14 +304,12 @@ mod test {
             "abcdef"
         );
 
-        assert_eq!(
-            fn_endpoint(|_| Err::<String, _>(Error::new(StatusCode::BAD_REQUEST)))
-                .and_then(|resp| async move { Ok(resp + "def") })
-                .call(Request::default())
-                .await
-                .unwrap_err(),
-            Error::new(StatusCode::BAD_REQUEST)
-        );
+        let err = fn_endpoint(|_| Err::<String, _>(Error::new(StatusCode::BAD_REQUEST)))
+            .and_then(|resp| async move { Ok(resp + "def") })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
@@ -327,14 +323,12 @@ mod test {
             "abcdef"
         );
 
-        assert_eq!(
-            fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
-                .map_ok(|resp| async move { resp.to_string() + "def" })
-                .call(Request::default())
-                .await
-                .unwrap_err(),
-            Error::new(StatusCode::BAD_REQUEST)
-        );
+        let err = fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
+            .map_ok(|resp| async move { resp.to_string() + "def" })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
@@ -348,13 +342,11 @@ mod test {
             "abc"
         );
 
-        assert_eq!(
-            fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
-                .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
-                .call(Request::default())
-                .await
-                .unwrap_err(),
-            Error::new(StatusCode::BAD_GATEWAY)
-        );
+        let err = fn_endpoint(|_| Err::<String, Error>(Error::new(StatusCode::BAD_REQUEST)))
+            .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
+            .call(Request::default())
+            .await
+            .unwrap_err();
+        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
     }
 }

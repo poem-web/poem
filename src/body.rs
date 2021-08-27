@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     io::{Error as IoError, ErrorKind},
     pin::Pin,
     task::{Context, Poll},
@@ -111,19 +112,35 @@ impl Body {
 
     /// Consumes this body object to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Send + 'static {
-        tokio_util::io::StreamReader::new(BodyStream(self.0))
+        tokio_util::io::StreamReader::new(BodyStream::new(self.0))
     }
 }
 
-struct BodyStream(hyper::Body);
+pin_project_lite::pin_project! {
+    pub(crate) struct BodyStream<T> {
+        #[pin] inner: T,
+    }
+}
 
-impl Stream for BodyStream {
-    type Item = Result<Bytes, std::io::Error>;
+impl<T> BodyStream<T> {
+    #[inline]
+    pub(crate) fn new(inner: T) -> Self {
+        Self { inner }
+    }
+}
+
+impl<T> Stream for BodyStream<T>
+where
+    T: HttpBody,
+    T::Error: Display,
+{
+    type Item = Result<T::Data, std::io::Error>;
 
     #[inline]
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.0)
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.project()
+            .inner
             .poll_data(cx)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))
     }
 }

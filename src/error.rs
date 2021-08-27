@@ -2,6 +2,7 @@
 
 use std::{
     convert::Infallible,
+    error::Error as StdError,
     fmt::{self, Debug, Display, Formatter},
     string::FromUtf8Error,
 };
@@ -13,7 +14,7 @@ macro_rules! define_error {
         $(
         $(#[$docs])*
         #[inline]
-        pub fn $name(err: impl Display) -> Self {
+        pub fn $name(err: impl StdError + Send + Sync + 'static) -> Self {
             Self::new(StatusCode::$status).with_reason(err)
         }
         )*
@@ -21,10 +22,10 @@ macro_rules! define_error {
 }
 
 /// General error.
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct Error {
     status: StatusCode,
-    reason: Option<String>,
+    reason: anyhow::Error,
 }
 
 impl IntoResponse for Error {
@@ -45,21 +46,32 @@ impl Display for Error {
     }
 }
 
+#[derive(Debug)]
+struct StatusError(StatusCode);
+
+impl Display for StatusError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl StdError for StatusError {}
+
 impl Error {
     /// Create a new error with status code.
     #[inline]
     pub fn new(status: StatusCode) -> Self {
         Self {
             status,
-            reason: None,
+            reason: anyhow::Error::from(StatusError(status)),
         }
     }
 
-    /// Create a new error
+    /// Sets the reason for this error.
     #[inline]
-    pub fn with_reason(self, reason: impl Display) -> Self {
+    pub fn with_reason(self, reason: impl StdError + Send + Sync + 'static) -> Self {
         Self {
-            reason: Some(reason.to_string()),
+            reason: anyhow::Error::from(reason),
             ..self
         }
     }
@@ -72,11 +84,13 @@ impl Error {
 
     /// Returns the reason of this error.
     #[inline]
-    pub fn reason(&self) -> &str {
-        self.reason
-            .as_deref()
-            .or_else(|| self.status.canonical_reason())
-            .unwrap_or("unknown")
+    pub fn reason(&self) -> &impl Display {
+        &self.reason
+    }
+
+    /// Downcast this error object by reference.
+    pub fn downcast_ref<T: Display + Debug + Send + Sync + 'static>(&self) -> Option<&T> {
+        self.reason.downcast_ref()
     }
 
     /// Creates full response for this error.
@@ -181,7 +195,7 @@ macro_rules! define_simple_errors {
 
         impl From<$name> for Error {
             fn from(_: $name) -> Error {
-                Error::new(StatusCode::$status).with_reason($err_msg)
+                Error::new(StatusCode::$status).with_reason(SimpleError($err_msg))
             }
         }
 
@@ -195,6 +209,17 @@ macro_rules! define_simple_errors {
         )*
     };
 }
+
+#[derive(Debug)]
+struct SimpleError(&'static str);
+
+impl Display for SimpleError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl StdError for SimpleError {}
 
 define_simple_errors!(
     /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.

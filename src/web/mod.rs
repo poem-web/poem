@@ -204,13 +204,35 @@ impl RequestBody {
 /// token from the `MyToken` header.
 ///
 /// ```
+/// use std::{
+///     error::Error as StdError,
+///     fmt::{self, Display, Formatter},
+/// };
+///
 /// use poem::{handler, route, Endpoint, Error, FromRequest, Request, RequestBody};
 ///
 /// struct Token(String);
 ///
+/// #[derive(Debug)]
+/// struct MissingToken;
+///
+/// impl Display for MissingToken {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "missing token")
+///     }
+/// }
+///
+/// impl StdError for MissingToken {}
+///
+/// impl From<MissingToken> for Error {
+///     fn from(err: MissingToken) -> Self {
+///         Error::bad_request(err)
+///     }
+/// }
+///
 /// #[poem::async_trait]
 /// impl<'a> FromRequest<'a> for Token {
-///     type Error = Error;
+///     type Error = MissingToken;
 ///
 ///     async fn from_request(
 ///         req: &'a Request,
@@ -220,7 +242,7 @@ impl RequestBody {
 ///             .headers()
 ///             .get("MyToken")
 ///             .and_then(|value| value.to_str().ok())
-///             .ok_or_else(|| Error::bad_request("missing token"))?;
+///             .ok_or(MissingToken)?;
 ///         Ok(Token(token.to_string()))
 ///     }
 /// }
