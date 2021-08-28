@@ -266,10 +266,7 @@ pub enum ParseCookieError {
 
 impl From<ParseCookieError> for Error {
     fn from(err: ParseCookieError) -> Self {
-        match err {
-            ParseCookieError::CookieIllegal => Error::bad_request(err),
-            ParseCookieError::CookieHeaderRequired => Error::bad_request(err),
-        }
+        Error::bad_request(err)
     }
 }
 
@@ -306,12 +303,7 @@ pub enum ParseFormError {
 
 impl From<ParseFormError> for Error {
     fn from(err: ParseFormError) -> Self {
-        match err {
-            ParseFormError::ReadBody(err) => err.into(),
-            ParseFormError::InvalidContentType(_)
-            | ParseFormError::ContentTypeRequired
-            | ParseFormError::UrlDecode(_) => Error::bad_request(err),
-        }
+        Error::bad_request(err)
     }
 }
 
@@ -329,10 +321,7 @@ pub enum ParseJsonError {
 
 impl From<ParseJsonError> for Error {
     fn from(err: ParseJsonError) -> Self {
-        match err {
-            ParseJsonError::ReadBody(err) => err.into(),
-            ParseJsonError::Json(_) => Error::bad_request(err),
-        }
+        Error::bad_request(err)
     }
 }
 
@@ -372,12 +361,7 @@ pub enum ParseMultipartError {
 #[cfg(feature = "multipart")]
 impl From<ParseMultipartError> for Error {
     fn from(err: ParseMultipartError) -> Self {
-        match err {
-            ParseMultipartError::ReadBody(err) => err.into(),
-            ParseMultipartError::InvalidContentType(_)
-            | ParseMultipartError::ContentTypeRequired
-            | ParseMultipartError::Multipart(_) => Error::bad_request(err),
-        }
+        Error::bad_request(err)
     }
 }
 
