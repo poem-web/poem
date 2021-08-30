@@ -13,7 +13,8 @@ fn api() -> Route {
 
 #[tokio::main]
 async fn main() {
-    let app = route().nest("/api", api());
+    let mut app = route();
+    app.nest("/api", api());
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

@@ -14,7 +14,7 @@ use tokio_rustls::{
     TlsAcceptor,
 };
 
-use crate::{Endpoint, EndpointExt, Request, Response};
+use crate::{Endpoint, EndpointExt, IntoEndpoint, Request, Response};
 
 /// An HTTP Server.
 pub struct Server {
@@ -34,8 +34,8 @@ impl Server {
     }
 
     /// Run this server.
-    pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
-        let ep = Arc::new(ep.map_to_response());
+    pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
+        let ep = Arc::new(ep.into_endpoint().map_to_response());
 
         loop {
             let (socket, remote_addr) = self.listener.accept().await?;
@@ -108,10 +108,10 @@ impl TlsServer {
     }
 
     /// Run this server.
-    pub async fn run(self, ep: impl Endpoint) -> IoResult<()> {
+    pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
         use std::io::{Error as IoError, ErrorKind};
 
-        let ep = Arc::new(ep.map_to_response());
+        let ep = Arc::new(ep.into_endpoint().map_to_response());
         let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut self.cert.as_slice())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
         let key = {

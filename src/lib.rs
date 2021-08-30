@@ -66,7 +66,7 @@ mod server;
 
 pub use async_trait::async_trait;
 pub use body::Body;
-pub use endpoint::{Endpoint, EndpointExt};
+pub use endpoint::{Endpoint, EndpointExt, IntoEndpoint};
 pub use error::{Error, Result};
 pub use middleware::Middleware;
 pub use poem_derive::handler;

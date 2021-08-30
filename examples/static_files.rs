@@ -2,7 +2,8 @@ use poem::{route, service::Files, Server};
 
 #[tokio::main]
 async fn main() {
-    let app = route().nest(
+    let mut app = route();
+    app.nest(
         "/files",
         Files::new("./examples/static_files").show_files_listing(),
     );

@@ -5,7 +5,8 @@ use std::{collections::HashMap, sync::Arc};
 use http::StatusCode;
 
 use crate::{
-    http::Method, route_recognizer::Router, Endpoint, EndpointExt, IntoResponse, Request, Response,
+    http::Method, route_recognizer::Router, Endpoint, EndpointExt, IntoEndpoint, IntoResponse,
+    Request, Response,
 };
 
 /// Routing object
@@ -51,8 +52,8 @@ impl Route {
     }
 
     /// Nest a `Endpoint` to the specified path.
-    pub fn nest(mut self, path: &str, ep: impl Endpoint) -> Self {
-        let ep = Arc::new(ep);
+    pub fn nest(&mut self, path: &str, ep: impl IntoEndpoint) {
+        let ep = Arc::new(ep.into_endpoint());
         let path = path.trim_end_matches('/');
 
         struct Nest<T>(T);
@@ -101,7 +102,6 @@ impl Route {
             Box::new(Nest(ep.clone())),
         );
         self.all_method_router.add(path, Box::new(Root(ep)));
-        self
     }
 }
 
@@ -141,65 +141,65 @@ pub struct RouteMethod<'a> {
 
 impl<'a> RouteMethod<'a> {
     /// Sets the endpoint for specified `method`.
-    pub fn method(&mut self, method: Method, ep: impl Endpoint) -> &mut Self {
+    pub fn method(&mut self, method: Method, ep: impl IntoEndpoint) -> &mut Self {
         self.router
             .router
             .entry(method)
             .or_default()
-            .add(self.path, Box::new(ep.map_to_response()));
+            .add(self.path, Box::new(ep.into_endpoint().map_to_response()));
         self
     }
 
     /// Sets the endpoint for `GET`.
-    pub fn get(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn get(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::GET, ep)
     }
 
     /// Sets the endpoint for `POST`.
-    pub fn post(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn post(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::POST, ep)
     }
 
     /// Sets the endpoint for `PUT`.
-    pub fn put(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn put(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::PUT, ep)
     }
 
     /// Sets the endpoint for `DELETE`.
-    pub fn delete(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn delete(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::DELETE, ep)
     }
 
     /// Sets the endpoint for `HEAD`.
-    pub fn head(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn head(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::HEAD, ep)
     }
 
     /// Sets the endpoint for `OPTIONS`.
-    pub fn options(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn options(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::OPTIONS, ep)
     }
 
     /// Sets the endpoint for `CONNECT`.
-    pub fn connect(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn connect(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::CONNECT, ep)
     }
 
     /// Sets the endpoint for `PATCH`.
-    pub fn patch(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn patch(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::PATCH, ep)
     }
 
     /// Sets the endpoint for `TRACE`.
-    pub fn trace(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn trace(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.method(Method::TRACE, ep)
     }
 
     /// Sets the endpoint for all methods.
-    pub fn all(&mut self, ep: impl Endpoint) -> &mut Self {
+    pub fn all(&mut self, ep: impl IntoEndpoint) -> &mut Self {
         self.router
             .all_method_router
-            .add(self.path, Box::new(ep.map_to_response()));
+            .add(self.path, Box::new(ep.into_endpoint().map_to_response()));
         self
     }
 }

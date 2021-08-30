@@ -57,15 +57,21 @@ impl From<()> for Body {
 }
 
 impl Body {
-    /// Create a body objecj from [`Bytes`].
+    /// Create a body object from [`Bytes`].
     #[inline]
     pub fn from_bytes(data: Bytes) -> Self {
         data.into()
     }
 
-    /// Create a body objecj from [`String`].
+    /// Create a body object from [`String`].
     #[inline]
     pub fn from_string(data: String) -> Self {
+        data.into()
+    }
+
+    /// Create a body object from [`Vec<u8>`].
+    #[inline]
+    pub fn from_vec(data: Vec<u8>) -> Self {
         data.into()
     }
 

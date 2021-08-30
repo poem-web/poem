@@ -404,3 +404,69 @@ mod test {
         assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
     }
 }
+
+/// Represents a type that can convert into endpoint.
+pub trait IntoEndpoint {
+    /// Represents the endpoint type.
+    type Endpoint: Endpoint;
+
+    /// Converts this object into endpoint.
+    fn into_endpoint(self) -> Self::Endpoint;
+}
+
+impl<T: Endpoint> IntoEndpoint for T {
+    type Endpoint = T;
+
+    fn into_endpoint(self) -> Self::Endpoint {
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        endpoint::make_sync,
+        http::Uri,
+        route::{route, Route},
+    };
+
+    #[tokio::test]
+    async fn test_into_endpoint() {
+        struct MyEndpointFactory;
+
+        impl IntoEndpoint for MyEndpointFactory {
+            type Endpoint = Route;
+
+            fn into_endpoint(self) -> Self::Endpoint {
+                let mut app = route();
+                app.at("/a").get(make_sync(|_| "a"));
+                app.at("/b").get(make_sync(|_| "b"));
+                app
+            }
+        }
+
+        let mut app = route();
+        app.nest("/api", MyEndpointFactory);
+
+        assert_eq!(
+            app.call(Request::builder().uri(Uri::from_static("/api/a")).finish())
+                .await
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "a"
+        );
+
+        assert_eq!(
+            app.call(Request::builder().uri(Uri::from_static("/api/b")).finish())
+                .await
+                .take_body()
+                .into_string()
+                .await
+                .unwrap(),
+            "b"
+        );
+    }
+}
