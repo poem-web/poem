@@ -1,6 +1,6 @@
 [package]
 name = "poem-derive"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
 description = "Macros for poem"
