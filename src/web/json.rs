@@ -69,11 +69,7 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
     type Error = ParseJsonError;
 
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
-        let data = body
-            .take()?
-            .into_bytes()
-            .await
-            .map_err(|err| ParseJsonError::ReadBody(err.into()))?;
+        let data = body.take()?.into_bytes().await?;
         Ok(Self(serde_json::from_slice(&data)?))
     }
 }

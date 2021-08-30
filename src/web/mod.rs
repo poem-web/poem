@@ -651,7 +651,7 @@ impl<'a> FromRequest<'a> for String {
     type Error = ReadBodyError;
 
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
-        let data = body.take()?.into_bytes().await.map_err(ReadBodyError::Io)?;
+        let data = body.take()?.into_bytes().await?;
         String::from_utf8(data.to_vec()).map_err(ReadBodyError::Utf8)
     }
 }
@@ -661,7 +661,7 @@ impl<'a> FromRequest<'a> for Bytes {
     type Error = ReadBodyError;
 
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
-        Ok(body.take()?.into_bytes().await.map_err(ReadBodyError::Io)?)
+        Ok(body.take()?.into_bytes().await?)
     }
 }
 
@@ -670,12 +670,7 @@ impl<'a> FromRequest<'a> for Vec<u8> {
     type Error = ReadBodyError;
 
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
-        Ok(body
-            .take()?
-            .into_bytes()
-            .await
-            .map_err(ReadBodyError::Io)?
-            .to_vec())
+        Ok(body.take()?.into_vec().await?)
     }
 }
 

@@ -10,6 +10,8 @@ use futures_util::Stream;
 use hyper::body::HttpBody;
 use tokio::io::AsyncRead;
 
+use crate::error::ReadBodyError;
+
 /// A body object for requests and responses.
 #[derive(Default)]
 pub struct Body(pub(crate) hyper::Body);
@@ -90,30 +92,29 @@ impl Body {
     }
 
     /// Consumes this body object to return a [`Bytes`] that contains all data.
-    pub async fn into_bytes(self) -> Result<Bytes, IoError> {
-        hyper::body::to_bytes(self.0)
+    pub async fn into_bytes(self) -> Result<Bytes, ReadBodyError> {
+        Ok(hyper::body::to_bytes(self.0)
             .await
-            .map_err(|err| IoError::new(ErrorKind::Other, err))
+            .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?)
     }
 
     /// Consumes this body object to return a [`Vec<u8>`] that contains all
     /// data.
-    pub async fn into_vec(self) -> Result<Vec<u8>, IoError> {
+    pub async fn into_vec(self) -> Result<Vec<u8>, ReadBodyError> {
         Ok(hyper::body::to_bytes(self.0)
             .await
-            .map_err(|err| IoError::new(ErrorKind::Other, err))?
+            .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
             .to_vec())
     }
 
     /// Consumes this body object to return a [`String`] that contains all data.
-    pub async fn into_string(self) -> Result<String, IoError> {
+    pub async fn into_string(self) -> Result<String, ReadBodyError> {
         Ok(String::from_utf8(
             self.into_bytes()
                 .await
-                .map_err(|err| IoError::new(ErrorKind::Other, err))?
+                .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
                 .to_vec(),
-        )
-        .map_err(|err| IoError::new(ErrorKind::Other, err))?)
+        )?)
     }
 
     /// Consumes this body object to return a reader.
@@ -147,6 +148,6 @@ where
         self.project()
             .inner
             .poll_data(cx)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))
+            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))
     }
 }

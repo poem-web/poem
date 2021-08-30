@@ -56,11 +56,7 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
             }
 
             Ok(Self(serde_urlencoded::from_bytes(
-                &body
-                    .take()?
-                    .into_bytes()
-                    .await
-                    .map_err(|err| ParseFormError::ReadBody(err.into()))?,
+                &body.take()?.into_bytes().await?,
             )?))
         }
     }

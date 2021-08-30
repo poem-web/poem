@@ -76,6 +76,15 @@ impl Error {
         }
     }
 
+    /// Sets the reason string for this error.
+    #[inline]
+    pub fn with_reason_string(self, reason: impl Display + Debug + Send + Sync + 'static) -> Self {
+        Self {
+            reason: anyhow::Error::msg(reason),
+            ..self
+        }
+    }
+
     /// Returns the status code of this error.
     #[inline]
     pub fn status(&self) -> StatusCode {
