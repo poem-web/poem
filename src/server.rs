@@ -27,7 +27,7 @@ impl Server {
     pub async fn bind(addr: impl ToSocketAddrs) -> IoResult<Self> {
         let listener = TcpListener::bind(addr).await?;
         let workers = num_cpus::get();
-        Ok(Self { listener, workers})
+        Ok(Self { listener, workers })
     }
 
     /// set number of workers
