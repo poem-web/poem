@@ -7,7 +7,7 @@ use poem::{
         sse::{Event, SSE},
         Html,
     },
-    Server,
+    RouteMethod, Server,
 };
 use tokio::time::Duration;
 
@@ -37,10 +37,9 @@ fn event() -> SSE {
 
 #[tokio::main]
 async fn main() {
-    let mut app = route();
-
-    app.at("/").get(index);
-    app.at("/event").get(event);
+    let app = route()
+        .at("/", RouteMethod::new().get(index))
+        .at("/event", RouteMethod::new().get(event));
 
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();

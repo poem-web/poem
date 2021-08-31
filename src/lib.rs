@@ -12,17 +12,16 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::{handler, route, web::Path, Server};
+//! use poem::{handler, route, web::Path, RouteMethod, Server};
 //!
 //! #[handler]
-//! async fn hello(Path(name): Path<String>) -> String {
+//! fn hello(Path(name): Path<String>) -> String {
 //!     format!("hello: {}", name)
 //! }
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let mut app = route();
-//!     app.at("/hello/:name").get(hello);
+//!     let app = route().at("/hello/:name", RouteMethod::new().get(hello));
 //!     let server = Server::bind("127.0.0.1:3000").await.unwrap();
 //!     server.run(app).await.unwrap();
 //! }
@@ -72,7 +71,7 @@ pub use middleware::Middleware;
 pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder};
 pub use response::{Response, ResponseBuilder};
-pub use route::route;
+pub use route::{route, RouteMethod};
 pub use server::Server;
 #[cfg(feature = "tls")]
 pub use server::TlsServer;

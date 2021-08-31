@@ -9,7 +9,7 @@ use poem::{
     middleware::AddData,
     route,
     web::{Data, Html, Json},
-    EndpointExt, IntoResponse, Server,
+    EndpointExt, IntoResponse, RouteMethod, Server,
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
@@ -29,9 +29,14 @@ async fn main() {
         .data(StarWars::new())
         .finish();
 
-    let mut app = route();
-    app.at("/").get(graphql_playground).post(graphql_handler);
-    let app = app.with(AddData::new(schema));
+    let app = route()
+        .at(
+            "/",
+            RouteMethod::new()
+                .get(graphql_playground)
+                .post(graphql_handler),
+        )
+        .with(AddData::new(schema));
 
     println!("Playground: http://localhost:3000");
 

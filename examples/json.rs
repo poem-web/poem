@@ -1,4 +1,4 @@
-use poem::{error::ParseJsonError, handler, route, web::Json, Result, Server};
+use poem::{error::ParseJsonError, handler, route, web::Json, Result, RouteMethod, Server};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -30,8 +30,7 @@ fn hello(res: Result<Json<CreateSomething>, ParseJsonError>) -> Json<serde_json:
 // {"code": 1, "message": "missing field `name` at line 1 column 20"}
 #[tokio::main]
 async fn main() {
-    let mut app = route();
-    app.at("/hello").post(hello);
+    let app = route().at("/hello", RouteMethod::new().post(hello));
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

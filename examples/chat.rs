@@ -7,7 +7,7 @@ use poem::{
         websocket::{Message, WebSocket},
         Data, Html, Path,
     },
-    EndpointExt, IntoResponse, Server,
+    EndpointExt, IntoResponse, RouteMethod, Server,
 };
 
 #[handler]
@@ -93,12 +93,12 @@ fn ws(
 
 #[tokio::main]
 async fn main() {
-    let mut app = route();
-
-    app.at("/").get(index);
-    app.at("/ws/:name").get(ws.with(AddData::new(
-        tokio::sync::broadcast::channel::<String>(32).0,
-    )));
+    let app = route().at("/", RouteMethod::new().get(index)).at(
+        "/ws/:name",
+        RouteMethod::new().get(ws.with(AddData::new(
+            tokio::sync::broadcast::channel::<String>(32).0,
+        ))),
+    );
 
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();

@@ -209,7 +209,7 @@ impl RequestBody {
 ///     fmt::{self, Display, Formatter},
 /// };
 ///
-/// use poem::{handler, route, Endpoint, Error, FromRequest, Request, RequestBody};
+/// use poem::{handler, route, Endpoint, Error, FromRequest, Request, RequestBody, RouteMethod};
 ///
 /// struct Token(String);
 ///
@@ -252,8 +252,7 @@ impl RequestBody {
 ///     assert_eq!(token.0, "token123");
 /// }
 ///
-/// let mut app = route();
-/// app.at("/").get(index);
+/// let mut app = route().at("/", RouteMethod::new().get(index));
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let _ = index

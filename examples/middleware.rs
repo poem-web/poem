@@ -1,6 +1,6 @@
 use poem::{
     async_trait, handler, route, Endpoint, EndpointExt, IntoResponse, Middleware, Request,
-    Response, Server,
+    Response, RouteMethod, Server,
 };
 
 struct Log;
@@ -38,8 +38,7 @@ fn index() -> String {
 
 #[tokio::main]
 async fn main() {
-    let mut app = route();
-    app.at("/").get(index.with(Log));
+    let app = route().at("/", RouteMethod::new().get(index)).with(Log);
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

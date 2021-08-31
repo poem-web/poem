@@ -52,6 +52,7 @@ askama = "0.10.5"
 thiserror = "1.0.26"
 anyhow = "1.0.43"
 pin-project-lite = "0.2.7"
+fnv = "1.0.7"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }

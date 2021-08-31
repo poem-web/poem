@@ -7,7 +7,7 @@
 //! use poem::{
 //!     handler, route,
 //!     web::websocket::{Message, WebSocket},
-//!     IntoResponse,
+//!     IntoResponse, RouteMethod,
 //! };
 //!
 //! #[handler]
@@ -20,7 +20,7 @@
 //! }
 //!
 //! let mut app = route();
-//! app.at("/").get(index);
+//! app.at("/", RouteMethod::new().get(index));
 //! ```
 
 mod extractor;

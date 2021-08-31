@@ -1,4 +1,4 @@
-use poem::{handler, route, Server};
+use poem::{handler, route, RouteMethod, Server};
 
 const CERT: &str = r#"
 -----BEGIN CERTIFICATE-----
@@ -64,8 +64,7 @@ fn index() -> &'static str {
 
 #[tokio::main]
 async fn main() {
-    let mut app = route();
-    app.at("/").get(index);
+    let app = route().at("/", RouteMethod::new().get(index));
 
     Server::bind("127.0.0.1:3000")
         .await

@@ -130,15 +130,16 @@ pub trait EndpointExt: Endpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, middleware::AddData, route, web::Data, EndpointExt};
+    /// use poem::{handler, middleware::AddData, route, web::Data, EndpointExt, RouteMethod};
     ///
     /// #[handler]
     /// async fn index(Data(data): Data<&i32>) -> String {
     ///     format!("{}", data)
     /// }
     ///
-    /// let mut app = route();
-    /// app.at("/").get(index.with(AddData::new(100i32)));
+    /// let mut app = route()
+    ///     .at("/", RouteMethod::new().get(index))
+    ///     .with(AddData::new(100i32));
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
@@ -429,6 +430,7 @@ mod tests {
         endpoint::make_sync,
         http::Uri,
         route::{route, Route},
+        RouteMethod,
     };
 
     #[tokio::test]
@@ -439,15 +441,13 @@ mod tests {
             type Endpoint = Route;
 
             fn into_endpoint(self) -> Self::Endpoint {
-                let mut app = route();
-                app.at("/a").get(make_sync(|_| "a"));
-                app.at("/b").get(make_sync(|_| "b"));
-                app
+                route()
+                    .at("/a", RouteMethod::new().get(make_sync(|_| "a")))
+                    .at("/b", RouteMethod::new().get(make_sync(|_| "b")))
             }
         }
 
-        let mut app = route();
-        app.nest("/api", MyEndpointFactory);
+        let app = route().nest("/api", MyEndpointFactory);
 
         assert_eq!(
             app.call(Request::builder().uri(Uri::from_static("/api/a")).finish())
