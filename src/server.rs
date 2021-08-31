@@ -19,13 +19,21 @@ use crate::{Endpoint, EndpointExt, IntoEndpoint, Request, Response};
 /// An HTTP Server.
 pub struct Server {
     listener: TcpListener,
+    workers: usize,
 }
 
 impl Server {
     /// Binds to the provided address, and returns a [`Server`].
     pub async fn bind(addr: impl ToSocketAddrs) -> IoResult<Self> {
         let listener = TcpListener::bind(addr).await?;
-        Ok(Self { listener })
+        let workers = num_cpus::get();
+        Ok(Self { listener, workers})
+    }
+
+    /// set number of workers
+    pub fn workers(mut self, num: usize) -> Self {
+        self.workers = num;
+        self
     }
 
     /// Returns the local address that this server is bound to.
@@ -37,9 +45,15 @@ impl Server {
     pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
         let ep = Arc::new(ep.into_endpoint().map_to_response());
 
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(self.workers)
+            .build()
+            .unwrap();
+
         loop {
             let (socket, remote_addr) = self.listener.accept().await?;
-            tokio::spawn(serve_connection(socket, remote_addr, ep.clone()));
+            rt.spawn(serve_connection(socket, remote_addr, ep.clone()));
         }
     }
 
