@@ -162,6 +162,16 @@ impl Request {
         &mut self.headers
     }
 
+    /// Returns the path parameter with the specified `name`.
+    pub fn path_param(&self, name: &str) -> Option<&str> {
+        self.state
+            .match_params
+            .0
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.as_str())
+    }
+
     /// Returns the content type of this request.
     pub fn content_type(&self) -> Option<&str> {
         self.headers()
