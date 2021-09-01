@@ -26,9 +26,11 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+      - name: Check with clippy
+        run: cargo clippy --all --all-features
       - name: Build without features
-        run: cargo build --all --verbose
-      - name: Build with all features
-        run: cargo build --all --all-features --verbose
+        run: cargo hack check --all --feature-powerset --no-dev-deps
       - name: Run tests
         run: cargo test --all --all-features --verbose

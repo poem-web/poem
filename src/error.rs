@@ -388,7 +388,7 @@ pub enum ParseTypedHeaderError {
     TypedHeader(#[from] typed_headers::Error),
 }
 
-#[cfg(feature = "multipart")]
+#[cfg(feature = "typed-headers")]
 impl From<ParseTypedHeaderError> for Error {
     fn from(err: ParseTypedHeaderError) -> Self {
         Error::bad_request(err)
