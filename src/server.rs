@@ -62,7 +62,7 @@ impl Server {
     #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
     pub fn tls(self) -> TlsServer {
         TlsServer {
-            listener: self.listener,
+            server: self,
             cert: Vec::new(),
             key: Vec::new(),
             client_auth: TlsClientAuth::Off,
@@ -82,7 +82,7 @@ enum TlsClientAuth {
 #[cfg(feature = "tls")]
 #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
 pub struct TlsServer {
-    listener: TcpListener,
+    server: Server,
     cert: Vec<u8>,
     key: Vec<u8>,
     client_auth: TlsClientAuth,
@@ -180,12 +180,18 @@ impl TlsServer {
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
         config.set_protocols(&["h2".into(), "http/1.1".into()]);
 
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(self.server.workers)
+            .build()
+            .unwrap();
+
         let acceptor = TlsAcceptor::from(Arc::new(config));
         loop {
-            let (socket, remote_addr) = self.listener.accept().await?;
+            let (socket, remote_addr) = self.server.listener.accept().await?;
             let acceptor = acceptor.clone();
             let ep = ep.clone();
-            tokio::spawn(async move {
+            rt.spawn(async move {
                 if let Ok(tls_socket) = acceptor.accept(socket).await {
                     serve_connection(tls_socket, remote_addr, ep).await;
                 }
