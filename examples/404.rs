@@ -1,5 +1,5 @@
 use poem::{
-    handler, http::StatusCode, route, web::Path, EndpointExt, Response, RouteMethod, Server,
+    handler, http::StatusCode, route, route::get, web::Path, EndpointExt, Response, Server,
 };
 
 #[handler]
@@ -11,7 +11,7 @@ fn hello(Path(name): Path<String>) -> String {
 async fn main() {
     let app = route().at(
         "/hello/:name",
-        RouteMethod::new().get(hello.after(|resp| async move {
+        get(hello.after(|resp| async move {
             if resp.status() == StatusCode::NOT_FOUND {
                 Response::builder()
                     .status(StatusCode::NOT_FOUND)

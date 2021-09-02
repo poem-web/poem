@@ -1,4 +1,4 @@
-use poem::{handler, middleware::Tracing, route, web::Path, EndpointExt, RouteMethod, Server};
+use poem::{handler, middleware::Tracing, route, route::get, web::Path, EndpointExt, Server};
 use tracing_subscriber::{
     fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
@@ -23,9 +23,7 @@ async fn main() {
         )
         .init();
 
-    let app = route()
-        .at("/hello/:name", RouteMethod::new().get(hello))
-        .with(Tracing);
+    let app = route().at("/hello/:name", get(hello)).with(Tracing);
 
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();

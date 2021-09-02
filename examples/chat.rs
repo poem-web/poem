@@ -3,11 +3,12 @@ use poem::{
     handler,
     middleware::AddData,
     route,
+    route::get,
     web::{
         websocket::{Message, WebSocket},
         Data, Html, Path,
     },
-    EndpointExt, IntoResponse, RouteMethod, Server,
+    EndpointExt, IntoResponse, Server,
 };
 
 #[handler]
@@ -93,9 +94,9 @@ fn ws(
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/", RouteMethod::new().get(index)).at(
+    let app = route().at("/", get(index)).at(
         "/ws/:name",
-        RouteMethod::new().get(ws.with(AddData::new(
+        get(ws.with(AddData::new(
             tokio::sync::broadcast::channel::<String>(32).0,
         ))),
     );

@@ -7,16 +7,14 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 /// # Example
 ///
 /// ```
-/// use poem::{handler, middleware::AddData, route, web::Data, EndpointExt, RouteMethod};
+/// use poem::{handler, middleware::AddData, route, route::get, web::Data, EndpointExt};
 ///
 /// #[handler]
 /// async fn index(data: Data<&i32>) {
 ///     assert_eq!(*data.0, 10);
 /// }
 ///
-/// let mut app = route()
-///     .at("/", RouteMethod::new().get(index))
-///     .with(AddData::new(10));
+/// let mut app = route().at("/", get(index)).with(AddData::new(10));
 /// ```
 pub struct Data<T>(pub T);
 

@@ -6,8 +6,9 @@
 //! use futures_util::{SinkExt, StreamExt};
 //! use poem::{
 //!     handler, route,
+//!     route::get,
 //!     web::websocket::{Message, WebSocket},
-//!     IntoResponse, RouteMethod,
+//!     IntoResponse,
 //! };
 //!
 //! #[handler]
@@ -20,7 +21,7 @@
 //! }
 //!
 //! let mut app = route();
-//! app.at("/", RouteMethod::new().get(index));
+//! app.at("/", get(index));
 //! ```
 
 mod extractor;
