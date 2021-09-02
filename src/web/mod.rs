@@ -581,6 +581,7 @@ where
 }
 
 /// An HTML response.
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Html<T>(pub T);
 
 impl<T: Into<String> + Send> IntoResponse for Html<T> {

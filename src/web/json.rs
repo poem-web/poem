@@ -48,6 +48,7 @@ use crate::{
 ///     })
 /// }
 /// ```
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Json<T>(pub T);
 
 impl<T> Deref for Json<T> {

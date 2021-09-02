@@ -56,7 +56,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 /// let mut app = route();
 /// app.at("/users/:user_id/team/:team_id", get(users_teams_show));
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Path<T>(pub T);
 
 impl<T> Deref for Path<T> {

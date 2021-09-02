@@ -15,6 +15,7 @@ use crate::{
 ///     Redirect::moved_permanent(Uri::from_static("https://www.google.com"))
 /// }
 /// ```
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Redirect {
     status: StatusCode,
     uri: Uri,
