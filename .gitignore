@@ -2,3 +2,4 @@
 Cargo.lock
 .idea
 .DS_Store
+docs/gh-pages
