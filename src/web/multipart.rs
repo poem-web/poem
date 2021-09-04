@@ -97,7 +97,7 @@ impl<'a> FromRequest<'a> for Multipart {
             .and_then(|value| Mime::from_str(value).ok())
             .ok_or(ParseMultipartError::ContentTypeRequired)?;
 
-        if content_type != mime::MULTIPART_FORM_DATA {
+        if content_type.essence_str() != mime::MULTIPART_FORM_DATA {
             return Err(ParseMultipartError::InvalidContentType(
                 content_type.essence_str().to_string(),
             ));
@@ -145,7 +145,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             resp.take_body().into_string().await.unwrap(),
-            "invalid content type `multipart/json`, expect: `application/x-www-form-urlencoded`"
+            "invalid content type `multipart/json`, expect: `application/form-data`"
         );
     }
 
@@ -168,12 +168,13 @@ mod tests {
         }
 
         let data = "--X-BOUNDARY\r\nContent-Disposition: form-data; name=\"my_text_field\"\r\n\r\nabcd\r\n--X-BOUNDARY\r\nContent-Disposition: form-data; name=\"my_file_field\"; filename=\"a-text-file.txt\"\r\nContent-Type: text/plain\r\n\r\nHello world\nHello\r\nWorld\rAgain\r\n--X-BOUNDARY--\r\n";
-        index
+        let resp = index
             .call(
                 Request::builder()
                     .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
                     .body(data),
             )
             .await;
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 }

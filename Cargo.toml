@@ -99,3 +99,7 @@ required-features = ["websocket"]
 [[example]]
 name = "tls"
 required-features = ["tls"]
+
+[[example]]
+name = "upload"
+required-features = ["multipart"]
