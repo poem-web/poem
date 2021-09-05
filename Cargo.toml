@@ -53,6 +53,7 @@ thiserror = "1.0.26"
 anyhow = "1.0.43"
 pin-project-lite = "0.2.7"
 fnv = "1.0.7"
+percent-encoding = "2.1.0"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
