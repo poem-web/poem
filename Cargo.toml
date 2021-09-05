@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "0.4.8"
+version = "0.4.9"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -30,7 +30,7 @@ sse = []
 compression = ["async-compression"]
 
 [dependencies]
-poem-derive = { path = "derive", version = "=0.4.8" }
+poem-derive = { path = "derive", version = "0.4.9" }
 
 async-trait = "0.1.51"
 bytes = "1.0.1"
