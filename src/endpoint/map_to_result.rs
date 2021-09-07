@@ -19,7 +19,7 @@ impl<E: Endpoint> Endpoint for MapToResult<E> {
 
     async fn call(&self, req: Request) -> Self::Output {
         let resp = self.inner.call(req).await.into_response();
-        if resp.is_success() {
+        if !resp.status().is_server_error() && !resp.status().is_client_error() {
             Ok(resp)
         } else {
             Err(Error::new(resp.status()))

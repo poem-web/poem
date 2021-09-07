@@ -32,7 +32,7 @@ impl Display for Event {
                 if !id.is_empty() {
                     writeln!(f, "id: {}", &id)?;
                 }
-                if event.is_empty() || event != "message" {
+                if !event.is_empty() && event != "message" {
                     writeln!(f, "event: {}", &event)?;
                 }
                 for line in data.lines() {

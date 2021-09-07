@@ -188,7 +188,7 @@ impl<E: Endpoint> Endpoint for CorsImpl<E> {
         }
 
         let mut resp = self.inner.call(req).await.into_response();
-        if !resp.is_success() {
+        if resp.status().is_server_error() || resp.status().is_client_error() {
             return Ok(resp);
         }
 

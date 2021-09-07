@@ -45,7 +45,7 @@ impl<E: Endpoint> Endpoint for TracingImpl<E> {
         async move {
             let resp = fut.await.into_response();
 
-            if resp.is_success() {
+            if !resp.status().is_server_error() && !resp.status().is_client_error() {
                 ::tracing::info!(status = %resp.status(), "send response");
             } else {
                 ::tracing::error!(status = %resp.status(), "an error occurred");

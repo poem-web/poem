@@ -6,6 +6,36 @@ use super::Event;
 use crate::{Body, IntoResponse, Response};
 
 /// An SSE response.
+///
+/// # Example
+///
+/// ```
+/// use futures_util::stream;
+/// use poem::{
+///     handler,
+///     http::StatusCode,
+///     web::sse::{Event, SSE},
+///     Endpoint, Request,
+/// };
+///
+/// #[handler]
+/// fn index() -> SSE {
+///     SSE::new(stream::iter(vec![
+///         Event::message("a"),
+///         Event::message("b"),
+///         Event::message("c"),
+///     ]))
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let mut resp = index.call(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(
+///     resp.take_body().into_string().await.unwrap(),
+///     "data: a\n\ndata: b\n\ndata: c\n\n"
+/// );
+/// # });
+/// ```
 pub struct SSE {
     stream: BoxStream<'static, Event>,
     keep_alive: Option<Duration>,

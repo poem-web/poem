@@ -172,7 +172,7 @@ impl RequestBody {
 /// - **String**
 ///
 ///    Extracts the body from the incoming request and parse it into utf8
-/// [`String].
+/// [`String`].
 ///
 ///    _This extractor will take over the requested body, so you should avoid
 /// using multiple extractors of this type in one handler._
