@@ -1,4 +1,4 @@
-<h1 align="center"><code>Poem Framework</code></h1>
+<h1 align="center">Poem Framework</h1>
 
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
