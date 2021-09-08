@@ -7,7 +7,7 @@ use askama::Template;
 use tokio::fs::File;
 
 use crate::{
-    http::{Method, StatusCode},
+    http::{header, Method, StatusCode},
     Body, Endpoint, Request, Response,
 };
 
@@ -20,7 +20,7 @@ use crate::{
         <title>Index of {{ path }}</title>
     </head>
     <body>
-        <h1>Index of {{ path }}</h1>
+        <h1>Index of /{{ path }}</h1>
         <ul>
             {% for file in files %}
             <li>
@@ -98,11 +98,19 @@ impl Endpoint for Files {
             return StatusCode::METHOD_NOT_ALLOWED.into();
         }
 
-        let path = req.uri().path();
-        let path = path.trim_start_matches('/');
-        let path = path.trim_end_matches('/');
+        let path = req
+            .uri()
+            .path()
+            .trim_start_matches('/')
+            .trim_end_matches('/');
+
+        let path = match percent_encoding::percent_decode_str(path).decode_utf8() {
+            Ok(path) => path,
+            Err(_) => return StatusCode::BAD_REQUEST.into(),
+        };
+
         let mut file_path = self.path.clone();
-        for p in Path::new(path) {
+        for p in Path::new(&*path) {
             if p == OsStr::new(".") {
                 continue;
             } else if p == OsStr::new("..") {
@@ -136,7 +144,7 @@ impl Endpoint for Files {
                     Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
                 };
                 let mut template = DirectoryTemplate {
-                    path: req.uri().path(),
+                    path: &*path,
                     files: Vec::new(),
                 };
 
@@ -165,7 +173,9 @@ impl Endpoint for Files {
                     Ok(html) => html,
                     Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
                 };
-                Response::builder().body(Body::from_string(html))
+                Response::builder()
+                    .header(header::CONTENT_TYPE, mime::TEXT_HTML_UTF_8.as_ref())
+                    .body(Body::from_string(html))
             } else {
                 StatusCode::NOT_FOUND.into()
             }

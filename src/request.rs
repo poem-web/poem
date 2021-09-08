@@ -70,14 +70,7 @@ impl Request {
     ) -> Self {
         let (mut parts, body) = req.into_parts();
 
-        // Extract cookies from the header
-        let cookie_jar = parts
-            .headers
-            .get(header::COOKIE)
-            .and_then(|value| std::str::from_utf8(value.as_bytes()).ok())
-            .and_then(|value| value.parse().ok())
-            .unwrap_or_default();
-
+        let cookie_jar = extract_cookie_jar(&parts.headers);
         let on_upgrade = Mutex::new(parts.extensions.remove::<OnUpgrade>());
 
         Self {
@@ -294,6 +287,7 @@ impl RequestBuilder {
     /// Consumes this builder, using the provided body to return a constructed
     /// [Request].
     pub fn body(self, body: impl Into<Body>) -> Request {
+        let cookie_jar = extract_cookie_jar(&self.headers);
         Request {
             method: self.method,
             uri: self.uri,
@@ -301,7 +295,10 @@ impl RequestBuilder {
             headers: self.headers,
             extensions: self.extensions,
             body: body.into(),
-            state: Default::default(),
+            state: RequestState {
+                cookie_jar,
+                ..Default::default()
+            },
         }
     }
 
@@ -309,5 +306,32 @@ impl RequestBuilder {
     /// [Request].
     pub fn finish(self) -> Request {
         self.body(Body::empty())
+    }
+}
+
+fn extract_cookie_jar(headers: &HeaderMap) -> CookieJar {
+    headers
+        .get(header::COOKIE)
+        .and_then(|value| std::str::from_utf8(value.as_bytes()).ok())
+        .and_then(|value| value.parse().ok())
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::web::Cookie;
+
+    #[test]
+    fn parse_cookie_jar_in_builder() {
+        let req = Request::builder()
+            .header(header::COOKIE, Cookie::new("a", "10").to_string())
+            .finish();
+        assert_eq!(
+            req.cookie()
+                .get("a")
+                .map(|cookie| cookie.value().to_string()),
+            Some("10".to_string())
+        );
     }
 }

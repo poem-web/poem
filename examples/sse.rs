@@ -3,11 +3,12 @@ use std::time::Instant;
 use futures_util::StreamExt;
 use poem::{
     handler, route,
+    route::get,
     web::{
         sse::{Event, SSE},
         Html,
     },
-    RouteMethod, Server,
+    Server,
 };
 use tokio::time::Duration;
 
@@ -37,9 +38,7 @@ fn event() -> SSE {
 
 #[tokio::main]
 async fn main() {
-    let app = route()
-        .at("/", RouteMethod::new().get(index))
-        .at("/event", RouteMethod::new().get(event));
+    let app = route().at("/", get(index)).at("/event", get(event));
 
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();

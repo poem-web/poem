@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "0.4.5"
+version = "0.4.12"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -30,7 +30,7 @@ sse = []
 compression = ["async-compression"]
 
 [dependencies]
-poem-derive = { path = "derive", version = "0.4.1" }
+poem-derive = { path = "derive", version = "=0.4.12" }
 
 async-trait = "0.1.51"
 bytes = "1.0.1"
@@ -54,6 +54,7 @@ anyhow = "1.0.43"
 pin-project-lite = "0.2.7"
 fnv = "1.0.7"
 num_cpus = "1.13.0"
+percent-encoding = "2.1.0"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
@@ -100,3 +101,7 @@ required-features = ["websocket"]
 [[example]]
 name = "tls"
 required-features = ["tls"]
+
+[[example]]
+name = "upload"
+required-features = ["multipart"]

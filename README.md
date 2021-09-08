@@ -1,12 +1,7 @@
-<h1 align="center"><code>Poem Framework</code></h1>
+<h1 align="center">Poem Framework</h1>
 
-<p align="center"><code>A  program is like a poem, you cannot write a poem without writing it. --- Dijkstra </code></p>
+<p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
-<p align="center"> 
-    🏡<a href="https://poem-web.github.io/" target="_blank">HomePage</a> | 
-    🇨🇳<a href="https://github.com/poem-web/poem/blob/master/readme_cn.md" target="_blank">中文说明</a> |
-    🌎<a href="https://github.com/poem-web/poem/blob/master/README.md">English</a>
-</p>
 <div align="center">
   <!-- CI -->
   <img src="https://github.com/poem-web/poem/workflows/CI/badge.svg" />
@@ -31,19 +26,24 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
+  <a href="https://blog.rust-lang.org/2021/07/29/Rust-1.54.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.54+-ab6000.svg"
+      alt="rustc 1.54+" />
+  </a>
 </div>
 
 ***
 
-## Feature
+## Features
 
 * **Fast**: Both _Ease_ of use and performance.
 * **Minimal generalization**: Minimizing the use of generics.
+* **Open API**: Use [poem-openapi](https://crates.io/crates/poem-openapi) to write APIs that comply with [OAS3](https://github.com/OAI/OpenAPI-Specification) specifications and automatically generate documents.
 
 ## Example
 
 ```rust
-use poem::{handler, route, web::Path, RouteMethod, Server};
+use poem::{handler, route, web::Path, route::get, Server};
 
 #[handler]
 fn hello(Path(name): Path<String>) -> String {
@@ -52,7 +52,7 @@ fn hello(Path(name): Path<String>) -> String {
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/hello/:name", RouteMethod::new().get(hello));
+    let app = route().at("/hello/:name", get(hello));
     let server = Server::bind("127.0.0.1:3000").await.unwrap();
     server.run(app).await.unwrap();
 }

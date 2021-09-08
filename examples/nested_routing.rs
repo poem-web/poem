@@ -1,4 +1,8 @@
-use poem::{handler, route, route::Route, RouteMethod, Server};
+use poem::{
+    handler, route,
+    route::{get, Route},
+    Server,
+};
 
 #[handler]
 fn hello() -> String {
@@ -6,7 +10,7 @@ fn hello() -> String {
 }
 
 fn api() -> Route {
-    route().at("/hello", RouteMethod::new().get(hello))
+    route().at("/hello", get(hello))
 }
 
 #[tokio::main]

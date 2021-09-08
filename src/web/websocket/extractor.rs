@@ -66,7 +66,7 @@ impl WebSocket {
     ///
     /// ```
     /// use futures_util::{SinkExt, StreamExt};
-    /// use poem::{handler, route, web::websocket::WebSocket, IntoResponse, RouteMethod};
+    /// use poem::{handler, route, route::get, web::websocket::WebSocket, IntoResponse};
     ///
     /// #[handler]
     /// async fn index(ws: WebSocket) -> impl IntoResponse {
@@ -76,7 +76,7 @@ impl WebSocket {
     ///         })
     /// }
     ///
-    /// let mut app = route().at("/", RouteMethod::new().get(index));
+    /// let mut app = route().at("/", get(index));
     /// ```
     #[must_use]
     pub fn protocols<I>(mut self, protocols: I) -> Self

@@ -130,16 +130,14 @@ pub trait EndpointExt: Endpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, middleware::AddData, route, web::Data, EndpointExt, RouteMethod};
+    /// use poem::{handler, middleware::AddData, route, route::get, web::Data, EndpointExt};
     ///
     /// #[handler]
     /// async fn index(Data(data): Data<&i32>) -> String {
     ///     format!("{}", data)
     /// }
     ///
-    /// let mut app = route()
-    ///     .at("/", RouteMethod::new().get(index))
-    ///     .with(AddData::new(100i32));
+    /// let mut app = route().at("/", get(index)).with(AddData::new(100i32));
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
@@ -429,8 +427,7 @@ mod tests {
     use crate::{
         endpoint::make_sync,
         http::Uri,
-        route::{route, Route},
-        RouteMethod,
+        route::{get, route, Route},
     };
 
     #[tokio::test]
@@ -442,8 +439,8 @@ mod tests {
 
             fn into_endpoint(self) -> Self::Endpoint {
                 route()
-                    .at("/a", RouteMethod::new().get(make_sync(|_| "a")))
-                    .at("/b", RouteMethod::new().get(make_sync(|_| "b")))
+                    .at("/a", get(make_sync(|_| "a")))
+                    .at("/b", get(make_sync(|_| "b")))
             }
         }
 

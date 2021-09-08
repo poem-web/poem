@@ -94,6 +94,13 @@ impl Response {
         self.status = status;
     }
 
+    /// Returns the content type of this response.
+    pub fn content_type(&self) -> Option<&str> {
+        self.headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+    }
+
     /// Returns a reference to the associated header map.
     #[inline]
     pub fn headers(&self) -> &HeaderMap {

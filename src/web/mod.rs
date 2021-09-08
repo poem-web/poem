@@ -209,7 +209,7 @@ impl RequestBody {
 ///     fmt::{self, Display, Formatter},
 /// };
 ///
-/// use poem::{handler, route, Endpoint, Error, FromRequest, Request, RequestBody, RouteMethod};
+/// use poem::{handler, route, route::get, Endpoint, Error, FromRequest, Request, RequestBody};
 ///
 /// struct Token(String);
 ///
@@ -252,7 +252,7 @@ impl RequestBody {
 ///     assert_eq!(token.0, "token123");
 /// }
 ///
-/// let mut app = route().at("/", RouteMethod::new().get(index));
+/// let mut app = route().at("/", get(index));
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let _ = index
@@ -581,6 +581,7 @@ where
 }
 
 /// An HTML response.
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Html<T>(pub T);
 
 impl<T: Into<String> + Send> IntoResponse for Html<T> {

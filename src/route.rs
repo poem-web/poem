@@ -6,8 +6,8 @@ use fnv::FnvHashMap;
 use http::StatusCode;
 
 use crate::{
-    http::Method, route_recognizer::Router, Endpoint, EndpointExt, IntoEndpoint, IntoResponse,
-    Request, Response,
+    http::Method, route_recognizer::Router, Body, Endpoint, EndpointExt, IntoEndpoint,
+    IntoResponse, Request, Response,
 };
 
 /// Routing object
@@ -25,7 +25,7 @@ impl Route {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, route, web::Path, RouteMethod};
+    /// use poem::{handler, route, route::get, web::Path};
     ///
     /// #[handler]
     /// async fn a() {}
@@ -38,11 +38,11 @@ impl Route {
     ///
     /// let mut app = route()
     ///     // full path
-    ///     .at("/a/b", RouteMethod::new().get(a))
+    ///     .at("/a/b", get(a))
     ///     // capture parameters
-    ///     .at("/b/:group/:name", RouteMethod::new().get(b))
+    ///     .at("/b/:group/:name", get(b))
     ///     // capture tail path
-    ///     .at("/c/*path", RouteMethod::new().get(c));
+    ///     .at("/c/*path", get(c));
     /// ```
     #[must_use]
     pub fn at(mut self, path: &str, ep: impl IntoEndpoint) -> Self {
@@ -199,10 +199,63 @@ impl RouteMethod {
 impl Endpoint for RouteMethod {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Self::Output {
         match self.methods.get(req.method()) {
             Some(ep) => ep.call(req).await,
-            None => StatusCode::NOT_FOUND.into(),
+            None => {
+                if req.method() == Method::HEAD {
+                    req.set_method(Method::GET);
+                    let mut resp = self.call(req).await;
+                    resp.set_body(Body::empty());
+                    return resp;
+                }
+                StatusCode::NOT_FOUND.into()
+            }
         }
     }
+}
+
+/// A helper function, similar to `RouteMethod::new().get(ep)`.
+pub fn get(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().get(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().post(ep)`.
+pub fn post(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().post(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().put(ep)`.
+pub fn put(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().put(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().delete(ep)`.
+pub fn delete(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().delete(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().head(ep)`.
+pub fn head(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().head(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().options(ep)`.
+pub fn options(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().options(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().connect(ep)`.
+pub fn connect(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().connect(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().patch(ep)`.
+pub fn patch(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().patch(ep)
+}
+
+/// A helper function, similar to `RouteMethod::new().trace(ep)`.
+pub fn trace(ep: impl IntoEndpoint) -> RouteMethod {
+    RouteMethod::new().trace(ep)
 }
