@@ -89,19 +89,23 @@ impl<T: Serialize + Send> IntoResponse for Json<T> {
 
 #[cfg(test)]
 mod tests {
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
 
     use super::*;
-    use crate::{handler, http::Method, Endpoint};
+    use crate::{
+        handler,
+        http::{Method, StatusCode},
+        Endpoint,
+    };
+
+    #[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
+    struct CreateResource {
+        name: String,
+        value: i32,
+    }
 
     #[tokio::test]
     async fn test_json_extractor() {
-        #[derive(Deserialize)]
-        struct CreateResource {
-            name: String,
-            value: i32,
-        }
-
         #[handler(internal)]
         async fn index(query: Json<CreateResource>) {
             assert_eq!(query.name, "abc");
@@ -123,5 +127,27 @@ mod tests {
                     ),
             )
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_json_response() {
+        #[handler(internal)]
+        async fn index() -> Json<CreateResource> {
+            Json(CreateResource {
+                name: "abc".to_string(),
+                value: 100,
+            })
+        }
+
+        let mut resp = index.call(Request::default()).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            serde_json::from_str::<CreateResource>(&resp.take_body().into_string().await.unwrap())
+                .unwrap(),
+            CreateResource {
+                name: "abc".to_string(),
+                value: 100,
+            }
+        );
     }
 }

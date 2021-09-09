@@ -269,10 +269,22 @@ impl<T: Endpoint> EndpointExt for T {}
 #[cfg(test)]
 mod test {
     use crate::{
-        endpoint::make_sync,
+        endpoint::{make, make_sync},
         http::{Method, StatusCode},
         *,
     };
+
+    #[tokio::test]
+    async fn test_make() {
+        let ep = make(|req| async move { format!("method={}", req.method()) }).map_to_response();
+        let mut resp = ep
+            .call(Request::builder().method(Method::DELETE).finish())
+            .await;
+        assert_eq!(
+            resp.take_body().into_string().await.unwrap(),
+            "method=DELETE"
+        );
+    }
 
     #[tokio::test]
     async fn test_before() {
