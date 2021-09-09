@@ -44,6 +44,10 @@
 * **Minimal generalization**: Minimizing the use of generics.
 * **Open API**: Use [poem-openapi](https://crates.io/crates/poem-openapi) to write APIs that comply with [OAS3](https://github.com/OAI/OpenAPI-Specification) specifications and automatically generate documents.
 
+## Safety
+
+This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in 100% Safe Rust.
+
 ## Example
 
 ```rust
