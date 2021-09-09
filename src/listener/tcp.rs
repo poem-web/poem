@@ -40,8 +40,8 @@ impl Acceptor for TcpAcceptor {
     type Io = TcpStream;
 
     #[inline]
-    fn local_addr(&self) -> IoResult<Self::Addr> {
-        self.listener.local_addr()
+    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
+        Ok(vec![self.listener.local_addr()?])
     }
 
     #[inline]

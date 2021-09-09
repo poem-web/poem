@@ -171,7 +171,7 @@ impl<T: Acceptor> Acceptor for TlsAcceptor<T> {
     type Addr = T::Addr;
     type Io = TlsStream<T::Io>;
 
-    fn local_addr(&self) -> IoResult<Self::Addr> {
+    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
         self.inner.local_addr()
     }
 

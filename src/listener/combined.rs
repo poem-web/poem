@@ -45,12 +45,14 @@ impl<A: Acceptor, B: Acceptor> Acceptor for CombinedAcceptor<A, B> {
     type Addr = RemoteAddr;
     type Io = CombinedStream<A::Io, B::Io>;
 
-    fn local_addr(&self) -> IoResult<Self::Addr> {
-        Ok(RemoteAddr::new(format!(
-            "{}; {}",
-            self.a.local_addr()?,
-            self.b.local_addr()?
-        )))
+    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
+        Ok(self
+            .a
+            .local_addr()?
+            .into_iter()
+            .map(RemoteAddr::new)
+            .chain(self.b.local_addr()?.into_iter().map(RemoteAddr::new))
+            .collect())
     }
 
     async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)> {

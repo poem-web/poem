@@ -4,6 +4,8 @@ mod combined;
 mod tcp;
 #[cfg(feature = "tls")]
 mod tls;
+#[cfg(unix)]
+mod unix;
 
 use std::fmt::Display;
 
@@ -12,6 +14,8 @@ pub use tcp::{TcpAcceptor, TcpListener};
 #[cfg(feature = "tls")]
 pub use tls::{TlsAcceptor, TlsConfig, TlsListener};
 use tokio::io::{AsyncRead, AsyncWrite, Result as IoResult};
+#[cfg(unix)]
+pub use unix::{UnixAcceptor, UnixListener};
 
 /// Represents a acceptor type.
 #[async_trait::async_trait]
@@ -23,7 +27,7 @@ pub trait Acceptor: Send + Sync {
     type Io: AsyncRead + AsyncWrite + Send + Unpin + 'static;
 
     /// Returns the local address that this listener is bound to.
-    fn local_addr(&self) -> IoResult<Self::Addr>;
+    fn local_addr(&self) -> IoResult<Vec<Self::Addr>>;
 
     /// Accepts a new incoming connection from this listener.
     ///

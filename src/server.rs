@@ -23,7 +23,7 @@ impl<T: Acceptor> Server<T> {
     }
 
     /// Returns the local address that this server is bound to.
-    pub fn local_addr(&self) -> IoResult<T::Addr> {
+    pub fn local_addr(&self) -> IoResult<Vec<T::Addr>> {
         self.acceptor.local_addr()
     }
 
