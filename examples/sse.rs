@@ -2,7 +2,9 @@ use std::time::Instant;
 
 use futures_util::StreamExt;
 use poem::{
-    handler, route,
+    handler,
+    listener::TcpListener,
+    route,
     route::get,
     web::{
         sse::{Event, SSE},
@@ -40,6 +42,7 @@ fn event() -> SSE {
 async fn main() {
     let app = route().at("/", get(index)).at("/event", get(event));
 
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:3000");
+    let server = Server::new(listener).await.unwrap();
     server.run(app).await.unwrap();
 }

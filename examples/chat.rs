@@ -1,6 +1,7 @@
 use futures_util::{SinkExt, StreamExt};
 use poem::{
     handler,
+    listener::TcpListener,
     middleware::AddData,
     route,
     route::get,
@@ -101,6 +102,7 @@ async fn main() {
         ))),
     );
 
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:3000");
+    let server = Server::new(listener).await.unwrap();
     server.run(app).await.unwrap();
 }

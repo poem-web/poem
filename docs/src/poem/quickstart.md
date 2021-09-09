@@ -25,7 +25,7 @@ request uri. And return a `String`, the string will be converted into an HTTP re
 
 ```rust
 use serde::Deserialize;
-use poem::{handler, web::Query};
+use poem::{handler, listener::TcpListener, route, web::Query, Server};
 
 #[derive(Deserialize)]
 struct Params {
@@ -47,12 +47,13 @@ The `Server::run` function accepts any type that implements the `Endpoint` featu
 routing object, so any request path will be handled by the `index` function.
 
 ```rust
-use poem::Server;
-
 #[tokio::main]
 async fn main() {
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
-    server.run(index).await.unwrap();
+    use poem::route::get;
+    let app = route().at("/", get(index));
+    let listener = TcpListener::bind("127.0.0.1:3000");
+    let server = Server::new(listener).await.unwrap();
+    server.run(app).await.unwrap();
 }
 ```
 

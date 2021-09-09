@@ -22,13 +22,9 @@ fn index(remote_addr: SocketAddr, method: Method, uri: &Uri) {}
 
     Extracts the `Request` from the incoming request.
 
- - **SocketAddr**
+ - **RemoteAddr**
 
-    Extracts the remote address `SocketAddr` from request.
-
- - **IpAddr**
-
-    Extracts the remote ip address `SocketAddr` from request.
+   Extracts the remote peer's address [`RemoteAddr`] from request.
 
  - **Method**
 

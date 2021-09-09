@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::{handler, route, web::Path, Server};
+//! use poem::{handler, listener::TcpListener, route, web::Path, Server};
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>) -> String {
@@ -23,7 +23,8 @@
 //! async fn main() {
 //!     use poem::route::get;
 //!     let app = route().at("/hello/:name", get(hello));
-//!     let server = Server::bind("127.0.0.1:3000").await.unwrap();
+//!     let listener = TcpListener::bind("127.0.0.1:3000");
+//!     let server = Server::new(listener).await.unwrap();
 //!     server.run(app).await.unwrap();
 //! }
 //! ```
@@ -50,6 +51,7 @@
 
 pub mod endpoint;
 pub mod error;
+pub mod listener;
 pub mod middleware;
 pub mod route;
 pub mod service;
@@ -74,6 +76,4 @@ pub use request::{Request, RequestBuilder};
 pub use response::{Response, ResponseBuilder};
 pub use route::{route, RouteMethod};
 pub use server::Server;
-#[cfg(feature = "tls")]
-pub use server::TlsServer;
 pub use web::{FromRequest, IntoResponse, RequestBody};

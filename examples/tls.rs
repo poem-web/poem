@@ -1,4 +1,10 @@
-use poem::{handler, route, route::get, Server};
+use poem::{
+    handler,
+    listener::{IntoAcceptor, TcpListener, TlsConfig},
+    route,
+    route::get,
+    Server,
+};
 
 const CERT: &str = r#"
 -----BEGIN CERTIFICATE-----
@@ -66,13 +72,6 @@ fn index() -> &'static str {
 async fn main() {
     let app = route().at("/", get(index));
 
-    Server::bind("127.0.0.1:3000")
-        .await
-        .unwrap()
-        .tls()
-        .key(KEY)
-        .cert(CERT)
-        .run(app)
-        .await
-        .unwrap();
+    let listener = TcpListener::bind("127.0.0.1:3000").tls(TlsConfig::new().key(KEY).cert(CERT));
+    Server::new(listener).await.unwrap().run(app).await.unwrap();
 }

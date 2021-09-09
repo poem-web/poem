@@ -1,5 +1,6 @@
 use poem::{
-    handler, http::StatusCode, route, route::get, web::Path, EndpointExt, Response, Server,
+    handler, http::StatusCode, listener::TcpListener, route, route::get, web::Path, EndpointExt,
+    Response, Server,
 };
 
 #[handler]
@@ -21,6 +22,8 @@ async fn main() {
             }
         })),
     );
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+
+    let listener = TcpListener::bind("127.0.0.1:3000");
+    let server = Server::new(listener).await.unwrap();
     server.run(app).await.unwrap();
 }

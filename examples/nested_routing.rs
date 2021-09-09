@@ -1,5 +1,7 @@
 use poem::{
-    handler, route,
+    handler,
+    listener::TcpListener,
+    route,
     route::{get, Route},
     Server,
 };
@@ -16,6 +18,8 @@ fn api() -> Route {
 #[tokio::main]
 async fn main() {
     let app = route().nest("/api", api());
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+    let server = Server::new(TcpListener::bind("127.0.0.1:3000"))
+        .await
+        .unwrap();
     server.run(app).await.unwrap();
 }

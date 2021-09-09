@@ -1,4 +1,4 @@
-use poem::{route, service::Files, Server};
+use poem::{listener::TcpListener, route, service::Files, Server};
 
 #[tokio::main]
 async fn main() {
@@ -6,6 +6,8 @@ async fn main() {
         "/",
         Files::new("./examples/static_files").show_files_listing(),
     );
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+    let server = Server::new(TcpListener::bind("127.0.0.1:3000"))
+        .await
+        .unwrap();
     server.run(app).await.unwrap();
 }

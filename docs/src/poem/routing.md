@@ -16,8 +16,6 @@ async fn b() -> &'static str { "b" }
 let ep = poem::route()
     .at("/a", a)
     .at("/b", b);
-
-Server::bind("127.0.0.1:3000").await?.run(ep).await
 ```
 
 ## Capture the variables

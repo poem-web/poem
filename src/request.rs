@@ -2,10 +2,10 @@ use std::{
     any::Any,
     convert::TryInto,
     fmt::{self, Debug, Formatter},
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
 };
 
 use hyper::upgrade::OnUpgrade;
+use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 
 use crate::{
@@ -15,12 +15,12 @@ use crate::{
         Extensions, Method, Uri, Version,
     },
     route_recognizer::Params,
-    web::CookieJar,
+    web::{CookieJar, RemoteAddr},
     RequestBody,
 };
 
 pub(crate) struct RequestState {
-    pub(crate) remote_addr: SocketAddr,
+    pub(crate) remote_addr: RemoteAddr,
     pub(crate) original_uri: Uri,
     pub(crate) match_params: Params,
     pub(crate) cookie_jar: CookieJar,
@@ -30,8 +30,10 @@ pub(crate) struct RequestState {
 
 impl Default for RequestState {
     fn default() -> Self {
+        static UNKNOWN_REMOTE_ADDR: Lazy<RemoteAddr> = Lazy::new(|| RemoteAddr::new("unknown"));
+
         Self {
-            remote_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 0)),
+            remote_addr: UNKNOWN_REMOTE_ADDR.clone(),
             original_uri: Default::default(),
             match_params: Default::default(),
             cookie_jar: Default::default(),
@@ -66,7 +68,7 @@ impl Debug for Request {
 impl Request {
     pub(crate) fn from_hyper_request(
         req: hyper::Request<hyper::Body>,
-        remote_addr: SocketAddr,
+        remote_addr: RemoteAddr,
     ) -> Self {
         let (mut parts, body) = req.into_parts();
 

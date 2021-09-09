@@ -1,4 +1,7 @@
-use poem::{error::ParseJsonError, handler, route, route::post, web::Json, Result, Server};
+use poem::{
+    error::ParseJsonError, handler, listener::TcpListener, route, route::post, web::Json, Result,
+    Server,
+};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -31,6 +34,7 @@ fn hello(res: Result<Json<CreateSomething>, ParseJsonError>) -> Json<serde_json:
 #[tokio::main]
 async fn main() {
     let app = route().at("/hello", post(hello));
-    let server = Server::bind("127.0.0.1:3000").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:3000");
+    let server = Server::new(listener).await.unwrap();
     server.run(app).await.unwrap();
 }

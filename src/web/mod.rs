@@ -11,6 +11,7 @@ mod multipart;
 mod path;
 mod query;
 mod redirect;
+mod remote_addr;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
@@ -34,10 +35,7 @@ pub mod type_headers {
     };
 }
 
-use std::{
-    convert::{Infallible, TryInto},
-    net::{IpAddr, SocketAddr},
-};
+use std::convert::{Infallible, TryInto};
 
 use bytes::Bytes;
 #[cfg(feature = "compression")]
@@ -50,6 +48,7 @@ pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
 pub use redirect::Redirect;
+pub use remote_addr::RemoteAddr;
 pub use template::Template;
 #[cfg(feature = "typed-headers")]
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
@@ -97,13 +96,9 @@ impl RequestBody {
 ///
 ///    Extracts the [`Request`] from the incoming request.
 ///
-/// - **SocketAddr**
+/// - **RemoteAddr**
 ///
-///    Extracts the remote address [`SocketAddr`] from request.
-///
-/// - **IpAddr**
-///
-///    Extracts the remote ip address [`SocketAddr`] from request.
+///    Extracts the remote peer's address [`RemoteAddr`] from request.
 ///
 /// - **Method**
 ///
@@ -675,20 +670,11 @@ impl<'a> FromRequest<'a> for Vec<u8> {
 }
 
 #[async_trait::async_trait]
-impl<'a> FromRequest<'a> for SocketAddr {
+impl<'a> FromRequest<'a> for &'a RemoteAddr {
     type Error = Infallible;
 
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
-        Ok(req.state().remote_addr)
-    }
-}
-
-#[async_trait::async_trait]
-impl<'a> FromRequest<'a> for IpAddr {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
-        Ok(req.state().remote_addr.ip())
+        Ok(&req.state().remote_addr)
     }
 }
 
