@@ -355,11 +355,11 @@ pub enum ParseMultipartError {
     ReadBody(#[from] ReadBodyError),
 
     /// Invalid content type.
-    #[error("invalid content type `{0}`, expect: `application/form-data`")]
+    #[error("invalid content type `{0}`, expect: `multipart/form-data`")]
     InvalidContentType(String),
 
     /// `Content-Type` header is required.
-    #[error("expect content type `application/form-data`")]
+    #[error("expect content type `multipart/form-data`")]
     ContentTypeRequired,
 
     /// Parse error.

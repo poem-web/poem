@@ -145,7 +145,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             resp.take_body().into_string().await.unwrap(),
-            "invalid content type `multipart/json`, expect: `application/form-data`"
+            "invalid content type `multipart/json`, expect: `multipart/form-data`"
         );
     }
 
