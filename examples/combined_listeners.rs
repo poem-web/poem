@@ -3,18 +3,17 @@ use poem::{
     listener::{IntoAcceptor, TcpListener},
     route,
     route::get,
-    web::Path,
-    Server,
+    IntoResponse, Server,
 };
 
 #[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
+fn hello() -> impl IntoResponse {
+    "hello"
 }
 
 #[tokio::main]
 async fn main() {
-    let app = route().at("/hello/:name", get(hello));
+    let app = route().at("/", get(hello));
     let listener = TcpListener::bind("127.0.0.1:3000")
         .combine(TcpListener::bind("127.0.0.1:3001"))
         .combine(TcpListener::bind("127.0.0.1:3002"));

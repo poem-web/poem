@@ -2,7 +2,7 @@ use std::{io::Result, net::SocketAddr};
 
 use tokio::{
     io::Result as IoResult,
-    net::{TcpStream, ToSocketAddrs},
+    net::{TcpListener as TokioTcpListener, TcpStream, ToSocketAddrs},
 };
 
 use crate::listener::{Acceptor, IntoAcceptor};
@@ -24,14 +24,14 @@ impl<T: ToSocketAddrs + Send> IntoAcceptor for TcpListener<T> {
     type Acceptor = TcpAcceptor;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
-        let listener = tokio::net::TcpListener::bind(self.addr).await?;
+        let listener = TokioTcpListener::bind(self.addr).await?;
         Ok(TcpAcceptor { listener })
     }
 }
 
 /// A acceptor that accepts TCP connections.
 pub struct TcpAcceptor {
-    listener: tokio::net::TcpListener,
+    listener: TokioTcpListener,
 }
 
 #[async_trait::async_trait]

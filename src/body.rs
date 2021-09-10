@@ -118,7 +118,7 @@ impl Body {
     }
 
     /// Consumes this body object to return a reader.
-    pub fn into_async_read(self) -> impl AsyncRead + Send + 'static {
+    pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
         tokio_util::io::StreamReader::new(BodyStream::new(self.0))
     }
 }

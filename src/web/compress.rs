@@ -1,9 +1,10 @@
 use std::{
     fmt::{self, Display, Formatter},
+    pin::Pin,
     str::FromStr,
 };
 
-use tokio::io::BufReader;
+use tokio::io::{AsyncRead, BufReader};
 
 use crate::{
     http::{header, HeaderValue},
@@ -38,11 +39,45 @@ impl FromStr for CompressionAlgo {
 }
 
 impl CompressionAlgo {
-    fn as_str(&self) -> &'static str {
+    pub(crate) fn as_str(&self) -> &'static str {
         match self {
             CompressionAlgo::BR => "br",
             CompressionAlgo::DEFLATE => "deflate",
             CompressionAlgo::GZIP => "gzip",
+        }
+    }
+
+    pub(crate) fn compress<'a>(
+        &self,
+        reader: impl AsyncRead + Send + Unpin + 'a,
+    ) -> Pin<Box<dyn AsyncRead + Send + 'a>> {
+        match self {
+            CompressionAlgo::BR => Box::pin(async_compression::tokio::bufread::BrotliEncoder::new(
+                BufReader::new(reader),
+            )),
+            CompressionAlgo::DEFLATE => Box::pin(
+                async_compression::tokio::bufread::DeflateEncoder::new(BufReader::new(reader)),
+            ),
+            CompressionAlgo::GZIP => Box::pin(async_compression::tokio::bufread::GzipEncoder::new(
+                BufReader::new(reader),
+            )),
+        }
+    }
+
+    pub(crate) fn decompress<'a>(
+        &self,
+        reader: impl AsyncRead + Send + Unpin + 'a,
+    ) -> Pin<Box<dyn AsyncRead + Send + 'a>> {
+        match self {
+            CompressionAlgo::BR => Box::pin(async_compression::tokio::bufread::BrotliDecoder::new(
+                BufReader::new(reader),
+            )),
+            CompressionAlgo::DEFLATE => Box::pin(
+                async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(reader)),
+            ),
+            CompressionAlgo::GZIP => Box::pin(async_compression::tokio::bufread::GzipDecoder::new(
+                BufReader::new(reader),
+            )),
         }
     }
 }
@@ -92,30 +127,9 @@ impl<T: IntoResponse> IntoResponse for Compress<T> {
             HeaderValue::from_static(self.algo.as_str()),
         );
 
-        match self.algo {
-            CompressionAlgo::BR => {
-                resp.set_body(Body::from_async_read(
-                    async_compression::tokio::bufread::BrotliEncoder::new(BufReader::new(
-                        body.into_async_read(),
-                    )),
-                ));
-            }
-            CompressionAlgo::DEFLATE => {
-                resp.set_body(Body::from_async_read(
-                    async_compression::tokio::bufread::DeflateEncoder::new(BufReader::new(
-                        body.into_async_read(),
-                    )),
-                ));
-            }
-            CompressionAlgo::GZIP => {
-                resp.set_body(Body::from_async_read(
-                    async_compression::tokio::bufread::GzipEncoder::new(BufReader::new(
-                        body.into_async_read(),
-                    )),
-                ));
-            }
-        }
-
+        resp.set_body(Body::from_async_read(
+            self.algo.compress(body.into_async_read()),
+        ));
         resp
     }
 }
@@ -130,24 +144,8 @@ mod tests {
     async fn decompress_data(algo: CompressionAlgo, data: &[u8]) -> String {
         let mut output = Vec::new();
 
-        match algo {
-            CompressionAlgo::BR => {
-                let mut dec =
-                    async_compression::tokio::bufread::BrotliDecoder::new(BufReader::new(data));
-                dec.read_to_end(&mut output).await.unwrap();
-            }
-            CompressionAlgo::DEFLATE => {
-                let mut dec =
-                    async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(data));
-                dec.read_to_end(&mut output).await.unwrap();
-            }
-            CompressionAlgo::GZIP => {
-                let mut dec =
-                    async_compression::tokio::bufread::GzipDecoder::new(BufReader::new(data));
-                dec.read_to_end(&mut output).await.unwrap();
-            }
-        }
-
+        let mut dec = algo.decompress(data);
+        dec.read_to_end(&mut output).await.unwrap();
         String::from_utf8(output).unwrap()
     }
 

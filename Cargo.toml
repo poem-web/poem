@@ -27,7 +27,7 @@ websocket = ["tokio-tungstenite"]
 multipart = ["multer"]
 tls = ["tokio-rustls"]
 sse = []
-compression = ["async-compression"]
+compression = ["async-compression", "typed-headers"]
 
 [dependencies]
 poem-derive = { path = "derive", version = "0.5.0" }
