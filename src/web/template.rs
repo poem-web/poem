@@ -1,6 +1,5 @@
-use crate::{http::StatusCode, IntoResponse, Response};
-
 use super::Html;
+use crate::{http::StatusCode, IntoResponse, Response};
 
 /// Template response using [`askama`](https://crates.io/crates/askama).
 pub struct Template<T>(pub T);
