@@ -69,17 +69,31 @@ use crate::{
 };
 
 /// The body parameter type of [`FromRequest::from_request`] method.
+#[derive(Default)]
 pub struct RequestBody(Option<Body>);
 
 impl RequestBody {
-    pub(crate) fn new(body: Option<Body>) -> Self {
-        Self(body)
+    /// Create a new request body.
+    pub fn new(body: Body) -> Self {
+        Self(Some(body))
     }
 
     /// Take a body, if it has already been taken, an error with the status code
     /// [`StatusCode::INTERNAL_SERVER_ERROR`] is returned.
     pub fn take(&mut self) -> Result<Body, ReadBodyError> {
         self.0.take().ok_or(ReadBodyError::BodyHasBeenTaken)
+    }
+
+    /// Returns `true` if body exists.
+    #[inline]
+    pub fn is_some(&self) -> bool {
+        self.0.is_some()
+    }
+
+    /// Returns `true` if body does not exists.
+    #[inline]
+    pub fn is_none(&self) -> bool {
+        self.0.is_none()
     }
 }
 
