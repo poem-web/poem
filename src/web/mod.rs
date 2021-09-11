@@ -82,6 +82,18 @@ impl RequestBody {
     pub fn take(&mut self) -> Result<Body, ReadBodyError> {
         self.0.take().ok_or(ReadBodyError::BodyHasBeenTaken)
     }
+
+    /// Returns `true` if body exists.
+    #[inline]
+    pub fn is_some(&self) -> bool {
+        self.0.is_some()
+    }
+
+    /// Returns `true` if body does not exists.
+    #[inline]
+    pub fn is_none(&self) -> bool {
+        self.0.is_none()
+    }
 }
 
 /// Represents an type that can be extract from requests.
