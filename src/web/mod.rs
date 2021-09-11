@@ -73,8 +73,9 @@ use crate::{
 pub struct RequestBody(Option<Body>);
 
 impl RequestBody {
-    pub(crate) fn new(body: Option<Body>) -> Self {
-        Self(body)
+    /// Create a new request body.
+    pub fn new(body: Body) -> Self {
+        Self(Some(body))
     }
 
     /// Take a body, if it has already been taken, an error with the status code
