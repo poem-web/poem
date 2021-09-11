@@ -69,6 +69,7 @@ use crate::{
 };
 
 /// The body parameter type of [`FromRequest::from_request`] method.
+#[derive(Default)]
 pub struct RequestBody(Option<Body>);
 
 impl RequestBody {
