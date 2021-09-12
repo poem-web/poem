@@ -5,7 +5,10 @@ use std::{
 
 use futures_util::TryStreamExt;
 use mime::Mime;
-use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio::{
+    fs::File,
+    io::{AsyncRead, AsyncReadExt, AsyncSeekExt, SeekFrom},
+};
 
 use crate::{error::ParseMultipartError, http::header, FromRequest, Request, RequestBody, Result};
 
@@ -32,7 +35,7 @@ impl Field {
         self.0.name()
     }
 
-    /// Get the full data of the field as Bytes.
+    /// Get the full data of the field as bytes.
     pub async fn bytes(self) -> Result<Vec<u8>, IoError> {
         let mut data = Vec::new();
         let mut buf = [0; 2048];
@@ -53,6 +56,17 @@ impl Field {
     #[inline]
     pub async fn text(self) -> Result<String, IoError> {
         String::from_utf8(self.bytes().await?).map_err(|err| IoError::new(ErrorKind::Other, err))
+    }
+
+    /// Write the full field data to a temporary file and return it.
+    #[cfg(feature = "tempfile")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
+    pub async fn tempfile(self) -> Result<File, IoError> {
+        let mut reader = self.into_async_read();
+        let mut file = tokio::fs::File::from_std(::tempfile::tempfile()?);
+        tokio::io::copy(&mut reader, &mut file).await?;
+        file.seek(SeekFrom::Start(0)).await?;
+        Ok(file)
     }
 
     /// Consume this field to return a reader.
