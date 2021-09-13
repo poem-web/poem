@@ -49,7 +49,7 @@ pub use path::Path;
 pub use query::Query;
 pub use redirect::Redirect;
 pub use remote_addr::RemoteAddr;
-pub use template::Template;
+pub use template::{HtmlTemplate, Template};
 #[cfg(feature = "typed-headers")]
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
