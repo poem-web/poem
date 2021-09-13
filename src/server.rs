@@ -1,7 +1,17 @@
-use std::{convert::Infallible, sync::Arc};
+use std::{
+    convert::Infallible,
+    future::Future,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 
 use hyper::server::conn::Http;
-use tokio::io::{AsyncRead, AsyncWrite, Result as IoResult};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, Result as IoResult},
+    sync::Notify,
+};
 
 use crate::{
     listener::{Acceptor, IntoAcceptor},
@@ -29,18 +39,47 @@ impl<T: Acceptor> Server<T> {
 
     /// Run this server.
     pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
+        self.run_with_graceful_shutdown(ep, futures_util::future::pending())
+            .await
+    }
+
+    /// Run this server and a signal to initiate graceful shutdown.
+    pub async fn run_with_graceful_shutdown(
+        self,
+        ep: impl IntoEndpoint,
+        signal: impl Future<Output = ()>,
+    ) -> IoResult<()> {
         let ep = Arc::new(ep.into_endpoint().map_to_response());
         let mut acceptor = self.acceptor;
+        let alive_connections = Arc::new(AtomicUsize::new(0));
+        let notify = Arc::new(Notify::new());
+
+        tokio::pin!(signal);
 
         loop {
-            if let Ok((socket, remote_addr)) = acceptor.accept().await {
-                tokio::spawn(serve_connection(
-                    socket,
-                    RemoteAddr::new(remote_addr),
-                    ep.clone(),
-                ));
+            tokio::select! {
+                _ = &mut signal => break,
+                res = acceptor.accept() => {
+                    if let Ok((socket, remote_addr)) = res {
+                        let ep = ep.clone();
+                        let alive_connections = alive_connections.clone();
+                        let notify = notify.clone();
+                        tokio::spawn(async move {
+                            alive_connections.fetch_add(1, Ordering::SeqCst);
+                            serve_connection(socket, RemoteAddr::new(remote_addr), ep).await;
+                            if alive_connections.fetch_sub(1, Ordering::SeqCst) == 1 {
+                                notify.notify_one();
+                            }
+                        });
+                    }
+                }
             }
         }
+
+        if alive_connections.load(Ordering::SeqCst) > 0 {
+            notify.notified().await;
+        }
+        Ok(())
     }
 }
 
