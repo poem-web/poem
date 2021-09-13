@@ -1,0 +1,9 @@
+[package]
+name = "example-websocket-chat"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+poem = { path = "../../", features = ["websocket"]}
+tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
+futures-util = "0.3.16"

@@ -1,0 +1,10 @@
+[package]
+name = "example-async-graphql"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+poem = { path = "../../" }
+tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
+async-graphql = "2.9.10"
+slab = "0.4.4"

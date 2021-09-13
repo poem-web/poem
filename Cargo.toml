@@ -18,7 +18,8 @@ categories = [
 
 [workspace]
 members = [
-    "derive"
+    "derive",
+    "examples/*",
 ]
 
 [features]
@@ -28,6 +29,7 @@ multipart = ["multer"]
 tls = ["tokio-rustls"]
 sse = []
 compression = ["async-compression", "typed-headers"]
+tower-compat = ["tower"]
 
 [dependencies]
 poem-derive = { path = "derive", version = "=0.5.6" }
@@ -61,6 +63,7 @@ multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.15.0", optional = true }
 tokio-rustls = { version = "0.22.0", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
+tower = { version = "0.4.8", optional = true, default-features = true, features = ["buffer", "util", "make"] }
 
 # Feature optional dependencies
 typed-headers = { version = "0.2.0", optional = true }
@@ -70,48 +73,6 @@ tempfile = { version = "3.2.0", optional = true }
 [dev-dependencies]
 tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
 
-# For async-graphql example
-async-graphql = "2.9.10"
-slab = "0.4.4"
-
-# For tracing example
-tracing-subscriber = "0.2.20"
-
-# For error-handling example
-derive_more = "0.99.16"
-
-# For cookie_session example
-async-session = "3.0.0"
-
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
-
-# Examples
-
-[[example]]
-name = "tracing"
-required-features = ["tracing"]
-
-[[example]]
-name = "sse"
-required-features = ["sse"]
-
-[[example]]
-name = "chat"
-required-features = ["websocket"]
-
-[[example]]
-name = "tls"
-required-features = ["tls"]
-
-[[example]]
-name = "upload"
-required-features = ["multipart"]
-
-[[example]]
-name = "cookie_session"
-
-[[example]]
-name = "graceful_shutdown"
-required-features = ["sse"]
