@@ -8,7 +8,7 @@ use poem::{
 
 #[handler]
 fn hello() -> String {
-    format!("hello")
+    "hello".to_string()
 }
 
 fn api() -> Route {

@@ -93,9 +93,9 @@ async fn serve_connection(
             let ep = ep.clone();
             let remote_addr = remote_addr.clone();
             async move {
-                let req = Request::from_hyper_request(req, remote_addr);
+                let req: Request = (req, remote_addr).into();
                 let cookie_jar = req.cookie().clone();
-                let mut resp = ep.call(req).await.into_hyper_response();
+                let mut resp: http::Response<hyper::Body> = ep.call(req).await.into();
                 // Appends cookies to response headers
                 cookie_jar.append_delta_to_headers(resp.headers_mut());
                 Ok::<_, Infallible>(resp)

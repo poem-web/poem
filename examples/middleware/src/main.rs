@@ -33,7 +33,7 @@ impl<E: Endpoint> Endpoint for LogImpl<E> {
 
 #[handler]
 fn index() -> String {
-    format!("hello")
+    "hello".to_string()
 }
 
 #[tokio::main]

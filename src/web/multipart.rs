@@ -5,10 +5,11 @@ use std::{
 
 use futures_util::TryStreamExt;
 use mime::Mime;
-use tokio::{
-    fs::File,
-    io::{AsyncRead, AsyncReadExt, AsyncSeekExt, SeekFrom},
-};
+#[cfg(feature = "tempfile")]
+use tokio::fs::File;
+use tokio::io::{AsyncRead, AsyncReadExt};
+#[cfg(feature = "tempfile")]
+use tokio::io::{AsyncSeekExt, SeekFrom};
 
 use crate::{error::ParseMultipartError, http::header, FromRequest, Request, RequestBody, Result};
 

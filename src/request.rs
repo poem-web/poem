@@ -65,11 +65,8 @@ impl Debug for Request {
     }
 }
 
-impl Request {
-    pub(crate) fn from_hyper_request(
-        req: hyper::Request<hyper::Body>,
-        remote_addr: RemoteAddr,
-    ) -> Self {
+impl From<(http::Request<hyper::Body>, RemoteAddr)> for Request {
+    fn from((req, remote_addr): (http::Request<hyper::Body>, RemoteAddr)) -> Self {
         let (mut parts, body) = req.into_parts();
 
         let cookie_jar = extract_cookie_jar(&parts.headers);
@@ -91,7 +88,23 @@ impl Request {
             },
         }
     }
+}
 
+impl From<Request> for hyper::Request<hyper::Body> {
+    fn from(req: Request) -> Self {
+        let mut hyper_req = http::Request::builder()
+            .method(req.method)
+            .uri(req.uri)
+            .version(req.version)
+            .body(req.body.into())
+            .unwrap();
+        *hyper_req.headers_mut() = req.headers;
+        *hyper_req.extensions_mut() = req.extensions;
+        hyper_req
+    }
+}
+
+impl Request {
     /// Creates a request builder.
     pub fn builder() -> RequestBuilder {
         RequestBuilder {
