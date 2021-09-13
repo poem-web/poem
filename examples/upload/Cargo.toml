@@ -1,0 +1,8 @@
+[package]
+name = "example-upload"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+poem = { path = "../../", features = ["tracing", "multipart"] }
+tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }

@@ -56,16 +56,31 @@ impl<T: Into<Body>> From<(StatusCode, T)> for Response {
     }
 }
 
-impl Response {
-    pub(crate) fn into_hyper_response(mut self) -> hyper::Response<hyper::Body> {
-        let mut resp = hyper::Response::new(std::mem::take(&mut self.body).0);
-        *resp.status_mut() = self.status;
-        *resp.version_mut() = self.version;
-        *resp.headers_mut() = self.headers;
-        *resp.extensions_mut() = self.extensions;
-        resp
+impl From<Response> for hyper::Response<hyper::Body> {
+    fn from(resp: Response) -> Self {
+        let mut hyper_resp = hyper::Response::new(resp.body.into());
+        *hyper_resp.status_mut() = resp.status;
+        *hyper_resp.version_mut() = resp.version;
+        *hyper_resp.headers_mut() = resp.headers;
+        *hyper_resp.extensions_mut() = resp.extensions;
+        hyper_resp
     }
+}
 
+impl From<hyper::Response<hyper::Body>> for Response {
+    fn from(hyper_resp: hyper::Response<hyper::Body>) -> Self {
+        let (parts, body) = hyper_resp.into_parts();
+        Response {
+            status: parts.status,
+            version: parts.version,
+            headers: parts.headers,
+            extensions: parts.extensions,
+            body: body.into(),
+        }
+    }
+}
+
+impl Response {
     /// Creates a response builder.
     pub fn builder() -> ResponseBuilder {
         ResponseBuilder {

@@ -16,6 +16,18 @@ use crate::error::ReadBodyError;
 #[derive(Default)]
 pub struct Body(pub(crate) hyper::Body);
 
+impl From<hyper::Body> for Body {
+    fn from(body: hyper::Body) -> Self {
+        Body(body)
+    }
+}
+
+impl From<Body> for hyper::Body {
+    fn from(body: Body) -> Self {
+        body.0
+    }
+}
+
 impl From<&'static [u8]> for Body {
     #[inline]
     fn from(data: &'static [u8]) -> Self {

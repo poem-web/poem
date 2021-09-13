@@ -1,0 +1,9 @@
+[package]
+name = "example-cookie-session"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+poem = { path = "../../" }
+tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
+async-session = "3.0.0"
