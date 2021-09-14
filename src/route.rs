@@ -68,7 +68,10 @@ impl Route {
     /// Nest a `Endpoint` to the specified path.
     pub fn internal_nest(mut self, path: &str, ep: impl IntoEndpoint, strip: bool) -> Self {
         let ep = Arc::new(ep.into_endpoint());
-        let path = path.trim_end_matches('/');
+        let mut path = path.to_string();
+        if !path.ends_with('/') {
+            path.push('/');
+        }
 
         struct Nest<T> {
             inner: T,
@@ -86,7 +89,7 @@ impl Route {
                 req.set_uri(
                     http::uri::Builder::new()
                         .path_and_query(match &self.prefix {
-                            Some(prefix) => format!("{}/{}", prefix, value),
+                            Some(prefix) => format!("{}{}", prefix, value),
                             None => format!("/{}", value),
                         })
                         .build()
@@ -118,16 +121,16 @@ impl Route {
             "wildcards are not allowed in the nest path."
         );
         self.router.add(
-            &format!("{}/*--poem-rest", path),
+            &format!("{}*--poem-rest", path),
             Box::new(Nest {
                 inner: ep.clone(),
                 prefix: match strip {
-                    true => Some(path.to_string()),
-                    false => None,
+                    false => Some(path.to_string()),
+                    true => None,
                 },
             }),
         );
-        self.router.add(path, Box::new(Root(ep)));
+        self.router.add(&path[..path.len() - 1], Box::new(Root(ep)));
 
         self
     }
@@ -283,4 +286,81 @@ pub fn patch(ep: impl IntoEndpoint) -> RouteMethod {
 /// A helper function, similar to `RouteMethod::new().trace(ep)`.
 pub fn trace(ep: impl IntoEndpoint) -> RouteMethod {
     RouteMethod::new().trace(ep)
+}
+
+#[cfg(test)]
+mod tests {
+    use http::Uri;
+
+    use super::*;
+    use crate::handler;
+
+    #[handler(internal)]
+    fn h(uri: &Uri) -> String {
+        uri.path().to_string()
+    }
+
+    async fn get(route: &impl Endpoint<Output = Response>, path: &'static str) -> String {
+        route
+            .call(Request::builder().uri(Uri::from_static(path)).finish())
+            .await
+            .take_body()
+            .into_string()
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn nested() {
+        let r = route().nest(
+            "/",
+            route()
+                .at("/a", h)
+                .at("/b", h)
+                .nest("/inner", route().at("/c", h)),
+        );
+
+        assert_eq!(get(&r, "/a").await, "/a");
+        assert_eq!(get(&r, "/b").await, "/b");
+        assert_eq!(get(&r, "/inner/c").await, "/c");
+
+        let r = route().nest(
+            "/api",
+            route()
+                .at("/a", h)
+                .at("/b", h)
+                .nest("/inner", route().at("/c", h)),
+        );
+
+        assert_eq!(get(&r, "/api/a").await, "/a");
+        assert_eq!(get(&r, "/api/b").await, "/b");
+        assert_eq!(get(&r, "/api/inner/c").await, "/c");
+    }
+
+    #[tokio::test]
+    async fn nested_no_strip() {
+        let r = route().nest_no_strip(
+            "/",
+            route()
+                .at("/a", h)
+                .at("/b", h)
+                .nest_no_strip("/inner", route().at("/inner/c", h)),
+        );
+
+        assert_eq!(get(&r, "/a").await, "/a");
+        assert_eq!(get(&r, "/b").await, "/b");
+        assert_eq!(get(&r, "/inner/c").await, "/inner/c");
+
+        let r = route().nest_no_strip(
+            "/api",
+            route()
+                .at("/api/a", h)
+                .at("/api/b", h)
+                .nest_no_strip("/api/inner", route().at("/api/inner/c", h)),
+        );
+
+        assert_eq!(get(&r, "/api/a").await, "/api/a");
+        assert_eq!(get(&r, "/api/b").await, "/api/b");
+        assert_eq!(get(&r, "/api/inner/c").await, "/api/inner/c");
+    }
 }

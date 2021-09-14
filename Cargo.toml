@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "0.5.6"
+version = "0.5.7"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -32,7 +32,7 @@ compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 
 [dependencies]
-poem-derive = { path = "derive", version = "=0.5.6" }
+poem-derive = { path = "derive", version = "=0.5.7" }
 
 async-trait = "0.1.51"
 bytes = "1.0.1"
@@ -63,7 +63,7 @@ multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.15.0", optional = true }
 tokio-rustls = { version = "0.22.0", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
-tower = { version = "0.4.8", optional = true, default-features = true, features = ["buffer", "util", "make"] }
+tower = { version = "0.4.8", optional = true, default-features = true, features = ["util"] }
 
 # Feature optional dependencies
 typed-headers = { version = "0.2.0", optional = true }
