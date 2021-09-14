@@ -1,5 +1,7 @@
 # Extractors
 
+The extractor is used to extract something from the HTTP request.
+
 `Poem` provides some commonly used extractors for extracting something from HTTP requests.
 
 You can use one or more extractors as the parameters of the function, up to 16.

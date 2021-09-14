@@ -7,4 +7,4 @@ mod tower_compat;
 
 pub use files::Files;
 #[cfg(feature = "tower-compat")]
-pub use tower_compat::{TowerCompatEndpoint, TowerCompatExt};
+pub use tower_compat::TowerCompatExt;

@@ -5,6 +5,8 @@ mod add_data;
 mod compression;
 mod cors;
 mod set_header;
+#[cfg(feature = "tower-compat")]
+mod tower_compat;
 #[cfg(feature = "tracing")]
 mod tracing;
 
@@ -13,6 +15,8 @@ pub use add_data::AddData;
 pub use compression::Compression;
 pub use cors::Cors;
 pub use set_header::SetHeader;
+#[cfg(feature = "tower-compat")]
+pub use tower_compat::TowerLayerCompatExt;
 
 #[cfg(feature = "tracing")]
 pub use self::tracing::Tracing;

@@ -4,7 +4,7 @@ use bytes::Bytes;
 use hyper::body::HttpBody;
 use tower::{Service, ServiceExt};
 
-use crate::{body::BodyStream, http::StatusCode, Endpoint, Error, Request, Response, Result};
+use crate::{body::BodyStream, Endpoint, Error, Request, Response, Result};
 
 /// Extension trait for tower service compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
@@ -61,15 +61,13 @@ where
     async fn call(&self, req: Request) -> Self::Output {
         let mut svc = self.0.clone();
 
-        svc.ready()
-            .await
-            .map_err(|err| Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason_string(err))?;
+        svc.ready().await.map_err(Error::internal_server_error)?;
 
         let hyper_req: http::Request<hyper::Body> = req.into();
         let hyper_resp = svc
             .call(hyper_req.map(Into::into))
             .await
-            .map_err(|err| Error::new(StatusCode::BAD_REQUEST).with_reason_string(err))?;
+            .map_err(Error::internal_server_error)?;
 
         Ok(hyper_resp
             .map(|body| hyper::Body::wrap_stream(BodyStream::new(body)))

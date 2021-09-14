@@ -78,8 +78,9 @@ impl TlsConfig {
 /// A wrapper around an underlying listener which implements the TLS or SSL
 /// protocol.
 ///
-/// NOTE: You cannot create it directly and should use the [`IntoListener::tls`]
-/// method to create it, because it needs to wrap a underlying listener.
+/// NOTE: You cannot create it directly and should use the
+/// [`tls`](crate::listener::IntoAcceptor::tls) method to create it, because it
+/// needs to wrap a underlying listener.
 #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
 pub struct TlsListener<T> {
     config: TlsConfig,

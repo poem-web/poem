@@ -1,6 +1,6 @@
 # Endpoint
 
-An endpoint is a type that can handle HTTP requests. You can implement the `Endpoint` trait to create your own endpoint.
+The endpoint can handle HTTP requests. You can implement the `Endpoint` trait to create your own endpoint.
 `Poem` also provides some convenient functions to easily create a custom endpoint type.
 
 In the previous chapter, we learned how to use the `handler` macro to convert a function to an endpoint.

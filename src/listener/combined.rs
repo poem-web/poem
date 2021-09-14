@@ -10,7 +10,7 @@ use crate::{
     web::RemoteAddr,
 };
 
-/// Listener for the [`combine`](crate::IntoListener::combine) method.
+/// Listener for the [`combine`](crate::listener::IntoAcceptor::combine) method.
 pub struct CombinedListener<A, B> {
     a: A,
     b: B,

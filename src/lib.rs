@@ -29,7 +29,7 @@
 //! }
 //! ```
 //!
-//! # Features
+//! # Crate features
 //!
 //! To avoid compiling unused dependencies, Poem gates certain features, all of
 //! which are disabled by default:
@@ -43,6 +43,7 @@
 //! |typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
 //! |tracing           | Support for Tracing middleware |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
+//! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]

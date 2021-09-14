@@ -1,7 +1,5 @@
 <h1 align="center">Poem Framework</h1>
 
-<p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
-<p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
 <div align="center">
   <!-- CI -->
   <img src="https://github.com/poem-web/poem/workflows/CI/badge.svg" />
@@ -31,6 +29,8 @@
       alt="rustc 1.54+" />
   </a>
 </div>
+<p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
+<p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
 
 ***
 
@@ -40,9 +40,26 @@
 
 ## Features
 
-* **Fast**: Both _Ease_ of use and performance.
-* **Minimal generalization**: Minimizing the use of generics.
-* **Open API**: Use [poem-openapi](https://crates.io/crates/poem-openapi) to write APIs that comply with [OAS3](https://github.com/OAI/OpenAPI-Specification) specifications and automatically generate documents.
+- Both _Ease_ of use and performance.
+- Minimizing the use of generics.
+- `tower::Service` and `tower::Layer` compatibility.
+- Use [poem-openapi](https://crates.io/crates/poem-openapi) to write APIs that comply with [OAS3](https://github.com/OAI/OpenAPI-Specification) specifications and automatically generate documents.
+
+## Crate features
+
+To avoid compiling unused dependencies, Poem gates certain features, all of
+which are disabled by default:
+
+|Feature           |Description                     |
+|------------------|--------------------------------|
+|websocket         | Support for WebSocket          |
+|multipart         | Support for Multipart          |
+|sse               | Support Server-Sent Events (SSE)       |
+|tls               | Support for HTTP server over TLS   |
+|typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
+|tracing           | Support for Tracing middleware |
+|tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
+|tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 
 ## Safety
 
@@ -50,7 +67,7 @@ This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in
 
 ## Example
 
-```rust
+```rust, no_run
 use poem::{handler, listener::TcpListener, route, web::Path, Server};
 
 #[handler]
