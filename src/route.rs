@@ -77,7 +77,7 @@ impl Route {
 
         struct Nest<T> {
             inner: T,
-            prefix: Option<String>,
+            prefix_len: usize,
         }
 
         #[async_trait::async_trait]
@@ -86,14 +86,13 @@ impl Route {
 
             async fn call(&self, mut req: Request) -> Self::Output {
                 let idx = req.state().match_params.0.len() - 1;
-                let (name, value) = req.state_mut().match_params.0.remove(idx);
+                let (name, _) = req.state_mut().match_params.0.remove(idx);
                 assert_eq!(name, "--poem-rest");
                 req.set_uri(
                     http::uri::Builder::new()
-                        .path_and_query(match &self.prefix {
-                            Some(prefix) => format!("{}{}", prefix, value),
-                            None => format!("/{}", value),
-                        })
+                        .path_and_query(
+                            &req.uri().path_and_query().unwrap().as_str()[self.prefix_len..],
+                        )
                         .build()
                         .unwrap(),
                 );
@@ -101,7 +100,10 @@ impl Route {
             }
         }
 
-        struct Root<T>(T);
+        struct Root<T> {
+            inner: T,
+            prefix_len: usize,
+        }
 
         #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Root<E> {
@@ -110,11 +112,13 @@ impl Route {
             async fn call(&self, mut req: Request) -> Self::Output {
                 req.set_uri(
                     http::uri::Builder::new()
-                        .path_and_query("/")
+                        .path_and_query(
+                            &req.uri().path_and_query().unwrap().as_str()[self.prefix_len..],
+                        )
                         .build()
                         .unwrap(),
                 );
-                self.0.call(req).await.into_response()
+                self.inner.call(req).await.into_response()
             }
         }
 
@@ -122,17 +126,25 @@ impl Route {
             path.find('*').is_none(),
             "wildcards are not allowed in the nest path."
         );
+
+        let prefix_len = match strip {
+            false => 0,
+            true => path.len() - 1,
+        };
         self.router.add(
             &format!("{}*--poem-rest", path),
             Box::new(Nest {
                 inner: ep.clone(),
-                prefix: match strip {
-                    false => Some(path.to_string()),
-                    true => None,
-                },
+                prefix_len,
             }),
         );
-        self.router.add(&path[..path.len() - 1], Box::new(Root(ep)));
+        self.router.add(
+            &path[..path.len() - 1],
+            Box::new(Root {
+                inner: ep,
+                prefix_len,
+            }),
+        );
 
         self
     }
@@ -306,7 +318,7 @@ mod tests {
     use http::Uri;
 
     use super::*;
-    use crate::handler;
+    use crate::{endpoint::make_sync, handler};
 
     #[test]
     fn test_normalize_path() {
@@ -382,5 +394,20 @@ mod tests {
         assert_eq!(get(&r, "/api/a").await, "/api/a");
         assert_eq!(get(&r, "/api/b").await, "/api/b");
         assert_eq!(get(&r, "/api/inner/c").await, "/api/inner/c");
+    }
+
+    #[tokio::test]
+    async fn nested_query_string() {
+        let r = route().nest(
+            "/a",
+            route().nest(
+                "/b",
+                route().at(
+                    "/c",
+                    make_sync(|req| req.uri().path_and_query().unwrap().to_string()),
+                ),
+            ),
+        );
+        assert_eq!(get(&r, "/a/b/c?name=abc").await, "/c?name=abc");
     }
 }
