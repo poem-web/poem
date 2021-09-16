@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 use fnv::FnvHashMap;
 use http::StatusCode;
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 use crate::{
     http::Method, route_recognizer::Router, Body, Endpoint, EndpointExt, IntoEndpoint,
@@ -47,7 +49,7 @@ impl Route {
     #[must_use]
     pub fn at(mut self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
         self.router.add(
-            path.as_ref(),
+            &normalize_path(path.as_ref()),
             Box::new(ep.into_endpoint().map_to_response()),
         );
         self
@@ -56,13 +58,13 @@ impl Route {
     /// Nest a `Endpoint` to the specified path and strip the prefix.
     #[must_use]
     pub fn nest(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
-        self.internal_nest(path.as_ref(), ep, true)
+        self.internal_nest(&normalize_path(path.as_ref()), ep, true)
     }
 
     /// Nest a `Endpoint` to the specified path, but do not strip the prefix.
     #[must_use]
     pub fn nest_no_strip(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
-        self.internal_nest(path.as_ref(), ep, false)
+        self.internal_nest(&normalize_path(path.as_ref()), ep, false)
     }
 
     /// Nest a `Endpoint` to the specified path.
@@ -288,12 +290,30 @@ pub fn trace(ep: impl IntoEndpoint) -> RouteMethod {
     RouteMethod::new().trace(ep)
 }
 
+fn normalize_path(path: &str) -> String {
+    static RE_MERGE_SLASH: Lazy<Regex> = Lazy::new(|| Regex::new("//+").unwrap());
+
+    let mut path = RE_MERGE_SLASH.replace_all(path, "/").to_string();
+    if !path.starts_with('/') {
+        path.insert(0, '/');
+    }
+
+    path
+}
+
 #[cfg(test)]
 mod tests {
     use http::Uri;
 
     use super::*;
     use crate::handler;
+
+    #[test]
+    fn test_normalize_path() {
+        assert_eq!(normalize_path("/a/b/c"), "/a/b/c");
+        assert_eq!(normalize_path("/a///b//c"), "/a/b/c");
+        assert_eq!(normalize_path("a/b/c"), "/a/b/c");
+    }
 
     #[handler(internal)]
     fn h(uri: &Uri) -> String {
