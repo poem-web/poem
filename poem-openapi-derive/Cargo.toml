@@ -1,0 +1,30 @@
+[package]
+name = "poem-openapi-derive"
+version = "0.4.0"
+authors = ["sunli <scott_s829@163.com>"]
+edition = "2018"
+description = "Macros for poem-openapi"
+license = "MIT/Apache-2.0"
+documentation = "https://docs.rs/poem/"
+homepage = "https://github.com/poem-web/poem"
+repository = "https://github.com/poem-web/poem"
+keywords = ["http", "async", "openapi", "swagger"]
+categories = [
+    "network-programming",
+    "asynchronous",
+]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+darling = "0.13.0"
+proc-macro-crate = "1.1.0"
+proc-macro2 = "1.0.29"
+quote = "1.0.9"
+syn = { version = "1.0.76", features = ["full"] }
+Inflector = "0.11.4"
+thiserror = "1.0.29"
+indexmap = "1.7.0"
+regex = "1.5.4"
+http = "0.2.4"

@@ -17,10 +17,16 @@ jobs:
         package:
           - name: poem-derive
             registryName: poem-derive
-            path: derive
+            path: poem-derive
           - name: poem
             registryName: poem
-            path: .
+            path: poem
+          - name: poem-openapi-derive
+            registryName: poem-openapi-derive
+            path: poem-openapi-derive
+          - name: poem-openapi
+            registryName: poem-openapi
+            path: poem-openapi
     steps:
       - uses: actions-rs/toolchain@v1
         with:

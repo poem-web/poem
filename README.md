@@ -5,21 +5,6 @@
   <img src="https://github.com/poem-web/poem/workflows/CI/badge.svg" />
   <!-- codecov -->
   <img src="https://codecov.io/gh/poem-web/poem/branch/master/graph/badge.svg" />
-  <!-- Crates version -->
-  <a href="https://crates.io/crates/poem">
-    <img src="https://img.shields.io/crates/v/poem.svg?style=flat-square"
-    alt="Crates.io version" />
-  </a>
-  <!-- Downloads -->
-  <a href="https://crates.io/crates/poem">
-    <img src="https://img.shields.io/crates/d/poem.svg?style=flat-square"
-      alt="Download" />
-  </a>
-  <!-- docs.rs docs -->
-  <a href="https://docs.rs/poem">
-    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
-      alt="docs.rs docs" />
-  </a>
   <a href="https://github.com/rust-secure-code/safety-dance/">
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
@@ -34,64 +19,21 @@
 
 ***
 
-* [Book](https://poem-web.github.io/poem/)
-* [Docs](https://docs.rs/poem)
-* [Cargo package](https://crates.io/crates/poem)
+This repo contains the following main components:
 
-## Features
+| Crate                                                  | Description                     | Documentation                      |
+|--------------------------------------------------------|---------------------------------|------------------------------------|
+|[poem](https://crates.io/crates/poem)                   | Poem Web                        | [(README)](poem/README.md)         |
+|[poem-openapi](https://crates.io/crates/poem-openapi)   | OpenAPI for Poem Web            | [(README)](poem-openapi/README.md) | 
 
-- Both _Ease_ of use and performance.
-- Minimizing the use of generics.
-- `tower::Service` and `tower::Layer` compatibility.
-- Use [poem-openapi](https://crates.io/crates/poem-openapi) to write APIs that comply with [OAS3](https://github.com/OAI/OpenAPI-Specification) specifications and automatically generate documents.
+### Resources
 
-## Crate features
-
-To avoid compiling unused dependencies, Poem gates certain features, all of
-which are disabled by default:
-
-|Feature           |Description                     |
-|------------------|--------------------------------|
-|websocket         | Support for WebSocket          |
-|multipart         | Support for Multipart          |
-|sse               | Support Server-Sent Events (SSE)       |
-|tls               | Support for HTTP server over TLS   |
-|typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
-|tracing           | Support for Tracing middleware |
-|tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
-|tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
-
-## Safety
-
-This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in 100% Safe Rust.
-
-## Example
-
-```rust, no_run
-use poem::{handler, listener::TcpListener, route, web::Path, Server};
-
-#[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
-}
-
-#[tokio::main]
-async fn main() {
-    use poem::route::get;
-    let app = route().at("/hello/:name", get(hello));
-    let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
-}
-```
-
-More examples can be found [here][examples]. 
-
-[examples]: https://github.com/poem-web/poem/tree/master/examples
+- [Book](https://poem-web.github.io/poem/)
+- [Examples](https://github.com/poem-web/poem/tree/master/examples)
 
 ## Contributing
 
-:balloon: Thanks for your help improving the project! We are so happy to have you! 
+:balloon: Thanks for your help improving the project! We are so happy to have you!
 
 
 ## License
