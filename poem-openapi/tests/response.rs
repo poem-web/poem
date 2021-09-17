@@ -7,7 +7,7 @@ use poem::{
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
-    Object, Response,
+    ApiResponse, Object,
 };
 use serde_json::Value;
 
@@ -17,7 +17,7 @@ struct BadRequestResult {
     message: String,
 }
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 enum MyResponse {
     /// Ok
     #[oai(status = 200)]
@@ -93,7 +93,7 @@ async fn into_response() {
 
 #[tokio::test]
 async fn headers() {
-    #[derive(Response)]
+    #[derive(ApiResponse)]
     enum MyResponse {
         #[oai(status = 200)]
         A,

@@ -4,7 +4,7 @@ use poem::{listener::TcpListener, route, Error, Result};
 use poem_openapi::{
     payload::{Binary, Json},
     types::multipart::Upload,
-    Multipart, Object, OpenApi, OpenApiService, Response,
+    ApiResponse, Multipart, Object, OpenApi, OpenApiService,
 };
 use tokio::sync::Mutex;
 
@@ -17,7 +17,7 @@ struct File {
     data: Vec<u8>,
 }
 
-#[derive(Debug, Response)]
+#[derive(Debug, ApiResponse)]
 enum GetFileResponse {
     #[oai(status = 200)]
     Ok(Binary, #[oai(header = "Content-Disposition")] String),

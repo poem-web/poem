@@ -230,7 +230,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
 
-            impl #crate_name::Response for #ident {
+            impl #crate_name::ApiResponse for #ident {
                 #bad_request_handler_const
 
                 fn meta() -> #crate_name::registry::MetaResponses {

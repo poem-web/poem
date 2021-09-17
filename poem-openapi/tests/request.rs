@@ -1,7 +1,7 @@
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaRequest, MetaSchema, MetaSchemaRef},
-    Object, Request,
+    ApiRequest, Object,
 };
 
 #[derive(Debug, Object, Eq, PartialEq)]
@@ -13,7 +13,7 @@ struct CreateUser {
 /// MyRequest
 ///
 /// ABC
-#[derive(Debug, Request, Eq, PartialEq)]
+#[derive(Debug, ApiRequest, Eq, PartialEq)]
 enum MyRequest {
     CreateByJson(Json<CreateUser>),
     CreateByPlainText(PlainText),

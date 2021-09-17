@@ -16,7 +16,7 @@ struct CreateUser {
     password: ::std::string::String,
 }
 
-#[derive(::poem_openapi::Request, Debug, Eq, PartialEq)]
+#[derive(::poem_openapi::ApiRequest, Debug, Eq, PartialEq)]
 enum CreateUserRequest {
     /// CreateByJson
     CreateByJson(::poem_openapi::payload::Json<CreateUser>),
@@ -24,7 +24,7 @@ enum CreateUserRequest {
     CreateByPlainText(::poem_openapi::payload::PlainText),
 }
 
-#[derive(::poem_openapi::Response)]
+#[derive(::poem_openapi::ApiResponse)]
 #[oai(bad_request_handler = "bad_request_handler")]
 enum CreateUserResponse {
     /// Returns when the user is successfully created.

@@ -36,7 +36,7 @@ pub fn derive_enum(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(Response, attributes(oai))]
+#[proc_macro_derive(ApiResponse, attributes(oai))]
 pub fn derive_response(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
     match response::generate(args) {
@@ -45,7 +45,7 @@ pub fn derive_response(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(Request, attributes(oai))]
+#[proc_macro_derive(ApiRequest, attributes(oai))]
 pub fn derive_request(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
     match request::generate(args) {

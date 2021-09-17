@@ -80,7 +80,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let expanded = {
         quote! {
             #[#crate_name::poem::async_trait]
-            impl #crate_name::Request for #ident {
+            impl #crate_name::ApiRequest for #ident {
                 fn meta() -> #crate_name::registry::MetaRequest {
                     #crate_name::registry::MetaRequest {
                         description: #description,

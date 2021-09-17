@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use poem::{listener::TcpListener, route};
 use poem_openapi::{
-    payload::Json, types::Password, Object, OpenApi, OpenApiService, Response, Tags,
+    payload::Json, types::Password, ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
 use tokio::sync::Mutex;
 
@@ -35,7 +35,7 @@ struct UpdateUser {
     password: Option<Password>,
 }
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 enum CreateUserResponse {
     /// Returns when the user is successfully created.
     #[oai(status = 200)]
@@ -45,7 +45,7 @@ enum CreateUserResponse {
     UserAlreadyExists,
 }
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 enum FindUserResponse {
     /// Return the specified user.
     #[oai(status = 200)]
@@ -55,7 +55,7 @@ enum FindUserResponse {
     NotFound,
 }
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 enum DeleteUserResponse {
     /// Returns when the user is successfully deleted.
     #[oai(status = 200)]
@@ -65,7 +65,7 @@ enum DeleteUserResponse {
     NotFound,
 }
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 enum UpdateUserResponse {
     /// Returns when the user is successfully updated.
     #[oai(status = 200)]

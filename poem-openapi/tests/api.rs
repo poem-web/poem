@@ -6,7 +6,7 @@ use poem_openapi::{
     payload::{Binary, Json, PlainText},
     registry::{MetaApi, MetaSchema},
     types::Type,
-    OpenApi, OpenApiService, ParseRequestError, Request, Response, Tags,
+    ApiRequest, ApiResponse, OpenApi, OpenApiService, ParseRequestError, Tags,
 };
 
 #[tokio::test]
@@ -82,7 +82,7 @@ fn tag() {
 #[tokio::test]
 async fn request() {
     /// Test request
-    #[derive(Request)]
+    #[derive(ApiRequest)]
     enum MyRequest {
         Json(Json<i32>),
         PlainText(PlainText),
@@ -169,7 +169,7 @@ async fn request() {
 
 #[tokio::test]
 async fn response() {
-    #[derive(Response)]
+    #[derive(ApiResponse)]
     enum MyResponse {
         /// Ok
         #[oai(status = 200)]
@@ -269,7 +269,7 @@ async fn response() {
 
 #[tokio::test]
 async fn bad_request_handler() {
-    #[derive(Response)]
+    #[derive(ApiResponse)]
     #[oai(bad_request_handler = "bad_request_handler")]
     enum MyResponse {
         /// Ok

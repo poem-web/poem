@@ -188,10 +188,10 @@ pub(crate) fn generate(
         let mut register_items = Vec::new();
 
         for ty in request_types {
-            register_items.push(quote!(<#ty as #crate_name::Request>::register(registry);));
+            register_items.push(quote!(<#ty as #crate_name::ApiRequest>::register(registry);));
         }
         for ty in response_types {
-            register_items.push(quote!(<#ty as #crate_name::Response>::register(registry);));
+            register_items.push(quote!(<#ty as #crate_name::ApiResponse>::register(registry);));
         }
         for tag in tags {
             register_items.push(quote!(#crate_name::Tags::register(&#tag, registry);));
@@ -303,8 +303,8 @@ fn generate_operation(
                 parse_args.push(quote! {
                     let #pname = match <#arg_ty as #crate_name::poem::FromRequest>::from_request(&request, &mut body).await.map_err(|err| #crate_name::ParseRequestError::Extractor(::std::string::ToString::to_string(err))) {
                         ::std::result::Result::Ok(value) => value,
-                        ::std::result::Result::Err(err) if <#res_ty as #crate_name::Response>::BAD_REQUEST_HANDLER => {
-                                return ::std::result::Result::Ok(<#res_ty as #crate_name::Response>::from_parse_request_error(err));
+                        ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
+                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
                             },
                         ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
                     };
@@ -318,8 +318,8 @@ fn generate_operation(
                 parse_args.push(quote! {
                     let #pname = match <#arg_ty as #crate_name::SecurityScheme>::from_request(&request, &query.0) {
                         ::std::result::Result::Ok(value) => value,
-                        ::std::result::Result::Err(err) if <#res_ty as #crate_name::Response>::BAD_REQUEST_HANDLER => {
-                                return ::std::result::Result::Ok(<#res_ty as #crate_name::Response>::from_parse_request_error(err));
+                        ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
+                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
                             },
                         ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
                     };
@@ -413,8 +413,8 @@ fn generate_operation(
                                                 #validators_checker
                                                 value
                                             },
-                                            ::std::result::Result::Err(err) if <#res_ty as #crate_name::Response>::BAD_REQUEST_HANDLER => {
-                                                return ::std::result::Result::Ok(<#res_ty as #crate_name::Response>::from_parse_request_error(err));
+                                            ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
+                                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
                                             },
                                             ::std::result::Result::Err(err) => return ::std::result::Result::Err(#crate_name::poem::Error::from(err)),
                                         }
@@ -438,8 +438,8 @@ fn generate_operation(
                                         #validators_checker
                                         value
                                     },
-                                    ::std::result::Result::Err(err) if <#res_ty as #crate_name::Response>::BAD_REQUEST_HANDLER => {
-                                        return ::std::result::Result::Ok(<#res_ty as #crate_name::Response>::from_parse_request_error(err));
+                                    ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
+                                        return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
                                     },
                                     ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
                                 }
@@ -493,10 +493,10 @@ fn generate_operation(
                 }
 
                 parse_args.push(quote! {
-                    let #pname = match <#arg_ty as #crate_name::Request>::from_request(&request, &mut body).await {
+                    let #pname = match <#arg_ty as #crate_name::ApiRequest>::from_request(&request, &mut body).await {
                         ::std::result::Result::Ok(value) => value,
-                        ::std::result::Result::Err(err) if <#res_ty as #crate_name::Response>::BAD_REQUEST_HANDLER => {
-                                return ::std::result::Result::Ok(<#res_ty as #crate_name::Response>::from_parse_request_error(err));
+                        ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
+                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
                             },
                         ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
                     };
@@ -504,8 +504,7 @@ fn generate_operation(
                 use_args.push(pname);
 
                 has_request_payload = true;
-                request_meta =
-                    quote!(::std::option::Option::Some(<#arg_ty as #crate_name::Request>::meta()));
+                request_meta = quote!(::std::option::Option::Some(<#arg_ty as #crate_name::ApiRequest>::meta()));
                 ctx.request_types.push(quote!(#arg_ty));
             }
         }
@@ -542,7 +541,7 @@ fn generate_operation(
             description: #description,
             params: ::std::vec![#(#params_meta),*],
             request: #request_meta,
-            responses: <#res_ty as #crate_name::Response>::meta(),
+            responses: <#res_ty as #crate_name::ApiResponse>::meta(),
             deprecated: #deprecated,
             security: ::std::vec![::std::iter::FromIterator::from_iter(::std::iter::IntoIterator::into_iter(#security_requirement))],
         }

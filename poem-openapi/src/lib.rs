@@ -20,11 +20,15 @@ pub mod ui;
 #[doc(hidden)]
 pub mod validation;
 
-pub use base::{CombinedAPI, OpenApi, Request, Response, SecurityScheme, Tags};
+pub use base::{ApiRequest, ApiResponse, CombinedAPI, OpenApi, SecurityScheme, Tags};
 pub use error::ParseRequestError;
 pub use openapi::OpenApiService;
 #[doc(hidden)]
 pub use poem;
+#[doc = include_str!("docs/request.md")]
+pub use poem_openapi_derive::ApiRequest;
+#[doc = include_str!("docs/response.md")]
+pub use poem_openapi_derive::ApiResponse;
 #[doc = include_str!("docs/enum.md")]
 pub use poem_openapi_derive::Enum;
 #[doc = include_str!("docs/multipart.md")]
@@ -33,10 +37,6 @@ pub use poem_openapi_derive::Multipart;
 pub use poem_openapi_derive::Object;
 #[doc = include_str!("docs/openapi.md")]
 pub use poem_openapi_derive::OpenApi;
-#[doc = include_str!("docs/request.md")]
-pub use poem_openapi_derive::Request;
-#[doc = include_str!("docs/response.md")]
-pub use poem_openapi_derive::Response;
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]
 pub use poem_openapi_derive::Tags;

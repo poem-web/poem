@@ -22,9 +22,9 @@ Define a OpenAPI response.
 # Examples
 
 ```rust
-use poem_openapi::{payload::PlainText, Response, ParseRequestError};
+use poem_openapi::{payload::PlainText, ApiResponse, ParseRequestError};
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 #[oai(bad_request_handler = "bad_request_handler")]
 enum CreateUserResponse {
     /// Returns when the user is successfully created.

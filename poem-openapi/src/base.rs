@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use poem::{route::Route, IntoResponse, RequestBody, Result};
+use poem::{route::Route, IntoResponse, Request, RequestBody, Result};
 
 use crate::{
     payload::Payload,
@@ -12,7 +12,7 @@ use crate::{
 ///
 /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#requestBodyObject>
 #[poem::async_trait]
-pub trait Request: Sized {
+pub trait ApiRequest: Sized {
     /// Gets metadata of this request.
     fn meta() -> MetaRequest;
 
@@ -21,13 +21,13 @@ pub trait Request: Sized {
 
     /// Parse the request object from the HTTP request.
     async fn from_request(
-        request: &poem::Request,
+        request: &Request,
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError>;
 }
 
 #[poem::async_trait]
-impl<T: Payload> Request for T {
+impl<T: Payload> ApiRequest for T {
     fn meta() -> MetaRequest {
         MetaRequest {
             description: None,
@@ -44,7 +44,7 @@ impl<T: Payload> Request for T {
     }
 
     async fn from_request(
-        request: &poem::Request,
+        request: &Request,
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
         T::from_request(request, body).await
@@ -54,7 +54,7 @@ impl<T: Payload> Request for T {
 /// Represents a OpenAPI responses object.
 ///
 /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#responsesObject>
-pub trait Response: IntoResponse + Sized {
+pub trait ApiResponse: IntoResponse + Sized {
     /// If true, it means that the response object has a custom bad request
     /// handler.
     const BAD_REQUEST_HANDLER: bool = false;
@@ -72,7 +72,7 @@ pub trait Response: IntoResponse + Sized {
     }
 }
 
-impl Response for () {
+impl ApiResponse for () {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
@@ -87,7 +87,7 @@ impl Response for () {
     fn register(_registry: &mut Registry) {}
 }
 
-impl<T: Payload + IntoResponse> Response for T {
+impl<T: Payload + IntoResponse> ApiResponse for T {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
@@ -126,7 +126,7 @@ pub trait SecurityScheme: Sized {
 
     /// Parse authorization information from request.
     fn from_request(
-        req: &poem::Request,
+        req: &Request,
         query: &HashMap<String, String>,
     ) -> Result<Self, ParseRequestError>;
 }
@@ -139,7 +139,7 @@ impl<T: SecurityScheme> SecurityScheme for Option<T> {
     }
 
     fn from_request(
-        req: &poem::Request,
+        req: &Request,
         query: &HashMap<String, String>,
     ) -> Result<Self, ParseRequestError> {
         Ok(T::from_request(req, query).ok())

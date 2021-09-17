@@ -35,7 +35,7 @@ Define a OpenAPI.
 ```rust
 use poem_openapi::{
     payload::{Json, PlainText},
-    Request, Object, OpenApi, Response,
+    ApiRequest, Object, OpenApi, ApiResponse,
 };
 
 #[derive(Object)]
@@ -44,7 +44,7 @@ struct Pet {
     name: String,
 }
 
-#[derive(Request)]
+#[derive(ApiRequest)]
 enum CreatePetRequest {
     /// This request receives a pet in JSON format(application/json).
     CreateByJSON(Json<Pet>),
@@ -52,7 +52,7 @@ enum CreatePetRequest {
     CreateByPlainText(PlainText),
 }
 
-#[derive(Response)]
+#[derive(ApiResponse)]
 enum CreatePetResponse {
     /// Returns when the pet is successfully created.
     #[oai(status = 200)]
