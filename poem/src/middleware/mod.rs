@@ -20,7 +20,7 @@ pub use tower_compat::TowerLayerCompatExt;
 
 #[cfg(feature = "tracing")]
 pub use self::tracing::Tracing;
-use crate::endpoint::Endpoint;
+use crate::{endpoint::Endpoint, EndpointExt};
 
 /// Represents a middleware trait.
 ///
@@ -97,6 +97,8 @@ pub trait Middleware<E: Endpoint> {
     fn transform(self, ep: E) -> Self::Output;
 }
 
+poem_derive::generate_implement_middlewares!();
+
 /// A middleware implemented by a closure.
 pub struct FnMiddleware<T>(T);
 
@@ -123,7 +125,8 @@ mod tests {
     use super::*;
     use crate::{
         handler,
-        http::{header::HeaderName, HeaderValue},
+        http::{header::HeaderName, HeaderValue, StatusCode},
+        web::Data,
         EndpointExt, IntoResponse, Request, Response,
     };
 
@@ -165,5 +168,31 @@ mod tests {
             Some(HeaderValue::from_static("world"))
         );
         assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
+    }
+
+    #[tokio::test]
+    async fn test_with_multiple_middlewares() {
+        #[handler(internal)]
+        fn index(data: Data<&i32>) -> String {
+            data.0.to_string()
+        }
+
+        let ep = index.with((
+            AddData::new(10),
+            SetHeader::new().appending("myheader-1", "a"),
+            SetHeader::new().appending("myheader-2", "b"),
+        ));
+
+        let mut resp = ep.call(Request::default()).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("myheader-1"),
+            Some(&HeaderValue::from_static("a"))
+        );
+        assert_eq!(
+            resp.headers().get("myheader-2"),
+            Some(&HeaderValue::from_static("b"))
+        );
+        assert_eq!(resp.take_body().into_string().await.unwrap(), "10");
     }
 }

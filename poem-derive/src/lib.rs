@@ -8,9 +8,9 @@
 mod utils;
 
 use darling::FromMeta;
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Result};
+use proc_macro::TokenStream;
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Member, Result};
 
 /// Wrap an asynchronous function as an `Endpoint`.
 ///
@@ -22,10 +22,7 @@ use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Result};
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn handler(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
+pub fn handler(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = match HandlerArgs::from_list(&parse_macro_input!(args as AttributeArgs)) {
         Ok(args) => args,
         Err(err) => return err.write_errors().into(),
@@ -45,7 +42,7 @@ struct HandlerArgs {
 
 fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream> {
     let crate_name = utils::get_crate_name(args.internal);
-    let item_fn = syn::parse2::<ItemFn>(input)?;
+    let item_fn = syn::parse::<ItemFn>(input)?;
     let vis = &item_fn.vis;
     let ident = &item_fn.sig.ident;
     let call_await = if item_fn.sig.asyncness.is_some() {
@@ -87,5 +84,50 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
         }
     };
 
-    Ok(expanded)
+    Ok(expanded.into())
+}
+
+#[doc(hidden)]
+#[proc_macro]
+pub fn generate_implement_middlewares(_: TokenStream) -> TokenStream {
+    let mut impls = Vec::new();
+
+    for i in 2..=16 {
+        let idents = (0..i)
+            .map(|i| format_ident!("T{}", i + 1))
+            .collect::<Vec<_>>();
+        let output_type = idents.last().unwrap();
+        let first_ident = idents.first().unwrap();
+        let mut where_clauses = vec![quote! { #first_ident: Middleware<E> }];
+        let mut withs = Vec::new();
+
+        for k in 1..i {
+            let prev_ident = &idents[k - 1];
+            let current_ident = &idents[k];
+            where_clauses.push(quote! { #current_ident: Middleware<#prev_ident::Output> });
+        }
+
+        for k in 1..i {
+            let n = Member::from(k);
+            withs.push(quote! { .with(self.#n) });
+        }
+
+        let expanded = quote! {
+            impl<E, #(#idents),*> Middleware<E> for (#(#idents),*)
+                where
+                    E: Endpoint,
+                    #(#where_clauses,)*
+            {
+                type Output = #output_type::Output;
+
+                fn transform(self, ep: E) -> Self::Output {
+                    self.0.transform(ep)#(#withs)*
+                }
+            }
+        };
+
+        impls.push(expanded);
+    }
+
+    quote!(#(#impls)*).into()
 }
