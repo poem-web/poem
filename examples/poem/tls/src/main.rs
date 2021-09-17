@@ -69,9 +69,9 @@ fn index() -> &'static str {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/", get(index));
 
     let listener = TcpListener::bind("127.0.0.1:3000").tls(TlsConfig::new().key(KEY).cert(CERT));
-    Server::new(listener).await.unwrap().run(app).await.unwrap();
+    Server::new(listener).await?.run(app).await
 }

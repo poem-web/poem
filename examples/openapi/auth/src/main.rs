@@ -41,26 +41,32 @@ struct Api;
 #[OpenApi]
 impl Api {
     #[oai(path = "/basic", method = "get")]
-    async fn auth_basic(&self, #[oai(auth)] auth: MyBasicAuthorization) -> Result<PlainText> {
+    async fn auth_basic(
+        &self,
+        #[oai(auth)] auth: MyBasicAuthorization,
+    ) -> Result<PlainText<String>> {
         if auth.0.username != "test" || auth.0.password != "123456" {
             return Err(Error::new(StatusCode::UNAUTHORIZED));
         }
-        Ok(PlainText("hello".into()))
+        Ok(PlainText("hello".to_string()))
     }
 
     #[oai(path = "/api_key", method = "get")]
-    async fn auth_api_key(&self, #[oai(auth)] auth: MyApiKeyAuthorization) -> Result<PlainText> {
+    async fn auth_api_key(
+        &self,
+        #[oai(auth)] auth: MyApiKeyAuthorization,
+    ) -> Result<PlainText<String>> {
         if auth.0.key != "123456" {
             return Err(Error::new(StatusCode::UNAUTHORIZED));
         }
-        Ok(PlainText("hello".into()))
+        Ok(PlainText("hello".to_string()))
     }
 
     #[oai(path = "/oauth2", method = "get")]
     async fn auth_oauth2(
         &self,
         #[oai(auth("public_repo", "read:user"))] auth: GithubAuthorization,
-    ) -> Result<PlainText> {
+    ) -> Result<PlainText<String>> {
         let client = reqwest::Client::new();
         let text = client
             .get("https://api.github.com/repositories")
@@ -104,7 +110,7 @@ async fn oauth_token_url_proxy(req: &poem::Request, body: poem::Body) -> Result<
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service = OpenApiService::new(Api)
         .title("Authorization Demo")
@@ -112,8 +118,7 @@ async fn main() {
     let ui = api_service.swagger_ui("http://localhost:3000");
 
     poem::Server::new(listener)
-        .await
-        .unwrap()
+        .await?
         .run(
             route()
                 .at("/proxy", oauth_token_url_proxy)
@@ -121,5 +126,4 @@ async fn main() {
                 .nest("/", ui),
         )
         .await
-        .unwrap();
 }

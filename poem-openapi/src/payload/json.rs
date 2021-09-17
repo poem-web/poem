@@ -2,9 +2,9 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 use serde_json::Value;
 
 use crate::{
-    payload::Payload,
+    payload::{ParsePayload, Payload},
     registry::{MetaSchemaRef, Registry},
-    types::{ParseFromJSON, ToJSON},
+    types::{ParseFromJSON, ToJSON, Type},
     ParseRequestError,
 };
 
@@ -12,8 +12,7 @@ use crate::{
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Json<T>(pub T);
 
-#[poem::async_trait]
-impl<T: ParseFromJSON> Payload for Json<T> {
+impl<T: Type> Payload for Json<T> {
     const CONTENT_TYPE: &'static str = "application/json";
 
     fn schema_ref() -> MetaSchemaRef {
@@ -24,7 +23,10 @@ impl<T: ParseFromJSON> Payload for Json<T> {
     fn register(registry: &mut Registry) {
         T::register(registry)
     }
+}
 
+#[poem::async_trait]
+impl<T: ParseFromJSON> ParsePayload for Json<T> {
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,

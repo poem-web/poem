@@ -26,7 +26,7 @@ fn graphql_playground() -> impl IntoResponse {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
         .data(StarWars::new())
         .finish();
@@ -38,6 +38,6 @@ async fn main() {
     println!("Playground: http://localhost:3000");
 
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }

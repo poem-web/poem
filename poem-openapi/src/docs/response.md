@@ -35,7 +35,7 @@ enum CreateUserResponse {
     UserAlreadyExists,
     /// Returns when the request parameters is incorrect.
     #[oai(status = 400)]
-    BadRequest(PlainText),
+    BadRequest(PlainText<String>),
 }
 
 // Convert error to `CreateUserResponse::BadRequest`.

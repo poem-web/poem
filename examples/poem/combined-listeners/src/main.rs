@@ -12,11 +12,11 @@ fn hello() -> impl IntoResponse {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/", get(hello));
     let listener = TcpListener::bind("127.0.0.1:3000")
         .combine(TcpListener::bind("127.0.0.1:3001"))
         .combine(TcpListener::bind("127.0.0.1:3002"));
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }

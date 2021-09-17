@@ -85,8 +85,8 @@ async fn request() {
     #[derive(ApiRequest)]
     enum MyRequest {
         Json(Json<i32>),
-        PlainText(PlainText),
-        Binary(Binary),
+        PlainText(PlainText<String>),
+        Binary(Binary<Vec<u8>>),
     }
 
     struct Api;
@@ -178,7 +178,7 @@ async fn response() {
         #[oai(status = 409)]
         AlreadyExists(Json<u16>),
         /// Default
-        Default(StatusCode, PlainText),
+        Default(StatusCode, PlainText<String>),
     }
 
     struct Api;
@@ -274,14 +274,14 @@ async fn bad_request_handler() {
     enum MyResponse {
         /// Ok
         #[oai(status = 200)]
-        Ok(PlainText),
+        Ok(PlainText<String>),
         /// Already exists
         #[oai(status = 400)]
-        BadRequest(PlainText),
+        BadRequest(PlainText<String>),
     }
 
     fn bad_request_handler(err: ParseRequestError) -> MyResponse {
-        MyResponse::BadRequest(format!("!!! {}", err).into())
+        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
     }
 
     struct Api;
@@ -290,7 +290,7 @@ async fn bad_request_handler() {
     impl Api {
         #[oai(path = "/", method = "get")]
         async fn test(&self, #[oai(name = "code", in = "query")] code: u16) -> MyResponse {
-            MyResponse::Ok(format!("code: {}", code).into())
+            MyResponse::Ok(PlainText(format!("code: {}", code)))
         }
     }
 

@@ -77,8 +77,8 @@ async fn basic_auth() {
     #[OpenApi]
     impl MyApi {
         #[oai(path = "/test", method = "get")]
-        async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText {
-            format!("{}/{}", auth.0.username, auth.0.password).into()
+        async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText<String> {
+            PlainText(format!("{}/{}", auth.0.username, auth.0.password))
         }
     }
 
@@ -127,8 +127,8 @@ async fn bearer_auth() {
     #[OpenApi]
     impl MyApi {
         #[oai(path = "/test", method = "get")]
-        async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText {
-            auth.0.token.clone().into()
+        async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText<String> {
+            PlainText(auth.0.token.clone())
         }
     }
 
@@ -223,18 +223,27 @@ async fn api_key_auth() {
     #[OpenApi]
     impl MyApi {
         #[oai(path = "/header", method = "get")]
-        async fn test_in_header(&self, #[oai(auth)] auth: MySecuritySchemeInHeader) -> PlainText {
-            auth.0.key.clone().into()
+        async fn test_in_header(
+            &self,
+            #[oai(auth)] auth: MySecuritySchemeInHeader,
+        ) -> PlainText<String> {
+            PlainText(auth.0.key)
         }
 
         #[oai(path = "/query", method = "get")]
-        async fn test_in_query(&self, #[oai(auth)] auth: MySecuritySchemeInQuery) -> PlainText {
-            auth.0.key.clone().into()
+        async fn test_in_query(
+            &self,
+            #[oai(auth)] auth: MySecuritySchemeInQuery,
+        ) -> PlainText<String> {
+            PlainText(auth.0.key)
         }
 
         #[oai(path = "/cookie", method = "get")]
-        async fn test_in_cookie(&self, #[oai(auth)] auth: MySecuritySchemeInCookie) -> PlainText {
-            auth.0.key.clone().into()
+        async fn test_in_cookie(
+            &self,
+            #[oai(auth)] auth: MySecuritySchemeInCookie,
+        ) -> PlainText<String> {
+            PlainText(auth.0.key)
         }
     }
 

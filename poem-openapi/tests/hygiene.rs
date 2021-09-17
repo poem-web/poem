@@ -21,7 +21,7 @@ enum CreateUserRequest {
     /// CreateByJson
     CreateByJson(::poem_openapi::payload::Json<CreateUser>),
     /// CreateByPlainText
-    CreateByPlainText(::poem_openapi::payload::PlainText),
+    CreateByPlainText(::poem_openapi::payload::PlainText<::std::string::String>),
 }
 
 #[derive(::poem_openapi::ApiResponse)]
@@ -35,7 +35,7 @@ enum CreateUserResponse {
     UserAlreadyExists,
     /// Returns when the request parameters is incorrect.
     #[oai(status = 400)]
-    BadRequest(::poem_openapi::payload::PlainText),
+    BadRequest(::poem_openapi::payload::PlainText<::std::string::String>),
 }
 
 fn bad_request_handler(err: ::poem_openapi::ParseRequestError) -> CreateUserResponse {
@@ -83,8 +83,8 @@ impl Api {
             CreateUserRequest::CreateByPlainText(req) => {
                 let s = ::std::iter::Iterator::collect::<::std::vec::Vec<_>>(req.0.split(':'));
                 if s.len() != 2 {
-                    return CreateUserResponse::BadRequest(::std::convert::Into::into(
-                        "invalid plain text request",
+                    return CreateUserResponse::BadRequest(poem_openapi::payload::PlainText(
+                        ::std::string::ToString::to_string("invalid plain text request"),
                     ));
                 }
 

@@ -211,7 +211,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     }
 
     let expanded = quote! {
-        #[#crate_name::poem::async_trait]
         impl #impl_generics #crate_name::payload::Payload for #ident #ty_generics #where_clause {
             const CONTENT_TYPE: &'static str = "multipart/form-data";
 
@@ -232,7 +231,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn register(registry: &mut #crate_name::registry::Registry) {
                 #(#register_fields)*
             }
+        }
 
+        #[#crate_name::poem::async_trait]
+        impl #impl_generics #crate_name::payload::ParsePayload for #ident #ty_generics #where_clause {
             async fn from_request(request: &#crate_name::poem::Request, body: &mut #crate_name::poem::RequestBody) -> Result<Self, #crate_name::ParseRequestError> {
                 if body.is_some() {
                     let mut multipart = <#crate_name::poem::web::Multipart as #crate_name::poem::FromRequest>::from_request(request, body).await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody {

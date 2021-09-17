@@ -16,7 +16,7 @@ struct CreateUser {
 #[derive(Debug, ApiRequest, Eq, PartialEq)]
 enum MyRequest {
     CreateByJson(Json<CreateUser>),
-    CreateByPlainText(PlainText),
+    CreateByPlainText(PlainText<String>),
 }
 
 #[test]

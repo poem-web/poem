@@ -6,9 +6,9 @@ fn hello(Path(name): Path<String>) -> String {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/hello/:name", get(hello));
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }

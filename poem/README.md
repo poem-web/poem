@@ -64,7 +64,7 @@ This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in
 ## Example
 
 ```rust, no_run
-use poem::{handler, listener::TcpListener, route, web::Path, Server};
+use poem::{handler, listener::TcpListener, route, route::get, web::Path, Server};
 
 #[handler]
 fn hello(Path(name): Path<String>) -> String {
@@ -72,12 +72,11 @@ fn hello(Path(name): Path<String>) -> String {
 }
 
 #[tokio::main]
-async fn main() {
-    use poem::route::get;
+async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/hello/:name", get(hello));
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }
 ```
 

@@ -20,7 +20,10 @@ struct File {
 #[derive(Debug, ApiResponse)]
 enum GetFileResponse {
     #[oai(status = 200)]
-    Ok(Binary, #[oai(header = "Content-Disposition")] String),
+    Ok(
+        Binary<Vec<u8>>,
+        #[oai(header = "Content-Disposition")] String,
+    ),
     /// File not found
     #[oai(status = 404)]
     NotFound,
@@ -72,7 +75,7 @@ impl Api {
                 if let Some(file_name) = &file.filename {
                     content_disposition += &format!("; filename={}", file_name);
                 }
-                GetFileResponse::Ok(file.data.clone().into(), content_disposition)
+                GetFileResponse::Ok(Binary(file.data.clone()), content_disposition)
             }
             None => GetFileResponse::NotFound,
         }
@@ -80,7 +83,7 @@ impl Api {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service = OpenApiService::new(Api {
         status: Mutex::new(Status {
@@ -93,9 +96,7 @@ async fn main() {
     let ui = api_service.swagger_ui("http://localhost:3000");
 
     poem::Server::new(listener)
-        .await
-        .unwrap()
+        .await?
         .run(route().nest("/api", api_service).nest("/", ui))
         .await
-        .unwrap();
 }

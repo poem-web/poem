@@ -1,25 +1,26 @@
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
-use crate::{payload::Payload, registry::MetaSchemaRef, types::Type, ParseRequestError};
+use crate::{
+    payload::{ParsePayload, Payload},
+    registry::MetaSchemaRef,
+    types::Type,
+    ParseRequestError,
+};
 
 /// A UTF8 string payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct PlainText(pub String);
+pub struct PlainText<T>(pub T);
 
-impl<T: Into<String>> From<T> for PlainText {
-    fn from(value: T) -> Self {
-        Self(value.into())
-    }
-}
-
-#[poem::async_trait]
-impl Payload for PlainText {
+impl<T> Payload for PlainText<T> {
     const CONTENT_TYPE: &'static str = "text/plain";
 
     fn schema_ref() -> MetaSchemaRef {
         String::schema_ref()
     }
+}
 
+#[poem::async_trait]
+impl ParsePayload for PlainText<String> {
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
@@ -32,10 +33,10 @@ impl Payload for PlainText {
     }
 }
 
-impl IntoResponse for PlainText {
+impl<T: Into<String> + Send> IntoResponse for PlainText<T> {
     fn into_response(self) -> Response {
         Response::builder()
             .content_type(Self::CONTENT_TYPE)
-            .body(self.0)
+            .body(self.0.into())
     }
 }

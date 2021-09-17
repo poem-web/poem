@@ -1,23 +1,16 @@
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
 use crate::{
-    payload::Payload,
+    payload::{ParsePayload, Payload},
     registry::{MetaSchema, MetaSchemaRef},
     ParseRequestError,
 };
 
 /// A binary payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Binary(pub Vec<u8>);
+pub struct Binary<T>(pub T);
 
-impl<T: Into<Vec<u8>>> From<T> for Binary {
-    fn from(value: T) -> Self {
-        Self(value.into())
-    }
-}
-
-#[poem::async_trait]
-impl Payload for Binary {
+impl<T> Payload for Binary<T> {
     const CONTENT_TYPE: &'static str = "application/octet-stream";
 
     fn schema_ref() -> MetaSchemaRef {
@@ -26,7 +19,10 @@ impl Payload for Binary {
             ..MetaSchema::new("string")
         })
     }
+}
 
+#[poem::async_trait]
+impl ParsePayload for Binary<Vec<u8>> {
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
@@ -39,10 +35,10 @@ impl Payload for Binary {
     }
 }
 
-impl IntoResponse for Binary {
+impl<T: Into<Vec<u8>> + Send> IntoResponse for Binary<T> {
     fn into_response(self) -> Response {
         Response::builder()
             .content_type(Self::CONTENT_TYPE)
-            .body(self.0)
+            .body(self.0.into())
     }
 }

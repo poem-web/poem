@@ -2,7 +2,7 @@ use std::io::Write;
 
 use poem::{Request, RequestBody};
 use poem_openapi::{
-    payload::Payload,
+    payload::{ParsePayload, Payload},
     registry::MetaSchema,
     types::{
         multipart::{JsonField, Upload},

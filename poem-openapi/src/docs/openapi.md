@@ -49,7 +49,7 @@ enum CreatePetRequest {
     /// This request receives a pet in JSON format(application/json).
     CreateByJSON(Json<Pet>),
     /// This request receives a pet in text format(text/plain).
-    CreateByPlainText(PlainText),
+    CreateByPlainText(PlainText<String>),
 }
 
 #[derive(ApiResponse)]

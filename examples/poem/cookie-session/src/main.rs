@@ -54,12 +54,12 @@ async fn init_session(store: &Data<&MemoryStore>, cookie_jar: &CookieJar) {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     // `MemoryStore` just used as an example. Don't use this in production.
     let store = MemoryStore::new();
 
     let app = route().at("/", get(count)).with(AddData::new(store));
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }

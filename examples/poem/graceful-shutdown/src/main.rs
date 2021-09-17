@@ -39,15 +39,14 @@ fn event() -> SSE {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/", get(index)).at("/event", get(event));
 
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
+    let server = Server::new(listener).await?;
     server
         .run_with_graceful_shutdown(app, async move {
             let _ = tokio::signal::ctrl_c().await;
         })
         .await
-        .unwrap();
 }

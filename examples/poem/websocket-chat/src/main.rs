@@ -94,7 +94,7 @@ fn ws(
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/", get(index)).at(
         "/ws/:name",
         get(ws.with(AddData::new(
@@ -103,6 +103,6 @@ async fn main() {
     );
 
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }

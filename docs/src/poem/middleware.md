@@ -20,6 +20,10 @@ The middleware can do something before or after the request is processed.
 
   Use [`tracing`](https://crates.io/crates/tracing) to record all requests and responses.
 
+- `Compression`
+
+  Used for decompress request body and compress response body.
+
 ## Custom middleware
 
 It is easy to implement your own middleware, you only need to implement the `Middleware` trait, which is a converter to 

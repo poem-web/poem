@@ -28,7 +28,7 @@ enum MyResponse {
     /// C
     #[oai(status = 400)]
     BadRequest(Json<BadRequestResult>),
-    Default(StatusCode, PlainText),
+    Default(StatusCode, PlainText<String>),
 }
 
 #[test]
@@ -110,7 +110,7 @@ async fn headers() {
         ),
         D(
             StatusCode,
-            PlainText,
+            PlainText<String>,
             #[oai(header = "MY-HEADER1")] i32,
             #[oai(header = "MY-HEADER2")] String,
         ),
