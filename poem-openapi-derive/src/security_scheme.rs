@@ -26,7 +26,7 @@ pub(crate) enum AuthType {
     Bearer,
     #[darling(rename = "oauth2")]
     OAuth2,
-    #[darling(rename = "opeid_connect")]
+    #[darling(rename = "openid_connect")]
     OpenIdConnect,
 }
 
