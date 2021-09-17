@@ -4,10 +4,11 @@ use std::{
 };
 
 use askama::Template;
+use mime::Mime;
 use tokio::fs::File;
 
 use crate::{
-    http::{header, Method, StatusCode},
+    http::{header, HeaderValue, Method, StatusCode},
     Body, Endpoint, Request, Response,
 };
 
@@ -52,6 +53,7 @@ pub struct Files {
     path: PathBuf,
     show_files_listing: bool,
     index_file: Option<String>,
+    prefer_utf8: bool,
 }
 
 impl Files {
@@ -61,6 +63,7 @@ impl Files {
             path: path.into(),
             show_files_listing: false,
             index_file: None,
+            prefer_utf8: true,
         }
     }
 
@@ -84,6 +87,16 @@ impl Files {
     pub fn index_file(self, index: impl Into<String>) -> Self {
         Self {
             index_file: Some(index.into()),
+            ..self
+        }
+    }
+
+    /// Specifies whether text responses should signal a UTF-8 encoding.
+    ///
+    /// Default is `true`.
+    pub fn prefer_utf8(self, value: bool) -> Self {
+        Self {
+            prefer_utf8: value,
             ..self
         }
     }
@@ -129,12 +142,12 @@ impl Endpoint for Files {
         }
 
         if file_path.is_file() {
-            create_file_response(&file_path).await
+            create_file_response(&file_path, self.prefer_utf8).await
         } else {
             if let Some(index_file) = &self.index_file {
                 let index_path = file_path.join(index_file);
                 if index_path.is_file() {
-                    return create_file_response(&index_path).await;
+                    return create_file_response(&index_path, self.prefer_utf8).await;
                 }
             }
 
@@ -183,10 +196,73 @@ impl Endpoint for Files {
     }
 }
 
-async fn create_file_response(path: &Path) -> Response {
+async fn create_file_response(path: &Path, prefer_utf8: bool) -> Response {
+    let guess = mime_guess::from_path(path);
     let file = match File::open(path).await {
         Ok(file) => file,
         Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
     };
-    Response::builder().body(Body::from_async_read(file))
+    let mut resp = Response::builder().body(Body::from_async_read(file));
+    if let Some(mut mime) = guess.first() {
+        if prefer_utf8 {
+            mime = equiv_utf8_text(mime);
+        }
+        if let Ok(header_value) = HeaderValue::from_str(&mime.to_string()) {
+            resp.headers_mut()
+                .insert(header::CONTENT_TYPE, header_value);
+        }
+    }
+    resp
+}
+
+fn equiv_utf8_text(ct: Mime) -> Mime {
+    if ct == mime::APPLICATION_JAVASCRIPT {
+        return mime::APPLICATION_JAVASCRIPT_UTF_8;
+    }
+
+    if ct == mime::TEXT_HTML {
+        return mime::TEXT_HTML_UTF_8;
+    }
+
+    if ct == mime::TEXT_CSS {
+        return mime::TEXT_CSS_UTF_8;
+    }
+
+    if ct == mime::TEXT_PLAIN {
+        return mime::TEXT_PLAIN_UTF_8;
+    }
+
+    if ct == mime::TEXT_CSV {
+        return mime::TEXT_CSV_UTF_8;
+    }
+
+    if ct == mime::TEXT_TAB_SEPARATED_VALUES {
+        return mime::TEXT_TAB_SEPARATED_VALUES_UTF_8;
+    }
+
+    ct
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_equiv_utf8_text() {
+        assert_eq!(
+            equiv_utf8_text(mime::APPLICATION_JAVASCRIPT),
+            mime::APPLICATION_JAVASCRIPT_UTF_8
+        );
+        assert_eq!(equiv_utf8_text(mime::TEXT_HTML), mime::TEXT_HTML_UTF_8);
+        assert_eq!(equiv_utf8_text(mime::TEXT_CSS), mime::TEXT_CSS_UTF_8);
+        assert_eq!(equiv_utf8_text(mime::TEXT_PLAIN), mime::TEXT_PLAIN_UTF_8);
+        assert_eq!(equiv_utf8_text(mime::TEXT_CSV), mime::TEXT_CSV_UTF_8);
+        assert_eq!(
+            equiv_utf8_text(mime::TEXT_TAB_SEPARATED_VALUES),
+            mime::TEXT_TAB_SEPARATED_VALUES_UTF_8
+        );
+
+        assert_eq!(equiv_utf8_text(mime::TEXT_XML), mime::TEXT_XML);
+        assert_eq!(equiv_utf8_text(mime::IMAGE_PNG), mime::IMAGE_PNG);
+    }
 }
