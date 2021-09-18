@@ -116,13 +116,13 @@ impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
 pub type BoxEndpoint<T> = Box<dyn Endpoint<Output = T>>;
 
 /// Extension trait for [`Endpoint`].
-pub trait EndpointExt: Endpoint {
+pub trait EndpointExt: IntoEndpoint {
     /// Wrap the endpoint in a Box.
-    fn boxed(self) -> BoxEndpoint<Self::Output>
+    fn boxed(self) -> BoxEndpoint<<Self::Endpoint as Endpoint>::Output>
     where
         Self: Sized + 'static,
     {
-        Box::new(self)
+        Box::new(self.into_endpoint())
     }
 
     /// Use middleware to transform this endpoint.
@@ -141,10 +141,10 @@ pub trait EndpointExt: Endpoint {
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
-        T: Middleware<Self>,
+        T: Middleware<Self::Endpoint>,
         Self: Sized,
     {
-        middleware.transform(self)
+        middleware.transform(self.into_endpoint())
     }
 
     /// Maps the request of this endpoint.
@@ -201,7 +201,7 @@ pub trait EndpointExt: Endpoint {
     /// # });
     fn after<F, Fut, R>(self, f: F) -> After<Self, F>
     where
-        F: Fn(Self::Output) -> Fut + Send + Sync + 'static,
+        F: Fn(<Self::Endpoint as Endpoint>::Output) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = R> + Send + 'static,
         R: IntoResponse,
         Self: Sized,
@@ -264,7 +264,7 @@ pub trait EndpointExt: Endpoint {
     }
 }
 
-impl<T: Endpoint> EndpointExt for T {}
+impl<T: IntoEndpoint> EndpointExt for T {}
 
 #[cfg(test)]
 mod test {
