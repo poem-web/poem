@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 fn longest_common_prefix(a: &[u8], b: &[u8]) -> usize {
-    a.iter().zip(b).filter(|(a, b)| **a == **b).count()
+    a.iter().zip(b).take_while(|(a, b)| **a == **b).count()
 }
 
 #[derive(Debug, Eq, PartialEq)]
