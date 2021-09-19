@@ -14,7 +14,7 @@ use crate::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
     },
-    route_recognizer::Params,
+    route::PathParams,
     web::{CookieJar, RemoteAddr},
     RequestBody,
 };
@@ -22,7 +22,7 @@ use crate::{
 pub(crate) struct RequestState {
     pub(crate) remote_addr: RemoteAddr,
     pub(crate) original_uri: Uri,
-    pub(crate) match_params: Params,
+    pub(crate) match_params: PathParams,
     pub(crate) cookie_jar: CookieJar,
     #[allow(dead_code)]
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
@@ -174,7 +174,6 @@ impl Request {
     pub fn path_param(&self, name: &str) -> Option<&str> {
         self.state
             .match_params
-            .0
             .iter()
             .find(|(key, _)| key == name)
             .map(|(_, value)| value.as_str())

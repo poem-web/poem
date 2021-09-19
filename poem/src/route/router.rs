@@ -1,5 +1,3 @@
-//! Route object and DSL
-
 use std::sync::Arc;
 
 use fnv::FnvHashMap;
@@ -7,15 +5,15 @@ use http::StatusCode;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use super::tree::Tree;
 use crate::{
-    http::Method, route_recognizer::Router, Body, Endpoint, EndpointExt, IntoEndpoint,
-    IntoResponse, Request, Response,
+    http::Method, Body, Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response,
 };
 
 /// Routing object
 #[derive(Default)]
 pub struct Route {
-    router: Router<Box<dyn Endpoint<Output = Response>>>,
+    router: Tree<Box<dyn Endpoint<Output = Response>>>,
 }
 
 impl Route {
@@ -85,8 +83,8 @@ impl Route {
             type Output = Response;
 
             async fn call(&self, mut req: Request) -> Self::Output {
-                let idx = req.state().match_params.0.len() - 1;
-                let (name, _) = req.state_mut().match_params.0.remove(idx);
+                let idx = req.state().match_params.len() - 1;
+                let (name, _) = req.state_mut().match_params.remove(idx);
                 assert_eq!(name, "--poem-rest");
                 req.set_uri(
                     http::uri::Builder::new()
@@ -153,7 +151,7 @@ impl Route {
 /// Create a new routing object.
 pub fn route() -> Route {
     Route {
-        router: Default::default(),
+        router: Tree::new(),
     }
 }
 
@@ -162,12 +160,12 @@ impl Endpoint for Route {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Self::Output {
-        match self.router.recognize(req.uri().path()) {
-            Ok(matches) => {
-                req.state_mut().match_params.0.extend(matches.params.0);
-                matches.handler.call(req).await
+        match self.router.matches(req.uri().path()) {
+            Some(matches) => {
+                req.state_mut().match_params.extend(matches.params);
+                matches.data.call(req).await
             }
-            Err(_) => StatusCode::NOT_FOUND.into(),
+            None => StatusCode::NOT_FOUND.into(),
         }
     }
 }

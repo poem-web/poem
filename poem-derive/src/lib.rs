@@ -28,8 +28,8 @@ pub fn handler(args: TokenStream, input: TokenStream) -> TokenStream {
         Err(err) => return err.write_errors().into(),
     };
 
-    match generate_handler(args, input.into()) {
-        Ok(stream) => stream.into(),
+    match generate_handler(args, input) {
+        Ok(stream) => stream,
         Err(err) => err.into_compile_error().into(),
     }
 }
