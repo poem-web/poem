@@ -10,7 +10,7 @@ use tokio::{
     net::{unix::SocketAddr, UnixListener as TokioUnixListener, UnixStream},
 };
 
-use crate::listener::{Acceptor, IntoAcceptor};
+use crate::listener::{Acceptor, Listener};
 
 /// A Unix domain socket listener.
 #[cfg_attr(docsrs, doc(cfg(unix)))]
@@ -26,7 +26,7 @@ impl<T> UnixListener<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: AsRef<Path> + Send> IntoAcceptor for UnixListener<T> {
+impl<T: AsRef<Path> + Send> Listener for UnixListener<T> {
     type Acceptor = UnixAcceptor;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {

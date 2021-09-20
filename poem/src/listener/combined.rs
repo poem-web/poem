@@ -6,7 +6,7 @@ use std::{
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
 use crate::{
-    listener::{Acceptor, IntoAcceptor},
+    listener::{Acceptor, Listener},
     web::RemoteAddr,
 };
 
@@ -23,7 +23,7 @@ impl<A, B> CombinedListener<A, B> {
 }
 
 #[async_trait::async_trait]
-impl<A: IntoAcceptor, B: IntoAcceptor> IntoAcceptor for CombinedListener<A, B> {
+impl<A: Listener, B: Listener> Listener for CombinedListener<A, B> {
     type Acceptor = CombinedAcceptor<A::Acceptor, B::Acceptor>;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {

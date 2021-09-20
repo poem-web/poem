@@ -9,7 +9,7 @@ use tokio_rustls::{
     server::TlsStream,
 };
 
-use crate::listener::{Acceptor, IntoAcceptor};
+use crate::listener::{Acceptor, Listener};
 
 #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
 enum TlsClientAuth {
@@ -87,14 +87,14 @@ pub struct TlsListener<T> {
     inner: T,
 }
 
-impl<T: IntoAcceptor> TlsListener<T> {
+impl<T: Listener> TlsListener<T> {
     pub(crate) fn new(config: TlsConfig, inner: T) -> Self {
         Self { config, inner }
     }
 }
 
 #[async_trait::async_trait]
-impl<T: IntoAcceptor> IntoAcceptor for TlsListener<T> {
+impl<T: Listener> Listener for TlsListener<T> {
     type Acceptor = TlsAcceptor<T::Acceptor>;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {

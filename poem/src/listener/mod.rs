@@ -37,9 +37,9 @@ pub trait Acceptor: Send + Sync {
     async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)>;
 }
 
-/// Represents a type that can be converted to a acceptor.
+/// Represents a listener that can be listens for incoming connections.
 #[async_trait::async_trait]
-pub trait IntoAcceptor: Send {
+pub trait Listener: Send {
     /// The acceptor type.
     type Acceptor: Acceptor;
 

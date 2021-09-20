@@ -14,7 +14,7 @@ use tokio::{
 };
 
 use crate::{
-    listener::{Acceptor, IntoAcceptor},
+    listener::{Acceptor, Listener},
     web::RemoteAddr,
     Endpoint, EndpointExt, IntoEndpoint, Request, Response,
 };
@@ -26,7 +26,7 @@ pub struct Server<T> {
 
 impl<T: Acceptor> Server<T> {
     /// Use the specified listener to create an HTTP server.
-    pub async fn new<K: IntoAcceptor<Acceptor = T>>(acceptor: K) -> IoResult<Server<T>> {
+    pub async fn new<K: Listener<Acceptor = T>>(acceptor: K) -> IoResult<Server<T>> {
         Ok(Self {
             acceptor: acceptor.into_acceptor().await?,
         })

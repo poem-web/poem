@@ -13,6 +13,7 @@
   - [Protocols](poem/protocols.md)
     - [Websocket](poem/protocols/websocket.md)
     - [Server-Sent Events (SSE)](poem/protocols/sse.md)
+  - [Listeners](poem/listeners.md)
 - [OpenAPI](openapi.md)
   - [Quickstart](openapi/quickstart.md)
   - [Type System](openapi/type_system.md)

@@ -5,7 +5,7 @@ use tokio::{
     net::{TcpListener as TokioTcpListener, TcpStream, ToSocketAddrs},
 };
 
-use crate::listener::{Acceptor, IntoAcceptor};
+use crate::listener::{Acceptor, Listener};
 
 /// A TCP listener.
 pub struct TcpListener<T> {
@@ -20,7 +20,7 @@ impl<T> TcpListener<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: ToSocketAddrs + Send> IntoAcceptor for TcpListener<T> {
+impl<T: ToSocketAddrs + Send> Listener for TcpListener<T> {
     type Acceptor = TcpAcceptor;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
