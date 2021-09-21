@@ -28,7 +28,7 @@ struct ObjectField {
     skip: bool,
 
     #[darling(default)]
-    name: Option<String>,
+    rename: Option<String>,
     #[darling(default)]
     default: Option<DefaultValue>,
 
@@ -65,7 +65,7 @@ struct ObjectArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    rename_fields: Option<RenameRule>,
+    rename_all: Option<RenameRule>,
     #[darling(default, multiple, rename = "concrete")]
     concretes: Vec<ConcreteType>,
     #[darling(default)]
@@ -113,8 +113,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             continue;
         }
 
-        let field_name = field.name.clone().unwrap_or_else(|| {
-            args.rename_fields
+        let field_name = field.rename.clone().unwrap_or_else(|| {
+            args.rename_all
                 .rename(field_ident.unraw().to_string(), RenameTarget::Field)
         });
         let (field_title, field_description) = get_summary_and_description(&field.attrs)?;

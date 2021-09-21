@@ -46,9 +46,9 @@ fn create_multipart_payload(parts: &[(&str, Option<&str>, &[u8])]) -> Vec<u8> {
 }
 
 #[tokio::test]
-async fn rename_fields() {
+async fn rename_all() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
-    #[oai(rename_fields = "UPPERCASE")]
+    #[oai(rename_all = "UPPERCASE")]
     struct A {
         name: String,
         file: Binary,
@@ -157,7 +157,7 @@ async fn optional_fields() {
 async fn rename_field() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(name = "Name")]
+        #[oai(rename = "Name")]
         name: String,
         file: Binary,
     }

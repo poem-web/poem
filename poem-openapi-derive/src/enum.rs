@@ -20,7 +20,7 @@ struct EnumItem {
     fields: Fields<Ignored>,
 
     #[darling(default)]
-    pub name: Option<String>,
+    rename: Option<String>,
 }
 
 #[derive(FromDeriveInput)]
@@ -32,9 +32,9 @@ struct EnumArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    rename_items: Option<RenameRule>,
+    rename_all: Option<RenameRule>,
     #[darling(default)]
-    name: Option<String>,
+    rename: Option<String>,
     #[darling(default)]
     default: Option<DefaultValue>,
 }
@@ -44,7 +44,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
     let oai_typename = args
-        .name
+        .rename
         .clone()
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
     let e = match &args.data {
@@ -69,8 +69,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         let item_ident = &variant.ident;
-        let oai_item_name = variant.name.clone().unwrap_or_else(|| {
-            args.rename_items
+        let oai_item_name = variant.rename.clone().unwrap_or_else(|| {
+            args.rename_all
                 .rename(variant.ident.unraw().to_string(), RenameTarget::EnumItem)
         });
 

@@ -101,13 +101,14 @@ impl<'a> Validators<'a> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
             Ok(Some(quote! {
-                for validator in [#(#validators),*] {
+                #(
+                    let validator = #validators;
                     if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_value(&value) {
                         if !#crate_name::validation::Validator::check(&validator, value) {
                             return Err(#crate_name::types::ParseError::<Self>::custom(format!("field `{}` verification failed. {}", #field_name, validator)));
                         }
                     }
-                }
+                )*
             }))
         } else {
             Ok(None)
@@ -122,7 +123,8 @@ impl<'a> Validators<'a> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
             Ok(Some(quote! {
-                for validator in [#(#validators),*] {
+                #(
+                    let validator = #validators;
                     if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_value(&value) {
                         if !#crate_name::validation::Validator::check(&validator, value) {
                             let err = #crate_name::ParseRequestError::ParseParam {
@@ -132,7 +134,7 @@ impl<'a> Validators<'a> {
                             return Err(#crate_name::poem::Error::bad_request(err));
                         }
                     }
-                }
+                )*
             }))
         } else {
             Ok(None)
@@ -147,7 +149,8 @@ impl<'a> Validators<'a> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
             Ok(Some(quote! {
-                for validator in [#(#validators),*] {
+                #(
+                    let validator = #validators;
                     if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_value(&value) {
                         if !#crate_name::validation::Validator::check(&validator, value) {
                             return Err(#crate_name::ParseRequestError::ParseRequestBody {
@@ -155,7 +158,7 @@ impl<'a> Validators<'a> {
                             });
                         }
                     }
-                }
+                )*
             }))
         } else {
             Ok(None)
@@ -169,9 +172,10 @@ impl<'a> Validators<'a> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
             Ok(Some(quote! {
-                for validator in [#(#validators),*] {
+                #(
+                    let validator = #validators;
                     #crate_name::validation::ValidatorMeta::update_meta(&validator, schema);
-                }
+                )*
             }))
         } else {
             Ok(None)

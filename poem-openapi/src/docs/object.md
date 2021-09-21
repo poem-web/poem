@@ -4,8 +4,8 @@ Define a OpenAPI object
 
 | Attribute     | description               | Type     | Optional |
 |---------------|---------------------------|----------|----------|
-| name          | Object name               | string   | Y        |
-| rename_fields | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string   | Y        |
+| rename        | Rename the object         | string   | Y        |
+| rename_all    | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string   | Y        |
 | concretes     | Specify how the concrete type of the generic Schema should be implemented. | ConcreteType |  Y |
 | deprecated    | Schema deprecated          | bool     | Y        |
 
@@ -14,7 +14,7 @@ Define a OpenAPI object
 | Attribute     | description               | Type     | Optional |
 |---------------|---------------------------|----------|----------|
 | skip          | Skip this field           | bool     | Y        |
-| name          | Field name                | string   | Y        |
+| rename        | Rename the field          | string   | Y        |
 | default       | Default value             | bool,string | Y     |
 | multiple_of   | The value of "multiple_of" MUST be a number, strictly greater than 0. A numeric instance is only valid if division by this value results in an integer. | number | Y |
 | maximum       | The value of "maximum" MUST be a number, representing an upper limit for a numeric instance. If `exclusive` is `true` and instance is less than the provided value, or else if the instance is less than or exactly equal to the provided value. | { value: `<number>`, exclusive: `<bool>`} | Y |

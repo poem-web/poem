@@ -324,3 +324,27 @@ fn test_option() {
         "failed to parse \"A\": field `n` verification failed. multipleOf(10)"
     );
 }
+
+#[test]
+fn test_multiple_validators() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(multiple_of = "10", maximum(value = "500"))]
+        n: i32,
+    }
+
+    assert_eq!(A::parse_from_json(json!({ "n": 20 })).unwrap(), A { n: 20 });
+    assert_eq!(
+        A::parse_from_json(json!({ "n": 25 }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `n` verification failed. multipleOf(10)"
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({ "n": 530 }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `n` verification failed. maximum(500, exclusive: false)"
+    );
+}

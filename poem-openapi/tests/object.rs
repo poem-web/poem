@@ -22,9 +22,9 @@ fn rename() {
 }
 
 #[test]
-fn rename_fields() {
+fn rename_all() {
     #[derive(Object)]
-    #[oai(rename_fields = "camelCase")]
+    #[oai(rename_all = "camelCase")]
     struct Obj {
         create_user: i32,
         delete_user: i32,
@@ -111,10 +111,10 @@ fn field_skip() {
 }
 
 #[test]
-fn field_name() {
+fn field_rename() {
     #[derive(Object)]
     struct Obj {
-        #[oai(name = "b")]
+        #[oai(rename = "b")]
         a: i32,
     }
 

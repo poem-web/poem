@@ -25,7 +25,7 @@ fn meta_enum_items() {
 #[test]
 fn rename() {
     #[derive(Enum, Debug, Eq, PartialEq)]
-    #[oai(name = "AAA")]
+    #[oai(rename = "AAA")]
     enum MyEnum {
         CreateUser,
         DeleteUser,
@@ -39,9 +39,9 @@ fn rename() {
 }
 
 #[test]
-fn rename_items() {
+fn rename_all() {
     #[derive(Enum, Debug, Eq, PartialEq)]
-    #[oai(rename_items = "camelCase")]
+    #[oai(rename_all = "camelCase")]
     enum MyEnum {
         CreateUser,
         DeleteUser,
@@ -72,7 +72,7 @@ fn rename_item() {
     #[derive(Enum, Debug, Eq, PartialEq)]
     enum MyEnum {
         CreateUser,
-        #[oai(name = "delete_user")]
+        #[oai(rename = "delete_user")]
         DeleteUser,
     }
 
