@@ -4,12 +4,12 @@ use std::{
 };
 
 /// Remote peer's address.
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub struct RemoteAddr(Arc<String>);
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct RemoteAddr(Arc<str>);
 
 impl RemoteAddr {
     pub(crate) fn new(addr: impl Display) -> Self {
-        Self(Arc::new(addr.to_string()))
+        Self(addr.to_string().into())
     }
 }
 

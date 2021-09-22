@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use darling::{util::SpannedValue, FromMeta};
 use http::header::HeaderName;
 use indexmap::IndexMap;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
     AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta, NestedMeta, Path,
@@ -34,6 +34,8 @@ struct APIOperation {
     deprecated: bool,
     #[darling(default, multiple, rename = "tag")]
     tags: Vec<Path>,
+    #[darling(default)]
+    transform: Option<Ident>,
 }
 
 #[derive(Default)]
@@ -238,6 +240,7 @@ fn generate_operation(
         method,
         deprecated,
         tags,
+        transform,
     } = args;
     let http_method = method.to_http_method();
     let fn_ident = &item_method.sig.ident;
@@ -512,10 +515,16 @@ fn generate_operation(
 
     ctx.response_types.push(quote!(#res_ty));
 
+    let transform = transform.map(|transform| {
+        quote! {
+            let ep = #transform(ep);
+        }
+    });
+
     ctx.add_routes.entry(new_path).or_default().push(quote! {
         method(#crate_name::poem::http::Method::#http_method, {
             let api_obj = ::std::clone::Clone::clone(&api_obj);
-            #crate_name::poem::endpoint::make(move |request| {
+            let ep = #crate_name::poem::endpoint::make(move |request| {
                 let api_obj = ::std::clone::Clone::clone(&api_obj);
                 async move {
                     let (request, mut body) = request.split();
@@ -523,7 +532,9 @@ fn generate_operation(
                     #(#parse_args)*
                     ::std::result::Result::Ok::<_, #crate_name::poem::Error>(api_obj.#fn_ident(#(#use_args),*).await)
                 }
-            })
+            });
+            #transform
+            ep
         })
     });
 

@@ -88,7 +88,7 @@ impl Api {
         if users.contains_key(&user.0.id) {
             return CreateUserResponse::UserAlreadyExists;
         }
-        users.insert(user.0.id.clone(), user.0);
+        users.insert(user.0.id, user.0);
         CreateUserResponse::Ok
     }
 
