@@ -1,4 +1,4 @@
-Define a OpenAPI Tags.
+Define a OAuth scopes.
 
 # Macro parameters
 
@@ -10,18 +10,18 @@ Define a OpenAPI Tags.
 
 | Attribute   | description               | Type     | Optional |
 |-------------|---------------------------|----------|----------|
-| rename      | Rename the tag name       | string   | Y        |
+| rename      | Rename the scope name       | string   | Y        |
 
 # Examples
 
 ```rust
-use poem_openapi::Tags;
+use poem_openapi::OAuthScopes;
 
-#[derive(Tags)]
-enum ApiTags {
-    /// Operations about user
-    User,
-    /// Operations about pet
-    Pet,
+#[derive(OAuthScopes)]
+enum GithubScopes {
+    /// Read data
+    Read,
+    /// Write data
+    Write,
 }
 ```

@@ -6,15 +6,15 @@ use poem::{
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
-    registry::{MetaOAuthFlow, MetaOAuthFlows, MetaSecurityScheme, Registry},
-    OpenApi, OpenApiService, SecurityScheme,
+    registry::{MetaOAuthFlow, MetaOAuthFlows, MetaOAuthScope, MetaSecurityScheme, Registry},
+    OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
 use typed_headers::{http::StatusCode, Token68};
 
 #[test]
 fn rename() {
     #[derive(SecurityScheme)]
-    #[oai(name = "ABC", type = "basic")]
+    #[oai(rename = "ABC", type = "basic")]
     struct MySecurityScheme(Basic);
 
     assert_eq!(MySecurityScheme::NAME, "ABC");
@@ -128,7 +128,7 @@ async fn bearer_auth() {
     impl MyApi {
         #[oai(path = "/test", method = "get")]
         async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText<String> {
-            PlainText(auth.0.token.clone())
+            PlainText(auth.0.token)
         }
     }
 
@@ -282,15 +282,104 @@ async fn api_key_auth() {
 }
 
 #[tokio::test]
+async fn oauth2_scopes_rename_all() {
+    #[derive(OAuthScopes)]
+    #[oai(rename_all = "UPPERCASE")]
+    enum GithubScopes {
+        Read,
+        Write,
+    }
+
+    assert_eq!(
+        GithubScopes::meta(),
+        &[
+            MetaOAuthScope {
+                name: "READ",
+                description: None
+            },
+            MetaOAuthScope {
+                name: "WRITE",
+                description: None
+            }
+        ]
+    );
+    assert_eq!(GithubScopes::Read.name(), "READ");
+    assert_eq!(GithubScopes::Write.name(), "WRITE");
+}
+
+#[tokio::test]
+async fn oauth2_scopes_rename_item() {
+    #[derive(OAuthScopes)]
+    enum GithubScopes {
+        #[oai(rename = "r_ead")]
+        Read,
+        Write,
+    }
+
+    assert_eq!(
+        GithubScopes::meta(),
+        &[
+            MetaOAuthScope {
+                name: "r_ead",
+                description: None
+            },
+            MetaOAuthScope {
+                name: "write",
+                description: None
+            }
+        ]
+    );
+    assert_eq!(GithubScopes::Read.name(), "r_ead");
+    assert_eq!(GithubScopes::Write.name(), "write");
+}
+
+#[tokio::test]
+async fn oauth2_scopes_description() {
+    #[derive(OAuthScopes)]
+    #[allow(dead_code)]
+    enum GithubScopes {
+        /// Read data
+        Read,
+        /// Write data
+        Write,
+    }
+
+    assert_eq!(
+        GithubScopes::meta(),
+        &[
+            MetaOAuthScope {
+                name: "read",
+                description: Some("Read data")
+            },
+            MetaOAuthScope {
+                name: "write",
+                description: Some("Write data")
+            }
+        ]
+    );
+}
+
+#[tokio::test]
 async fn oauth2_auth() {
+    #[derive(OAuthScopes)]
+    #[allow(dead_code)]
+    enum GithubScopes {
+        /// read data
+        #[oai(rename = "read")]
+        Read,
+
+        /// write data
+        #[oai(rename = "write")]
+        Write,
+    }
+
     #[derive(SecurityScheme)]
     #[oai(
         type = "oauth2",
         flows(
             implicit(
                 authorization_url = "https://test.com/authorize",
-                scope(name = "read", desc = "read data"),
-                scope(name = "write", desc = "write data")
+                scopes = "GithubScopes"
             ),
             password(token_url = "https://test.com/token"),
             client_credentials(token_url = "https://test.com/token"),
@@ -318,7 +407,16 @@ async fn oauth2_auth() {
                     authorization_url: Some("https://test.com/authorize"),
                     token_url: None,
                     refresh_url: None,
-                    scopes: vec![("read", "read data"), ("write", "write data")]
+                    scopes: vec![
+                        MetaOAuthScope {
+                            name: "read",
+                            description: Some("read data")
+                        },
+                        MetaOAuthScope {
+                            name: "write",
+                            description: Some("write data")
+                        },
+                    ]
                 }),
                 password: Some(MetaOAuthFlow {
                     authorization_url: None,

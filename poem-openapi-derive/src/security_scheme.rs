@@ -8,7 +8,7 @@ use darling::{
 use http::header::HeaderName;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{Attribute, DeriveInput, Error};
+use syn::{Attribute, DeriveInput, Error, Path};
 
 use crate::{
     common_args::RenameTarget,
@@ -31,12 +31,6 @@ pub(crate) enum AuthType {
 }
 
 #[derive(FromMeta)]
-struct OAuthScope {
-    name: String,
-    desc: String,
-}
-
-#[derive(FromMeta)]
 struct OAuthFlow {
     #[darling(default)]
     authorization_url: Option<String>,
@@ -44,8 +38,8 @@ struct OAuthFlow {
     token_url: Option<String>,
     #[darling(default)]
     refresh_url: Option<String>,
-    #[darling(multiple, rename = "scope")]
-    scopes: Vec<OAuthScope>,
+    #[darling(default)]
+    scopes: Option<Path>,
 }
 
 impl OAuthFlow {
@@ -53,17 +47,17 @@ impl OAuthFlow {
         let authorization_url = optional_literal(&self.authorization_url);
         let token_url = optional_literal(&self.token_url);
         let refresh_url = optional_literal(&self.refresh_url);
-        let scopes = self.scopes.iter().map(|scope| {
-            let OAuthScope { name, desc } = scope;
-            quote!((#name, #desc))
-        });
+        let scopes = match &self.scopes {
+            Some(scopes) => quote!(<#scopes as #crate_name::OAuthScopes>::meta()),
+            None => quote!(::std::vec![]),
+        };
 
         Ok(quote! {
             #crate_name::registry::MetaOAuthFlow {
                 authorization_url: #authorization_url,
                 token_url: #token_url,
                 refresh_url: #refresh_url,
-                scopes: ::std::vec![#(#scopes),*],
+                scopes: #scopes,
             }
         })
     }
@@ -204,7 +198,7 @@ struct SecuritySchemeArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    name: Option<String>,
+    rename: Option<String>,
     #[darling(rename = "type")]
     ty: AuthType,
     #[darling(default, rename = "in")]
@@ -418,7 +412,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
     let oai_typename = args
-        .name
+        .rename
         .clone()
         .unwrap_or_else(|| RenameTarget::SecurityScheme.rename(ident.to_string()));
     args.validate()?;

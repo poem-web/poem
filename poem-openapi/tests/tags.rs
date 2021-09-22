@@ -8,7 +8,7 @@ use poem_openapi::{
 #[tokio::test]
 async fn rename_all() {
     #[derive(Tags)]
-    #[oai(rename_items = "camelCase")]
+    #[oai(rename_all = "camelCase")]
     enum MyTags {
         UserOperations,
         PetOperations,
@@ -34,7 +34,7 @@ async fn default_rename_all() {
 async fn rename_item() {
     #[derive(Tags)]
     enum MyTags {
-        #[oai(name = "UserOperations")]
+        #[oai(rename = "UserOperations")]
         UserOperations,
         PetOperations,
     }

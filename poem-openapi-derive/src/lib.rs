@@ -8,6 +8,7 @@ mod common_args;
 mod r#enum;
 mod error;
 mod multipart;
+mod oauth_scopes;
 mod object;
 mod request;
 mod response;
@@ -78,6 +79,15 @@ pub fn derive_multipart(input: TokenStream) -> TokenStream {
 pub fn derive_tags(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
     match tags::generate(args) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_derive(OAuthScopes, attributes(oai))]
+pub fn derive_oauth_scopes(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DeriveInput);
+    match oauth_scopes::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

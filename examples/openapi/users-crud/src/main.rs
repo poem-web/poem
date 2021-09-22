@@ -16,8 +16,7 @@ enum ApiTags {
 #[derive(Debug, Object, Clone, Eq, PartialEq)]
 struct User {
     /// Id
-    #[oai(max_length = 20)]
-    id: String,
+    id: i64,
     /// Name
     #[oai(max_length = 64)]
     name: String,
@@ -77,7 +76,7 @@ enum UpdateUserResponse {
 
 #[derive(Default)]
 struct Api {
-    users: Mutex<HashMap<String, User>>,
+    users: Mutex<HashMap<i64, User>>,
 }
 
 #[OpenApi]
@@ -97,7 +96,7 @@ impl Api {
     #[oai(path = "/users/:user_id", method = "get", tag = "ApiTags::User")]
     async fn find_user(
         &self,
-        #[oai(name = "user_id", in = "path", max_length = 20)] user_id: String,
+        #[oai(name = "user_id", in = "path")] user_id: i64,
     ) -> FindUserResponse {
         let users = self.users.lock().await;
         match users.get(&user_id) {
@@ -110,7 +109,7 @@ impl Api {
     #[oai(path = "/users/:user_id", method = "delete", tag = "ApiTags::User")]
     async fn delete_user(
         &self,
-        #[oai(name = "user_id", in = "path", max_length = 20)] user_id: String,
+        #[oai(name = "user_id", in = "path")] user_id: i64,
     ) -> DeleteUserResponse {
         let mut users = self.users.lock().await;
         match users.remove(&user_id) {
@@ -123,7 +122,7 @@ impl Api {
     #[oai(path = "/users/:user_id", method = "put", tag = "ApiTags::User")]
     async fn put_user(
         &self,
-        #[oai(name = "user_id", in = "path", max_length = 20)] user_id: String,
+        #[oai(name = "user_id", in = "path")] user_id: i64,
         update: Json<UpdateUser>,
     ) -> UpdateUserResponse {
         let mut users = self.users.lock().await;

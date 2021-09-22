@@ -3,8 +3,10 @@ use std::collections::HashMap;
 use poem::{route::Route, IntoResponse, Request, RequestBody, Result};
 
 use crate::{
-    payload::Payload,
-    registry::{MetaApi, MetaMediaType, MetaRequest, MetaResponse, MetaResponses, Registry},
+    payload::{ParsePayload, Payload},
+    registry::{
+        MetaApi, MetaMediaType, MetaOAuthScope, MetaRequest, MetaResponse, MetaResponses, Registry,
+    },
     ParseRequestError,
 };
 
@@ -27,7 +29,7 @@ pub trait ApiRequest: Sized {
 }
 
 #[poem::async_trait]
-impl<T: Payload> ApiRequest for T {
+impl<T: Payload + ParsePayload> ApiRequest for T {
     fn meta() -> MetaRequest {
         MetaRequest {
             description: None,
@@ -47,7 +49,7 @@ impl<T: Payload> ApiRequest for T {
         request: &Request,
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
-        T::from_request(request, body).await
+        <T as ParsePayload>::from_request(request, body).await
     }
 }
 
@@ -129,6 +131,15 @@ pub trait SecurityScheme: Sized {
         req: &Request,
         query: &HashMap<String, String>,
     ) -> Result<Self, ParseRequestError>;
+}
+
+/// Represents a OAuth scopes.
+pub trait OAuthScopes {
+    /// Gets metadata of this object.
+    fn meta() -> Vec<MetaOAuthScope>;
+
+    /// Get the scope name.
+    fn name(&self) -> &'static str;
 }
 
 impl<T: SecurityScheme> SecurityScheme for Option<T> {

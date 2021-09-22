@@ -2,7 +2,7 @@ use poem::{handler, http::StatusCode, listener::TcpListener, route, Error, Resul
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
-    OpenApi, OpenApiService, SecurityScheme,
+    OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
 
 /// Basic authorization
@@ -20,6 +20,12 @@ struct MyBasicAuthorization(Basic);
 #[oai(type = "api_key", key_name = "X-API-Key", in = "header")]
 struct MyApiKeyAuthorization(ApiKey);
 
+#[derive(OAuthScopes)]
+enum GithubScopes {
+    #[oai(rename = "public_repo")]
+    PublicRepo,
+}
+
 /// Github authorization
 ///
 /// - client_id: `409f09d61d182d0ae9a0`
@@ -30,8 +36,7 @@ struct MyApiKeyAuthorization(ApiKey);
     flows(authorization_code(
         authorization_url = "https://github.com/login/oauth/authorize",
         token_url = "http://localhost:3000/proxy",
-        scope(name = "public_repo", desc = "access to public repositories."),
-        scope(name = "read:user", desc = "access to read a user's profile data.")
+        scopes = "GithubScopes"
     ))
 )]
 struct GithubAuthorization(Bearer);
@@ -65,7 +70,7 @@ impl Api {
     #[oai(path = "/oauth2", method = "get")]
     async fn auth_oauth2(
         &self,
-        #[oai(auth("public_repo", "read:user"))] auth: GithubAuthorization,
+        #[oai(auth("GithubScopes::PublicRepo"))] auth: GithubAuthorization,
     ) -> Result<PlainText<String>> {
         let client = reqwest::Client::new();
         let text = client

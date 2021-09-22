@@ -319,6 +319,12 @@ impl Hash for MetaTag {
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+pub struct MetaOAuthScope {
+    pub name: &'static str,
+    pub description: Option<&'static str>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaOAuthFlow {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -331,16 +337,16 @@ pub struct MetaOAuthFlow {
         skip_serializing_if = "Vec::is_empty",
         serialize_with = "serialize_oauth_flow_scopes"
     )]
-    pub scopes: Vec<(&'static str, &'static str)>,
+    pub scopes: Vec<MetaOAuthScope>,
 }
 
 fn serialize_oauth_flow_scopes<S: Serializer>(
-    properties: &[(&'static str, &'static str)],
+    properties: &[MetaOAuthScope],
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let mut s = serializer.serialize_map(None)?;
     for item in properties {
-        s.serialize_entry(item.0, &item.1)?;
+        s.serialize_entry(item.name, item.description.unwrap_or_default())?;
     }
     s.end()
 }

@@ -38,7 +38,7 @@ struct APIOperation {
 
 #[derive(Default)]
 struct Auth {
-    scopes: Vec<String>,
+    scopes: Vec<Path>,
 }
 
 impl FromMeta for Auth {
@@ -49,12 +49,12 @@ impl FromMeta for Auth {
                 let mut scopes = Vec::new();
                 for item in &ls.nested {
                     if let NestedMeta::Lit(Lit::Str(s)) = item {
-                        scopes.push(s.value());
+                        let path = syn::parse_str::<Path>(&s.value())?;
+                        scopes.push(path);
                     } else {
-                        return Err(darling::Error::custom(
-                            "Incorrect scope definitions. #[oai(auth(\"read\", \"write\"))]",
-                        )
-                        .with_span(item));
+                        return Err(
+                            darling::Error::custom("Incorrect scope definitions.").with_span(item)
+                        );
                     }
                 }
                 Ok(Self { scopes })
@@ -327,7 +327,7 @@ fn generate_operation(
                 use_args.push(pname);
 
                 let scopes = &auth.scopes;
-                security_requirement = quote!(::std::option::Option::Some((<#arg_ty as #crate_name::SecurityScheme>::NAME, ::std::vec![#(#scopes),*])));
+                security_requirement = quote!(::std::option::Option::Some((<#arg_ty as #crate_name::SecurityScheme>::NAME, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])));
                 ctx.security_schemes.push(quote!(#arg_ty));
             }
 

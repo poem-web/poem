@@ -27,40 +27,39 @@ fn find_wildcard(path: &[u8]) -> Option<usize> {
         .map(|(pos, _)| pos)
 }
 
-fn take_segment<'a>(path: &mut &'a [u8]) -> Segment<'a> {
-    assert!(!path.is_empty());
+fn take_segment<'a>(path: &mut &'a [u8]) -> Option<Segment<'a>> {
+    if path.is_empty() {
+        return None;
+    }
 
+    let segment;
     match path[0] {
         b':' => match find_slash(path) {
             Some(pos) => {
-                let res = Segment::Param(&path[1..pos]);
+                segment = Segment::Param(&path[1..pos]);
                 *path = &path[pos..];
-                res
             }
             None => {
-                let res = Segment::Param(&path[1..]);
+                segment = Segment::Param(&path[1..]);
                 *path = &[];
-                res
             }
         },
         b'*' => {
-            let res = Segment::CatchAll(&path[1..]);
+            segment = Segment::CatchAll(&path[1..]);
             *path = &[];
-            res
         }
         _ => match find_wildcard(path) {
             Some(pos) => {
-                let res = Segment::Static(&path[..pos]);
+                segment = Segment::Static(&path[..pos]);
                 *path = &path[pos..];
-                res
             }
             None => {
-                let res = Segment::Static(&path[..]);
+                segment = Segment::Static(&path[..]);
                 *path = &[];
-                res
             }
         },
-    }
+    };
+    Some(segment)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -104,22 +103,19 @@ impl<T> Node<T> {
         None
     }
 
-    fn insert_child(&mut self, mut path: &[u8], data: T) {
-        if path.is_empty() {
-            self.data = Some(data);
+    fn insert_child(&mut self, segments: &[Segment<'_>], data: T) -> bool {
+        if segments.is_empty() {
+            self.data.replace(data).is_none()
         } else {
-            match take_segment(&mut path) {
-                Segment::Static(name) => self.insert_static_child(name, data, path),
-                Segment::Param(name) => self.insert_param_child(name, data, path),
-                Segment::CatchAll(name) => {
-                    assert!(path.is_empty());
-                    self.insert_catch_all_child(name, data);
-                }
+            match &segments[0] {
+                Segment::Static(name) => self.insert_static_child(&segments[1..], name, data),
+                Segment::Param(name) => self.insert_param_child(name, data, &segments[1..]),
+                Segment::CatchAll(name) => self.insert_catch_all_child(name, data),
             }
         }
     }
 
-    fn insert_static_child(&mut self, name: &[u8], data: T, path: &[u8]) {
+    fn insert_static_child(&mut self, segments: &[Segment<'_>], name: &[u8], data: T) -> bool {
         match self.find_static_child(name[0]) {
             Some(pos) => {
                 let mut child = &mut self.children[pos];
@@ -153,30 +149,33 @@ impl<T> Node<T> {
                         child.children = vec![a, b];
 
                         let b = child.children.last_mut().unwrap();
-                        b.insert_child(path, data);
+                        b.insert_child(segments, data)
                     } else {
                         child.name = child.name[..n].to_vec();
                         child.indices = vec![a.name[0]];
                         child.children = vec![a];
 
-                        child.insert_child(path, data);
+                        child.insert_child(segments, data)
                     }
                 } else if n < name.len() {
                     // add child
-                    child.insert_static_child(&name[n..], data, path);
+                    child.insert_static_child(segments, &name[n..], data)
                 } else {
-                    child.insert_child(path, data);
+                    child.insert_child(segments, data)
                 }
             }
             None => {
                 self.children.push(Node::new(NodeType::Static, name));
                 self.indices.push(name[0]);
-                self.children.last_mut().unwrap().insert_child(path, data);
+                self.children
+                    .last_mut()
+                    .unwrap()
+                    .insert_child(segments, data)
             }
         }
     }
 
-    fn insert_param_child(&mut self, name: &[u8], data: T, path: &[u8]) {
+    fn insert_param_child(&mut self, name: &[u8], data: T, segments: &[Segment<'_>]) -> bool {
         let child = match &mut self.param_child {
             Some(child) => {
                 child.name = name.to_vec();
@@ -195,19 +194,21 @@ impl<T> Node<T> {
                 self.param_child.as_mut().unwrap()
             }
         };
-        child.insert_child(path, data);
+        child.insert_child(segments, data)
     }
 
-    fn insert_catch_all_child(&mut self, name: &[u8], data: T) {
-        self.catch_all_child = Some(Box::new(Node {
-            node_type: NodeType::CatchAll,
-            name: name.to_vec(),
-            children: vec![],
-            indices: vec![],
-            param_child: None,
-            catch_all_child: None,
-            data: Some(data),
-        }));
+    fn insert_catch_all_child(&mut self, name: &[u8], data: T) -> bool {
+        self.catch_all_child
+            .replace(Box::new(Node {
+                node_type: NodeType::CatchAll,
+                name: name.to_vec(),
+                children: vec![],
+                indices: vec![],
+                param_child: None,
+                catch_all_child: None,
+                data: Some(data),
+            }))
+            .is_none()
     }
 
     fn matches<'a: 'b, 'b>(
@@ -216,13 +217,23 @@ impl<T> Node<T> {
         params: &mut SmallVec<[(&'b [u8], &'b [u8]); 8]>,
     ) -> Option<&'a T> {
         if path.is_empty() {
-            return self.data.as_ref();
+            return if let Some(catch_all_child) = &self.catch_all_child {
+                params.push((&catch_all_child.name, path));
+                catch_all_child.data.as_ref()
+            } else {
+                self.data.as_ref()
+            };
         }
 
         let num_params = params.len();
 
         if let Some(pos) = self.find_static_child(path[0]) {
             let child = &self.children[pos];
+            if path == &child.name {
+                if let Some(data) = child.matches(&[], params) {
+                    return Some(data);
+                }
+            }
             if let Some(tail_path) = path.strip_prefix(child.name.as_slice()) {
                 if let Some(data) = child.matches(tail_path, params) {
                     return Some(data);
@@ -284,8 +295,13 @@ impl<T> Tree<T> {
         }
     }
 
-    pub(crate) fn add(&mut self, path: &str, data: T) {
-        self.root.insert_child(path.as_bytes(), data);
+    pub(crate) fn add(&mut self, path: &str, data: T) -> bool {
+        let mut path = path.as_bytes();
+        let mut segments = SmallVec::<[Segment<'_>; 8]>::new();
+        while let Some(segment) = take_segment(&mut path) {
+            segments.push(segment);
+        }
+        self.root.insert_child(&segments, data)
     }
 
     pub(crate) fn matches(&self, path: &str) -> Option<Matches<T>> {
@@ -325,12 +341,13 @@ mod tests {
     #[test]
     fn test_take_segment() {
         let mut path: &[u8] = b"/a/:b/c/:ui/ef/ghi/*jkl";
-        assert_eq!(take_segment(&mut path), Segment::Static(b"/a/"));
-        assert_eq!(take_segment(&mut path), Segment::Param(b"b"));
-        assert_eq!(take_segment(&mut path), Segment::Static(b"/c/"));
-        assert_eq!(take_segment(&mut path), Segment::Param(b"ui"));
-        assert_eq!(take_segment(&mut path), Segment::Static(b"/ef/ghi/"));
-        assert_eq!(take_segment(&mut path), Segment::CatchAll(b"jkl"));
+        assert_eq!(take_segment(&mut path), Some(Segment::Static(b"/a/")));
+        assert_eq!(take_segment(&mut path), Some(Segment::Param(b"b")));
+        assert_eq!(take_segment(&mut path), Some(Segment::Static(b"/c/")));
+        assert_eq!(take_segment(&mut path), Some(Segment::Param(b"ui")));
+        assert_eq!(take_segment(&mut path), Some(Segment::Static(b"/ef/ghi/")));
+        assert_eq!(take_segment(&mut path), Some(Segment::CatchAll(b"jkl")));
+        assert_eq!(take_segment(&mut path), None);
     }
 
     #[test]
@@ -641,6 +658,20 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_add_result() {
+        let mut tree = Tree::new();
+        assert!(tree.add("/a/b", 1));
+        assert!(!tree.add("/a/b", 2));
+        assert!(tree.add("/a/b/:p/d", 1));
+        assert!(tree.add("/a/b/c/d", 2));
+        assert!(!tree.add("/a/b/:p2/d", 3));
+        assert!(tree.add("/a/p*", 1));
+        assert!(!tree.add("/a/p*", 2));
+        assert!(tree.add("/a/b/*p", 1));
+        assert!(!tree.add("/a/b/*p2", 2));
+    }
+
     fn create_url_params<I, K, V>(values: I) -> PathParams
     where
         I: IntoIterator<Item = (K, V)>,
@@ -665,6 +696,7 @@ mod tests {
             ("/abc/def/*p1", 6),
             ("/a/b/c/d", 7),
             ("/a/:p1/:p2/c", 8),
+            ("/*p1", 9),
         ];
 
         for (path, id) in paths {
@@ -719,6 +751,20 @@ mod tests {
                 Some(Matches {
                     params: create_url_params(vec![("p1", "b"), ("p2", "k")]),
                     data: &8,
+                }),
+            ),
+            (
+                "/kcd/uio",
+                Some(Matches {
+                    params: create_url_params(vec![("p1", "kcd/uio")]),
+                    data: &9,
+                }),
+            ),
+            (
+                "/",
+                Some(Matches {
+                    params: create_url_params(vec![("p1", "")]),
+                    data: &9,
                 }),
             ),
         ];

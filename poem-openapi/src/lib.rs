@@ -100,7 +100,7 @@ pub mod ui;
 #[doc(hidden)]
 pub mod validation;
 
-pub use base::{ApiRequest, ApiResponse, CombinedAPI, OpenApi, SecurityScheme, Tags};
+pub use base::{ApiRequest, ApiResponse, CombinedAPI, OAuthScopes, OpenApi, SecurityScheme, Tags};
 pub use error::ParseRequestError;
 pub use openapi::OpenApiService;
 #[doc(hidden)]
@@ -113,10 +113,13 @@ pub use poem_openapi_derive::ApiResponse;
 pub use poem_openapi_derive::Enum;
 #[doc = include_str!("docs/multipart.md")]
 pub use poem_openapi_derive::Multipart;
+#[doc = include_str!("docs/oauth_scopes.md")]
+pub use poem_openapi_derive::OAuthScopes;
 #[doc = include_str!("docs/object.md")]
 pub use poem_openapi_derive::Object;
 #[doc = include_str!("docs/openapi.md")]
 pub use poem_openapi_derive::OpenApi;
+#[doc = include_str!("docs/security_scheme.md")]
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]
 pub use poem_openapi_derive::Tags;
