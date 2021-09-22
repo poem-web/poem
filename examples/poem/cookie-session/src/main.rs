@@ -7,11 +7,11 @@ use async_session::{MemoryStore, Session, SessionStore};
 use poem::{
     handler,
     listener::TcpListener,
-    middleware::AddData,
+    middleware::{AddData, CookieJarManager},
     route,
     route::get,
     web::{Cookie, CookieJar, Data},
-    EndpointExt, Server,
+    Endpoint, EndpointExt, Request, Server,
 };
 
 #[handler]
@@ -58,7 +58,11 @@ async fn main() -> Result<(), std::io::Error> {
     // `MemoryStore` just used as an example. Don't use this in production.
     let store = MemoryStore::new();
 
-    let app = route().at("/", get(count)).with(AddData::new(store));
+    let app = route()
+        .at("/", get(count))
+        .with(AddData::new(store))
+        .with(CookieJarManager);
+    app.call(Request::default()).await;
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await

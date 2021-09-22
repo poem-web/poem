@@ -1,7 +1,9 @@
-use poem::{route, route::Route, IntoEndpoint};
+use poem::{
+    endpoint::BoxEndpoint, middleware::CookieJarManager, route, Endpoint, EndpointExt,
+    IntoEndpoint, Response,
+};
 
 use crate::{
-    poem::Endpoint,
     registry::{Document, MetaInfo, MetaServer, Registry},
     ui::create_ui_endpoint,
     OpenApi,
@@ -98,9 +100,9 @@ impl<T> OpenApiService<T> {
 }
 
 impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
-    type Endpoint = Route;
+    type Endpoint = BoxEndpoint<Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
-        self.api.add_routes(route())
+        self.api.add_routes(route()).with(CookieJarManager).boxed()
     }
 }

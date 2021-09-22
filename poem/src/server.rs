@@ -16,7 +16,7 @@ use tokio::{
 use crate::{
     listener::{Acceptor, Listener},
     web::RemoteAddr,
-    Endpoint, EndpointExt, IntoEndpoint, Request, Response,
+    Endpoint, EndpointExt, IntoEndpoint, Response,
 };
 
 /// An HTTP Server.
@@ -93,17 +93,15 @@ async fn serve_connection(
             let ep = ep.clone();
             let remote_addr = remote_addr.clone();
             async move {
-                let req: Request = (req, remote_addr).into();
-                let cookie_jar = req.cookie().clone();
-                let mut resp: http::Response<hyper::Body> = ep.call(req).await.into();
-                // Appends cookies to response headers
-                cookie_jar.append_delta_to_headers(resp.headers_mut());
+                let resp: http::Response<hyper::Body> =
+                    ep.call((req, remote_addr).into()).await.into();
                 Ok::<_, Infallible>(resp)
             }
         }
     });
-    let _ = Http::new()
-        .serve_connection(socket, service)
-        .with_upgrades()
-        .await;
+
+    let conn = Http::new().serve_connection(socket, service);
+    #[cfg(feature = "websocket")]
+    let conn = conn.with_upgrades();
+    let _ = conn.await;
 }

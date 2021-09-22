@@ -31,6 +31,10 @@ impl<'a> FromRequest<'a> for Cookie {
 }
 
 /// A collection of cookies that tracks its modifications.
+///
+/// NOTE: To use the `CookieJar` extractor, the
+/// [`CookieJarManager`](crate::middleware::CookieJarManager) middleware is
+/// required.
 #[derive(Default, Clone)]
 pub struct CookieJar(pub(crate) Arc<Mutex<::cookie::CookieJar>>);
 
@@ -84,6 +88,14 @@ impl<'a> FromRequest<'a> for &'a CookieJar {
 }
 
 impl CookieJar {
+    pub(crate) fn extract_from_headers(headers: &HeaderMap) -> Self {
+        headers
+            .get(header::COOKIE)
+            .and_then(|value| std::str::from_utf8(value.as_bytes()).ok())
+            .and_then(|value| value.parse().ok())
+            .unwrap_or_default()
+    }
+
     pub(crate) fn append_delta_to_headers(&self, headers: &mut HeaderMap) {
         let cookie = self.0.lock();
         for cookie in cookie.delta() {

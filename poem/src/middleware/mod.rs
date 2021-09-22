@@ -3,6 +3,7 @@
 mod add_data;
 #[cfg(feature = "compression")]
 mod compression;
+mod cookie_jar_manager;
 mod cors;
 mod set_header;
 #[cfg(feature = "tower-compat")]
@@ -13,6 +14,7 @@ mod tracing;
 pub use add_data::AddData;
 #[cfg(feature = "compression")]
 pub use compression::Compression;
+pub use cookie_jar_manager::CookieJarManager;
 pub use cors::Cors;
 pub use set_header::SetHeader;
 #[cfg(feature = "tower-compat")]
