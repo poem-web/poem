@@ -52,6 +52,10 @@ To avoid compiling unused dependencies, Poem gates certain features, all of whic
 |------------------|--------------------------------|
 |chrono            | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).          |
 
+## Safety
+
+This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in 100% Safe Rust.
+
 ## Example
 
 ```rust
@@ -102,3 +106,24 @@ hello!
 > curl http://localhost:3000\?name\=sunli
 hello, sunli!        
 ```
+
+## MSRV
+
+The minimum supported Rust version for this crate is `1.54.0`.
+
+## Contributing
+
+:balloon: Thanks for your help improving the project! We are so happy to have you!
+
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0,([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
+  at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Poem by you, shall be licensed as Apache, without any additional terms or conditions.

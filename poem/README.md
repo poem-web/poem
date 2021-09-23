@@ -84,6 +84,10 @@ More examples can be found [here][examples].
 
 [examples]: https://github.com/poem-web/poem/tree/master/examples
 
+## MSRV
+
+The minimum supported Rust version for this crate is `1.54.0`.
+
 ## Contributing
 
 :balloon: Thanks for your help improving the project! We are so happy to have you! 
