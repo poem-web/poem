@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use fnv::FnvHashMap;
 use http::StatusCode;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -173,7 +172,7 @@ impl Endpoint for Route {
 /// Routing object for HTTP methods
 #[derive(Default)]
 pub struct RouteMethod {
-    methods: FnvHashMap<Method, Box<dyn Endpoint<Output = Response>>>,
+    methods: Vec<(Method, Box<dyn Endpoint<Output = Response>>)>,
 }
 
 impl RouteMethod {
@@ -185,7 +184,7 @@ impl RouteMethod {
     /// Sets the endpoint for specified `method`.
     pub fn method(mut self, method: Method, ep: impl IntoEndpoint) -> Self {
         self.methods
-            .insert(method, Box::new(ep.into_endpoint().map_to_response()));
+            .push((method, Box::new(ep.into_endpoint().map_to_response())));
         self
     }
 
@@ -240,7 +239,12 @@ impl Endpoint for RouteMethod {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Self::Output {
-        match self.methods.get(req.method()) {
+        match self
+            .methods
+            .iter()
+            .find(|(method, _)| method == req.method())
+            .map(|(_, ep)| ep)
+        {
             Some(ep) => ep.call(req).await,
             None => {
                 if req.method() == Method::HEAD {
