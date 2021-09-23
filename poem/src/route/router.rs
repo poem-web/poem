@@ -41,7 +41,11 @@ impl Route {
     ///     // capture parameters
     ///     .at("/b/:group/:name", get(b))
     ///     // capture tail path
-    ///     .at("/c/*path", get(c));
+    ///     .at("/c/*path", get(c))
+    ///     // match regex
+    ///     .at("/d/<\\d>", get(c))
+    ///     // capture with regex
+    ///     .at("/d/:name<\\d>", get(c));
     /// ```
     #[must_use]
     pub fn at(mut self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {

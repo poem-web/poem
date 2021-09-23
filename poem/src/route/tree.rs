@@ -1,3 +1,14 @@
+use std::fmt::{self, Debug, Formatter};
+
+use nom::{
+    branch::alt,
+    bytes::complete::{is_not, tag, take_while1},
+    combinator::{eof, map, opt},
+    multi::many1,
+    sequence::{delimited, preceded, terminated, tuple},
+    IResult,
+};
+use regex::bytes::Regex;
 use smallvec::SmallVec;
 
 fn longest_common_prefix(a: &[u8], b: &[u8]) -> usize {
@@ -5,61 +16,53 @@ fn longest_common_prefix(a: &[u8], b: &[u8]) -> usize {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+enum RawSegment<'a> {
+    Static(&'a [u8]),
+    Param(&'a [u8]),
+    CatchAll(&'a [u8]),
+    Regex(Option<&'a [u8]>, &'a [u8]),
+}
+
 enum Segment<'a> {
     Static(&'a [u8]),
     Param(&'a [u8]),
     CatchAll(&'a [u8]),
+    Regex(Option<&'a [u8]>, PathRegex),
 }
 
 fn find_slash(path: &[u8]) -> Option<usize> {
-    path.iter()
-        .copied()
-        .enumerate()
-        .find(|(_, c)| *c == b'/')
-        .map(|(pos, _)| pos)
-}
-
-fn find_wildcard(path: &[u8]) -> Option<usize> {
-    path.iter()
-        .copied()
-        .enumerate()
-        .find(|(_, c)| *c == b':' || *c == b'*')
-        .map(|(pos, _)| pos)
-}
-
-fn take_segment<'a>(path: &mut &'a [u8]) -> Option<Segment<'a>> {
-    if path.is_empty() {
-        return None;
-    }
-
-    let segment;
-    match path[0] {
-        b':' => match find_slash(path) {
-            Some(pos) => {
-                segment = Segment::Param(&path[1..pos]);
-                *path = &path[pos..];
-            }
-            None => {
-                segment = Segment::Param(&path[1..]);
-                *path = &[];
-            }
-        },
-        b'*' => {
-            segment = Segment::CatchAll(&path[1..]);
-            *path = &[];
+    for i in 0..path.len() {
+        if path[i] == b'/' {
+            return Some(i);
         }
-        _ => match find_wildcard(path) {
-            Some(pos) => {
-                segment = Segment::Static(&path[..pos]);
-                *path = &path[pos..];
-            }
-            None => {
-                segment = Segment::Static(&path[..]);
-                *path = &[];
-            }
+    }
+    None
+}
+
+fn parse_path_segments(path: &[u8]) -> Option<Vec<RawSegment<'_>>> {
+    let static_path = map(is_not(":*<"), RawSegment::Static);
+    let catch_all = map(
+        preceded(tag(b"*"), take_while1(|_| true)),
+        RawSegment::CatchAll,
+    );
+    let param = map(
+        tuple((
+            tag(b":"),
+            is_not(":*</"),
+            opt(delimited(tag(b"<"), is_not(">"), tag(b">"))),
+        )),
+        |(_, name, regex)| match regex {
+            Some(regex) => RawSegment::Regex(Some(name), regex),
+            None => RawSegment::Param(name),
         },
-    };
-    Some(segment)
+    );
+    let regex = map(delimited(tag(b"<"), is_not(">"), tag(b">")), |re| {
+        RawSegment::Regex(None, re)
+    });
+
+    let res: IResult<&[u8], Vec<RawSegment>> =
+        terminated(many1(alt((static_path, catch_all, param, regex))), eof)(path);
+    res.map(|(_, segments)| segments).ok()
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -68,7 +71,37 @@ enum NodeType {
     Static,
     Param,
     CatchAll,
+    Regex,
 }
+
+struct PathRegex {
+    re_str: String,
+    re: Regex,
+}
+
+impl PathRegex {
+    fn new(re_bytes: &[u8]) -> Option<Self> {
+        let re_str = std::str::from_utf8(re_bytes).ok()?;
+        Some(PathRegex {
+            re_str: re_str.to_string(),
+            re: Regex::new(re_str).ok()?,
+        })
+    }
+}
+
+impl Debug for PathRegex {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("PathRegex").field(&self.re_str).finish()
+    }
+}
+
+impl PartialEq for PathRegex {
+    fn eq(&self, other: &Self) -> bool {
+        self.re_str.eq(&other.re_str)
+    }
+}
+
+impl Eq for PathRegex {}
 
 #[derive(Debug, Eq, PartialEq)]
 struct Node<T> {
@@ -76,24 +109,14 @@ struct Node<T> {
     name: Vec<u8>,
     children: Vec<Node<T>>,
     indices: Vec<u8>,
+    re: Option<PathRegex>,
     param_child: Option<Box<Node<T>>>,
     catch_all_child: Option<Box<Node<T>>>,
+    regex_child: Option<Box<Node<T>>>,
     data: Option<T>,
 }
 
 impl<T> Node<T> {
-    fn new(node_type: NodeType, name: &[u8]) -> Self {
-        Self {
-            node_type,
-            name: name.to_vec(),
-            children: vec![],
-            indices: vec![],
-            param_child: None,
-            catch_all_child: None,
-            data: None,
-        }
-    }
-
     fn find_static_child(&self, prefix: u8) -> Option<usize> {
         for i in 0..self.indices.len() {
             if self.indices[i] == prefix {
@@ -103,19 +126,19 @@ impl<T> Node<T> {
         None
     }
 
-    fn insert_child(&mut self, segments: &[Segment<'_>], data: T) -> bool {
-        if segments.is_empty() {
-            self.data.replace(data).is_none()
-        } else {
-            match &segments[0] {
-                Segment::Static(name) => self.insert_static_child(&segments[1..], name, data),
-                Segment::Param(name) => self.insert_param_child(name, data, &segments[1..]),
+    fn insert_child(&mut self, mut segments: Vec<Segment<'_>>, data: T) -> bool {
+        match segments.pop() {
+            Some(segment) => match segment {
+                Segment::Static(name) => self.insert_static_child(segments, name, data),
+                Segment::Param(name) => self.insert_param_child(segments, name, data),
                 Segment::CatchAll(name) => self.insert_catch_all_child(name, data),
-            }
+                Segment::Regex(name, re) => self.insert_regex_child(segments, name, re, data),
+            },
+            None => self.data.replace(data).is_none(),
         }
     }
 
-    fn insert_static_child(&mut self, segments: &[Segment<'_>], name: &[u8], data: T) -> bool {
+    fn insert_static_child(&mut self, segments: Vec<Segment<'_>>, name: &[u8], data: T) -> bool {
         match self.find_static_child(name[0]) {
             Some(pos) => {
                 let mut child = &mut self.children[pos];
@@ -128,8 +151,10 @@ impl<T> Node<T> {
                         name: child.name[n..].to_vec(),
                         children: ::std::mem::take(&mut child.children),
                         indices: std::mem::take(&mut child.indices),
+                        re: None,
                         param_child: child.param_child.take(),
                         catch_all_child: child.catch_all_child.take(),
+                        regex_child: None,
                         data: child.data.take(),
                     };
 
@@ -139,8 +164,10 @@ impl<T> Node<T> {
                             name: name[n..].to_vec(),
                             children: vec![],
                             indices: vec![],
+                            re: None,
                             param_child: None,
                             catch_all_child: None,
+                            regex_child: None,
                             data: None,
                         };
 
@@ -165,7 +192,17 @@ impl<T> Node<T> {
                 }
             }
             None => {
-                self.children.push(Node::new(NodeType::Static, name));
+                self.children.push(Node {
+                    node_type: NodeType::Static,
+                    name: name.to_vec(),
+                    children: vec![],
+                    indices: vec![],
+                    re: None,
+                    param_child: None,
+                    catch_all_child: None,
+                    regex_child: None,
+                    data: None,
+                });
                 self.indices.push(name[0]);
                 self.children
                     .last_mut()
@@ -175,7 +212,7 @@ impl<T> Node<T> {
         }
     }
 
-    fn insert_param_child(&mut self, name: &[u8], data: T, segments: &[Segment<'_>]) -> bool {
+    fn insert_param_child(&mut self, segments: Vec<Segment<'_>>, name: &[u8], data: T) -> bool {
         let child = match &mut self.param_child {
             Some(child) => {
                 child.name = name.to_vec();
@@ -187,8 +224,10 @@ impl<T> Node<T> {
                     name: name.to_vec(),
                     children: vec![],
                     indices: vec![],
+                    re: None,
                     param_child: None,
                     catch_all_child: None,
+                    regex_child: None,
                     data: None,
                 }));
                 self.param_child.as_mut().unwrap()
@@ -204,16 +243,49 @@ impl<T> Node<T> {
                 name: name.to_vec(),
                 children: vec![],
                 indices: vec![],
+                re: None,
                 param_child: None,
                 catch_all_child: None,
+                regex_child: None,
                 data: Some(data),
             }))
             .is_none()
     }
 
+    fn insert_regex_child(
+        &mut self,
+        segments: Vec<Segment<'_>>,
+        name: Option<&[u8]>,
+        re: PathRegex,
+        data: T,
+    ) -> bool {
+        let child = match &mut self.regex_child {
+            Some(child) => {
+                child.name = name.unwrap_or_default().to_vec();
+                child.re = Some(re);
+                child
+            }
+            None => {
+                self.regex_child = Some(Box::new(Node {
+                    node_type: NodeType::Regex,
+                    name: name.unwrap_or_default().to_vec(),
+                    children: vec![],
+                    indices: vec![],
+                    re: Some(re),
+                    param_child: None,
+                    catch_all_child: None,
+                    regex_child: None,
+                    data: None,
+                }));
+                self.regex_child.as_mut().unwrap()
+            }
+        };
+        child.insert_child(segments, data)
+    }
+
     fn matches<'a: 'b, 'b>(
         &'a self,
-        mut path: &'b [u8],
+        path: &'b [u8],
         params: &mut SmallVec<[(&'b [u8], &'b [u8]); 8]>,
     ) -> Option<&'a T> {
         if path.is_empty() {
@@ -242,24 +314,31 @@ impl<T> Node<T> {
         }
 
         params.truncate(num_params);
-
-        if let Some(param_child) = &self.param_child {
-            let param = match find_slash(path) {
-                Some(pos) => {
-                    let param = &path[..pos];
-                    path = &path[pos..];
-                    param
+        if let Some(regex_child) = &self.regex_child {
+            if let Some(captures) = regex_child.re.as_ref().unwrap().re.captures(path) {
+                let value = &path[..captures[0].len()];
+                if !regex_child.name.is_empty() {
+                    params.push((&regex_child.name, value));
                 }
-                None => std::mem::take(&mut path),
+                if let Some(data) = regex_child.matches(&path[value.len()..], params) {
+                    return Some(data);
+                }
+            }
+        }
+
+        params.truncate(num_params);
+        if let Some(param_child) = &self.param_child {
+            let value = match find_slash(path) {
+                Some(pos) => &path[..pos],
+                None => path,
             };
-            params.push((&param_child.name, param));
-            if let Some(data) = param_child.matches(path, params) {
+            params.push((&param_child.name, value));
+            if let Some(data) = param_child.matches(&path[value.len()..], params) {
                 return Some(data);
             }
         }
 
         params.truncate(num_params);
-
         if let Some(catch_all_child) = &self.catch_all_child {
             params.push((&catch_all_child.name, path));
             return catch_all_child.data.as_ref();
@@ -291,17 +370,45 @@ impl<T> Default for Tree<T> {
 impl<T> Tree<T> {
     pub(crate) fn new() -> Self {
         Self {
-            root: Node::new(NodeType::Root, &[]),
+            root: Node {
+                node_type: NodeType::Root,
+                name: vec![],
+                children: vec![],
+                indices: vec![],
+                re: None,
+                param_child: None,
+                catch_all_child: None,
+                regex_child: None,
+                data: None,
+            },
         }
     }
 
     pub(crate) fn add(&mut self, path: &str, data: T) -> bool {
-        let mut path = path.as_bytes();
-        let mut segments = SmallVec::<[Segment<'_>; 8]>::new();
-        while let Some(segment) = take_segment(&mut path) {
+        let raw_segments = match parse_path_segments(path.as_bytes()) {
+            Some(raw_segments) => raw_segments,
+            None => return false,
+        };
+
+        let mut segments = Vec::with_capacity(raw_segments.len());
+        for raw_segment in raw_segments {
+            let segment = match raw_segment {
+                RawSegment::Static(value) => Segment::Static(value),
+                RawSegment::Param(name) => Segment::Param(name),
+                RawSegment::CatchAll(name) => Segment::CatchAll(name),
+                RawSegment::Regex(name, re_bytes) => {
+                    if let Some(re) = PathRegex::new(re_bytes) {
+                        Segment::Regex(name, re)
+                    } else {
+                        return false;
+                    }
+                }
+            };
             segments.push(segment);
         }
-        self.root.insert_child(&segments, data)
+        segments.reverse();
+
+        self.root.insert_child(segments, data)
     }
 
     pub(crate) fn matches(&self, path: &str) -> Option<Matches<T>> {
@@ -339,15 +446,24 @@ mod tests {
     }
 
     #[test]
-    fn test_take_segment() {
-        let mut path: &[u8] = b"/a/:b/c/:ui/ef/ghi/*jkl";
-        assert_eq!(take_segment(&mut path), Some(Segment::Static(b"/a/")));
-        assert_eq!(take_segment(&mut path), Some(Segment::Param(b"b")));
-        assert_eq!(take_segment(&mut path), Some(Segment::Static(b"/c/")));
-        assert_eq!(take_segment(&mut path), Some(Segment::Param(b"ui")));
-        assert_eq!(take_segment(&mut path), Some(Segment::Static(b"/ef/ghi/")));
-        assert_eq!(take_segment(&mut path), Some(Segment::CatchAll(b"jkl")));
-        assert_eq!(take_segment(&mut path), None);
+    fn test_parse_path_segments() {
+        assert_eq!(
+            parse_path_segments(b"/a/:b/:re<\\d+>/:ui/ef/<\\d+>/*jkl"),
+            Some(vec![
+                RawSegment::Static(b"/a/"),
+                RawSegment::Param(b"b"),
+                RawSegment::Static(b"/"),
+                RawSegment::Regex(Some(b"re"), b"\\d+"),
+                RawSegment::Static(b"/"),
+                RawSegment::Param(b"ui"),
+                RawSegment::Static(b"/ef/"),
+                RawSegment::Regex(None, b"\\d+"),
+                RawSegment::Static(b"/"),
+                RawSegment::CatchAll(b"jkl")
+            ])
+        );
+
+        assert_eq!(parse_path_segments(b"/a/:"), None);
     }
 
     #[test]
@@ -374,23 +490,31 @@ mod tests {
                                 name: b"gh".to_vec(),
                                 children: vec![],
                                 indices: vec![],
+                                re: None,
                                 param_child: None,
                                 catch_all_child: None,
+                                regex_child: None,
                                 data: Some(3),
                             }],
                             indices: vec![b'g'],
+                            re: None,
                             param_child: None,
                             catch_all_child: None,
+                            regex_child: None,
                             data: Some(2),
                         }],
                         indices: vec![b'd'],
+                        re: None,
                         param_child: None,
                         catch_all_child: None,
+                        regex_child: None,
                         data: Some(1)
                     }],
                     indices: vec![b'/'],
+                    re: None,
                     param_child: None,
                     catch_all_child: None,
+                    regex_child: None,
                     data: None,
                 }
             }
@@ -420,8 +544,10 @@ mod tests {
                                 name: b"cd".to_vec(),
                                 children: vec![],
                                 indices: vec![],
+                                re: None,
                                 param_child: None,
                                 catch_all_child: None,
+                                regex_child: None,
                                 data: Some(1),
                             },
                             Node {
@@ -433,8 +559,10 @@ mod tests {
                                         name: b"34".to_vec(),
                                         children: vec![],
                                         indices: vec![],
+                                        re: None,
                                         param_child: None,
                                         catch_all_child: None,
+                                        regex_child: None,
                                         data: Some(2)
                                     },
                                     Node {
@@ -445,30 +573,40 @@ mod tests {
                                             name: b"78".to_vec(),
                                             children: vec![],
                                             indices: vec![],
+                                            re: None,
                                             param_child: None,
                                             catch_all_child: None,
+                                            regex_child: None,
                                             data: Some(4)
                                         }],
                                         indices: vec![b'7'],
+                                        re: None,
                                         param_child: None,
                                         catch_all_child: None,
+                                        regex_child: None,
                                         data: Some(3)
                                     }
                                 ],
                                 indices: vec![b'3', b'5'],
+                                re: None,
                                 param_child: None,
                                 catch_all_child: None,
+                                regex_child: None,
                                 data: None,
                             }
                         ],
                         indices: vec![b'c', b'1'],
+                        re: None,
                         param_child: None,
                         catch_all_child: None,
+                        regex_child: None,
                         data: None
                     }],
                     indices: vec![b'/'],
+                    re: None,
                     param_child: None,
                     catch_all_child: None,
+                    regex_child: None,
                     data: None
                 }
             }
@@ -494,18 +632,24 @@ mod tests {
                             name: b"c".to_vec(),
                             children: vec![],
                             indices: vec![],
+                            re: None,
                             param_child: None,
                             catch_all_child: None,
+                            regex_child: None,
                             data: Some(1)
                         }],
                         indices: vec![b'c'],
+                        re: None,
                         param_child: None,
                         catch_all_child: None,
+                        regex_child: None,
                         data: Some(2)
                     }],
                     indices: vec![b'/'],
+                    re: None,
                     param_child: None,
                     catch_all_child: None,
+                    regex_child: None,
                     data: None
                 }
             }
@@ -529,6 +673,7 @@ mod tests {
                         name: b"/abc/".to_vec(),
                         children: vec![],
                         indices: vec![],
+                        re: None,
                         param_child: Some(Box::new(Node {
                             node_type: NodeType::Param,
                             name: b"p1".to_vec(),
@@ -540,34 +685,45 @@ mod tests {
                                     name: b"p2".to_vec(),
                                     children: vec![],
                                     indices: vec![],
+                                    re: None,
                                     param_child: None,
                                     catch_all_child: None,
+                                    regex_child: None,
                                     data: Some(2),
                                 }],
                                 indices: vec![b'p'],
+                                re: None,
                                 param_child: Some(Box::new(Node {
                                     node_type: NodeType::Param,
                                     name: b"p3".to_vec(),
                                     children: vec![],
                                     indices: vec![],
+                                    re: None,
                                     param_child: None,
                                     catch_all_child: None,
+                                    regex_child: None,
                                     data: Some(3)
                                 })),
                                 catch_all_child: None,
+                                regex_child: None,
                                 data: None,
                             }],
                             indices: vec![b'/'],
+                            re: None,
                             param_child: None,
                             catch_all_child: None,
+                            regex_child: None,
                             data: Some(1)
                         })),
                         catch_all_child: None,
+                        regex_child: None,
                         data: None
                     }],
                     indices: vec![b'/'],
+                    re: None,
                     param_child: None,
                     catch_all_child: None,
+                    regex_child: None,
                     data: None
                 }
             }
@@ -594,16 +750,20 @@ mod tests {
                                 name: b"c/".to_vec(),
                                 children: vec![],
                                 indices: vec![],
+                                re: None,
                                 param_child: None,
                                 catch_all_child: Some(Box::new(Node {
                                     node_type: NodeType::CatchAll,
                                     name: b"p1".to_vec(),
                                     children: vec![],
                                     indices: vec![],
+                                    re: None,
                                     param_child: None,
                                     catch_all_child: None,
+                                    regex_child: None,
                                     data: Some(1)
                                 })),
+                                regex_child: None,
                                 data: None
                             },
                             Node {
@@ -611,19 +771,25 @@ mod tests {
                                 name: b"/de".to_vec(),
                                 children: vec![],
                                 indices: vec![],
+                                re: None,
                                 param_child: None,
                                 catch_all_child: None,
+                                regex_child: None,
                                 data: Some(2)
                             }
                         ],
                         indices: vec![b'c', b'/'],
+                        re: None,
                         param_child: None,
                         catch_all_child: None,
+                        regex_child: None,
                         data: None
                     }],
                     indices: vec![b'/'],
+                    re: None,
                     param_child: None,
                     catch_all_child: None,
+                    regex_child: None,
                     data: None
                 }
             }
@@ -642,16 +808,94 @@ mod tests {
                     name: vec![],
                     children: vec![],
                     indices: vec![],
+                    re: None,
                     param_child: None,
                     catch_all_child: Some(Box::new(Node {
                         node_type: NodeType::CatchAll,
                         name: b"p1".to_vec(),
                         children: vec![],
                         indices: vec![],
+                        re: None,
                         param_child: None,
                         catch_all_child: None,
+                        regex_child: None,
                         data: Some(1)
                     })),
+                    regex_child: None,
+                    data: None
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_insert_regex_child() {
+        let mut tree = Tree::new();
+        tree.add("/abc/<\\d+>/def", 1);
+        tree.add("/abc/def/:name<\\d+>", 2);
+
+        assert_eq!(
+            tree,
+            Tree {
+                root: Node {
+                    node_type: NodeType::Root,
+                    name: vec![],
+                    children: vec![Node {
+                        node_type: NodeType::Static,
+                        name: b"/abc/".to_vec(),
+                        children: vec![Node {
+                            node_type: NodeType::Static,
+                            name: b"def/".to_vec(),
+                            children: vec![],
+                            indices: vec![],
+                            re: None,
+                            param_child: None,
+                            catch_all_child: None,
+                            regex_child: Some(Box::new(Node {
+                                node_type: NodeType::Regex,
+                                name: b"name".to_vec(),
+                                children: vec![],
+                                indices: vec![],
+                                re: Some(PathRegex::new(b"\\d+").unwrap()),
+                                param_child: None,
+                                catch_all_child: None,
+                                regex_child: None,
+                                data: Some(2),
+                            })),
+                            data: None
+                        }],
+                        indices: vec![b'd'],
+                        re: None,
+                        param_child: None,
+                        catch_all_child: None,
+                        regex_child: Some(Box::new(Node {
+                            node_type: NodeType::Regex,
+                            name: vec![],
+                            children: vec![Node {
+                                node_type: NodeType::Static,
+                                name: b"/def".to_vec(),
+                                children: vec![],
+                                indices: vec![],
+                                re: None,
+                                param_child: None,
+                                catch_all_child: None,
+                                regex_child: None,
+                                data: Some(1),
+                            }],
+                            indices: vec![b'/'],
+                            re: Some(PathRegex::new(b"\\d+").unwrap()),
+                            param_child: None,
+                            catch_all_child: None,
+                            regex_child: None,
+                            data: None
+                        })),
+                        data: None
+                    }],
+                    indices: vec![b'/'],
+                    re: None,
+                    param_child: None,
+                    catch_all_child: None,
+                    regex_child: None,
                     data: None
                 }
             }
@@ -666,10 +910,12 @@ mod tests {
         assert!(tree.add("/a/b/:p/d", 1));
         assert!(tree.add("/a/b/c/d", 2));
         assert!(!tree.add("/a/b/:p2/d", 3));
-        assert!(tree.add("/a/p*", 1));
-        assert!(!tree.add("/a/p*", 2));
+        assert!(tree.add("/a/*p", 1));
+        assert!(!tree.add("/a/*p", 2));
         assert!(tree.add("/a/b/*p", 1));
         assert!(!tree.add("/a/b/*p2", 2));
+        assert!(tree.add("/k/h/<\\d>+", 1));
+        assert!(!tree.add("/k/h/:name<\\d>+", 2));
     }
 
     fn create_url_params<I, K, V>(values: I) -> PathParams
@@ -697,6 +943,8 @@ mod tests {
             ("/a/b/c/d", 7),
             ("/a/:p1/:p2/c", 8),
             ("/*p1", 9),
+            ("/abc/<\\d+>/def", 10),
+            ("/kcd/:p1<\\d+>", 11),
         ];
 
         for (path, id) in paths {
@@ -765,6 +1013,20 @@ mod tests {
                 Some(Matches {
                     params: create_url_params(vec![("p1", "")]),
                     data: &9,
+                }),
+            ),
+            (
+                "/abc/123/def",
+                Some(Matches {
+                    params: vec![],
+                    data: &10,
+                }),
+            ),
+            (
+                "/kcd/567",
+                Some(Matches {
+                    params: create_url_params(vec![("p1", "567")]),
+                    data: &11,
                 }),
             ),
         ];

@@ -20,7 +20,7 @@ let ep = poem::route()
 
 ## Capture the variables
 
-Use `:<name>` to capture the value of the specified segment in the path, or use `*<name>` to capture all the values after 
+Use `:NAME` to capture the value of the specified segment in the path, or use `*NAME` to capture all the values after 
 the specified prefix.
 
 In the following example, the captured values will be stored in the variable `value`, and you can use the path extractor to get them.
@@ -32,6 +32,16 @@ async fn a(Path(String): Path<String>) {}
 let ep = poem::route()
     .at("/a/:value/b", handler)
     .at("/prefix/*value", handler);
+```
+
+## Regular expressions
+
+You can use regular expressions to match, `<REGEX>` or `:NAME<REGEX>`, the second one can capture the matched value into a variable.
+
+```rust
+let ep = poem::route()
+    .at("/a/<\\d+>", handler)
+    .at("/b/:value<\\d+>", handler);
 ```
 
 ## Nested
