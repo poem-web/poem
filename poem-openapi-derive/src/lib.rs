@@ -10,6 +10,7 @@ mod error;
 mod multipart;
 mod oauth_scopes;
 mod object;
+mod oneof;
 mod request;
 mod response;
 mod security_scheme;
@@ -32,6 +33,15 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 pub fn derive_enum(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
     match r#enum::generate(args) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_derive(OneOf, attributes(oai))]
+pub fn derive_oneof(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DeriveInput);
+    match oneof::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

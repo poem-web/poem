@@ -20,12 +20,33 @@ fn is_false(value: &bool) -> bool {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MetaDiscriminatorObject {
+    pub property_name: &'static str,
+    #[serde(
+        skip_serializing_if = "Vec::is_empty",
+        serialize_with = "serialize_mapping"
+    )]
+    pub mapping: Vec<(&'static str, String)>,
+}
+
+fn serialize_mapping<S: Serializer>(
+    mapping: &[(&'static str, String)],
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let mut s = serializer.serialize_map(None)?;
+    for (name, ref_name) in mapping {
+        s.serialize_entry(name, ref_name)?;
+    }
+    s.end()
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaSchema {
-    #[serde(rename = "type")]
+    #[serde(rename = "type", skip_serializing_if = "str::is_empty")]
     pub ty: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<&'static str>,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,6 +66,10 @@ pub struct MetaSchema {
     pub enum_items: Vec<Value>,
     #[serde(skip_serializing_if = "is_false")]
     pub deprecated: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub one_of: Vec<MetaSchemaRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discriminator: Option<MetaDiscriminatorObject>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiple_of: Option<f64>,
@@ -94,6 +119,8 @@ impl MetaSchema {
             items: None,
             enum_items: vec![],
             deprecated: false,
+            one_of: vec![],
+            discriminator: None,
             multiple_of: None,
             maximum: None,
             exclusive_maximum: None,
@@ -128,7 +155,6 @@ pub enum MetaSchemaRef {
 }
 
 impl MetaSchemaRef {
-    /// THIS FUNCTION ONLY FOR TESTS
     pub fn unwrap_inline(&self) -> &MetaSchema {
         match &self {
             MetaSchemaRef::Inline(schema) => schema,
@@ -136,7 +162,6 @@ impl MetaSchemaRef {
         }
     }
 
-    /// THIS FUNCTION ONLY FOR TESTS
     pub fn unwrap_reference(&self) -> &'static str {
         match self {
             MetaSchemaRef::Inline(_) => panic!(),

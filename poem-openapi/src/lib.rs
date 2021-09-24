@@ -117,6 +117,8 @@ pub use poem_openapi_derive::Multipart;
 pub use poem_openapi_derive::OAuthScopes;
 #[doc = include_str!("docs/object.md")]
 pub use poem_openapi_derive::Object;
+#[doc = include_str!("docs/oneof.md")]
+pub use poem_openapi_derive::OneOf;
 #[doc = include_str!("docs/openapi.md")]
 pub use poem_openapi_derive::OpenApi;
 #[doc = include_str!("docs/security_scheme.md")]

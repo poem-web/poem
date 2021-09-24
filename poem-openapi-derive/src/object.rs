@@ -73,8 +73,6 @@ struct ObjectArgs {
 
     #[darling(default)]
     name: Option<String>,
-    #[darling(default)]
-    default: Option<DefaultValue>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -206,34 +204,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         });
     }
 
-    let meta_object_default = match &args.default {
-        Some(DefaultValue::Default) => {
-            quote!(::std::option::Option::Some(
-                #crate_name::types::ToJSON::to_json(&<Self as ::std::default::Default>::default())
-            ))
-        }
-        Some(DefaultValue::Function(func_name)) => {
-            quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&#func_name())))
-        }
-        None => quote!(::std::option::Option::None),
-    };
-
-    let object_default = match &args.default {
-        Some(DefaultValue::Default) => {
-            quote! {
-                #crate_name::serde_json::Value::Null => ::std::result::Result::Ok(<Self as ::std::default::Default>::default()),
-            }
-        }
-        Some(DefaultValue::Function(func_name)) => {
-            quote! {
-                #crate_name::serde_json::Value::Null => ::std::result::Result::Ok(#func_name()),
-            }
-        }
-        None => {
-            quote! {}
-        }
-    };
-
     let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
@@ -249,11 +219,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             },
             properties: ::std::vec![#(#meta_fields),*],
             deprecated: #deprecated,
-            default: #meta_object_default,
             ..#crate_name::registry::MetaSchema::new("object")
         }
     };
-    let is_required = args.default.is_none();
 
     let expanded = if args.concretes.is_empty() {
         quote! {
@@ -262,7 +230,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     ty: #oai_typename,
                     format: ::std::option::Option::None,
                 };
-                const IS_REQUIRED: bool = #is_required;
+                const IS_REQUIRED: bool = true;
 
                 type ValueType = Self;
 
@@ -286,7 +254,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             #(#deserialize_fields)*
                             ::std::result::Result::Ok(Self { #(#fields),* })
                         }
-                        #object_default
                         _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
                     }
                 }
@@ -319,11 +286,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         code.push(quote! {
             impl #impl_generics #ident #ty_generics #where_clause {
                 fn __internal_register(registry: &mut #crate_name::registry::Registry) where Self: #crate_name::types::Type {
-                    let ref_name = match Self::NAME {
-                        #crate_name::types::TypeName::Normal { ty, ..} => ty,
-                        _ => unreachable!(),
-                    };
-                    registry.create_schema(ref_name, |registry| #meta);
+                    registry.create_schema(Self::NAME.type_name(), |registry| #meta);
                 }
 
                 fn __internal_parse_from_json(value: #crate_name::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
@@ -332,7 +295,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             #(#deserialize_fields)*
                             ::std::result::Result::Ok(Self { #(#fields),* })
                         }
-                        #object_default
                         _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
                     }
                 }
@@ -356,7 +318,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         ty: #oai_typename,
                         format: ::std::option::Option::None,
                     };
-                    const IS_REQUIRED: bool = #is_required;
+                    const IS_REQUIRED: bool = true;
 
                     type ValueType = Self;
 

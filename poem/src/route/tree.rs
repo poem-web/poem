@@ -31,8 +31,8 @@ enum Segment<'a> {
 }
 
 fn find_slash(path: &[u8]) -> Option<usize> {
-    for i in 0..path.len() {
-        if path[i] == b'/' {
+    for (i, c) in path.iter().enumerate() {
+        if *c == b'/' {
             return Some(i);
         }
     }

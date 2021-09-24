@@ -39,6 +39,16 @@ pub enum TypeName {
     Array(&'static TypeName),
 }
 
+impl TypeName {
+    /// Returns the type name.
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            TypeName::Normal { ty, .. } => ty,
+            TypeName::Array(type_name) => type_name.type_name(),
+        }
+    }
+}
+
 impl Display for TypeName {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

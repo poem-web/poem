@@ -252,46 +252,6 @@ fn field_default() {
 }
 
 #[test]
-fn default() {
-    #[derive(Object, Debug, Eq, PartialEq, Default)]
-    #[oai(default)]
-    struct Obj {
-        a: i32,
-    }
-
-    let meta = get_meta::<Obj>();
-    assert_eq!(meta.default, Some(json!(Obj { a: 0 })));
-
-    assert_eq!(Obj::parse_from_json(json!(null)).unwrap(), Obj { a: 0 });
-    assert_eq!(
-        Obj::parse_from_json(json!({ "a": 88 })).unwrap(),
-        Obj { a: 88 }
-    );
-}
-
-#[test]
-fn default_func() {
-    #[derive(Object, Debug, Eq, PartialEq)]
-    #[oai(default = "default_obj")]
-    struct Obj {
-        a: i32,
-    }
-
-    fn default_obj() -> Obj {
-        Obj { a: 88 }
-    }
-
-    let meta = get_meta::<Obj>();
-    assert_eq!(meta.default, Some(json!(Obj { a: 88 })));
-
-    assert_eq!(Obj::parse_from_json(json!(null)).unwrap(), Obj { a: 88 });
-    assert_eq!(
-        Obj::parse_from_json(json!({ "a": 99 })).unwrap(),
-        Obj { a: 99 }
-    );
-}
-
-#[test]
 fn serde() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct Obj {
