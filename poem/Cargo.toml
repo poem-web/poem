@@ -30,24 +30,24 @@ tower-compat = ["tower"]
 poem-derive = { path = "../poem-derive", version = "0.6.3" }
 
 async-trait = "0.1.51"
-bytes = "1.0.1"
-futures-util = { version = "0.3.16", features = ["sink"] }
-http = "0.2.4"
-hyper = { version = "0.14.11", features = ["http1", "http2", "server", "runtime", "stream"] }
+bytes = "1.1.0"
+futures-util = { version = "0.3.17", features = ["sink"] }
+http = "0.2.5"
+hyper = { version = "0.14.13", features = ["http1", "http2", "server", "runtime", "stream"] }
 mime = "0.3.16"
-tokio = { version = "1.10.0", features = ["sync", "rt", "net", "fs", "time", "macros", "signal"] }
-tokio-util = { version = "0.6.7", features = ["io"] }
-serde = { version = "1.0.127", features = ["derive"] }
-serde_json = "1.0.66"
+tokio = { version = "1.12.0", features = ["sync", "rt", "net", "fs", "time", "macros", "signal"] }
+tokio-util = { version = "0.6.8", features = ["io"] }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.68"
 serde_urlencoded = "0.7.0"
 sha1 = "0.6.0"
 base64 = "0.13.0"
 tokio-stream = "0.1.7"
 cookie = { version = "0.15.1", features = ["percent-encode"] }
-parking_lot = "0.11.1"
+parking_lot = "0.11.2"
 askama = "0.10.5"
-thiserror = "1.0.26"
-anyhow = "1.0.43"
+thiserror = "1.0.29"
+anyhow = "1.0.44"
 pin-project-lite = "0.2.7"
 percent-encoding = "2.1.0"
 once_cell = "1.8.0"
@@ -65,11 +65,11 @@ tower = { version = "0.4.8", optional = true, default-features = true, features 
 
 # Feature optional dependencies
 typed-headers = { version = "0.2.0", optional = true }
-tracing = { version = "0.1.26", optional = true }
+tracing = { version = "0.1.28", optional = true }
 tempfile = { version = "3.2.0", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
 
 [package.metadata.docs.rs]
 all-features = true

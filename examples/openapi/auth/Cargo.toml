@@ -7,5 +7,5 @@ publish = false
 [dependencies]
 poem = { path = "../../../poem" }
 poem-openapi = { path = "../../../poem-openapi" }
-tokio = { version = "1.11.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.12.0", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "0.11.4", default-features = false, features = ["rustls-tls"] }

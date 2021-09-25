@@ -6,6 +6,6 @@ publish = false
 
 [dependencies]
 poem = { path = "../../../poem" }
-tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
-async-graphql = "2.9.10"
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
+async-graphql = "2.10.1"
 slab = "0.4.4"

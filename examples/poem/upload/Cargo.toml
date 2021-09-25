@@ -6,4 +6,4 @@ publish = false
 
 [dependencies]
 poem = { path = "../../../poem", features = ["tracing", "multipart"] }
-tokio = { version = "1.10.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
