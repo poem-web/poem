@@ -17,12 +17,10 @@ pub use base64_type::Base64;
 pub use binary::Binary;
 pub use error::{ParseError, ParseResult};
 pub use password::Password;
+use poem::web::Field as PoemField;
 use serde_json::Value;
 
-use crate::{
-    poem::web::Field as PoemField,
-    registry::{MetaSchemaRef, Registry},
-};
+use crate::registry::{MetaSchemaRef, Registry};
 
 /// Represents a type name.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -53,6 +51,7 @@ impl Display for TypeName {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             TypeName::Normal { ty, format } => match format {
+                _ if ty.is_empty() => write!(f, "any"),
                 Some(format) => write!(f, "{}(${})", ty, format),
                 None => write!(f, "{}", ty),
             },

@@ -107,6 +107,32 @@ fn serialize_properties<S: Serializer>(
 }
 
 impl MetaSchema {
+    pub const ANY: Self = MetaSchema {
+        ty: "",
+        format: None,
+        title: None,
+        description: None,
+        default: None,
+        required: vec![],
+        properties: vec![],
+        items: None,
+        enum_items: vec![],
+        deprecated: false,
+        one_of: vec![],
+        discriminator: None,
+        multiple_of: None,
+        maximum: None,
+        exclusive_maximum: None,
+        minimum: None,
+        exclusive_minimum: None,
+        max_length: None,
+        min_length: None,
+        pattern: None,
+        max_items: None,
+        min_items: None,
+        unique_items: None,
+    };
+
     pub const fn new(ty: &'static str) -> Self {
         Self {
             ty,
