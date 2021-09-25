@@ -168,6 +168,49 @@ async fn request() {
 }
 
 #[tokio::test]
+async fn payload_request() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, req: Json<i32>) {
+            assert_eq!(req.0, 100);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    let meta_request = meta.paths[0].operations[0].request.as_ref().unwrap();
+    assert!(meta_request.required);
+
+    assert_eq!(meta_request.content[0].content_type, "application/json");
+    assert_eq!(meta_request.content[0].schema, i32::schema_ref());
+
+    let ep = OpenApiService::new(Api).into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/"))
+                .content_type("application/json")
+                .body("100"),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/"))
+                .content_type("text/plain")
+                .body("100"),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+}
+
+#[tokio::test]
 async fn response() {
     #[derive(ApiResponse)]
     enum MyResponse {
