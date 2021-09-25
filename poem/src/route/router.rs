@@ -78,6 +78,7 @@ impl Route {
 
         struct Nest<T> {
             inner: T,
+            root: bool,
             prefix_len: usize,
         }
 
@@ -86,31 +87,12 @@ impl Route {
             type Output = Response;
 
             async fn call(&self, mut req: Request) -> Self::Output {
-                let idx = req.state().match_params.len() - 1;
-                let (name, _) = req.state_mut().match_params.remove(idx);
-                assert_eq!(name, "--poem-rest");
-                req.set_uri(
-                    http::uri::Builder::new()
-                        .path_and_query(
-                            &req.uri().path_and_query().unwrap().as_str()[self.prefix_len..],
-                        )
-                        .build()
-                        .unwrap(),
-                );
-                self.inner.call(req).await.into_response()
-            }
-        }
+                if !self.root {
+                    let idx = req.state().match_params.len() - 1;
+                    let (name, _) = req.state_mut().match_params.remove(idx);
+                    assert_eq!(name, "--poem-rest");
+                }
 
-        struct Root<T> {
-            inner: T,
-            prefix_len: usize,
-        }
-
-        #[async_trait::async_trait]
-        impl<E: Endpoint> Endpoint for Root<E> {
-            type Output = Response;
-
-            async fn call(&self, mut req: Request) -> Self::Output {
                 req.set_uri(
                     http::uri::Builder::new()
                         .path_and_query(
@@ -136,13 +118,15 @@ impl Route {
             &format!("{}*--poem-rest", path),
             Box::new(Nest {
                 inner: ep.clone(),
+                root: false,
                 prefix_len,
             }),
         );
         self.router.add(
             &path[..path.len() - 1],
-            Box::new(Root {
+            Box::new(Nest {
                 inner: ep,
+                root: true,
                 prefix_len,
             }),
         );
