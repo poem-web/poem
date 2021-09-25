@@ -138,16 +138,16 @@ impl Request {
         &self.uri
     }
 
+    /// Returns a mutable reference to the associated URI.
+    #[inline]
+    pub fn uri_mut(&mut self) -> &mut Uri {
+        &mut self.uri
+    }
+
     /// Returns a reference to the associated original URI.
     #[inline]
     pub fn original_uri(&self) -> &Uri {
         &self.state.original_uri
-    }
-
-    /// Sets the URI for this request.
-    #[inline]
-    pub fn set_uri(&mut self, uri: Uri) {
-        self.uri = uri;
     }
 
     /// Returns the associated version.

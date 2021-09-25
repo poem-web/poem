@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use http::StatusCode;
 use once_cell::sync::Lazy;
@@ -6,7 +6,8 @@ use regex::Regex;
 
 use super::tree::Tree;
 use crate::{
-    http::Method, Body, Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response,
+    http::{uri::PathAndQuery, Method, Uri},
+    Body, Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response,
 };
 
 /// Routing object
@@ -93,14 +94,18 @@ impl Route {
                     assert_eq!(name, "--poem-rest");
                 }
 
-                req.set_uri(
-                    http::uri::Builder::new()
-                        .path_and_query(
-                            &req.uri().path_and_query().unwrap().as_str()[self.prefix_len..],
+                let new_uri = {
+                    let uri = std::mem::take(req.uri_mut());
+                    let mut uri_parts = uri.into_parts();
+                    uri_parts.path_and_query = Some(
+                        PathAndQuery::from_str(
+                            &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..],
                         )
-                        .build()
                         .unwrap(),
-                );
+                    );
+                    Uri::from_parts(uri_parts).unwrap()
+                };
+                *req.uri_mut() = new_uri;
                 self.inner.call(req).await.into_response()
             }
         }
