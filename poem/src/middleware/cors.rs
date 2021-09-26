@@ -144,7 +144,7 @@ impl<E> CorsImpl<E> {
         let mut builder = Response::builder();
 
         for origin in &self.config.allow_origins {
-            builder = builder.header(header::ORIGIN, origin.clone());
+            builder = builder.header(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin.clone());
         }
 
         for method in &self.config.allow_methods {
