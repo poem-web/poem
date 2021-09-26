@@ -11,6 +11,7 @@ use hyper::server::conn::Http;
 use tokio::{
     io::{AsyncRead, AsyncWrite, Result as IoResult},
     sync::Notify,
+    time::Duration,
 };
 
 use crate::{
@@ -39,7 +40,7 @@ impl<T: Acceptor> Server<T> {
 
     /// Run this server.
     pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
-        self.run_with_graceful_shutdown(ep, futures_util::future::pending())
+        self.run_with_graceful_shutdown(ep, futures_util::future::pending(), None)
             .await
     }
 
@@ -48,25 +49,47 @@ impl<T: Acceptor> Server<T> {
         self,
         ep: impl IntoEndpoint,
         signal: impl Future<Output = ()>,
+        timeout: Option<Duration>,
     ) -> IoResult<()> {
         let ep = Arc::new(ep.into_endpoint().map_to_response());
-        let mut acceptor = self.acceptor;
+        let Server { mut acceptor } = self;
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());
+        let timeout_notify = Arc::new(Notify::new());
 
         tokio::pin!(signal);
 
         loop {
             tokio::select! {
-                _ = &mut signal => break,
+                _ = &mut signal => {
+                    if let Some(timeout) = timeout {
+                        let timeout_notify = timeout_notify.clone();
+                        tokio::spawn(async move {
+                            tokio::time::sleep(timeout).await;
+                            timeout_notify.notify_waiters();
+                        });
+                    }
+                    break;
+                },
                 res = acceptor.accept() => {
                     if let Ok((socket, remote_addr)) = res {
                         let ep = ep.clone();
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
+                        let timeout_notify = timeout_notify.clone();
+
                         tokio::spawn(async move {
                             alive_connections.fetch_add(1, Ordering::SeqCst);
-                            serve_connection(socket, RemoteAddr::new(remote_addr), ep).await;
+
+                            if timeout.is_some() {
+                                tokio::select! {
+                                    _ = serve_connection(socket, RemoteAddr::new(remote_addr), ep) => {}
+                                    _ = timeout_notify.notified() => {}
+                                }
+                            } else {
+                                serve_connection(socket, RemoteAddr::new(remote_addr), ep).await;
+                            }
+
                             if alive_connections.fetch_sub(1, Ordering::SeqCst) == 1 {
                                 notify.notify_one();
                             }
@@ -76,6 +99,7 @@ impl<T: Acceptor> Server<T> {
             }
         }
 
+        drop(acceptor);
         if alive_connections.load(Ordering::SeqCst) > 0 {
             notify.notified().await;
         }

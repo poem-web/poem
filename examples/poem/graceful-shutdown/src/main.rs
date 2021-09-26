@@ -45,8 +45,12 @@ async fn main() -> Result<(), std::io::Error> {
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server
-        .run_with_graceful_shutdown(app, async move {
-            let _ = tokio::signal::ctrl_c().await;
-        })
+        .run_with_graceful_shutdown(
+            app,
+            async move {
+                let _ = tokio::signal::ctrl_c().await;
+            },
+            Some(Duration::from_secs(5)),
+        )
         .await
 }
