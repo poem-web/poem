@@ -162,6 +162,12 @@ impl Response {
     pub fn take_body(&mut self) -> Body {
         std::mem::take(&mut self.body)
     }
+
+    /// Consume this response and return its inner body.
+    #[inline]
+    pub fn into_body(self) -> Body {
+        self.body
+    }
 }
 
 /// An response builder.
@@ -239,5 +245,30 @@ impl ResponseBuilder {
     /// [Response].
     pub fn finish(self) -> Response {
         self.body(Body::empty())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn response_from() {
+        let resp = Response::from(Body::from("abc"));
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.body.into_string().await.unwrap(), "abc");
+
+        let resp = Response::from(StatusCode::BAD_GATEWAY);
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert!(resp.body.into_string().await.unwrap().is_empty());
+
+        let resp =
+            Response::from(Error::new(StatusCode::BAD_GATEWAY).with_reason_string("bad gateway"));
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(resp.body.into_string().await.unwrap(), "bad gateway");
+
+        let resp = Response::from((StatusCode::BAD_GATEWAY, Body::from("abc")));
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(resp.body.into_string().await.unwrap(), "abc");
     }
 }

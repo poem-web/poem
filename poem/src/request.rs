@@ -224,6 +224,12 @@ impl Request {
         std::mem::take(&mut self.body)
     }
 
+    /// Consume this request and return its inner body.
+    #[inline]
+    pub fn into_body(self) -> Body {
+        self.body
+    }
+
     #[inline]
     pub(crate) fn state(&self) -> &RequestState {
         &self.state

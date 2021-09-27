@@ -576,6 +576,14 @@ impl<T: IntoResponse> IntoResponse for (StatusCode, HeaderMap, T) {
     }
 }
 
+impl<T: IntoResponse> IntoResponse for (HeaderMap, T) {
+    fn into_response(self) -> Response {
+        let mut resp = self.1.into_response();
+        resp.headers_mut().extend(self.0.into_iter());
+        resp
+    }
+}
+
 impl<T, E> IntoResponse for core::result::Result<T, E>
 where
     T: IntoResponse,
@@ -707,5 +715,249 @@ impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T, T::Error> {
 
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         Ok(T::from_request(req, body).await)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn into_response() {
+        // String
+        let resp = "abc".to_string().into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // &'static str
+        let resp = "abc".into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // &'static [u8]
+        let resp = [1, 2, 3].into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_vec().await.unwrap(), &[1, 2, 3]);
+
+        // Bytes
+        let resp = Bytes::from_static(&[1, 2, 3]).into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_vec().await.unwrap(), &[1, 2, 3]);
+
+        // Vec<u8>
+        let resp = vec![1, 2, 3].into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_vec().await.unwrap(), &[1, 2, 3]);
+
+        // ()
+        let resp = ().into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_vec().await.unwrap(), &[] as &[u8]);
+
+        // (StatusCode, T)
+        let resp = (StatusCode::BAD_GATEWAY, "abc").into_response();
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // (HeaderMap, T)
+        let resp = Response::builder()
+            .status(StatusCode::BAD_GATEWAY)
+            .header("Value1", "567")
+            .body("abc");
+        let mut headers = HeaderMap::new();
+        headers.append("Value2", HeaderValue::from_static("123"));
+        let resp = (headers, resp).into_response();
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(
+            resp.headers().get("Value1"),
+            Some(&HeaderValue::from_static("567"))
+        );
+        assert_eq!(
+            resp.headers().get("Value2"),
+            Some(&HeaderValue::from_static("123"))
+        );
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // (StatusCode, HeaderMap, T)
+        let resp = Response::builder()
+            .status(StatusCode::OK)
+            .header("Value1", "567")
+            .body("abc");
+        let mut headers = HeaderMap::new();
+        headers.append("Value2", HeaderValue::from_static("123"));
+        let resp = (StatusCode::BAD_GATEWAY, headers, resp).into_response();
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(
+            resp.headers().get("Value1"),
+            Some(&HeaderValue::from_static("567"))
+        );
+        assert_eq!(
+            resp.headers().get("Value2"),
+            Some(&HeaderValue::from_static("123"))
+        );
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // Result<T, E>
+        let resp = Ok::<_, Error>("abc").into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        let resp =
+            Err::<(), _>(Error::new(StatusCode::BAD_GATEWAY).with_reason_string("bad gateway"))
+                .into_response();
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "bad gateway");
+
+        struct CustomError;
+
+        impl IntoResponse for CustomError {
+            fn into_response(self) -> Response {
+                Response::builder()
+                    .status(StatusCode::CONFLICT)
+                    .header("Value1", "123")
+                    .body("custom error")
+            }
+        }
+
+        let resp = Err::<(), _>(CustomError).into_response();
+        assert_eq!(resp.status(), StatusCode::CONFLICT);
+        assert_eq!(
+            resp.headers().get("Value1"),
+            Some(&HeaderValue::from_static("123"))
+        );
+        assert_eq!(
+            resp.into_body().into_string().await.unwrap(),
+            "custom error"
+        );
+
+        // StatusCode
+        let resp = StatusCode::CREATED.into_response();
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        assert!(resp.into_body().into_string().await.unwrap().is_empty());
+
+        // Html
+        let resp = Html("abc").into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.content_type(), Some("text/html"));
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // Json
+        let resp = Json(serde_json::json!({ "a": 1, "b": 2})).into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.content_type(), Some("application/json"));
+        assert_eq!(
+            resp.into_body().into_string().await.unwrap(),
+            r#"{"a":1,"b":2}"#
+        );
+
+        // WithBody
+        let resp = StatusCode::CONFLICT.with_body("abc").into_response();
+        assert_eq!(resp.status(), StatusCode::CONFLICT);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+
+        // WithHeader
+        let resp = Response::builder()
+            .header("Value1", "123")
+            .finish()
+            .with_header("Value2", "456")
+            .with_header("Value3", "789")
+            .into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("Value1"),
+            Some(&HeaderValue::from_static("123"))
+        );
+        assert_eq!(
+            resp.headers().get("Value2"),
+            Some(&HeaderValue::from_static("456"))
+        );
+        assert_eq!(
+            resp.headers().get("Value3"),
+            Some(&HeaderValue::from_static("789"))
+        );
+
+        // WithStatus
+        let resp = StatusCode::CONFLICT
+            .with_status(StatusCode::BAD_GATEWAY)
+            .into_response();
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert!(resp.into_body().into_string().await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn from_request() {
+        fn request() -> Request {
+            let mut req = Request::builder()
+                .version(Version::HTTP_11)
+                .method(Method::DELETE)
+                .header("Value1", "123")
+                .header("Value2", "456")
+                .uri(Uri::from_static("http://example.com/a/b"))
+                .body("abc");
+            req.state_mut().remote_addr = RemoteAddr::new("127.0.0.1:12345");
+            req
+        }
+
+        let req = request();
+        let (req, mut body) = req.split();
+
+        // Version
+        assert_eq!(
+            Version::from_request(&req, &mut body).await.unwrap(),
+            Version::HTTP_11
+        );
+
+        // &HeaderMap
+        assert_eq!(
+            <&HeaderMap>::from_request(&req, &mut body).await.unwrap(),
+            &{
+                let mut headers = HeaderMap::new();
+                headers.append("Value1", HeaderValue::from_static("123"));
+                headers.append("Value2", HeaderValue::from_static("456"));
+                headers
+            }
+        );
+
+        // &Uri
+        assert_eq!(
+            <&Uri>::from_request(&req, &mut body).await.unwrap(),
+            &Uri::from_static("http://example.com/a/b")
+        );
+
+        // &RemoteAddr
+        assert_eq!(
+            <&RemoteAddr>::from_request(&req, &mut body).await.unwrap(),
+            &RemoteAddr::new("127.0.0.1:12345")
+        );
+
+        // &Method
+        assert_eq!(
+            <Method>::from_request(&req, &mut body).await.unwrap(),
+            Method::DELETE
+        );
+
+        // String
+        let req = request();
+        let (req, mut body) = req.split();
+        assert_eq!(
+            String::from_request(&req, &mut body).await.unwrap(),
+            "abc".to_string()
+        );
+
+        // Vec<u8>
+        let req = request();
+        let (req, mut body) = req.split();
+        assert_eq!(
+            <Vec<u8>>::from_request(&req, &mut body).await.unwrap(),
+            b"abc"
+        );
+
+        // Bytes
+        let req = request();
+        let (req, mut body) = req.split();
+        assert_eq!(
+            Bytes::from_request(&req, &mut body).await.unwrap(),
+            Bytes::from_static(b"abc")
+        );
     }
 }
