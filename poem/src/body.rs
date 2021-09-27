@@ -163,3 +163,51 @@ where
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn create() {
+        let body = Body::from(hyper::Body::from("abc"));
+        assert_eq!(body.into_string().await.unwrap(), "abc");
+
+        let body = Body::from(b"abc".as_ref());
+        assert_eq!(body.into_vec().await.unwrap(), b"abc");
+
+        let body = Body::from("abc");
+        assert_eq!(body.into_string().await.unwrap(), "abc");
+
+        let body = Body::from("abc".to_string());
+        assert_eq!(body.into_string().await.unwrap(), "abc");
+
+        let body = Body::from_string("abc".to_string());
+        assert_eq!(body.into_string().await.unwrap(), "abc");
+
+        let body = Body::from(vec![1, 2, 3]);
+        assert_eq!(body.into_vec().await.unwrap(), &[1, 2, 3]);
+
+        let body = Body::from_vec(vec![1, 2, 3]);
+        assert_eq!(body.into_vec().await.unwrap(), &[1, 2, 3]);
+
+        let body = Body::from_bytes(Bytes::from_static(b"abc"));
+        assert_eq!(body.into_vec().await.unwrap(), b"abc");
+
+        let body = Body::empty();
+        assert_eq!(body.into_vec().await.unwrap(), b"");
+
+        let body = Body::from_async_read(tokio_util::io::StreamReader::new(
+            futures_util::stream::iter(
+                vec![
+                    Bytes::from_static(b"abc"),
+                    Bytes::from_static(b"def"),
+                    Bytes::from_static(b"ghi"),
+                ]
+                .into_iter()
+                .map(Ok::<_, std::io::Error>),
+            ),
+        ));
+        assert_eq!(body.into_string().await.unwrap(), "abcdefghi");
+    }
+}
