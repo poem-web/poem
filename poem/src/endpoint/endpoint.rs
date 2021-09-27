@@ -150,7 +150,7 @@ pub trait EndpointExt: IntoEndpoint {
         middleware.transform(self.into_endpoint())
     }
 
-    /// A convenience method is equivalent to `with(AddData(T))`.
+    /// A helper function, similar to `with(AddData(T))`.
     ///
     /// # Example
     ///
