@@ -8,20 +8,20 @@ impl<E> Middleware<E> for CookieJarManager
 where
     E: Endpoint,
 {
-    type Output = CookieJarManagerImpl<E>;
+    type Output = CookieJarManagerEndpoint<E>;
 
     fn transform(self, ep: E) -> Self::Output {
-        CookieJarManagerImpl { inner: ep }
+        CookieJarManagerEndpoint { inner: ep }
     }
 }
 
-#[doc(hidden)]
-pub struct CookieJarManagerImpl<E> {
+/// Endpoint for CookieJarManager middleware.
+pub struct CookieJarManagerEndpoint<E> {
     inner: E,
 }
 
 #[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for CookieJarManagerImpl<E> {
+impl<E: Endpoint> Endpoint for CookieJarManagerEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Self::Output {

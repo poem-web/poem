@@ -2,7 +2,6 @@ use futures_util::{SinkExt, StreamExt};
 use poem::{
     handler,
     listener::TcpListener,
-    middleware::AddData,
     route,
     route::get,
     web::{
@@ -97,9 +96,7 @@ fn ws(
 async fn main() -> Result<(), std::io::Error> {
     let app = route().at("/", get(index)).at(
         "/ws/:name",
-        get(ws.with(AddData::new(
-            tokio::sync::broadcast::channel::<String>(32).0,
-        ))),
+        get(ws.data(tokio::sync::broadcast::channel::<String>(32).0)),
     );
 
     let listener = TcpListener::bind("127.0.0.1:3000");

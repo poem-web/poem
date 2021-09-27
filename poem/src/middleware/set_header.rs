@@ -60,24 +60,24 @@ impl SetHeader {
 }
 
 impl<E: Endpoint> Middleware<E> for SetHeader {
-    type Output = SetHeaderImpl<E>;
+    type Output = SetHeaderEndpoint<E>;
 
     fn transform(self, ep: E) -> Self::Output {
-        SetHeaderImpl {
+        SetHeaderEndpoint {
             inner: ep,
             actions: self.actions,
         }
     }
 }
 
-#[doc(hidden)]
-pub struct SetHeaderImpl<E> {
+/// Endpoint for SetHeader middleware.
+pub struct SetHeaderEndpoint<E> {
     inner: E,
     actions: Vec<Action>,
 }
 
 #[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for SetHeaderImpl<E> {
+impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Self::Output {

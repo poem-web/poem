@@ -18,20 +18,20 @@ use crate::{
 pub struct Compression;
 
 impl<E: Endpoint> Middleware<E> for Compression {
-    type Output = CompressionImpl<E>;
+    type Output = CompressionEndpoint<E>;
 
     fn transform(self, ep: E) -> Self::Output {
-        CompressionImpl { ep }
+        CompressionEndpoint { ep }
     }
 }
 
-#[doc(hidden)]
-pub struct CompressionImpl<E: Endpoint> {
+/// Endpoint for Compression middleware.
+pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,
 }
 
 #[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for CompressionImpl<E> {
+impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Self::Output {

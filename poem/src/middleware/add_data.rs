@@ -17,24 +17,24 @@ where
     E: Endpoint,
     T: Clone + Send + Sync + 'static,
 {
-    type Output = AddDataImpl<E, T>;
+    type Output = AddDataEndpoint<E, T>;
 
     fn transform(self, ep: E) -> Self::Output {
-        AddDataImpl {
+        AddDataEndpoint {
             inner: ep,
             value: self.value,
         }
     }
 }
 
-#[doc(hidden)]
-pub struct AddDataImpl<E, T> {
+/// Endpoint for AddData middleware.
+pub struct AddDataEndpoint<E, T> {
     inner: E,
     value: T,
 }
 
 #[async_trait::async_trait]
-impl<E, T> Endpoint for AddDataImpl<E, T>
+impl<E, T> Endpoint for AddDataEndpoint<E, T>
 where
     E: Endpoint,
     T: Clone + Send + Sync + 'static,

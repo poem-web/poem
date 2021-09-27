@@ -7,7 +7,6 @@ use async_graphql::{
 use poem::{
     handler,
     listener::TcpListener,
-    middleware::AddData,
     route,
     route::get,
     web::{Data, Html, Json},
@@ -33,7 +32,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = route()
         .at("/", get(graphql_playground).post(graphql_handler))
-        .with(AddData::new(schema));
+        .data(schema);
 
     println!("Playground: http://localhost:3000");
 

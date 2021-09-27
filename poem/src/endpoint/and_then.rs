@@ -16,15 +16,16 @@ impl<E, F> AndThen<E, F> {
 }
 
 #[async_trait::async_trait]
-impl<E, F, Fut, R, R2> Endpoint for AndThen<E, F>
+impl<E, F, Fut, Err, R, R2> Endpoint for AndThen<E, F>
 where
-    E: Endpoint<Output = Result<R>>,
+    E: Endpoint<Output = Result<R, Err>>,
     F: Fn(R) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<R2>> + Send + 'static,
+    Fut: Future<Output = Result<R2, Err>> + Send + 'static,
+    Err: IntoResponse,
     R: IntoResponse,
     R2: IntoResponse,
 {
-    type Output = Result<R2>;
+    type Output = Result<R2, Err>;
 
     async fn call(&self, req: Request) -> Self::Output {
         match self.inner.call(req).await {

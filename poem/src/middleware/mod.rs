@@ -11,17 +11,17 @@ mod tower_compat;
 #[cfg(feature = "tracing")]
 mod tracing;
 
-pub use add_data::AddData;
+pub use add_data::{AddData, AddDataEndpoint};
 #[cfg(feature = "compression")]
-pub use compression::Compression;
-pub use cookie_jar_manager::CookieJarManager;
-pub use cors::Cors;
-pub use set_header::SetHeader;
+pub use compression::{Compression, CompressionEndpoint};
+pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
+pub use cors::{Cors, CorsEndpoint};
+pub use set_header::{SetHeader, SetHeaderEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerLayerCompatExt;
 
 #[cfg(feature = "tracing")]
-pub use self::tracing::Tracing;
+pub use self::tracing::{Tracing, TracingEndpoint};
 use crate::{endpoint::Endpoint, EndpointExt};
 
 /// Represents a middleware trait.

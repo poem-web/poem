@@ -17,20 +17,20 @@ impl Tracing {
 }
 
 impl<E: Endpoint> Middleware<E> for Tracing {
-    type Output = TracingImpl<E>;
+    type Output = TracingEndpoint<E>;
 
     fn transform(self, ep: E) -> Self::Output {
-        TracingImpl { inner: ep }
+        TracingEndpoint { inner: ep }
     }
 }
 
-#[doc(hidden)]
-pub struct TracingImpl<E> {
+/// Endpoint for Tracing middleware.
+pub struct TracingEndpoint<E> {
     inner: E,
 }
 
 #[async_trait::async_trait]
-impl<E: Endpoint> Endpoint for TracingImpl<E> {
+impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Self::Output {

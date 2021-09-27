@@ -49,6 +49,14 @@ pub trait Listener: Send {
     /// Combine two listeners.
     ///
     /// You can call this function multiple times to combine more listeners.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::listener::{Listener, TcpListener};
+    ///
+    /// let listener = TcpListener::bind("0.0.0.0:80").combine(TcpListener::bind("0.0.0.0:81"));
+    /// ```
     fn combine<T>(self, other: T) -> CombinedListener<Self, T>
     where
         Self: Sized,

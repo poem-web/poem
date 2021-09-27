@@ -7,7 +7,7 @@ use async_session::{MemoryStore, Session, SessionStore};
 use poem::{
     handler,
     listener::TcpListener,
-    middleware::{AddData, CookieJarManager},
+    middleware::CookieJarManager,
     route,
     route::get,
     web::{Cookie, CookieJar, Data},
@@ -60,7 +60,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = route()
         .at("/", get(count))
-        .with(AddData::new(store))
+        .data(store)
         .with(CookieJarManager);
     app.call(Request::default()).await;
     let listener = TcpListener::bind("127.0.0.1:3000");

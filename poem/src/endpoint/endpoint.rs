@@ -1,7 +1,10 @@
 use std::{future::Future, sync::Arc};
 
 use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
-use crate::{Error, IntoResponse, Middleware, Request, Result};
+use crate::{
+    middleware::{AddData, AddDataEndpoint},
+    IntoResponse, Middleware, Request, Result,
+};
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
@@ -147,6 +150,32 @@ pub trait EndpointExt: IntoEndpoint {
         middleware.transform(self.into_endpoint())
     }
 
+    /// A convenience method is equivalent to `with(AddData(T))`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, http::StatusCode, web::Data, Endpoint, EndpointExt, Request};
+    ///
+    /// #[handler]
+    /// async fn index(data: Data<&i32>) -> String {
+    ///     format!("{}", data.0)
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let mut resp = index.data(100i32).call(Request::default()).await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.take_body().into_string().await.unwrap(), "100");
+    /// # });
+    /// ```
+    fn data<T>(self, data: T) -> AddDataEndpoint<Self::Endpoint, T>
+    where
+        T: Clone + Send + Sync + 'static,
+        Self: Sized,
+    {
+        self.with(AddData::new(data))
+    }
+
     /// Maps the request of this endpoint.
     ///
     /// # Example
@@ -211,6 +240,22 @@ pub trait EndpointExt: IntoEndpoint {
 
     /// Convert the output of this endpoint into a response.
     /// [`Response`](crate::Response).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    /// };
+    ///
+    /// let ep =
+    ///     make(|_| async { Err::<(), Error>(Error::new(StatusCode::BAD_REQUEST)) }).map_to_response();
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp: Response = ep.call(Request::default()).await;
+    /// assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    /// # });
+    /// ```
     fn map_to_response(self) -> MapToResponse<Self>
     where
         Self: Sized,
@@ -220,6 +265,22 @@ pub trait EndpointExt: IntoEndpoint {
 
     /// Convert the output of this endpoint into a result `Result<Response>`.
     /// [`Response`](crate::Response).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    /// };
+    ///
+    /// let ep = make(|_| async { Response::builder().status(StatusCode::BAD_REQUEST).finish() })
+    ///     .map_to_result();
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp: Result<Response> = ep.call(Request::default()).await;
+    /// assert_eq!(resp.unwrap_err().status(), StatusCode::BAD_REQUEST);
+    /// # });
+    /// ```
     fn map_to_result(self) -> MapToResult<Self>
     where
         Self: Sized,
@@ -229,36 +290,103 @@ pub trait EndpointExt: IntoEndpoint {
 
     /// Calls `f` if the result is `Ok`, otherwise returns the `Err` value of
     /// self.
-    fn and_then<F, Fut, R, R2>(self, f: F) -> AndThen<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    /// };
+    ///
+    /// let ep1 = make(|_| async { Ok::<_, Error>("hello") })
+    ///     .and_then(|value| async move { Ok(format!("{}, world!", value)) });
+    /// let ep2 = make(|_| async { Err::<String, _>(Error::new(StatusCode::BAD_REQUEST)) })
+    ///     .and_then(|value| async move { Ok(format!("{}, world!", value)) });
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let mut resp: String = ep1.call(Request::default()).await.unwrap();
+    /// assert_eq!(resp, "hello, world!");
+    ///
+    /// let mut err: Error = ep2.call(Request::default()).await.unwrap_err();
+    /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+    /// # });
+    /// ```
+    fn and_then<F, Fut, Err, R, R2>(self, f: F) -> AndThen<Self, F>
     where
         F: Fn(R) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<R2>> + Send + 'static,
+        Fut: Future<Output = Result<R2, Err>> + Send + 'static,
+        Err: IntoResponse,
         R: IntoResponse,
         R2: IntoResponse,
-        Self: Endpoint<Output = Result<R>> + Sized,
+        Self: Endpoint<Output = Result<R, Err>> + Sized,
     {
         AndThen::new(self, f)
     }
 
     /// Maps the response of this endpoint.
-    fn map_ok<F, Fut, R, R2>(self, f: F) -> MapOk<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    /// };
+    ///
+    /// let ep =
+    ///     make(|_| async { Ok("hello") }).map_ok(|value| async move { format!("{}, world!", value) });
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let mut resp: String = ep.call(Request::default()).await.unwrap();
+    /// assert_eq!(resp, "hello, world!");
+    /// # });
+    /// ```
+    fn map_ok<F, Fut, Err, R, R2>(self, f: F) -> MapOk<Self, F>
     where
         F: Fn(R) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = R2> + Send + 'static,
         R: IntoResponse,
         R2: IntoResponse,
-        Self: Endpoint<Output = Result<R>> + Sized,
+        Self: Endpoint<Output = Result<R, Err>> + Sized,
     {
         MapOk::new(self, f)
     }
 
     /// Maps the error of this endpoint.
-    fn map_err<F, Fut, R>(self, f: F) -> MapErr<Self, F>
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, IntoResponse, Request,
+    ///     Response, Result,
+    /// };
+    ///
+    /// struct CustomError;
+    ///
+    /// impl IntoResponse for CustomError {
+    ///     fn into_response(self) -> Response {
+    ///         Response::builder()
+    ///             .status(StatusCode::UNAUTHORIZED)
+    ///             .finish()
+    ///     }
+    /// }
+    ///
+    /// let ep = make(|_| async { Err::<(), _>(CustomError) })
+    ///     .map_err(|_| async move { Error::new(StatusCode::INTERNAL_SERVER_ERROR) });
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let err = ep.call(Request::default()).await.unwrap_err();
+    /// assert_eq!(err.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    /// # });
+    /// ```
+    fn map_err<F, Fut, InErr, OutErr, R>(self, f: F) -> MapErr<Self, F>
     where
-        F: Fn(Error) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Error> + Send + 'static,
+        F: Fn(InErr) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = OutErr> + Send + 'static,
+        InErr: IntoResponse,
+        OutErr: IntoResponse,
         R: IntoResponse,
-        Self: Endpoint<Output = Result<R>> + Sized,
+        Self: Endpoint<Output = Result<R, InErr>> + Sized,
     {
         MapErr::new(self, f)
     }
@@ -362,7 +490,7 @@ mod test {
     async fn test_and_then() {
         assert_eq!(
             make_sync(|_| Ok("abc"))
-                .and_then(|resp| async move { Ok(resp.to_string() + "def") })
+                .and_then(|resp| async move { Ok::<_, Error>(resp.to_string() + "def") })
                 .call(Request::default())
                 .await
                 .unwrap(),
@@ -399,7 +527,7 @@ mod test {
     #[tokio::test]
     async fn test_map_err() {
         assert_eq!(
-            make_sync(|_| Ok("abc"))
+            make_sync(|_| Ok::<_, Error>("abc"))
                 .map_err(|_| async move { Error::new(StatusCode::BAD_GATEWAY) })
                 .call(Request::default())
                 .await

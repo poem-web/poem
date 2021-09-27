@@ -283,7 +283,7 @@ impl RequestBuilder {
         let key = key.try_into();
         let value = value.try_into();
         if let (Ok(key), Ok(value)) = (key, value) {
-            self.headers.insert(key, value);
+            self.headers.append(key, value);
         }
         self
     }
