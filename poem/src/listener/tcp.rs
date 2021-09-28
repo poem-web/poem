@@ -49,3 +49,24 @@ impl Acceptor for TcpAcceptor {
         self.listener.accept().await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn tcp_listener() {
+        let listener = TcpListener::bind("127.0.0.1:8080");
+        let mut acceptor = listener.into_acceptor().await.unwrap();
+
+        tokio::spawn(async move {
+            let mut stream = TcpStream::connect("127.0.0.1:8080").await.unwrap();
+            stream.write_i32(10).await.unwrap();
+        });
+
+        let (mut stream, _) = acceptor.accept().await.unwrap();
+        assert_eq!(stream.read_i32().await.unwrap(), 10);
+    }
+}

@@ -405,4 +405,56 @@ mod tests {
         );
         assert_eq!(get(&r, "/a/b/c?name=abc").await, "/c?name=abc");
     }
+
+    #[tokio::test]
+    async fn route_method() {
+        #[handler(internal)]
+        fn index() -> &'static str {
+            "hello"
+        }
+
+        for method in &[
+            Method::GET,
+            Method::POST,
+            Method::DELETE,
+            Method::PUT,
+            Method::HEAD,
+            Method::OPTIONS,
+            Method::CONNECT,
+            Method::PATCH,
+            Method::TRACE,
+        ] {
+            let route = RouteMethod::new().method(method.clone(), index).post(index);
+            let resp = route
+                .call(Request::builder().method(method.clone()).finish())
+                .await;
+            assert_eq!(resp.status(), StatusCode::OK);
+            assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+        }
+
+        macro_rules! test_method {
+            ($(($id:ident, $method:ident)),*) => {
+                $(
+                let route = RouteMethod::new().$id(index).post(index);
+                let resp = route
+                    .call(Request::builder().method(Method::$method).finish())
+                    .await;
+                assert_eq!(resp.status(), StatusCode::OK);
+                assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+                )*
+            };
+        }
+
+        test_method!(
+            (get, GET),
+            (post, POST),
+            (delete, DELETE),
+            (put, PUT),
+            (head, HEAD),
+            (options, OPTIONS),
+            (connect, CONNECT),
+            (patch, PATCH),
+            (trace, TRACE)
+        );
+    }
 }

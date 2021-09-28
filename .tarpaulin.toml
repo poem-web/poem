@@ -1,0 +1,9 @@
+[all]
+workspace = true
+avoid_cfg_tarpaulin = true
+all-features = true
+exclude-files = [
+    "examples/**/*",
+    "poem-derive/**/*",
+    "poem-openapi-derive/**/*",
+]

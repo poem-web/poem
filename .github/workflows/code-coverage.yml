@@ -14,7 +14,6 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.18.0'
-          args: --workspace --avoid-cfg-tarpaulin --all-features -e poem-derive -e poem-openapi-derive --exclude-files examples poem-derive poem-openapi-derive
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.0.2
         with:

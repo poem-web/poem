@@ -72,3 +72,31 @@ impl Acceptor for UnixAcceptor {
         Ok((stream, UnixSocketAddr(addr)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        time::Duration,
+    };
+
+    use super::*;
+
+    #[tokio::test]
+    async fn unix_listener() {
+        let listener = UnixListener::bind("test-socket");
+        let mut acceptor = listener.into_acceptor().await.unwrap();
+
+        tokio::spawn(async move {
+            let mut stream = UnixStream::connect("test-socket").await.unwrap();
+            stream.write_i32(10).await.unwrap();
+        });
+
+        let (mut stream, _) = acceptor.accept().await.unwrap();
+        assert_eq!(stream.read_i32().await.unwrap(), 10);
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        drop(acceptor);
+        std::fs::remove_file("test-socket").unwrap();
+    }
+}

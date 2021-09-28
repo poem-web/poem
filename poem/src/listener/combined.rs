@@ -128,3 +128,35 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpStream,
+    };
+
+    use super::*;
+    use crate::listener::TcpListener;
+
+    #[tokio::test]
+    async fn combined() {
+        let listener =
+            TcpListener::bind("127.0.0.1:3001").combine(TcpListener::bind("127.0.0.1:3002"));
+        let mut acceptor = listener.into_acceptor().await.unwrap();
+
+        tokio::spawn(async move {
+            let mut stream = TcpStream::connect("127.0.0.1:3001").await.unwrap();
+            stream.write_i32(10).await.unwrap();
+
+            let mut stream = TcpStream::connect("127.0.0.1:3002").await.unwrap();
+            stream.write_i32(20).await.unwrap();
+        });
+
+        let (mut stream, _) = acceptor.accept().await.unwrap();
+        assert_eq!(stream.read_i32().await.unwrap(), 10);
+
+        let (mut stream, _) = acceptor.accept().await.unwrap();
+        assert_eq!(stream.read_i32().await.unwrap(), 20);
+    }
+}
