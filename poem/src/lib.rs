@@ -60,8 +60,8 @@ pub mod web;
 
 #[doc(inline)]
 pub use http;
-#[cfg(feature = "lambda_http")]
-#[cfg_attr(docsrs, doc(cfg(feature = "lambda_http")))]
+#[cfg(feature = "lambda-http")]
+#[cfg_attr(docsrs, doc(cfg(feature = "lambda-http")))]
 /// Support for AWS Lambda HTTP.
 pub mod lambda;
 
