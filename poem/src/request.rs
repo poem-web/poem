@@ -49,22 +49,29 @@ impl Default for RequestState {
 ///
 /// The HTTP request head consists of a method, uri, version, and a set of
 /// header fields.
-#[derive(Debug)]
 pub struct RequestParts {
     /// The request’s method
     pub method: Method,
-
     /// The request’s URI
     pub uri: Uri,
-
     /// The request’s version
     pub version: Version,
-
     /// The request’s headers
     pub headers: HeaderMap,
-
     /// The request’s extensions
     pub extensions: Extensions,
+    pub(crate) state: RequestState,
+}
+
+impl Debug for RequestParts {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RequestParts")
+            .field("method", &self.method)
+            .field("uri", &self.uri)
+            .field("version", &self.version)
+            .field("headers", &self.headers)
+            .finish()
+    }
 }
 
 /// Represents an HTTP request.
@@ -131,6 +138,19 @@ impl From<Request> for hyper::Request<hyper::Body> {
 }
 
 impl Request {
+    /// Creates a new `Request` with the given components parts and body.
+    pub fn from_parts(parts: RequestParts, body: Body) -> Self {
+        Self {
+            method: parts.method,
+            uri: parts.uri,
+            version: parts.version,
+            headers: parts.headers,
+            extensions: parts.extensions,
+            body,
+            state: parts.state,
+        }
+    }
+
     /// Creates a request builder.
     pub fn builder() -> RequestBuilder {
         RequestBuilder {
@@ -277,6 +297,7 @@ impl Request {
                 version: self.version,
                 headers: self.headers,
                 extensions: self.extensions,
+                state: self.state,
             },
             self.body,
         )

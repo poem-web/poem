@@ -4,7 +4,6 @@ use std::{
     path::Path,
 };
 
-use thiserror::private::PathAsDisplay;
 use tokio::{
     io::Result as IoResult,
     net::{unix::SocketAddr, UnixListener as TokioUnixListener, UnixStream},
@@ -42,7 +41,7 @@ pub struct UnixSocketAddr(SocketAddr);
 impl Display for UnixSocketAddr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0.as_pathname() {
-            Some(path) => write!(f, "{}", path.as_display()),
+            Some(path) => write!(f, "{}", path.display()),
             None => write!(f, "unnamed"),
         }
     }

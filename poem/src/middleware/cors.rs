@@ -434,4 +434,18 @@ mod tests {
             ALLOW_ORIGIN
         );
     }
+
+    #[tokio::test]
+    async fn no_cors_requests() {
+        let ep = make_sync(|_| "hello").with(Cors::new().allow_origin(ALLOW_ORIGIN));
+        let resp = ep
+            .map_to_response()
+            .call(Request::builder().method(Method::GET).finish())
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert!(resp
+            .headers()
+            .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+            .is_none());
+    }
 }

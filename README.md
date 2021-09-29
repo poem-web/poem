@@ -24,7 +24,7 @@ This repo contains the following main components:
 | Crate                                                  | Description                     | Documentation                      |
 |--------------------------------------------------------|---------------------------------|------------------------------------|
 |[poem](https://crates.io/crates/poem)                   | Poem Web                        | [(README)](poem/README.md)         |
-|[poem-lambda](https://crates.io/crates/poem-lambda)                   | Poem Web          | [(README)](poem-lambda/README.md)  |
+|[poem-lambda](https://crates.io/crates/poem-lambda)     | Poem for AWS Lambda             | [(README)](poem-lambda/README.md)  |
 |[poem-openapi](https://crates.io/crates/poem-openapi)   | OpenAPI for Poem Web            | [(README)](poem-openapi/README.md) |
 
 ### Resources

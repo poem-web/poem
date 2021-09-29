@@ -16,19 +16,25 @@ use crate::{
 ///
 /// The HTTP response head consists of a status, version, and a set of header
 /// fields.
-#[derive(Debug)]
 pub struct ResponseParts {
     /// The response’s status
     pub status: StatusCode,
-
     /// The response’s version
     pub version: Version,
-
     /// The response’s headers
     pub headers: HeaderMap,
-
     /// The response’s extensions
     pub extensions: Extensions,
+}
+
+impl Debug for ResponseParts {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RequestParts")
+            .field("status", &self.status)
+            .field("version", &self.version)
+            .field("headers", &self.headers)
+            .finish()
+    }
 }
 
 /// Represents an HTTP response.
@@ -100,6 +106,17 @@ impl From<hyper::Response<hyper::Body>> for Response {
 }
 
 impl Response {
+    /// Creates a new `Response` with the given head and body.
+    pub fn from_parts(parts: ResponseParts, body: Body) -> Self {
+        Self {
+            status: parts.status,
+            version: parts.version,
+            headers: parts.headers,
+            extensions: parts.extensions,
+            body,
+        }
+    }
+
     /// Creates a response builder.
     pub fn builder() -> ResponseBuilder {
         ResponseBuilder {
