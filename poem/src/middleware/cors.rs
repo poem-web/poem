@@ -186,14 +186,14 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
     type Output = Result<Response>;
 
     async fn call(&self, req: Request) -> Self::Output {
-        let origin = match req
-            .headers()
-            .get(header::ORIGIN)
-            .and_then(|value| value.to_str().ok())
-        {
-            Some(origin) => origin.to_string(),
-            None => return Err(Error::new(StatusCode::UNAUTHORIZED)),
+        let origin = match req.headers().get(header::ORIGIN) {
+            Some(origin) => origin.to_str().map(ToString::to_string),
+            None => {
+                // This is not a CORS request if there is no Origin header
+                return Ok(self.inner.call(req).await.into_response());
+            }
         };
+        let origin = origin.map_err(|_| Error::new(StatusCode::BAD_REQUEST))?;
 
         if !self.is_valid_origin(&origin) {
             return Err(Error::new(StatusCode::UNAUTHORIZED));
