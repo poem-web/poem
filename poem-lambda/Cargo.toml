@@ -1,0 +1,24 @@
+[package]
+name = "poem-lambda"
+version = "0.7.2"
+authors = ["sunli <scott_s829@163.com>"]
+edition = "2018"
+description = "Poem for AWS Lambda"
+license = "MIT/Apache-2.0"
+documentation = "https://docs.rs/poem/"
+homepage = "https://github.com/poem-web/poem"
+repository = "https://github.com/poem-web/poem"
+keywords = ["http", "web", "framework", "async"]
+categories = [
+    "network-programming",
+    "asynchronous",
+    "web-programming::http-server",
+    "web-programming::websocket",
+]
+
+[dependencies]
+poem = { path = "../poem", version = "0.7.0" }
+lambda_http = { version = "0.4.1" }
+
+[dev-dependencies]
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }

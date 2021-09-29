@@ -21,6 +21,9 @@ jobs:
           - name: poem
             registryName: poem
             path: poem
+          - name: poem-lambda
+            registryName: poem-lambda
+            path: poem-lambda
           - name: poem-openapi-derive
             registryName: poem-openapi-derive
             path: poem-openapi-derive

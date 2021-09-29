@@ -1,0 +1,69 @@
+<h1 align="center">Poem For AWS Lambda</h1>
+
+<div align="center">
+  <!-- Crates version -->
+  <a href="https://crates.io/crates/poem-lambda">
+    <img src="https://img.shields.io/crates/v/poem-lambda.svg?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <!-- Downloads -->
+  <a href="https://crates.io/crates/poem-lambda">
+    <img src="https://img.shields.io/crates/d/poem-lambda.svg?style=flat-square"
+      alt="Download" />
+  </a>
+  <!-- docs.rs docs -->
+  <a href="https://docs.rs/poem-lambda">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+  <a href="https://github.com/rust-secure-code/safety-dance/">
+    <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
+      alt="Unsafe Rust forbidden" />
+  </a>
+  <a href="https://blog.rust-lang.org/2021/07/29/Rust-1.54.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.54+-ab6000.svg"
+      alt="rustc 1.54+" />
+  </a>
+</div>
+
+## Example
+
+```rust
+use poem::handler;
+use poem_lambda::Error;
+
+#[handler]
+fn index() -> &'static str {
+  "hello"
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+  poem_lambda::run(index).await
+}
+```
+
+## Safety
+
+This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in 100% Safe Rust.
+
+## MSRV
+
+The minimum supported Rust version for this crate is `1.54.0`.
+
+## Contributing
+
+:balloon: Thanks for your help improving the project! We are so happy to have you!
+
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0,([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
+  at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Poem by you, shall be licensed as Apache, without any additional terms or conditions.
