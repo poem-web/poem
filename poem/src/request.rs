@@ -45,6 +45,28 @@ impl Default for RequestState {
     }
 }
 
+/// Component parts of an HTTP Request.
+///
+/// The HTTP request head consists of a method, uri, version, and a set of
+/// header fields.
+#[derive(Debug)]
+pub struct RequestParts {
+    /// The request’s method
+    pub method: Method,
+
+    /// The request’s URI
+    pub uri: Uri,
+
+    /// The request’s version
+    pub version: Version,
+
+    /// The request’s headers
+    pub headers: HeaderMap,
+
+    /// The request’s extensions
+    pub extensions: Extensions,
+}
+
 /// Represents an HTTP request.
 #[derive(Default)]
 pub struct Request {
@@ -244,6 +266,20 @@ impl Request {
     pub fn split(mut self) -> (Request, RequestBody) {
         let body = self.take_body();
         (self, RequestBody::new(body))
+    }
+
+    /// Consumes the request returning the head and body parts.
+    pub fn into_parts(self) -> (RequestParts, Body) {
+        (
+            RequestParts {
+                method: self.method,
+                uri: self.uri,
+                version: self.version,
+                headers: self.headers,
+                extensions: self.extensions,
+            },
+            self.body,
+        )
     }
 }
 

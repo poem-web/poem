@@ -25,6 +25,7 @@ tls = ["tokio-rustls"]
 sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
+lambda-http = ["lambda_http"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "0.7.0" }
@@ -62,6 +63,7 @@ tokio-tungstenite = { version = "0.15.0", optional = true }
 tokio-rustls = { version = "0.22.0", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
+lambda_http = { version = "0.4.1", optional = true }
 
 # Feature optional dependencies
 typed-headers = { version = "0.2.0", optional = true }

@@ -51,7 +51,7 @@ impl<T: Acceptor> Server<T> {
         signal: impl Future<Output = ()>,
         timeout: Option<Duration>,
     ) -> IoResult<()> {
-        let ep = Arc::new(ep.into_endpoint().map_to_response());
+        let ep = Arc::new(ep.map_to_response().into_endpoint());
         let Server { mut acceptor } = self;
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());

@@ -228,14 +228,14 @@ pub trait EndpointExt: IntoEndpoint {
     ///     .await;
     /// assert_eq!(resp, "abcdef");
     /// # });
-    fn after<F, Fut, R>(self, f: F) -> After<Self, F>
+    fn after<F, Fut, R>(self, f: F) -> After<Self::Endpoint, F>
     where
         F: Fn(<Self::Endpoint as Endpoint>::Output) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = R> + Send + 'static,
         R: IntoResponse,
         Self: Sized,
     {
-        After::new(self, f)
+        After::new(self.into_endpoint(), f)
     }
 
     /// Convert the output of this endpoint into a response.
@@ -256,11 +256,11 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
-    fn map_to_response(self) -> MapToResponse<Self>
+    fn map_to_response(self) -> MapToResponse<Self::Endpoint>
     where
         Self: Sized,
     {
-        MapToResponse::new(self)
+        MapToResponse::new(self.into_endpoint())
     }
 
     /// Convert the output of this endpoint into a result `Result<Response>`.
@@ -281,11 +281,11 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp.unwrap_err().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
-    fn map_to_result(self) -> MapToResult<Self>
+    fn map_to_result(self) -> MapToResult<Self::Endpoint>
     where
         Self: Sized,
     {
-        MapToResult::new(self)
+        MapToResult::new(self.into_endpoint())
     }
 
     /// Calls `f` if the result is `Ok`, otherwise returns the `Err` value of
@@ -311,16 +311,17 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
-    fn and_then<F, Fut, Err, R, R2>(self, f: F) -> AndThen<Self, F>
+    fn and_then<F, Fut, Err, R, R2>(self, f: F) -> AndThen<Self::Endpoint, F>
     where
         F: Fn(R) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = Result<R2, Err>> + Send + 'static,
         Err: IntoResponse,
         R: IntoResponse,
         R2: IntoResponse,
-        Self: Endpoint<Output = Result<R, Err>> + Sized,
+        Self: Sized,
+        Self::Endpoint: Endpoint<Output = Result<R, Err>> + Sized,
     {
-        AndThen::new(self, f)
+        AndThen::new(self.into_endpoint(), f)
     }
 
     /// Maps the response of this endpoint.
@@ -340,15 +341,16 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp, "hello, world!");
     /// # });
     /// ```
-    fn map_ok<F, Fut, Err, R, R2>(self, f: F) -> MapOk<Self, F>
+    fn map_ok<F, Fut, Err, R, R2>(self, f: F) -> MapOk<Self::Endpoint, F>
     where
         F: Fn(R) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = R2> + Send + 'static,
         R: IntoResponse,
         R2: IntoResponse,
-        Self: Endpoint<Output = Result<R, Err>> + Sized,
+        Self: Sized,
+        Self::Endpoint: Endpoint<Output = Result<R, Err>> + Sized,
     {
-        MapOk::new(self, f)
+        MapOk::new(self.into_endpoint(), f)
     }
 
     /// Maps the error of this endpoint.
@@ -379,16 +381,17 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(err.status(), StatusCode::INTERNAL_SERVER_ERROR);
     /// # });
     /// ```
-    fn map_err<F, Fut, InErr, OutErr, R>(self, f: F) -> MapErr<Self, F>
+    fn map_err<F, Fut, InErr, OutErr, R>(self, f: F) -> MapErr<Self::Endpoint, F>
     where
         F: Fn(InErr) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = OutErr> + Send + 'static,
         InErr: IntoResponse,
         OutErr: IntoResponse,
         R: IntoResponse,
-        Self: Endpoint<Output = Result<R, InErr>> + Sized,
+        Self: Sized,
+        Self::Endpoint: Endpoint<Output = Result<R, InErr>> + Sized,
     {
-        MapErr::new(self, f)
+        MapErr::new(self.into_endpoint(), f)
     }
 }
 

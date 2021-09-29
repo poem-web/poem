@@ -207,6 +207,10 @@ impl RequestBody {
 ///    Ready to accept a websocket [`WebSocket`](websocket::WebSocket)
 /// connection.
 ///
+/// - **&[lambda_runtime::Context](https://docs.rs/lambda_runtime/0.4.1/lambda_runtime/struct.Context.html)**
+///
+///     Extracts AWS Lambda context from the imcoming request.
+///
 /// # Custom extractor
 ///
 /// The following is an example of a custom token extractor, which extracts the

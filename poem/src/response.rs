@@ -12,6 +12,25 @@ use crate::{
     Body, Error,
 };
 
+/// Component parts of an HTTP Response.
+///
+/// The HTTP response head consists of a status, version, and a set of header
+/// fields.
+#[derive(Debug)]
+pub struct ResponseParts {
+    /// The response’s status
+    pub status: StatusCode,
+
+    /// The response’s version
+    pub version: Version,
+
+    /// The response’s headers
+    pub headers: HeaderMap,
+
+    /// The response’s extensions
+    pub extensions: Extensions,
+}
+
 /// Represents an HTTP response.
 #[derive(Default)]
 pub struct Response {
@@ -167,6 +186,19 @@ impl Response {
     #[inline]
     pub fn into_body(self) -> Body {
         self.body
+    }
+
+    /// Consumes the response returning the head and body parts.
+    pub fn into_parts(self) -> (ResponseParts, Body) {
+        (
+            ResponseParts {
+                status: self.status,
+                version: self.version,
+                headers: self.headers,
+                extensions: self.extensions,
+            },
+            self.body,
+        )
     }
 }
 

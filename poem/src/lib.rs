@@ -43,6 +43,7 @@
 //! |tracing           | Support for Tracing middleware |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
+//! |lambda-http       | Support for AWS Lambda HTTP |
 
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
@@ -59,6 +60,10 @@ pub mod web;
 
 #[doc(inline)]
 pub use http;
+#[cfg(feature = "lambda_http")]
+#[cfg_attr(docsrs, doc(cfg(feature = "lambda_http")))]
+/// Support for AWS Lambda HTTP.
+pub mod lambda;
 
 mod body;
 mod request;
@@ -71,8 +76,8 @@ pub use endpoint::{Endpoint, EndpointExt, IntoEndpoint};
 pub use error::{Error, Result};
 pub use middleware::Middleware;
 pub use poem_derive::handler;
-pub use request::{Request, RequestBuilder};
-pub use response::{Response, ResponseBuilder};
+pub use request::{Request, RequestBuilder, RequestParts};
+pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{route, RouteMethod};
 pub use server::Server;
 pub use web::{FromRequest, IntoResponse, RequestBody};

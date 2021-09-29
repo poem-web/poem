@@ -79,7 +79,7 @@ impl TlsConfig {
 /// protocol.
 ///
 /// NOTE: You cannot create it directly and should use the
-/// [`tls`](crate::listener::IntoAcceptor::tls) method to create it, because it
+/// [`tls`](crate::listener::Listener::tls) method to create it, because it
 /// needs to wrap a underlying listener.
 #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
 pub struct TlsListener<T> {

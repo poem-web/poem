@@ -56,6 +56,7 @@ which are disabled by default:
 |tracing           | Support for Tracing middleware |
 |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
+|lambda-http       | Support for AWS Lambda HTTP |
 
 ## Safety
 
