@@ -44,6 +44,12 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
     let crate_name = utils::get_crate_name(args.internal);
     let item_fn = syn::parse::<ItemFn>(input)?;
     let vis = &item_fn.vis;
+    let docs = item_fn
+        .attrs
+        .iter()
+        .filter(|attr| attr.path.is_ident("doc"))
+        .cloned()
+        .collect::<Vec<_>>();
     let ident = &item_fn.sig.ident;
     let call_await = if item_fn.sig.asyncness.is_some() {
         Some(quote::quote!(.await))
@@ -68,6 +74,7 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
     }
 
     let expanded = quote! {
+        #(#docs)*
         #[allow(non_camel_case_types)]
         #vis struct #ident;
 
