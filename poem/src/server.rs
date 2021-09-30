@@ -27,10 +27,15 @@ pub struct Server<T> {
 
 impl<T: Acceptor> Server<T> {
     /// Use the specified listener to create an HTTP server.
-    pub async fn new<K: Listener<Acceptor = T>>(acceptor: K) -> IoResult<Server<T>> {
+    pub async fn new<K: Listener<Acceptor = T>>(listener: K) -> IoResult<Server<T>> {
         Ok(Self {
-            acceptor: acceptor.into_acceptor().await?,
+            acceptor: listener.into_acceptor().await?,
         })
+    }
+
+    /// Use the specified acceptor to create an HTTP server.
+    pub async fn new_with_acceptor(acceptor: T) -> Self {
+        Self { acceptor }
     }
 
     /// Returns the local address that this server is bound to.
