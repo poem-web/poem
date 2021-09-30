@@ -344,10 +344,10 @@ B1Y0rlLoKG62pnkeXp1O4I57gnClatWRg5qw11a8V8e3jvDKIYM=
 "#;
 
     #[tokio::test]
-    async fn tcp_listener() {
-        let listener =
-            TcpListener::bind("127.0.0.1:8081").tls(TlsConfig::new().key(KEY).cert(CERT));
+    async fn tls_listener() {
+        let listener = TcpListener::bind("127.0.0.1:0").tls(TlsConfig::new().key(KEY).cert(CERT));
         let mut acceptor = listener.into_acceptor().await.unwrap();
+        let addr = acceptor.local_addr().unwrap().pop().unwrap();
 
         tokio::spawn(async move {
             let mut config = ClientConfig::new();
@@ -358,7 +358,7 @@ B1Y0rlLoKG62pnkeXp1O4I57gnClatWRg5qw11a8V8e3jvDKIYM=
 
             let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
             let domain = webpki::DNSNameRef::try_from_ascii_str("testserver.com").unwrap();
-            let stream = TcpStream::connect("127.0.0.1:8081").await.unwrap();
+            let stream = TcpStream::connect(addr).await.unwrap();
             let mut stream = connector.connect(domain, stream).await.unwrap();
             stream.write_i32(10).await.unwrap();
         });

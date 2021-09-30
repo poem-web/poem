@@ -34,7 +34,7 @@ impl<T: Acceptor> Server<T> {
     }
 
     /// Use the specified acceptor to create an HTTP server.
-    pub async fn new_with_acceptor(acceptor: T) -> Self {
+    pub fn new_with_acceptor(acceptor: T) -> Self {
         Self { acceptor }
     }
 

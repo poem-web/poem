@@ -58,11 +58,12 @@ mod tests {
 
     #[tokio::test]
     async fn tcp_listener() {
-        let listener = TcpListener::bind("127.0.0.1:8080");
+        let listener = TcpListener::bind("127.0.0.1:0");
         let mut acceptor = listener.into_acceptor().await.unwrap();
+        let addr = acceptor.local_addr().unwrap().remove(0);
 
         tokio::spawn(async move {
-            let mut stream = TcpStream::connect("127.0.0.1:8080").await.unwrap();
+            let mut stream = TcpStream::connect(addr).await.unwrap();
             stream.write_i32(10).await.unwrap();
         });
 

@@ -14,7 +14,7 @@ use std::{
     task::{Context, Poll},
 };
 
-pub use combined::{CombinedAcceptor, CombinedListener, CombinedStream};
+pub use combined::{Combined, CombinedStream};
 pub use tcp::{TcpAcceptor, TcpListener};
 #[cfg(feature = "tls")]
 pub use tls::{TlsAcceptor, TlsConfig, TlsListener};
@@ -50,6 +50,15 @@ pub type BoxAcceptor = Box<dyn Acceptor<Addr = RemoteAddr, Io = BoxIo>>;
 
 /// Extension trait for [`Acceptor`].
 pub trait AcceptorExt: Acceptor {
+    /// Combine two acceptors.
+    #[must_use]
+    fn combine<T>(self, other: T) -> Combined<Self, T>
+    where
+        Self: Sized,
+    {
+        Combined::new(self, other)
+    }
+
     /// Wrap the acceptor in a Box.
     fn boxed(self) -> BoxAcceptor
     where
@@ -79,23 +88,39 @@ pub trait Listener: Send {
     /// ```
     /// use poem::listener::{Listener, TcpListener};
     ///
-    /// let listener = TcpListener::bind("0.0.0.0:80").combine(TcpListener::bind("0.0.0.0:81"));
+    /// let listener = TcpListener::bind("127.0.0.1:80").combine(TcpListener::bind("127.0.0.1:81"));
     /// ```
-    fn combine<T>(self, other: T) -> CombinedListener<Self, T>
+    #[must_use]
+    fn combine<T>(self, other: T) -> Combined<Self, T>
     where
         Self: Sized,
     {
-        CombinedListener::new(self, other)
+        Combined::new(self, other)
     }
 
     /// Consume this listener and return a new TLS listener.
     #[cfg(feature = "tls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
+    #[must_use]
     fn tls(self, config: TlsConfig) -> TlsListener<Self>
     where
         Self: Sized,
     {
         TlsListener::new(config, self)
+    }
+}
+
+#[async_trait::async_trait]
+impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
+    type Addr = T::Addr;
+    type Io = T::Io;
+
+    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
+        self.as_ref().local_addr()
+    }
+
+    async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)> {
+        self.as_mut().accept().await
     }
 }
 
@@ -177,18 +202,40 @@ mod tests {
     #[should_panic]
     #[allow(unused_variables, unused_assignments)]
     async fn test_box_acceptor() {
-        let mut a = TcpListener::bind("0.0.0.0:3000")
+        let mut a = TcpListener::bind("127.0.0.1:0")
             .into_acceptor()
             .await
             .unwrap()
             .boxed();
 
-        a = TcpListener::bind("0.0.0.0:3000")
+        a = TcpListener::bind("127.0.0.1:0")
             .tls(TlsConfig::new())
-            .combine(TcpListener::bind("0.0.0.0:3001"))
+            .combine(TcpListener::bind("127.0.0.1:0"))
             .into_acceptor()
             .await
             .unwrap()
             .boxed();
+    }
+
+    #[tokio::test]
+    async fn combined_listener() {
+        let a = TcpListener::bind("127.0.0.1:0");
+        let b = TcpListener::bind("127.0.0.1:0");
+        let _ = a.combine(b);
+    }
+
+    #[tokio::test]
+    async fn combined_acceptor() {
+        let a = TcpListener::bind("127.0.0.1:0")
+            .into_acceptor()
+            .await
+            .unwrap();
+
+        let b = TcpListener::bind("127.0.0.1:0")
+            .into_acceptor()
+            .await
+            .unwrap();
+
+        let _ = a.combine(b);
     }
 }

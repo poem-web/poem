@@ -10,38 +10,33 @@ use crate::{
     web::RemoteAddr,
 };
 
-/// Listener for the [`combine`](crate::listener::Listener::combine) method.
-pub struct CombinedListener<A, B> {
+/// Listener for the [`Listener::combine`](crate::listener::Listener::combine)
+/// and [`AcceptorExt::combine`](crate::listener::AcceptorExt::combine) method.
+pub struct Combined<A, B> {
     a: A,
     b: B,
 }
 
-impl<A, B> CombinedListener<A, B> {
+impl<A, B> Combined<A, B> {
     pub(crate) fn new(a: A, b: B) -> Self {
-        CombinedListener { a, b }
+        Combined { a, b }
     }
 }
 
 #[async_trait::async_trait]
-impl<A: Listener, B: Listener> Listener for CombinedListener<A, B> {
-    type Acceptor = CombinedAcceptor<A::Acceptor, B::Acceptor>;
+impl<A: Listener, B: Listener> Listener for Combined<A, B> {
+    type Acceptor = Combined<A::Acceptor, B::Acceptor>;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
-        Ok(CombinedAcceptor {
+        Ok(Combined {
             a: self.a.into_acceptor().await?,
             b: self.b.into_acceptor().await?,
         })
     }
 }
 
-/// Used to combine two listeners.
-pub struct CombinedAcceptor<A, B> {
-    a: A,
-    b: B,
-}
-
 #[async_trait::async_trait]
-impl<A: Acceptor, B: Acceptor> Acceptor for CombinedAcceptor<A, B> {
+impl<A: Acceptor, B: Acceptor> Acceptor for Combined<A, B> {
     type Addr = RemoteAddr;
     type Io = CombinedStream<A::Io, B::Io>;
 
