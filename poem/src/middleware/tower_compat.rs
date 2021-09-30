@@ -1,6 +1,5 @@
 use std::{
     convert::Infallible,
-    error::Error as StdError,
     sync::Arc,
     task::{Context, Poll},
 };
@@ -36,7 +35,7 @@ where
     L::Service: Service<Request> + Send + 'static,
     <L::Service as Service<Request>>::Future: Send,
     <L::Service as Service<Request>>::Response: IntoResponse + Send + 'static,
-    <L::Service as Service<Request>>::Error: StdError + Send + Sync + 'static,
+    <L::Service as Service<Request>>::Error: Into<tower::BoxError> + Send + Sync,
 {
     type Output = TowerServiceToEndpoint<L::Service>;
 
@@ -78,7 +77,7 @@ where
     Svc: Service<Request> + Send + 'static,
     Svc::Future: Send,
     Svc::Response: IntoResponse + Send + 'static,
-    Svc::Error: StdError + Send + Sync + 'static,
+    Svc::Error: Into<tower::BoxError> + Send + Sync,
 {
     type Output = Result<Svc::Response>;
 
