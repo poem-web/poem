@@ -39,7 +39,7 @@ where
 {
     type Output = TowerServiceToEndpoint<L::Service>;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         TowerServiceToEndpoint(Buffer::new(
             self.0.layer(EndpointToTowerService(Arc::new(ep))),
             32,

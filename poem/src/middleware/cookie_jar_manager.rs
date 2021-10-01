@@ -10,7 +10,7 @@ where
 {
     type Output = CookieJarManagerEndpoint<E>;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         CookieJarManagerEndpoint { inner: ep }
     }
 }

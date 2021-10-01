@@ -24,7 +24,7 @@ pub use tower_compat::TowerLayerCompatExt;
 
 #[cfg(feature = "tracing")]
 pub use self::tracing::{Tracing, TracingEndpoint};
-use crate::{endpoint::Endpoint, EndpointExt};
+use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
 ///
@@ -39,7 +39,7 @@ use crate::{endpoint::Endpoint, EndpointExt};
 /// impl<E: Endpoint> Middleware<E> for TokenMiddleware {
 ///     type Output = TokenMiddlewareImpl<E>;
 ///
-///     fn transform(self, ep: E) -> Self::Output {
+///     fn transform(&self, ep: E) -> Self::Output {
 ///         TokenMiddlewareImpl { ep }
 ///     }
 /// }
@@ -98,7 +98,7 @@ pub trait Middleware<E: Endpoint> {
     type Output: Endpoint;
 
     /// Transform the input [`Endpoint`] to another one.
-    fn transform(self, ep: E) -> Self::Output;
+    fn transform(&self, ep: E) -> Self::Output;
 }
 
 poem_derive::generate_implement_middlewares!();
@@ -114,7 +114,7 @@ where
 {
     type Output = E2;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         (self.0)(ep)
     }
 }

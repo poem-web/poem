@@ -19,7 +19,7 @@ impl Tracing {
 impl<E: Endpoint> Middleware<E> for Tracing {
     type Output = TracingEndpoint<E>;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         TracingEndpoint { inner: ep }
     }
 }

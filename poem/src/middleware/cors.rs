@@ -14,7 +14,7 @@ use crate::{
     Error, IntoResponse, Result,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone)]
 struct Config {
     allow_credentials: bool,
     allow_headers: HashSet<HeaderName>,
@@ -116,10 +116,10 @@ impl Cors {
 impl<E: Endpoint> Middleware<E> for Cors {
     type Output = CorsEndpoint<E>;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         CorsEndpoint {
             inner: ep,
-            config: self.config,
+            config: self.config.clone(),
         }
     }
 }

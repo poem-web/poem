@@ -5,6 +5,7 @@ use crate::{
     Endpoint, IntoResponse, Middleware, Request, Response,
 };
 
+#[derive(Debug, Clone)]
 enum Action {
     Override(HeaderName, HeaderValue),
     Append(HeaderName, HeaderValue),
@@ -62,10 +63,10 @@ impl SetHeader {
 impl<E: Endpoint> Middleware<E> for SetHeader {
     type Output = SetHeaderEndpoint<E>;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         SetHeaderEndpoint {
             inner: ep,
-            actions: self.actions,
+            actions: self.actions.clone(),
         }
     }
 }

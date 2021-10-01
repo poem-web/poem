@@ -8,7 +8,7 @@ struct Log;
 impl<E: Endpoint> Middleware<E> for Log {
     type Output = LogImpl<E>;
 
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         LogImpl(ep)
     }
 }

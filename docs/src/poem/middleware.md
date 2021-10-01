@@ -41,7 +41,7 @@ struct TokenMiddleware;
 impl<E: Endpoint> Middleware<E> for TokenMiddleware {
     type Output = TokenMiddlewareImpl<E>;
   
-    fn transform(self, ep: E) -> Self::Output {
+    fn transform(&self, ep: E) -> Self::Output {
         TokenMiddlewareImpl { ep }
     }
 }

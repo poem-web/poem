@@ -21,7 +21,7 @@ The return value of the function must be a type that implements the `IntoRespons
 HTTP response through the `IntoResponse::into_response` method.
 
 The following function has an extractor, which extracts the `name` and `value` parameters from the query string of the 
-request uri. And return a `String`, the string will be converted into an HTTP response.
+request uri and return a `String`, the string will be converted into an HTTP response.
 
 ```rust
 use serde::Deserialize;
@@ -47,13 +47,16 @@ The `Server::run` function accepts any type that implements the `Endpoint` trait
 routing object, so any request path will be handled by the `index` function.
 
 ```rust
+#[handler]
+async fn index() -> &'static str {
+    "hello"
+}
+
 #[tokio::main]
 async fn main() {
-    use poem::route::get;
-    let app = route().at("/", get(index));
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await.unwrap();
-    server.run(app).await.unwrap();
+    server.run(index).await.unwrap();
 }
 ```
 

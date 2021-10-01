@@ -106,7 +106,7 @@ pub fn generate_implement_middlewares(_: TokenStream) -> TokenStream {
         let output_type = idents.last().unwrap();
         let first_ident = idents.first().unwrap();
         let mut where_clauses = vec![quote! { #first_ident: Middleware<E> }];
-        let mut withs = Vec::new();
+        let mut transforms = Vec::new();
 
         for k in 1..i {
             let prev_ident = &idents[k - 1];
@@ -114,9 +114,9 @@ pub fn generate_implement_middlewares(_: TokenStream) -> TokenStream {
             where_clauses.push(quote! { #current_ident: Middleware<#prev_ident::Output> });
         }
 
-        for k in 1..i {
+        for k in 0..i {
             let n = Member::from(k);
-            withs.push(quote! { .with(self.#n) });
+            transforms.push(quote! { let ep = self.#n.transform(ep); });
         }
 
         let expanded = quote! {
@@ -127,8 +127,9 @@ pub fn generate_implement_middlewares(_: TokenStream) -> TokenStream {
             {
                 type Output = #output_type::Output;
 
-                fn transform(self, ep: E) -> Self::Output {
-                    self.0.transform(ep)#(#withs)*
+                fn transform(&self, ep: E) -> Self::Output {
+                    #(#transforms)*
+                    ep
                 }
             }
         };
