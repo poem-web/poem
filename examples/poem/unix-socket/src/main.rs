@@ -10,6 +10,11 @@ async fn main() -> Result<(), std::io::Error> {
         uri.path().to_string()
     }
 
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug")
+    }
+    tracing_subscriber::fmt::init();
+
     let app = route().at("/", get(hello));
     let listener = UnixListener::bind("./unix-socket");
     let server = Server::new(listener).await?;

@@ -9,8 +9,6 @@ mod normalize_path;
 mod set_header;
 #[cfg(feature = "tower-compat")]
 mod tower_compat;
-#[cfg(feature = "tracing")]
-mod tracing;
 
 pub use add_data::{AddData, AddDataEndpoint};
 #[cfg(feature = "compression")]

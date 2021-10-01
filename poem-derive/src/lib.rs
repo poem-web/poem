@@ -82,6 +82,7 @@ fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream
         impl #crate_name::Endpoint for #ident {
             type Output = #crate_name::Response;
 
+            #[allow(unused_mut)]
             async fn call(&self, mut req: #crate_name::Request) -> Self::Output {
                 let (req, mut body) = req.split();
                 #(#extractors)*

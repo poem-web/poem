@@ -9,3 +9,4 @@ poem = { path = "../../../poem" }
 poem-openapi = { path = "../../../poem-openapi" }
 tokio = { version = "1.12.0", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "0.11.4", default-features = false, features = ["rustls-tls"] }
+tracing-subscriber = "0.2.24"

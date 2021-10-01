@@ -94,6 +94,11 @@ fn ws(
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug")
+    }
+    tracing_subscriber::fmt::init();
+
     let app = route().at("/", get(index)).at(
         "/ws/:name",
         get(ws.data(tokio::sync::broadcast::channel::<String>(32).0)),

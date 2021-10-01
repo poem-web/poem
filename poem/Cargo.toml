@@ -55,6 +55,7 @@ regex = "1.5.4"
 mime_guess = "2.0.3"
 smallvec = "1.6.1"
 nom = "7.0.0"
+tracing = "0.1.28"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
@@ -65,7 +66,6 @@ tower = { version = "0.4.8", optional = true, default-features = true, features 
 
 # Feature optional dependencies
 typed-headers = { version = "0.2.0", optional = true }
-tracing = { version = "0.1.28", optional = true }
 tempfile = { version = "3.2.0", optional = true }
 
 [dev-dependencies]

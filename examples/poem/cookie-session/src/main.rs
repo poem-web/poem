@@ -55,6 +55,11 @@ async fn init_session(store: &Data<&MemoryStore>, cookie_jar: &CookieJar) {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug")
+    }
+    tracing_subscriber::fmt::init();
+
     // `MemoryStore` just used as an example. Don't use this in production.
     let store = MemoryStore::new();
 

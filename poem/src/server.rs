@@ -13,6 +13,7 @@ use tokio::{
     sync::Notify,
     time::Duration,
 };
+use tracing::{Instrument, Level};
 
 use crate::{
     listener::{Acceptor, Listener},
@@ -64,15 +65,27 @@ impl<T: Acceptor> Server<T> {
 
         tokio::pin!(signal);
 
+        for addr in acceptor.local_addr()? {
+            tracing::info!(addr = %addr, "listening");
+        }
+        tracing::info!("server started");
+
         loop {
             tokio::select! {
                 _ = &mut signal => {
                     if let Some(timeout) = timeout {
+                        tracing::info!(
+                            timeout_in_seconds = timeout.as_secs_f32(),
+                            "initiate graceful shutdown",
+                        );
+
                         let timeout_notify = timeout_notify.clone();
                         tokio::spawn(async move {
                             tokio::time::sleep(timeout).await;
                             timeout_notify.notify_waiters();
                         });
+                    } else {
+                        tracing::info!("initiate graceful shutdown");
                     }
                     break;
                 },
@@ -106,8 +119,11 @@ impl<T: Acceptor> Server<T> {
 
         drop(acceptor);
         if alive_connections.load(Ordering::SeqCst) > 0 {
+            tracing::info!("wait for all connections to close.");
             notify.notified().await;
         }
+
+        tracing::info!("server stopped");
         Ok(())
     }
 }
@@ -122,9 +138,25 @@ async fn serve_connection(
             let ep = ep.clone();
             let remote_addr = remote_addr.clone();
             async move {
-                let resp: http::Response<hyper::Body> =
-                    ep.call((req, remote_addr).into()).await.into();
-                Ok::<_, Infallible>(resp)
+                let span = tracing::span!(
+                    target: module_path!(),
+                    Level::INFO,
+                    "request",
+                    remote_addr = %remote_addr,
+                    version = ?req.version(),
+                    method = %req.method(),
+                    path = %req.uri(),
+                );
+
+                let fut = async move {
+                    let resp: http::Response<hyper::Body> =
+                        ep.call((req, remote_addr).into()).await.into();
+                    ::tracing::info!(status = %resp.status(), "respond");
+                    resp
+                }
+                .instrument(span);
+
+                Ok::<_, Infallible>(fut.await)
             }
         }
     });

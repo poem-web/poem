@@ -40,7 +40,6 @@
 //! |sse               | Support Server-Sent Events (SSE)       |
 //! |tls               | Support for HTTP server over TLS   |
 //! |typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
-//! |tracing           | Support for Tracing middleware |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 

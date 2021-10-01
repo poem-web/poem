@@ -69,8 +69,7 @@ impl Route {
         self.internal_nest(&normalize_path(path.as_ref()), ep, false)
     }
 
-    /// Nest a `Endpoint` to the specified path.
-    pub fn internal_nest(mut self, path: &str, ep: impl IntoEndpoint, strip: bool) -> Self {
+    fn internal_nest(mut self, path: &str, ep: impl IntoEndpoint, strip: bool) -> Self {
         let ep = Arc::new(ep.into_endpoint());
         let mut path = path.to_string();
         if !path.ends_with('/') {
