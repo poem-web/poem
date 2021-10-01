@@ -304,7 +304,7 @@ fn generate_operation(
             // is poem extractor
             Some(operation_param) if operation_param.extract => {
                 parse_args.push(quote! {
-                    let #pname = match <#arg_ty as #crate_name::poem::FromRequest>::from_request(&request, &mut body).await.map_err(|err| #crate_name::ParseRequestError::Extractor(::std::string::ToString::to_string(err))) {
+                    let #pname = match <#arg_ty as #crate_name::poem::FromRequest>::from_request(&request, &mut body).await.map_err(|err| #crate_name::ParseRequestError::Extractor(::std::string::ToString::to_string(&err))) {
                         ::std::result::Result::Ok(value) => value,
                         ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
                                 return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));

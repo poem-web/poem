@@ -1,6 +1,7 @@
 use poem::{
     http::{Method, StatusCode, Uri},
-    Endpoint, IntoEndpoint,
+    web::Data,
+    Endpoint, EndpointExt, IntoEndpoint,
 };
 use poem_openapi::{
     payload::{Binary, Json, PlainText},
@@ -365,4 +366,28 @@ async fn bad_request_handler() {
         resp.take_body().into_string().await.unwrap(),
         r#"!!! failed to parse param `code`: Type "integer($uint16)" expects an input value."#
     );
+}
+
+#[tokio::test]
+async fn poem_extract() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, #[oai(extract)] data: Data<&i32>) {
+            assert_eq!(*data.0, 100);
+        }
+    }
+
+    let ep = OpenApiService::new(Api).data(100i32).into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
 }
