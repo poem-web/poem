@@ -43,7 +43,7 @@ async fn index(Query(Params { name, value }): Query<Params>) -> String {
 
 Let's start a server, it listens to `127.0.0.1:3000`, please ignore these `unwrap` calls, this is just an example.
 
-The `Server::run` function accepts any type that implements the `Endpoint` feature. In this example we don't have a 
+The `Server::run` function accepts any type that implements the `Endpoint` trait. In this example we don't have a 
 routing object, so any request path will be handled by the `index` function.
 
 ```rust
