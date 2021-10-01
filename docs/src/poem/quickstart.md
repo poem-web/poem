@@ -34,7 +34,7 @@ struct Params {
 }
 
 #[handler]
-async fn index(Query(params): Query<Params>) -> String {
+async fn index(Query(Params { name, value }): Query<Params>) -> String {
     format!("{}={}", name, value)
 }
 ```
