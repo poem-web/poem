@@ -21,7 +21,7 @@ impl<T: Type> Payload for Json<T> {
 
     #[allow(unused_variables)]
     fn register(registry: &mut Registry) {
-        T::register(registry)
+        T::register(registry);
     }
 }
 

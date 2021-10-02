@@ -3,7 +3,7 @@ use poem::{listener::TcpListener, route, service::Files, Server};
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug")
+        std::env::set_var("RUST_LOG", "poem=debug");
     }
     tracing_subscriber::fmt::init();
 
