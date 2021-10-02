@@ -7,8 +7,8 @@ use crate::{
 
 impl Type for bool {
     const NAME: TypeName = TypeName::Normal {
-        ty: "bool",
-        format: Some("bool"),
+        ty: "boolean",
+        format: None,
     };
 
     fn schema_ref() -> MetaSchemaRef {
