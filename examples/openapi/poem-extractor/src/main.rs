@@ -1,18 +1,14 @@
-use poem::{listener::TcpListener, middleware::SetHeader, route, Endpoint, EndpointExt};
+use poem::{listener::TcpListener, route, web::Data, EndpointExt};
 use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
 
 struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/hello", method = "get", transform = "set_header")]
-    async fn index(&self) -> PlainText<&'static str> {
-        PlainText("hello!")
+    #[oai(path = "/hello", method = "get")]
+    async fn index(&self, #[oai(extract)] data: Data<&i32>) -> PlainText<String> {
+        PlainText(format!("{}", data.0))
     }
-}
-
-fn set_header(ep: impl Endpoint) -> impl Endpoint {
-    ep.with(SetHeader::new().appending("Custom-Header", "test"))
 }
 
 #[tokio::main]
@@ -24,12 +20,12 @@ async fn main() -> Result<(), std::io::Error> {
 
     let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service = OpenApiService::new(Api)
-        .title("Transform")
+        .title("Poem Extractor")
         .server("http://localhost:3000/api");
     let ui = api_service.swagger_ui("http://localhost:3000");
 
     poem::Server::new(listener)
         .await?
-        .run(route().nest("/api", api_service).nest("/", ui))
+        .run(route().nest("/api", api_service.data(100i32)).nest("/", ui))
         .await
 }
