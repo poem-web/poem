@@ -38,6 +38,7 @@
 
 - Both _Ease_ of use and performance.
 - Minimizing the use of generics.
+- Blazing fast and flexible routing.
 - `tower::Service` and `tower::Layer` compatibility.
 - Use [poem-openapi](https://crates.io/crates/poem-openapi) to write APIs that comply with [OAS3](https://github.com/OAI/OpenAPI-Specification) specifications and automatically generate documents.
 
