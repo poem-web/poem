@@ -21,7 +21,7 @@ pub(crate) enum RenameRule {
 }
 
 impl RenameRule {
-    pub(crate) fn rename(&self, name: impl AsRef<str>) -> String {
+    pub(crate) fn rename(self, name: impl AsRef<str>) -> String {
         match self {
             Self::Lower => name.as_ref().to_lowercase(),
             Self::Upper => name.as_ref().to_uppercase(),
@@ -43,7 +43,7 @@ pub(crate) enum RenameTarget {
 }
 
 impl RenameTarget {
-    pub(crate) fn rule(&self) -> RenameRule {
+    pub(crate) fn rule(self) -> RenameRule {
         match self {
             RenameTarget::Type => RenameRule::Pascal,
             RenameTarget::EnumItem => RenameRule::ScreamingSnake,
@@ -53,7 +53,7 @@ impl RenameTarget {
         }
     }
 
-    pub(crate) fn rename(&self, name: impl AsRef<str>) -> String {
+    pub(crate) fn rename(self, name: impl AsRef<str>) -> String {
         self.rule().rename(name)
     }
 }

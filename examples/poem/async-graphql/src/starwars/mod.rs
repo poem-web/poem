@@ -123,18 +123,18 @@ impl StarWars {
     }
 
     pub fn human(&self, id: &str) -> Option<usize> {
-        self.human_data.get(id).cloned()
+        self.human_data.get(id).copied()
     }
 
     pub fn droid(&self, id: &str) -> Option<usize> {
-        self.droid_data.get(id).cloned()
+        self.droid_data.get(id).copied()
     }
 
     pub fn humans(&self) -> Vec<usize> {
-        self.human_data.values().cloned().collect()
+        self.human_data.values().copied().collect()
     }
 
     pub fn droids(&self) -> Vec<usize> {
-        self.droid_data.values().cloned().collect()
+        self.droid_data.values().copied().collect()
     }
 }

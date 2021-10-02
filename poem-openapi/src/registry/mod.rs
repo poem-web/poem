@@ -13,8 +13,9 @@ use serde_json::Value;
 
 use crate::types::TypeName;
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 #[inline]
-fn is_false(value: &bool) -> bool {
+const fn is_false(value: &bool) -> bool {
     !*value
 }
 
