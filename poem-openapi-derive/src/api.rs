@@ -111,6 +111,7 @@ impl_has_validators!(APIOperationParam);
 struct Context {
     add_routes: IndexMap<String, Vec<TokenStream>>,
     operations: IndexMap<String, Vec<TokenStream>>,
+    param_types: Vec<TokenStream>,
     request_types: Vec<TokenStream>,
     response_types: Vec<TokenStream>,
     tags: Vec<TokenStream>,
@@ -130,6 +131,7 @@ pub(crate) fn generate(
     let mut ctx = Context {
         add_routes: Default::default(),
         operations: Default::default(),
+        param_types: Default::default(),
         request_types: Default::default(),
         response_types: Default::default(),
         tags: Default::default(),
@@ -154,6 +156,7 @@ pub(crate) fn generate(
     let Context {
         add_routes,
         operations,
+        param_types,
         request_types,
         response_types,
         tags,
@@ -189,6 +192,9 @@ pub(crate) fn generate(
     let register_items = {
         let mut register_items = Vec::new();
 
+        for ty in param_types {
+            register_items.push(quote!(<#ty as #crate_name::types::Type>::register(registry);));
+        }
         for ty in request_types {
             register_items.push(quote!(<#ty as #crate_name::ApiRequest>::register(registry);));
         }
@@ -485,6 +491,7 @@ fn generate_operation(
                         deprecated: #deprecated,
                     }
                 });
+                ctx.param_types.push(quote!(#arg_ty));
             }
 
             // is request body

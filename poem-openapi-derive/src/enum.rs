@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, DeriveInput, Error};
 
 use crate::{
-    common_args::{DefaultValue, RenameRule, RenameRuleExt, RenameTarget},
+    common_args::{RenameRule, RenameRuleExt, RenameTarget},
     error::GeneratorResult,
     utils::get_crate_name,
 };
@@ -35,8 +35,6 @@ struct EnumArgs {
     rename_all: Option<RenameRule>,
     #[darling(default)]
     rename: Option<String>,
-    #[darling(default)]
-    default: Option<DefaultValue>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -80,48 +78,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .push(quote!(#oai_item_name => ::std::result::Result::Ok(#ident::#item_ident)));
     }
 
-    let meta_default_value = match &args.default {
-        Some(DefaultValue::Default) => {
-            quote!(::std::option::Option::Some(
-                #crate_name::types::ToJSON::to_json(&<Self as ::std::default::Default>::default())
-            ))
-        }
-        Some(DefaultValue::Function(func_name)) => {
-            quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&#func_name())))
-        }
-        None => quote!(::std::option::Option::None),
-    };
-
-    let default_in_parse = match &args.default {
-        Some(DefaultValue::Default) => {
-            quote! { #crate_name::serde_json::Value::Null => ::std::result::Result::Ok(<Self as ::std::default::Default>::default()), }
-        }
-        Some(DefaultValue::Function(func_name)) => {
-            quote! { #crate_name::serde_json::Value::Null => ::std::result::Result::Ok(#func_name()), }
-        }
-        None => quote! {},
-    };
-
-    let default_in_parse_str = match &args.default {
-        Some(DefaultValue::Default) => {
-            quote! { ::std::option::Option::None => ::std::result::Result::Ok(<Self as ::std::default::Default>::default()), }
-        }
-        Some(DefaultValue::Function(func_name)) => {
-            quote! { ::std::option::Option::None => ::std::result::Result::Ok(#func_name()), }
-        }
-        None => {
-            quote! {}
-        }
-    };
-    let is_required = args.default.is_none();
-
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
             const NAME: #crate_name::types::TypeName = #crate_name::types::TypeName::Normal {
                 ty: #oai_typename,
                 format: ::std::option::Option::None,
             };
-            const IS_REQUIRED: bool = #is_required;
+            const IS_REQUIRED: bool = true;
 
             type ValueType = Self;
 
@@ -136,7 +99,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn register(registry: &mut #crate_name::registry::Registry) {
                 registry.create_schema(#oai_typename, |registry| #crate_name::registry::MetaSchema {
                     enum_items: ::std::vec![#(#enum_items),*],
-                    default: #meta_default_value,
                     ..#crate_name::registry::MetaSchema::new(#oai_typename)
                 });
             }
@@ -149,7 +111,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         #(#item_to_ident,)*
                         _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
                     }
-                    #default_in_parse
                     _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
                 }
             }
@@ -162,7 +123,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         #(#item_to_ident,)*
                         _ => ::std::result::Result::Err(#crate_name::types::ParseError::custom("Expect a valid enumeration value.")),
                     },
-                    #default_in_parse_str
                     _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_input()),
                 }
             }

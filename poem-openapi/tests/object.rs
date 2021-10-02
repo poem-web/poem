@@ -14,7 +14,7 @@ fn get_meta<T: Type>() -> MetaSchema {
 #[test]
 fn rename() {
     #[derive(Object)]
-    #[oai(name = "Abc")]
+    #[oai(rename = "Abc")]
     struct Obj {
         a: i32,
     }

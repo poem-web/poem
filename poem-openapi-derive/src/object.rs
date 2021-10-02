@@ -65,14 +65,13 @@ struct ObjectArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
+    rename: Option<String>,
+    #[darling(default)]
     rename_all: Option<RenameRule>,
     #[darling(default, multiple, rename = "concrete")]
     concretes: Vec<ConcreteType>,
     #[darling(default)]
     deprecated: bool,
-
-    #[darling(default)]
-    name: Option<String>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -89,7 +88,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
     let oai_typename = args
-        .name
+        .rename
         .clone()
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
     let (title, description) = get_summary_and_description(&args.attrs)?;
