@@ -4,7 +4,7 @@
 
 ```toml
 [dependencies]
-poem = "0.6"
+poem = "0.8"
 ```
 
 ## Write a endpoint
