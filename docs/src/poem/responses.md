@@ -100,7 +100,7 @@ create it.
 
 ## Custom response
 
-In the following example, we wrap a response called `PDF`, which adds a `Content-Type: applicationn/json` header to the response.
+In the following example, we wrap a response called `PDF`, which adds a `Content-Type: applicationn/pdf` header to the response.
 
 ```rust
 use poem::{IntoResponse, Response};
