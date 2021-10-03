@@ -29,7 +29,7 @@ This repo contains the following main components:
 
 ### Resources
 
-- [Book](https://poem-web.github.io/poem/)
+- [Book](https://poem.rs)
 - [Examples](https://github.com/poem-web/poem/tree/master/examples)
 
 ## Contributing
