@@ -21,7 +21,7 @@ pub(crate) fn get_crate_name(internal: bool) -> TokenStream {
     }
 }
 
-pub fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
+pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
     let mut full_docs = String::new();
     for attr in attrs {
         match attr.parse_meta()? {

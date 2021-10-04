@@ -80,6 +80,8 @@
 //! hello, sunli!
 //! ```
 
+#![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
+#![doc(html_logo_url = "https://poem.rs/assets/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]

@@ -21,7 +21,7 @@ struct TagItem {
     attrs: Vec<Attribute>,
 
     #[darling(default)]
-    pub rename: Option<String>,
+    rename: Option<String>,
 }
 
 #[derive(FromDeriveInput)]

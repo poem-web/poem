@@ -43,6 +43,8 @@
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 
+#![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
+#![doc(html_logo_url = "https://poem.rs/assets/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
