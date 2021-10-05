@@ -164,7 +164,7 @@ async fn cookie() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = poem::warps_endpoint(OpenApiService::new(Api).into_endpoint());
     let cookie = Cookie::new("v", "10");
     let resp = api
         .call(
@@ -188,7 +188,7 @@ async fn cookie_default() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = poem::warps_endpoint(OpenApiService::new(Api).into_endpoint());
     let resp = api.call(Request::builder().finish()).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }

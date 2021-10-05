@@ -3,6 +3,7 @@
 mod add_data;
 #[cfg(feature = "compression")]
 mod compression;
+#[cfg(feature = "cookie")]
 mod cookie_jar_manager;
 mod cors;
 mod normalize_path;
@@ -13,7 +14,8 @@ mod tower_compat;
 pub use add_data::{AddData, AddDataEndpoint};
 #[cfg(feature = "compression")]
 pub use compression::{Compression, CompressionEndpoint};
-pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
+#[cfg(feature = "cookie")]
+pub(crate) use cookie_jar_manager::CookieJarManager;
 pub use cors::{Cors, CorsEndpoint};
 pub use normalize_path::{NormalizePath, NormalizePathEndpoint};
 pub use set_header::{SetHeader, SetHeaderEndpoint};

@@ -35,6 +35,7 @@
 //!
 //! |Feature           |Description                     |
 //! |------------------|--------------------------------|
+//! |cookie            | Support for Cookie             |
 //! |websocket         | Support for WebSocket          |
 //! |multipart         | Support for Multipart          |
 //! |sse               | Support Server-Sent Events (SSE)       |
@@ -75,5 +76,5 @@ pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder, RequestParts};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{route, RouteMethod};
-pub use server::Server;
+pub use server::{warps_endpoint, Server};
 pub use web::{FromRequest, IntoResponse, RequestBody};

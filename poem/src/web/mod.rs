@@ -2,6 +2,7 @@
 
 #[cfg(feature = "compression")]
 mod compress;
+#[cfg(feature = "cookie")]
 mod cookie;
 mod data;
 mod form;
@@ -54,7 +55,8 @@ pub use template::{HtmlTemplate, Template};
 #[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
 
-pub use self::cookie::{Cookie, CookieJar};
+#[cfg(feature = "cookie")]
+pub use self::cookie::{Cookie, CookieJar, CookieKey, PrivateCookieJar};
 #[cfg(feature = "tempfile")]
 pub use self::tempfile::TempFile;
 use crate::{

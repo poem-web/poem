@@ -2,7 +2,7 @@ use crate::{web::CookieJar, Endpoint, IntoResponse, Middleware, Request, Respons
 
 /// Middleware for CookieJar support.
 #[derive(Default)]
-pub struct CookieJarManager;
+pub(crate) struct CookieJarManager;
 
 impl<E> Middleware<E> for CookieJarManager
 where
@@ -16,7 +16,7 @@ where
 }
 
 /// Endpoint for CookieJarManager middleware.
-pub struct CookieJarManagerEndpoint<E> {
+pub(crate) struct CookieJarManagerEndpoint<E> {
     inner: E,
 }
 

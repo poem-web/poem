@@ -10,6 +10,8 @@ use once_cell::sync::Lazy;
 #[cfg(feature = "websocket")]
 use parking_lot::Mutex;
 
+#[cfg(feature = "cookie")]
+use crate::web::CookieJar;
 use crate::{
     body::Body,
     http::{
@@ -17,7 +19,7 @@ use crate::{
         Extensions, Method, Uri, Version,
     },
     route::PathParams,
-    web::{CookieJar, RemoteAddr},
+    web::RemoteAddr,
     RequestBody,
 };
 
@@ -25,6 +27,7 @@ pub(crate) struct RequestState {
     pub(crate) remote_addr: RemoteAddr,
     pub(crate) original_uri: Uri,
     pub(crate) match_params: PathParams,
+    #[cfg(feature = "cookie")]
     pub(crate) cookie_jar: Option<CookieJar>,
     #[cfg(feature = "websocket")]
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
@@ -38,6 +41,7 @@ impl Default for RequestState {
             remote_addr: UNKNOWN_REMOTE_ADDR.clone(),
             original_uri: Default::default(),
             match_params: Default::default(),
+            #[cfg(feature = "cookie")]
             cookie_jar: Default::default(),
             #[cfg(feature = "websocket")]
             on_upgrade: Default::default(),
@@ -115,6 +119,7 @@ impl From<(http::Request<hyper::Body>, RemoteAddr)> for Request {
                 remote_addr,
                 original_uri: parts.uri,
                 match_params: Default::default(),
+                #[cfg(feature = "cookie")]
                 cookie_jar: None,
                 #[cfg(feature = "websocket")]
                 on_upgrade,
@@ -245,6 +250,8 @@ impl Request {
     }
 
     /// Returns a reference to the [`CookieJar`]
+    #[cfg(feature = "cookie")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
     #[inline]
     pub fn cookie(&self) -> &CookieJar {
         match &self.state.cookie_jar {

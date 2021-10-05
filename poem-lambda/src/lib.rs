@@ -11,7 +11,7 @@ use std::{convert::Infallible, ops::Deref, sync::Arc};
 
 pub use lambda_http::lambda_runtime::Error;
 use lambda_http::{handler, lambda_runtime, Body as LambdaBody, Request as LambdaRequest};
-use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, RequestBody};
+use poem::{Body, Endpoint, FromRequest, IntoEndpoint, Request, RequestBody};
 
 /// The Lambda function execution context.
 ///
@@ -57,7 +57,8 @@ impl Deref for Context {
 /// }
 /// ```
 pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
-    let ep = Arc::new(ep.map_to_response().into_endpoint());
+    let ep = poem::warps_endpoint(ep.into_endpoint());
+    let ep = Arc::new(ep);
     lambda_http::lambda_runtime::run(handler(
         move |req: LambdaRequest, ctx: lambda_runtime::Context| {
             let ep = ep.clone();
