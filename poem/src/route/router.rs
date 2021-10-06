@@ -25,18 +25,30 @@ impl Route {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, route, route::get, web::Path};
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     route,
+    ///     route::get,
+    ///     web::Path,
+    ///     Endpoint, Request,
+    /// };
     ///
     /// #[handler]
     /// async fn a() {}
     ///
     /// #[handler]
-    /// async fn b(Path((group, name)): Path<(String, String)>) {}
+    /// async fn b(Path((group, name)): Path<(String, String)>) {
+    ///     assert_eq!(group, "foo");
+    ///     assert_eq!(name, "bar");
+    /// }
     ///
     /// #[handler]
-    /// async fn c(Path(path): Path<String>) {}
+    /// async fn c(Path(path): Path<String>) {
+    ///     assert_eq!(path, "d/e");
+    /// }
     ///
-    /// let mut app = route()
+    /// let app = route()
     ///     // full path
     ///     .at("/a/b", get(a))
     ///     // capture parameters
@@ -44,9 +56,45 @@ impl Route {
     ///     // capture tail path
     ///     .at("/c/*path", get(c))
     ///     // match regex
-    ///     .at("/d/<\\d>", get(c))
+    ///     .at("/d/<\\d+>", get(a))
     ///     // capture with regex
-    ///     .at("/d/:name<\\d>", get(c));
+    ///     .at("/e/:name<\\d+>", get(a));
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// // /a/b
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/a/b")).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    ///
+    /// // /b/:group/:name
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/b/foo/bar"))
+    ///             .finish(),
+    ///     )
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    ///
+    /// // /c/*path
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/c/d/e")).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    ///
+    /// // /d/<\\d>
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/d/123")).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    ///
+    /// // /e/:name<\\d>
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/e/123")).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// # });
     /// ```
     #[must_use]
     pub fn at(mut self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
@@ -58,12 +106,70 @@ impl Route {
     }
 
     /// Nest a `Endpoint` to the specified path and strip the prefix.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     route, Endpoint, Request,
+    /// };
+    ///
+    /// #[handler]
+    /// fn index() -> &'static str {
+    ///     "hello"
+    /// }
+    ///
+    /// let app = route().nest("/foo", route().at("/bar", index));
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/foo/bar"))
+    ///             .finish(),
+    ///     )
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    /// # });
+    /// ```
     #[must_use]
     pub fn nest(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
         self.internal_nest(&normalize_path(path.as_ref()), ep, true)
     }
 
     /// Nest a `Endpoint` to the specified path, but do not strip the prefix.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     route, Endpoint, Request,
+    /// };
+    ///
+    /// #[handler]
+    /// fn index() -> &'static str {
+    ///     "hello"
+    /// }
+    ///
+    /// let app = route().nest_no_strip("/foo", route().at("/foo/bar", index));
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/foo/bar"))
+    ///             .finish(),
+    ///     )
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    /// # });
+    /// ```
     #[must_use]
     pub fn nest_no_strip(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
         self.internal_nest(&normalize_path(path.as_ref()), ep, false)
@@ -169,6 +275,42 @@ pub struct RouteMethod {
 
 impl RouteMethod {
     /// Create a `RouteMethod` object.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     handler,
+    ///     http::{Method, StatusCode},
+    ///     Endpoint, Request, RouteMethod,
+    /// };
+    ///
+    /// #[handler]
+    /// fn handle_get() -> &'static str {
+    ///     "get"
+    /// }
+    ///
+    /// #[handler]
+    /// fn handle_post() -> &'static str {
+    ///     "post"
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let route_method = RouteMethod::new().get(handle_get).post(handle_post);
+    ///
+    /// let resp = route_method
+    ///     .call(Request::builder().method(Method::GET).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "get");
+    ///
+    /// let resp = route_method
+    ///     .call(Request::builder().method(Method::POST).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "post");
+    /// # });
+    /// ```
     pub fn new() -> Self {
         Default::default()
     }

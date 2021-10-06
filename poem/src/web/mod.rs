@@ -418,6 +418,21 @@ pub trait IntoResponse: Send {
     fn into_response(self) -> Response;
 
     /// Wrap an `impl IntoResponse` to add a header.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{http::HeaderValue, IntoResponse};
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = "hello".with_header("foo", "bar").into_response();
+    /// assert_eq!(
+    ///     resp.headers().get("foo"),
+    ///     Some(&HeaderValue::from_static("bar"))
+    /// );
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    /// # });
+    /// ```
     fn with_header<K, V>(self, key: K, value: V) -> WithHeader<Self>
     where
         K: TryInto<HeaderName>,
@@ -434,6 +449,18 @@ pub trait IntoResponse: Send {
     }
 
     /// Wrap an `impl IntoResponse` to set a status code.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{http::StatusCode, IntoResponse};
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = "hello".with_status(StatusCode::CONFLICT).into_response();
+    /// assert_eq!(resp.status(), StatusCode::CONFLICT);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    /// # });
+    /// ```
     fn with_status(self, status: StatusCode) -> WithStatus<Self>
     where
         Self: Sized,
@@ -445,6 +472,19 @@ pub trait IntoResponse: Send {
     }
 
     /// Wrap an `impl IntoResponse` to set a body.
+    ///
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{http::StatusCode, IntoResponse};
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = StatusCode::CONFLICT.with_body("hello").into_response();
+    /// assert_eq!(resp.status(), StatusCode::CONFLICT);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    /// # });
+    /// ```
     fn with_body(self, body: impl Into<Body>) -> WithBody<Self>
     where
         Self: Sized,

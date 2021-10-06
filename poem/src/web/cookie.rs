@@ -46,6 +46,11 @@ impl Cookie {
         Self(libcookie::Cookie::new(name.into(), value.into()))
     }
 
+    /// Creates a new `Cookie` with the given name and an empty value.
+    pub fn named(name: impl Into<String>) -> Self {
+        Self::new_with_str(name, "")
+    }
+
     /// Parses a Cookie from the given HTTP cookie header value string.
     pub fn parse(s: impl AsRef<str>) -> Result<Self, ParseCookieError> {
         Ok(Self(
@@ -55,6 +60,15 @@ impl Cookie {
     }
 
     /// Returns the Domain of the cookie if one was specified.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar; domain=example.com").unwrap();
+    /// assert_eq!(cookie.domain(), Some("example.com"));
+    /// ```
     pub fn domain(&self) -> Option<&str> {
         self.0.domain()
     }
@@ -67,6 +81,15 @@ impl Cookie {
     }
 
     /// Returns whether this cookie was marked `HttpOnly` or not.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar; HttpOnly").unwrap();
+    /// assert!(cookie.http_only());
+    /// ```
     pub fn http_only(&self) -> bool {
         self.0.http_only().unwrap_or_default()
     }
@@ -93,21 +116,57 @@ impl Cookie {
     }
 
     /// Returns the name of `self`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar").unwrap();
+    /// assert_eq!(cookie.name(), "foo");
+    /// ```
     pub fn name(&self) -> &str {
         self.0.name()
     }
 
     /// Returns the `Path` of the cookie if one was specified.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar; path=/api").unwrap();
+    /// assert_eq!(cookie.path(), Some("/api"));
+    /// ```
     pub fn path(&self) -> Option<&str> {
         self.0.path()
     }
 
     /// Returns the `SameSite` attribute of this cookie if one was specified.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::{Cookie, SameSite};
+    ///
+    /// let cookie = Cookie::parse("foo=bar; SameSite=Strict").unwrap();
+    /// assert_eq!(cookie.same_site(), Some(SameSite::Strict));
+    /// ```
     pub fn same_site(&self) -> Option<SameSite> {
         self.0.same_site()
     }
 
     /// Returns whether this cookie was marked `Secure` or not.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar; Secure").unwrap();
+    /// assert!(cookie.secure());
+    /// ```
     pub fn secure(&self) -> bool {
         self.0.secure().unwrap_or_default()
     }
@@ -199,6 +258,44 @@ impl<'a> FromRequest<'a> for Cookie {
 }
 
 /// A collection of cookies that tracks its modifications.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{header, StatusCode},
+///     middleware::CookieJarManager,
+///     route,
+///     route::get,
+///     web::cookie::{Cookie, CookieJar},
+///     Endpoint, EndpointExt, Request,
+/// };
+///
+/// #[handler]
+/// fn index(cookie_jar: &CookieJar) -> String {
+///     let count = match cookie_jar.get("count") {
+///         Some(cookie) => cookie.value::<i32>().unwrap() + 1,
+///         None => 1,
+///     };
+///     cookie_jar.add(Cookie::new("count", count));
+///     format!("count: {}", count)
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let app = route().at("/", get(index)).with(CookieJarManager);
+///
+/// let resp = app.call(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// let cookie = resp.headers().get(header::SET_COOKIE).cloned().unwrap();
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "count: 1");
+///
+/// let resp = app
+///     .call(Request::builder().header(header::COOKIE, cookie).finish())
+///     .await;
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "count: 2");
+/// # });
+/// ```
 #[derive(Default, Clone)]
 pub struct CookieJar(pub(crate) Arc<Mutex<libcookie::CookieJar>>);
 
@@ -230,6 +327,28 @@ impl CookieJar {
     /// Returns a PrivateJar with self as its parent jar using the key to
     /// sign/encrypt and verify/decrypt cookies added/retrieved from the child
     /// jar.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::web::cookie::{Cookie, CookieJar, CookieKey};
+    ///
+    /// let key = CookieKey::generate();
+    /// let cookie_jar = CookieJar::default();
+    ///
+    /// cookie_jar
+    ///     .private(&key)
+    ///     .add(Cookie::new_with_str("foo", "bar"));
+    ///
+    /// assert_ne!(cookie_jar.get("foo").unwrap().value_str(), "bar");
+    /// assert_eq!(
+    ///     cookie_jar.private(&key).get("foo").unwrap().value_str(),
+    ///     "bar"
+    /// );
+    ///
+    /// let key2 = CookieKey::generate();
+    /// assert!(cookie_jar.private(&key2).get("foo").is_none());
+    /// ```
     pub fn private<'a>(&'a self, key: &'a CookieKey) -> PrivateCookieJar<'a> {
         PrivateCookieJar {
             key,
@@ -240,6 +359,29 @@ impl CookieJar {
     /// Returns a read-only SignedJar with self as its parent jar using the key
     /// key to verify cookies retrieved from the child jar. Any retrievals from
     /// the child jar will be made from the parent jar.
+    ///
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::web::cookie::{Cookie, CookieJar, CookieKey};
+    ///
+    /// let key = CookieKey::generate();
+    /// let cookie_jar = CookieJar::default();
+    ///
+    /// cookie_jar
+    ///     .signed(&key)
+    ///     .add(Cookie::new_with_str("foo", "bar"));
+    ///
+    /// assert!(cookie_jar.get("foo").unwrap().value_str().contains("bar"));
+    /// assert_eq!(
+    ///     cookie_jar.signed(&key).get("foo").unwrap().value_str(),
+    ///     "bar"
+    /// );
+    ///
+    /// let key2 = CookieKey::generate();
+    /// assert!(cookie_jar.signed(&key2).get("foo").is_none());
+    /// ```
     pub fn signed<'a>(&'a self, key: &'a CookieKey) -> SignedCookieJar<'a> {
         SignedCookieJar {
             key,

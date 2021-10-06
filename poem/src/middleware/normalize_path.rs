@@ -26,6 +26,40 @@ impl Default for TrailingSlash {
 
 /// Middleware for normalizing a request's path so that routes can be matched
 /// more flexibly.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{StatusCode, Uri},
+///     middleware::{NormalizePath, TrailingSlash},
+///     route,
+///     route::get,
+///     Endpoint, EndpointExt, Request,
+/// };
+///
+/// #[handler]
+/// fn index() -> &'static str {
+///     "hello"
+/// }
+///
+/// let app = route()
+///     .at("/foo/bar", get(index))
+///     .with(NormalizePath::new(TrailingSlash::Trim));
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/foo/bar/"))
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+/// # });
+/// ```
 pub struct NormalizePath(TrailingSlash);
 
 impl NormalizePath {

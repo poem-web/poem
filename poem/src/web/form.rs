@@ -19,6 +19,57 @@ use crate::{
 ///
 /// If the `Content-Type` is not `application/x-www-form-urlencoded`, then a
 /// `Bad Request` response will be returned.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{Method, StatusCode, Uri},
+///     route,
+///     route::get,
+///     web::Form,
+///     Endpoint, Request,
+/// };
+/// use serde::Deserialize;
+///
+/// #[derive(Deserialize)]
+/// struct CreateDocument {
+///     title: String,
+///     content: String,
+/// }
+///
+/// #[handler]
+/// fn index(Form(CreateDocument { title, content }): Form<CreateDocument>) -> String {
+///     format!("{}:{}", title, content)
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let app = route().at("/", get(index).post(index));
+///
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/?title=foo&content=bar"))
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
+///
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .method(Method::POST)
+///             .uri(Uri::from_static("/"))
+///             .content_type("application/x-www-form-urlencoded")
+///             .body("title=foo&content=bar"),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
+/// # });
+/// ```
 pub struct Form<T>(pub T);
 
 impl<T> Deref for Form<T> {

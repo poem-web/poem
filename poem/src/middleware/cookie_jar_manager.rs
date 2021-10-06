@@ -1,8 +1,12 @@
 use crate::{web::cookie::CookieJar, Endpoint, IntoResponse, Middleware, Request, Response};
 
 /// Middleware for CookieJar support.
+///
+/// NOTE: You usually don't need to add this middleware yourself, because
+/// `poem::Server` will automatically add it when the `cookie` feature is
+/// enabled.
 #[derive(Default)]
-pub(crate) struct CookieJarManager;
+pub struct CookieJarManager;
 
 impl<E> Middleware<E> for CookieJarManager
 where
@@ -16,7 +20,7 @@ where
 }
 
 /// Endpoint for CookieJarManager middleware.
-pub(crate) struct CookieJarManagerEndpoint<E> {
+pub struct CookieJarManagerEndpoint<E> {
     inner: E,
 }
 

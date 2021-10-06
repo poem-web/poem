@@ -15,9 +15,9 @@ pub use add_data::{AddData, AddDataEndpoint};
 #[cfg(feature = "compression")]
 pub use compression::{Compression, CompressionEndpoint};
 #[cfg(feature = "cookie")]
-pub(crate) use cookie_jar_manager::CookieJarManager;
+pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
 pub use cors::{Cors, CorsEndpoint};
-pub use normalize_path::{NormalizePath, NormalizePathEndpoint};
+pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
 pub use set_header::{SetHeader, SetHeaderEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerLayerCompatExt;

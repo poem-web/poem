@@ -15,7 +15,14 @@ use crate::{
 /// [`serde::Deserialize`].
 ///
 /// ```
-/// use poem::web::Json;
+/// use poem::{
+///     handler,
+///     http::{Method, StatusCode},
+///     route,
+///     route::post,
+///     web::Json,
+///     Endpoint, Request,
+/// };
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -23,9 +30,26 @@ use crate::{
 ///     name: String,
 /// }
 ///
+/// #[handler]
 /// async fn index(Json(user): Json<User>) -> String {
 ///     format!("welcome {}!", user.name)
 /// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let app = route().at("/", post(index));
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .method(Method::POST)
+///             .body(r#"{"name": "foo"}"#),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(
+///     resp.into_body().into_string().await.unwrap(),
+///     "welcome foo!"
+/// );
+/// # });
 /// ```
 ///
 /// # Response
@@ -34,7 +58,7 @@ use crate::{
 /// [`serde::Serialize`].
 ///
 /// ```
-/// use poem::web::Json;
+/// use poem::{handler, http::StatusCode, route, route::get, web::Json, Endpoint, Request};
 /// use serde::Serialize;
 ///
 /// #[derive(Serialize)]
@@ -42,11 +66,22 @@ use crate::{
 ///     name: String,
 /// }
 ///
+/// #[handler]
 /// async fn index() -> Json<User> {
 ///     Json(User {
-///         name: "sunli".to_string(),
+///         name: "foo".to_string(),
 ///     })
 /// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let app = route().at("/", get(index));
+/// let resp = app.call(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(
+///     resp.into_body().into_string().await.unwrap(),
+///     r#"{"name":"foo"}"#
+/// )
+/// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Json<T>(pub T);
