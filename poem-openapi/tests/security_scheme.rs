@@ -1,6 +1,6 @@
 use poem::{
     http::{header, Uri},
-    web::Cookie,
+    web::cookie::Cookie,
     Endpoint, IntoEndpoint,
 };
 use poem_openapi::{
@@ -273,7 +273,10 @@ async fn api_key_auth() {
         .call(
             poem::Request::builder()
                 .uri(Uri::from_static("/cookie"))
-                .header(header::COOKIE, Cookie::new("key", "abcdef").to_string())
+                .header(
+                    header::COOKIE,
+                    Cookie::new_with_str("key", "abcdef").to_string(),
+                )
                 .finish(),
         )
         .await;

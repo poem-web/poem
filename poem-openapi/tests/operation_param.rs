@@ -1,6 +1,6 @@
 use poem::{
     http::{header, Method, StatusCode, Uri},
-    web::Cookie,
+    web::cookie::Cookie,
     Endpoint, IntoEndpoint, Request,
 };
 use poem_openapi::{
@@ -165,7 +165,7 @@ async fn cookie() {
     }
 
     let api = poem::warps_endpoint(OpenApiService::new(Api).into_endpoint());
-    let cookie = Cookie::new("v", "10");
+    let cookie = Cookie::new_with_str("v", "10");
     let resp = api
         .call(
             Request::builder()

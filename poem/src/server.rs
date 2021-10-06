@@ -172,6 +172,7 @@ async fn serve_connection(
 
 #[doc(hidden)]
 pub fn warps_endpoint(ep: impl Endpoint) -> impl Endpoint<Output = Response> {
+    println!("1");
     #[cfg(feature = "cookie")]
     let ep = ep.with(CookieJarManager);
     ep.map_to_response()

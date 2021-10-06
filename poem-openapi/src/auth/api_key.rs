@@ -36,7 +36,7 @@ impl ApiKeyAuthorization for ApiKey {
                 .get(name)
                 .as_ref()
                 .map(|cookie| Self {
-                    key: cookie.value().to_string(),
+                    key: cookie.value_str().to_string(),
                 })
                 .ok_or(ParseRequestError::Authorization),
             _ => unreachable!(),

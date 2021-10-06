@@ -1,4 +1,4 @@
-use crate::{web::CookieJar, Endpoint, IntoResponse, Middleware, Request, Response};
+use crate::{web::cookie::CookieJar, Endpoint, IntoResponse, Middleware, Request, Response};
 
 /// Middleware for CookieJar support.
 #[derive(Default)]
@@ -46,7 +46,7 @@ mod tests {
     async fn test_cookie_jar_manager() {
         #[handler(internal)]
         async fn index(cookie_jar: &CookieJar) {
-            assert_eq!(cookie_jar.get("value").unwrap().value(), "88");
+            assert_eq!(cookie_jar.get("value").unwrap().value_str(), "88");
         }
 
         let ep = index.with(CookieJarManager);

@@ -8,20 +8,20 @@ use poem::{
     listener::TcpListener,
     route,
     route::get,
-    web::{Cookie, CookieJar},
-    Endpoint, Request, Server,
+    web::cookie::{Cookie, CookieJar},
+    Server,
 };
 
 #[handler]
 async fn count(cookie_jar: &CookieJar) -> String {
     let count = match cookie_jar.get("count") {
         Some(cookie) => {
-            let count = cookie.value().parse::<i32>().unwrap() + 1;
-            cookie_jar.add(Cookie::new("count", format!("{}", count)));
+            let count = cookie.value::<i32>().unwrap() + 1;
+            cookie_jar.add(Cookie::new("count", count));
             count
         }
         None => {
-            cookie_jar.add(Cookie::new("count", "1"));
+            cookie_jar.add(Cookie::new("count", 1));
             1
         }
     };
@@ -37,7 +37,6 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let app = route().at("/", get(count));
-    app.call(Request::default()).await;
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await

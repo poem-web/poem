@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 
 #[cfg(feature = "cookie")]
-use crate::web::CookieJar;
+use crate::web::cookie::CookieJar;
 use crate::{
     body::Body,
     http::{

@@ -242,7 +242,7 @@ mod tests {
         endpoint::make_sync,
         handler,
         middleware::CookieJarManager,
-        web::{Cookie, CookieJar},
+        web::cookie::{Cookie, CookieJar},
         EndpointExt,
     };
 
@@ -410,7 +410,7 @@ mod tests {
     async fn retain_cookies() {
         #[handler(internal)]
         async fn index(cookie_jar: &CookieJar) {
-            cookie_jar.add(Cookie::new("foo", "bar"));
+            cookie_jar.add(Cookie::new_with_str("foo", "bar"));
         }
 
         let ep = index

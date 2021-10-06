@@ -49,7 +49,7 @@ which are disabled by default:
 
 |Feature           |Description                     |
 |------------------|--------------------------------|
-|cookie         | Support for Cookie                |
+|cookie            | Support for Cookie             |
 |websocket         | Support for WebSocket          |
 |multipart         | Support for Multipart          |
 |sse               | Support Server-Sent Events (SSE)       |

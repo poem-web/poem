@@ -262,6 +262,8 @@ impl From<ReadBodyError> for Error {
 }
 
 /// A possible error value when parsing cookie.
+#[cfg(feature = "cookie")]
+#[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
 #[derive(Debug, thiserror::Error)]
 pub enum ParseCookieError {
     /// Cookie value is illegal.
@@ -271,8 +273,13 @@ pub enum ParseCookieError {
     /// A `Cookie` header is required.
     #[error("`Cookie` header is required")]
     CookieHeaderRequired,
+
+    /// Cookie value is illegal.
+    #[error("cookie is illegal")]
+    ParseJsonValue(serde_json::Error),
 }
 
+#[cfg(feature = "cookie")]
 impl From<ParseCookieError> for Error {
     fn from(err: ParseCookieError) -> Self {
         Error::bad_request(err)

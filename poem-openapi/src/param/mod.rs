@@ -20,7 +20,7 @@ pub fn get<'a>(
             .cookie()
             .get(name)
             .as_ref()
-            .map(|cookie| cookie.value().to_string())
+            .map(|cookie| cookie.value_str().to_string())
             .map(Cow::Owned),
     }
 }
