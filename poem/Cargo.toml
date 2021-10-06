@@ -26,6 +26,7 @@ sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
+request-latency = []
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "0.8.0" }
