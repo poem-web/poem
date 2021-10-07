@@ -57,6 +57,7 @@ which are disabled by default:
 |typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
 |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
+|request-latency   | Enable tracing::info print request latency |
 
 ## Safety
 
