@@ -76,7 +76,7 @@ impl WebSocket {
     ///         })
     /// }
     ///
-    /// let mut app = route().at("/", get(index));
+    /// let app = route().at("/", get(index));
     /// ```
     #[must_use]
     pub fn protocols<I>(mut self, protocols: I) -> Self

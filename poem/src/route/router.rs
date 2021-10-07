@@ -598,4 +598,19 @@ mod tests {
             (trace, TRACE)
         );
     }
+
+    #[tokio::test]
+    async fn head_method() {
+        #[handler(internal)]
+        fn index() -> &'static str {
+            "hello"
+        }
+
+        let route = RouteMethod::new().get(index);
+        let resp = route
+            .call(Request::builder().method(Method::HEAD).finish())
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert!(resp.into_body().into_vec().await.unwrap().is_empty());
+    }
 }

@@ -133,14 +133,22 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, middleware::AddData, route, route::get, web::Data, EndpointExt};
+    /// use poem::{
+    ///     handler, http::StatusCode, middleware::AddData, route, route::get, web::Data, Endpoint,
+    ///     EndpointExt, Request,
+    /// };
     ///
     /// #[handler]
     /// async fn index(Data(data): Data<&i32>) -> String {
     ///     format!("{}", data)
     /// }
     ///
-    /// let mut app = route().at("/", get(index)).with(AddData::new(100i32));
+    /// let app = route().at("/", get(index)).with(AddData::new(100i32));
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app.call(Request::default()).await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+    /// # });
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
     where
@@ -304,10 +312,10 @@ pub trait EndpointExt: IntoEndpoint {
     ///     .and_then(|value| async move { Ok(format!("{}, world!", value)) });
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let mut resp: String = ep1.call(Request::default()).await.unwrap();
+    /// let resp: String = ep1.call(Request::default()).await.unwrap();
     /// assert_eq!(resp, "hello, world!");
     ///
-    /// let mut err: Error = ep2.call(Request::default()).await.unwrap_err();
+    /// let err: Error = ep2.call(Request::default()).await.unwrap_err();
     /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```

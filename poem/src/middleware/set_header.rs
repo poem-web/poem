@@ -12,6 +12,51 @@ enum Action {
 }
 
 /// Middleware for override/append headers to response.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{HeaderValue, StatusCode},
+///     middleware::SetHeader,
+///     route,
+///     route::get,
+///     Endpoint, EndpointExt, Request,
+/// };
+///
+/// #[handler]
+/// fn index() -> &'static str {
+///     "hello"
+/// }
+///
+/// let app = route().at("/", get(index)).with(
+///     SetHeader::new()
+///         .appending("MyHeader1", "a")
+///         .appending("MyHeader1", "b")
+///         .overriding("MyHeader2", "a")
+///         .overriding("MyHeader2", "b"),
+/// );
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app.call(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(
+///     resp.headers()
+///         .get_all("MyHeader1")
+///         .iter()
+///         .collect::<Vec<_>>(),
+///     vec![HeaderValue::from_static("a"), HeaderValue::from_static("b")]
+/// );
+/// assert_eq!(
+///     resp.headers()
+///         .get_all("MyHeader2")
+///         .iter()
+///         .collect::<Vec<_>>(),
+///     vec![HeaderValue::from_static("b")]
+/// );
+/// # });
+/// ```
 #[derive(Default)]
 pub struct SetHeader {
     actions: Vec<Action>,

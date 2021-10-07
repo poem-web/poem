@@ -262,8 +262,7 @@ impl RequestBody {
 ///     assert_eq!(token.0, "token123");
 /// }
 ///
-/// let mut app = route().at("/", get(index));
-///
+/// let app = route().at("/", get(index));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let _ = index
 ///     .call(Request::builder().header("MyToken", "token123").finish())

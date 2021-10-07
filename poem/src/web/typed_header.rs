@@ -5,6 +5,38 @@ use typed_headers::{Header, HeaderMapExt};
 use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that extracts a typed header value.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{header, StatusCode},
+///     route,
+///     route::get,
+///     web::{type_headers::Host, TypedHeader},
+///     Endpoint, Request,
+/// };
+///
+/// #[handler]
+/// fn index(TypedHeader(host): TypedHeader<Host>) -> String {
+///     host.host().to_string()
+/// }
+///
+/// let app = route().at("/", get(index));
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .header(header::HOST, "example.com")
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "example.com");
+/// # });
+/// ```
 pub struct TypedHeader<T>(pub T);
 
 impl<T> Deref for TypedHeader<T> {

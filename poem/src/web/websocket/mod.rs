@@ -20,8 +20,7 @@
 //!     })
 //! }
 //!
-//! let mut app = route();
-//! app.at("/", get(index));
+//! let app = route().at("/", get(index));
 //! ```
 
 mod extractor;
