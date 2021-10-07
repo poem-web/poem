@@ -12,34 +12,77 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 /// # Example
 ///
 /// ```
-/// use poem::{handler, route, route::get, web::Path};
+/// use poem::{
+///     handler,
+///     http::{StatusCode, Uri},
+///     route,
+///     route::get,
+///     web::Path,
+///     Endpoint, Request,
+/// };
 ///
 /// #[handler]
-/// async fn users_teams_show(Path((user_id, team_id)): Path<(String, String)>) {
-///     // ...
+/// async fn users_teams_show(Path((user_id, team_id)): Path<(String, String)>) -> String {
+///     format!("{}:{}", user_id, team_id)
 /// }
 ///
-/// let mut app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/users/100/team/300"))
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:300");
+/// # });
 /// ```
 ///
 /// If the path contains only one parameter, then you can omit the tuple.
 ///
 /// ```
-/// use poem::{handler, route, route::get, web::Path};
+/// use poem::{
+///     handler,
+///     http::{StatusCode, Uri},
+///     route,
+///     route::get,
+///     web::Path,
+///     Endpoint, Request,
+/// };
 ///
 /// #[handler]
-/// async fn user_info(Path(user_id): Path<String>) {
-///     // ...
+/// async fn user_info(Path(user_id): Path<String>) -> String {
+///     user_id
 /// }
 ///
-/// let mut app = route().at("/users/:user_id", get(user_info));
+/// let app = route().at("/users/:user_id", get(user_info));
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/users/100"))
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+/// # });
 /// ```
 ///
 /// Path segments also can be deserialized into any type that implements [`serde::Deserialize`](https://docs.rs/serde/1.0.127/serde/trait.Deserialize.html).
 /// Path segment labels will be matched with struct field names.
 ///
 /// ```
-/// use poem::{handler, route, route::get, web::Path};
+/// use poem::{
+///     handler,
+///     http::{StatusCode, Uri},
+///     route,
+///     route::get,
+///     web::Path,
+///     Endpoint, Request,
+/// };
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -49,12 +92,22 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 /// }
 ///
 /// #[handler]
-/// async fn users_teams_show(Path(Params { user_id, team_id }): Path<Params>) {
-///     // ...
+/// async fn users_teams_show(Path(Params { user_id, team_id }): Path<Params>) -> String {
+///     format!("{}:{}", user_id, team_id)
 /// }
 ///
-/// let mut app = route();
-/// app.at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/users/foo/team/100"))
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:100");
+/// # });
 /// ```
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Path<T>(pub T);
