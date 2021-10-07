@@ -5,6 +5,7 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
+    time::SystemTime,
 };
 
 use hyper::server::conn::Http;
@@ -152,18 +153,21 @@ async fn serve_connection(
                 );
 
                 let fut = async move {
-                    if cfg!(feature = "request-latency") {
-                        let instant = std::time::Instant::now();
-                        let resp: http::Response<hyper::Body> =
-                            ep.call((req, remote_addr).into()).await.into();
-                        ::tracing::info!(status = %resp.status(), "{:?}", instant.elapsed());
-                        resp
-                    } else {
-                        let resp: http::Response<hyper::Body> =
-                            ep.call((req, remote_addr).into()).await.into();
-                        ::tracing::info!(status = %resp.status(), "respond");
-                        resp
+                    let now = SystemTime::now();
+                    let resp: http::Response<hyper::Body> =
+                        ep.call((req, remote_addr).into()).await.into();
+                    match now.elapsed() {
+                        Ok(duration) => tracing::info!(
+                            status = %resp.status(),
+                            duration = ?duration,
+                            "response"
+                        ),
+                        Err(_) => tracing::info!(
+                            status = %resp.status(),
+                            "response"
+                        ),
                     }
+                    resp
                 }
                 .instrument(span);
 
