@@ -4,7 +4,7 @@ The routing object is used to dispatch the request of the specified path and met
 
 The route object is actually an endpoint, which implements the `Endpoint` trait.
 
-In the following example, we dispatch the requests of `/a` and `'b` to different endpoints.
+In the following example, we dispatch the requests of `/a` and `/b` to different endpoints.
 
 ```rust
 use poem::{handler, Route};
