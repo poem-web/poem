@@ -24,12 +24,10 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{Method, StatusCode, Uri},
-///     route,
-///     route::get,
 ///     web::Form,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -45,7 +43,7 @@ use crate::{
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = route().at("/", get(index).post(index));
+/// let app = Route::new().at("/", get(index).post(index));
 ///
 /// let resp = app
 ///     .call(

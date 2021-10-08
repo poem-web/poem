@@ -2,15 +2,13 @@ use std::time::Instant;
 
 use futures_util::StreamExt;
 use poem::{
-    handler,
+    get, handler,
     listener::TcpListener,
-    route,
-    route::get,
     web::{
         sse::{Event, SSE},
         Html,
     },
-    Server,
+    Route, Server,
 };
 use tokio::time::Duration;
 
@@ -45,7 +43,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", get(index)).at("/event", get(event));
+    let app = Route::new().at("/", get(index)).at("/event", get(event));
 
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;

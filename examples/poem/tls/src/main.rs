@@ -1,9 +1,7 @@
 use poem::{
-    handler,
+    get, handler,
     listener::{Listener, TcpListener, TlsConfig},
-    route,
-    route::get,
-    Server,
+    Route, Server,
 };
 
 const CERT: &str = r#"
@@ -75,7 +73,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", get(index));
+    let app = Route::new().at("/", get(index));
 
     let listener = TcpListener::bind("127.0.0.1:3000").tls(TlsConfig::new().key(KEY).cert(CERT));
     Server::new(listener).await?.run(app).await

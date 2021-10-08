@@ -1,9 +1,7 @@
 use poem::{
-    handler,
+    get, handler,
     listener::{Listener, TcpListener},
-    route,
-    route::get,
-    IntoResponse, Server,
+    IntoResponse, Route, Server,
 };
 
 #[handler]
@@ -18,7 +16,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", get(hello));
+    let app = Route::new().at("/", get(hello));
     let listener = TcpListener::bind("127.0.0.1:3000")
         .combine(TcpListener::bind("127.0.0.1:3001"))
         .combine(TcpListener::bind("127.0.0.1:3002"));

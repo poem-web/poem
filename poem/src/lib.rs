@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::{handler, listener::TcpListener, route, route::get, web::Path, Server};
+//! use poem::{get, handler, listener::TcpListener, web::Path, Route, Server};
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>) -> String {
@@ -21,7 +21,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), std::io::Error> {
-//!     let app = route().at("/hello/:name", get(hello));
+//!     let app = Route::new().at("/hello/:name", get(hello));
 //!     let listener = TcpListener::bind("127.0.0.1:3000");
 //!     let server = Server::new(listener).await?;
 //!     server.run(app).await
@@ -55,7 +55,6 @@ pub mod endpoint;
 pub mod error;
 pub mod listener;
 pub mod middleware;
-pub mod route;
 pub mod service;
 pub mod web;
 
@@ -65,6 +64,7 @@ pub use http;
 mod body;
 mod request;
 mod response;
+mod route;
 mod server;
 
 pub use async_trait::async_trait;
@@ -75,6 +75,6 @@ pub use middleware::Middleware;
 pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder, RequestParts};
 pub use response::{Response, ResponseBuilder, ResponseParts};
-pub use route::{route, RouteMethod};
+pub use route::{connect, delete, get, head, options, patch, post, put, trace, Route, RouteMethod};
 pub use server::{warps_endpoint, Server};
 pub use web::{FromRequest, IntoResponse, RequestBody};

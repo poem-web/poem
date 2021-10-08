@@ -1,6 +1,6 @@
 use poem::{
-    handler, listener::TcpListener, middleware::TowerLayerCompatExt, route, route::get,
-    EndpointExt, Server,
+    get, handler, listener::TcpListener, middleware::TowerLayerCompatExt, EndpointExt, Route,
+    Server,
 };
 use tokio::time::Duration;
 use tower::limit::RateLimitLayer;
@@ -17,7 +17,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at(
+    let app = Route::new().at(
         "/",
         get(hello).with(RateLimitLayer::new(5, Duration::from_secs(30)).compat()),
     );

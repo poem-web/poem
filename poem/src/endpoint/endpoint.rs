@@ -134,8 +134,8 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     handler, http::StatusCode, middleware::AddData, route, route::get, web::Data, Endpoint,
-    ///     EndpointExt, Request,
+    ///     get, handler, http::StatusCode, middleware::AddData, web::Data, Endpoint, EndpointExt,
+    ///     Request, Route,
     /// };
     ///
     /// #[handler]
@@ -143,7 +143,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///     format!("{}", data)
     /// }
     ///
-    /// let app = route().at("/", get(index)).with(AddData::new(100i32));
+    /// let app = Route::new().at("/", get(index)).with(AddData::new(100i32));
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = app.call(Request::default()).await;
     /// assert_eq!(resp.status(), StatusCode::OK);
@@ -575,11 +575,7 @@ impl<T: Endpoint> IntoEndpoint for T {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        endpoint::make_sync,
-        http::Uri,
-        route::{get, route, Route},
-    };
+    use crate::{endpoint::make_sync, get, http::Uri, Route};
 
     #[tokio::test]
     async fn test_into_endpoint() {
@@ -589,13 +585,13 @@ mod tests {
             type Endpoint = Route;
 
             fn into_endpoint(self) -> Self::Endpoint {
-                route()
+                Route::new()
                     .at("/a", get(make_sync(|_| "a")))
                     .at("/b", get(make_sync(|_| "b")))
             }
         }
 
-        let app = route().nest("/api", MyEndpointFactory);
+        let app = Route::new().nest("/api", MyEndpointFactory);
 
         assert_eq!(
             app.call(Request::builder().uri(Uri::from_static("/api/a")).finish())

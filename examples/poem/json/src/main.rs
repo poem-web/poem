@@ -1,4 +1,4 @@
-use poem::{handler, listener::TcpListener, route, route::post, web::Json, Server};
+use poem::{handler, listener::TcpListener, post, web::Json, Route, Server};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -21,7 +21,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/hello", post(hello));
+    let app = Route::new().at("/hello", post(hello));
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await

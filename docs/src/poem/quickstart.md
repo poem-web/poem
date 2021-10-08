@@ -25,7 +25,7 @@ request uri and return a `String`, the string will be converted into an HTTP res
 
 ```rust
 use serde::Deserialize;
-use poem::{handler, listener::TcpListener, route, web::Query, Server};
+use poem::{handler, listener::TcpListener, web::Query, Server};
 
 #[derive(Deserialize)]
 struct Params {

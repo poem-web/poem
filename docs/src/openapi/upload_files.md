@@ -12,7 +12,7 @@ use poem::Result;
 struct CreatePetPayload {
     name: String,
     status: PetStatus,
-    protos: Vec<Upload>, // some photos
+    photos: Vec<Upload>, // some photos
 }
 
 struct Api;

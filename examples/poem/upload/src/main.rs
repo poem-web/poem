@@ -1,4 +1,4 @@
-use poem::{handler, listener::TcpListener, route, route::post, web::Multipart, Server};
+use poem::{handler, listener::TcpListener, post, web::Multipart, Route, Server};
 
 #[handler]
 async fn index(mut multipart: Multipart) {
@@ -23,7 +23,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", post(index));
+    let app = Route::new().at("/", post(index));
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await

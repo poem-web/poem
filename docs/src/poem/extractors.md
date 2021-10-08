@@ -159,7 +159,7 @@ use std::{
     fmt::{self, Display, Formatter},
 };
 
-use poem::{handler, route, route::get, Endpoint, Error, FromRequest, Request, RequestBody};
+use poem::{handler, Endpoint, Error, FromRequest, Request, RequestBody};
 
 struct Token(String);
 

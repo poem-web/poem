@@ -17,6 +17,11 @@ pub struct Route {
 }
 
 impl Route {
+    /// Create a new routing object.
+    pub fn new() -> Route {
+        Default::default()
+    }
+
     /// Add an [Endpoint] to the specified path.
     ///
     /// You can match the full path or wildcard path, and use the
@@ -26,12 +31,10 @@ impl Route {
     ///
     /// ```
     /// use poem::{
-    ///     handler,
+    ///     get, handler,
     ///     http::{StatusCode, Uri},
-    ///     route,
-    ///     route::get,
     ///     web::Path,
-    ///     Endpoint, Request,
+    ///     Endpoint, Request, Route,
     /// };
     ///
     /// #[handler]
@@ -48,7 +51,7 @@ impl Route {
     ///     assert_eq!(path, "d/e");
     /// }
     ///
-    /// let app = route()
+    /// let app = Route::new()
     ///     // full path
     ///     .at("/a/b", get(a))
     ///     // capture parameters
@@ -113,7 +116,7 @@ impl Route {
     /// use poem::{
     ///     handler,
     ///     http::{StatusCode, Uri},
-    ///     route, Endpoint, Request,
+    ///     Endpoint, Request, Route,
     /// };
     ///
     /// #[handler]
@@ -121,7 +124,7 @@ impl Route {
     ///     "hello"
     /// }
     ///
-    /// let app = route().nest("/foo", route().at("/bar", index));
+    /// let app = Route::new().nest("/foo", Route::new().at("/bar", index));
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = app
@@ -148,7 +151,7 @@ impl Route {
     /// use poem::{
     ///     handler,
     ///     http::{StatusCode, Uri},
-    ///     route, Endpoint, Request,
+    ///     Endpoint, Request, Route,
     /// };
     ///
     /// #[handler]
@@ -156,7 +159,7 @@ impl Route {
     ///     "hello"
     /// }
     ///
-    /// let app = route().nest_no_strip("/foo", route().at("/foo/bar", index));
+    /// let app = Route::new().nest_no_strip("/foo", Route::new().at("/foo/bar", index));
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = app
@@ -242,13 +245,6 @@ impl Route {
         );
 
         self
-    }
-}
-
-/// Create a new routing object.
-pub fn route() -> Route {
-    Route {
-        router: Tree::new(),
     }
 }
 
@@ -480,24 +476,24 @@ mod tests {
 
     #[tokio::test]
     async fn nested() {
-        let r = route().nest(
+        let r = Route::new().nest(
             "/",
-            route()
+            Route::new()
                 .at("/a", h)
                 .at("/b", h)
-                .nest("/inner", route().at("/c", h)),
+                .nest("/inner", Route::new().at("/c", h)),
         );
 
         assert_eq!(get(&r, "/a").await, "/a");
         assert_eq!(get(&r, "/b").await, "/b");
         assert_eq!(get(&r, "/inner/c").await, "/c");
 
-        let r = route().nest(
+        let r = Route::new().nest(
             "/api",
-            route()
+            Route::new()
                 .at("/a", h)
                 .at("/b", h)
-                .nest("/inner", route().at("/c", h)),
+                .nest("/inner", Route::new().at("/c", h)),
         );
 
         assert_eq!(get(&r, "/api/a").await, "/a");
@@ -507,24 +503,24 @@ mod tests {
 
     #[tokio::test]
     async fn nested_no_strip() {
-        let r = route().nest_no_strip(
+        let r = Route::new().nest_no_strip(
             "/",
-            route()
+            Route::new()
                 .at("/a", h)
                 .at("/b", h)
-                .nest_no_strip("/inner", route().at("/inner/c", h)),
+                .nest_no_strip("/inner", Route::new().at("/inner/c", h)),
         );
 
         assert_eq!(get(&r, "/a").await, "/a");
         assert_eq!(get(&r, "/b").await, "/b");
         assert_eq!(get(&r, "/inner/c").await, "/inner/c");
 
-        let r = route().nest_no_strip(
+        let r = Route::new().nest_no_strip(
             "/api",
-            route()
+            Route::new()
                 .at("/api/a", h)
                 .at("/api/b", h)
-                .nest_no_strip("/api/inner", route().at("/api/inner/c", h)),
+                .nest_no_strip("/api/inner", Route::new().at("/api/inner/c", h)),
         );
 
         assert_eq!(get(&r, "/api/a").await, "/api/a");
@@ -534,11 +530,11 @@ mod tests {
 
     #[tokio::test]
     async fn nested_query_string() {
-        let r = route().nest(
+        let r = Route::new().nest(
             "/a",
-            route().nest(
+            Route::new().nest(
                 "/b",
-                route().at(
+                Route::new().at(
                     "/c",
                     make_sync(|req| req.uri().path_and_query().unwrap().to_string()),
                 ),

@@ -8,8 +8,8 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 ///
 /// ```
 /// use poem::{
-///     handler, http::StatusCode, middleware::AddData, route, route::get, web::Data, Endpoint,
-///     EndpointExt, Request,
+///     get, handler, http::StatusCode, middleware::AddData, web::Data, Endpoint, EndpointExt,
+///     Request, Route,
 /// };
 ///
 /// #[handler]
@@ -18,7 +18,7 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = route().at("/", get(index)).with(AddData::new(10));
+/// let app = Route::new().at("/", get(index)).with(AddData::new(10));
 /// let resp = app.call(Request::default()).await;
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// # });

@@ -17,12 +17,10 @@ enum Action {
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{HeaderValue, StatusCode},
 ///     middleware::SetHeader,
-///     route,
-///     route::get,
-///     Endpoint, EndpointExt, Request,
+///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -30,7 +28,7 @@ enum Action {
 ///     "hello"
 /// }
 ///
-/// let app = route().at("/", get(index)).with(
+/// let app = Route::new().at("/", get(index)).with(
 ///     SetHeader::new()
 ///         .appending("MyHeader1", "a")
 ///         .appending("MyHeader1", "b")

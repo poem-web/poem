@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, middleware::SetHeader, route, Endpoint, EndpointExt};
+use poem::{listener::TcpListener, middleware::SetHeader, Endpoint, EndpointExt, Route};
 use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
 
 struct Api;
@@ -30,6 +30,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     poem::Server::new(listener)
         .await?
-        .run(route().nest("/api", api_service).nest("/", ui))
+        .run(Route::new().nest("/api", api_service).nest("/", ui))
         .await
 }

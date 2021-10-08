@@ -18,10 +18,9 @@ use crate::{
 /// use poem::{
 ///     handler,
 ///     http::{Method, StatusCode},
-///     route,
-///     route::post,
+///     post,
 ///     web::Json,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -36,7 +35,7 @@ use crate::{
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = route().at("/", post(index));
+/// let app = Route::new().at("/", post(index));
 /// let resp = app
 ///     .call(
 ///         Request::builder()
@@ -58,7 +57,7 @@ use crate::{
 /// [`serde::Serialize`].
 ///
 /// ```
-/// use poem::{handler, http::StatusCode, route, route::get, web::Json, Endpoint, Request};
+/// use poem::{get, handler, http::StatusCode, web::Json, Endpoint, Request, Route};
 /// use serde::Serialize;
 ///
 /// #[derive(Serialize)]
@@ -74,7 +73,7 @@ use crate::{
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = route().at("/", get(index));
+/// let app = Route::new().at("/", get(index));
 /// let resp = app.call(Request::default()).await;
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(

@@ -1,9 +1,7 @@
 #[cfg(unix)]
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    use poem::{
-        handler, http::Uri, listener::UnixListener, route, route::get, IntoResponse, Server,
-    };
+    use poem::{get, handler, http::Uri, listener::UnixListener, IntoResponse, Route, Server};
 
     #[handler]
     fn hello(uri: &Uri) -> impl IntoResponse {
@@ -15,7 +13,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", get(hello));
+    let app = Route::new().at("/", get(hello));
     let listener = UnixListener::bind("./unix-socket");
     let server = Server::new(listener).await?;
     server.run(app).await

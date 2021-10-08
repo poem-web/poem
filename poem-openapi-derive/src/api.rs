@@ -225,7 +225,7 @@ pub(crate) fn generate(
                 #(#register_items)*
             }
 
-            fn add_routes(self, route: #crate_name::poem::route::Route) -> #crate_name::poem::route::Route {
+            fn add_routes(self, route: #crate_name::poem::Route) -> #crate_name::poem::Route {
                 let api_obj = ::std::sync::Arc::new(self);
                 route#(.#routes)*
             }

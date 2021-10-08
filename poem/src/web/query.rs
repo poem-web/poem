@@ -10,12 +10,10 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{Method, StatusCode, Uri},
-///     route,
-///     route::get,
 ///     web::Query,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -31,7 +29,7 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = route().at("/", get(index).post(index));
+/// let app = Route::new().at("/", get(index).post(index));
 ///
 /// let resp = app
 ///     .call(

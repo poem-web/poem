@@ -1,4 +1,4 @@
-use poem::{endpoint::BoxEndpoint, route, Endpoint, EndpointExt, IntoEndpoint, Response};
+use poem::{endpoint::BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint, Response, Route};
 
 use crate::{
     registry::{Document, MetaInfo, MetaServer, Registry},
@@ -100,6 +100,6 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
     type Endpoint = BoxEndpoint<Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
-        self.api.add_routes(route()).boxed()
+        self.api.add_routes(Route::new()).boxed()
     }
 }

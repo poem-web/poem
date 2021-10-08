@@ -31,12 +31,10 @@ impl Default for TrailingSlash {
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{StatusCode, Uri},
 ///     middleware::{NormalizePath, TrailingSlash},
-///     route,
-///     route::get,
-///     Endpoint, EndpointExt, Request,
+///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -44,7 +42,7 @@ impl Default for TrailingSlash {
 ///     "hello"
 /// }
 ///
-/// let app = route()
+/// let app = Route::new()
 ///     .at("/foo/bar", get(index))
 ///     .with(NormalizePath::new(TrailingSlash::Trim));
 ///
@@ -134,11 +132,11 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{endpoint::make_sync, route, EndpointExt};
+    use crate::{endpoint::make_sync, EndpointExt, Route};
 
     #[tokio::test]
     async fn trim_trailing_slashes() {
-        let ep = route()
+        let ep = Route::new()
             .at("/", make_sync(|_| ()))
             .at("/v1/something", make_sync(|_| ()))
             .at(
@@ -176,7 +174,7 @@ mod tests {
 
     #[tokio::test]
     async fn trim_root_trailing_slashes_with_query() {
-        let ep = route()
+        let ep = Route::new()
             .at(
                 "/",
                 make_sync(|req| {
@@ -199,7 +197,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_trailing_slash() {
-        let ep = route()
+        let ep = Route::new()
             .at("/", make_sync(|_| ()))
             .at("/v1/something/", make_sync(|_| ()))
             .at(
@@ -237,7 +235,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_root_trailing_slash_with_query() {
-        let ep = route()
+        let ep = Route::new()
             .at(
                 "/",
                 make_sync(|req| {
@@ -260,7 +258,7 @@ mod tests {
 
     #[tokio::test]
     async fn keep_trailing_slash_unchanged() {
-        let ep = route()
+        let ep = Route::new()
             .at("/", make_sync(|_| ()))
             .at("/v1/something", make_sync(|_| ()))
             .at("/v1/", make_sync(|_| ()))

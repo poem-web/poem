@@ -5,10 +5,9 @@
 //! ```
 //! use futures_util::{SinkExt, StreamExt};
 //! use poem::{
-//!     handler, route,
-//!     route::get,
+//!     get, handler,
 //!     web::websocket::{Message, WebSocket},
-//!     IntoResponse,
+//!     IntoResponse, Route,
 //! };
 //!
 //! #[handler]
@@ -20,7 +19,7 @@
 //!     })
 //! }
 //!
-//! let app = route().at("/", get(index));
+//! let app = Route::new().at("/", get(index));
 //! ```
 
 mod extractor;

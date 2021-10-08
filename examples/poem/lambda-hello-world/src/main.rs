@@ -1,4 +1,4 @@
-use poem::{handler, route, route::get, web::Path};
+use poem::{get, handler, web::Path, Route};
 use poem_lambda::{run, Error};
 
 #[handler]
@@ -13,6 +13,6 @@ async fn main() -> Result<(), Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/hello/:name", get(hello));
+    let app = Route::new().at("/hello/:name", get(hello));
     run(app).await
 }

@@ -5,12 +5,10 @@ use async_graphql::{
     EmptyMutation, EmptySubscription, Request, Response, Schema,
 };
 use poem::{
-    handler,
+    get, handler,
     listener::TcpListener,
-    route,
-    route::get,
     web::{Data, Html, Json},
-    EndpointExt, IntoResponse, Server,
+    EndpointExt, IntoResponse, Route, Server,
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
@@ -35,7 +33,7 @@ async fn main() -> Result<(), std::io::Error> {
         .data(StarWars::new())
         .finish();
 
-    let app = route()
+    let app = Route::new()
         .at("/", get(graphql_playground).post(graphql_handler))
         .data(schema);
 

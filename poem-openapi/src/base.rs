@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use poem::{route::Route, IntoResponse, Request, RequestBody, Result};
+use poem::{IntoResponse, Request, RequestBody, Result, Route};
 
 use crate::{
     payload::{ParsePayload, Payload},

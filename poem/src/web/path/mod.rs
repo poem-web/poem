@@ -13,12 +13,10 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{StatusCode, Uri},
-///     route,
-///     route::get,
 ///     web::Path,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -26,7 +24,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///     format!("{}:{}", user_id, team_id)
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let app = Route::new().at("/users/:user_id/team/:team_id", get(users_teams_show));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = app
 ///     .call(
@@ -44,12 +42,10 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{StatusCode, Uri},
-///     route,
-///     route::get,
 ///     web::Path,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -57,7 +53,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///     user_id
 /// }
 ///
-/// let app = route().at("/users/:user_id", get(user_info));
+/// let app = Route::new().at("/users/:user_id", get(user_info));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = app
 ///     .call(
@@ -76,12 +72,10 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{StatusCode, Uri},
-///     route,
-///     route::get,
 ///     web::Path,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -96,7 +90,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///     format!("{}:{}", user_id, team_id)
 /// }
 ///
-/// let app = route().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let app = Route::new().at("/users/:user_id/team/:team_id", get(users_teams_show));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = app
 ///     .call(

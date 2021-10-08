@@ -311,13 +311,11 @@ impl<'a> FromRequest<'a> for Cookie {
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{header, StatusCode},
 ///     middleware::CookieJarManager,
-///     route,
-///     route::get,
 ///     web::cookie::{Cookie, CookieJar},
-///     Endpoint, EndpointExt, Request,
+///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -331,7 +329,7 @@ impl<'a> FromRequest<'a> for Cookie {
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = route().at("/", get(index)).with(CookieJarManager);
+/// let app = Route::new().at("/", get(index)).with(CookieJarManager);
 ///
 /// let resp = app.call(Request::default()).await;
 /// assert_eq!(resp.status(), StatusCode::OK);

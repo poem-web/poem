@@ -7,7 +7,7 @@ Running the following code, open `http://localhost:3000` with a browser to see `
 definitions and test them.
 
 ```rust
-use poem::{listener::TcpListener, route};
+use poem::{listener::TcpListener, Route};
 use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
 
 struct Api;
@@ -42,7 +42,7 @@ async fn main() -> Result<(), std::io::Error> {
     // Start the server and specify that the root path of the API is /api, and the path of Swagger UI is /
     poem::Server::new(listener)
         .await?
-        .run(route().nest("/api", api_service).nest("/", ui))
+        .run(Route::new().nest("/api", api_service).nest("/", ui))
         .await
 }
 ```

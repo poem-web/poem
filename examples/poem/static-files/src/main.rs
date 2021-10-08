@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, route, service::Files, Server};
+use poem::{listener::TcpListener, service::Files, Route, Server};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
@@ -7,7 +7,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().nest(
+    let app = Route::new().nest(
         "/",
         Files::new("./examples/poem/static-files/files").show_files_listing(),
     );

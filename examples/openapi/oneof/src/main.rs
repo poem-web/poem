@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, route};
+use poem::{listener::TcpListener, Route};
 use poem_openapi::{payload::Json, Object, OneOf, OpenApi, OpenApiService};
 
 #[derive(Object, Debug, PartialEq)]
@@ -44,6 +44,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     poem::Server::new(listener)
         .await?
-        .run(route().nest("/api", api_service).nest("/", ui))
+        .run(Route::new().nest("/api", api_service).nest("/", ui))
         .await
 }

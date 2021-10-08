@@ -10,12 +10,10 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{header, StatusCode},
-///     route,
-///     route::get,
 ///     web::{type_headers::Host, TypedHeader},
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -23,7 +21,7 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 ///     host.host().to_string()
 /// }
 ///
-/// let app = route().at("/", get(index));
+/// let app = Route::new().at("/", get(index));
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = app

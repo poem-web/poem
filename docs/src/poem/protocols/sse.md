@@ -9,7 +9,7 @@ The endpoint in the example below will send three events.
 ```rust
 use futures_util::stream;
 use poem::{
-    handler,
+    handler, Route, get,
     http::StatusCode,
     web::sse::{Event, SSE},
     Endpoint, Request,
@@ -23,4 +23,6 @@ fn index() -> SSE {
         Event::message("c"),
     ]))
 }
+
+let app = Route::new().at("/", get(index));
 ```

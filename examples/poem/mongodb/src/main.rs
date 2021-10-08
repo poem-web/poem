@@ -6,13 +6,11 @@ use mongodb::{
     Client, Collection,
 };
 use poem::{
-    handler,
+    get, handler,
     listener::TcpListener,
     middleware::AddData,
-    route,
-    route::get,
     web::{Data, Json},
-    EndpointExt, Server,
+    EndpointExt, Route, Server,
 };
 use serde::Deserialize;
 
@@ -72,7 +70,7 @@ async fn main() -> io::Result<()> {
     let server = Server::new(listener).await?;
     server
         .run(
-            route()
+            Route::new()
                 .at("/user", get(get_users).post(create_user))
                 .with(AddData::new(collection)),
         )

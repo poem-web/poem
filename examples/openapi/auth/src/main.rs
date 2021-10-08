@@ -1,4 +1,4 @@
-use poem::{handler, http::StatusCode, listener::TcpListener, route, Error, Result};
+use poem::{handler, http::StatusCode, listener::TcpListener, Error, Result, Route};
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
@@ -130,7 +130,7 @@ async fn main() -> Result<(), std::io::Error> {
     poem::Server::new(listener)
         .await?
         .run(
-            route()
+            Route::new()
                 .at("/proxy", oauth_token_url_proxy)
                 .nest("/api", api_service)
                 .nest("/", ui),

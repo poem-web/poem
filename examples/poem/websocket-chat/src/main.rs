@@ -1,14 +1,12 @@
 use futures_util::{SinkExt, StreamExt};
 use poem::{
-    handler,
+    get, handler,
     listener::TcpListener,
-    route,
-    route::get,
     web::{
         websocket::{Message, WebSocket},
         Data, Html, Path,
     },
-    EndpointExt, IntoResponse, Server,
+    EndpointExt, IntoResponse, Route, Server,
 };
 
 #[handler]
@@ -99,7 +97,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", get(index)).at(
+    let app = Route::new().at("/", get(index)).at(
         "/ws/:name",
         get(ws.data(tokio::sync::broadcast::channel::<String>(32).0)),
     );

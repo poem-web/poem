@@ -7,13 +7,15 @@ The route object is actually an endpoint, which implements the `Endpoint` trait.
 In the following example, we dispatch the requests of `/a` and `'b` to different endpoints.
 
 ```rust
+use poem::{handler, Route};
+
 #[handler]
 async fn a() -> &'static str { "a" }
 
 #[handler]
 async fn b() -> &'static str { "b" }
 
-let ep = poem::route()
+let ep = Route::new()
     .at("/a", a)
     .at("/b", b);
 ```
@@ -29,7 +31,7 @@ In the following example, the captured values will be stored in the variable `va
 #[handler]
 async fn a(Path(String): Path<String>) {} 
 
-let ep = poem::route()
+let ep = Route::new()
     .at("/a/:value/b", handler)
     .at("/prefix/*value", handler);
 ```
@@ -39,7 +41,7 @@ let ep = poem::route()
 You can use regular expressions to match, `<REGEX>` or `:NAME<REGEX>`, the second one can capture the matched value into a variable.
 
 ```rust
-let ep = poem::route()
+let ep = Route::new()
     .at("/a/<\\d+>", handler)
     .at("/b/:value<\\d+>", handler);
 ```
@@ -52,14 +54,14 @@ components can be created.
 In the following example, the request path of the `hello` endpoint is `/api/hello`.
 
 ```rust
-let api = poem::route().at("/hello", hello);
+let api = Route::new().at("/hello", hello);
 let ep = api.nest("/api", api);
 ```
 
 Static file service is such an independent component.
 
 ```rust
-let ep = route().nest("/files", Files::new("./static_files"));
+let ep = Route::new().nest("/files", Files::new("./static_files"));
 ```
 
 ## Method routing
@@ -71,8 +73,8 @@ provide this ability.
 `Poem` provides some convenient functions to create `RouteMethod` objects, they are all named after HTTP standard methods.
 
 ```rust
-use poem::route::{get, post};
+use poem::{Route, get, post};
 
-let ep = poem::route()
+let ep = Route::new()
     .at("/users", get(get_user).post(create_user).delete(delete_user).put(update_user));
 ```

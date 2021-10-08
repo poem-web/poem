@@ -4,12 +4,10 @@
 //! cargo run --example cookie_session
 //! ```
 use poem::{
-    handler,
+    get, handler,
     listener::TcpListener,
-    route,
-    route::get,
     web::cookie::{Cookie, CookieJar},
-    Server,
+    Route, Server,
 };
 
 #[handler]
@@ -36,7 +34,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().at("/", get(count));
+    let app = Route::new().at("/", get(count));
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await

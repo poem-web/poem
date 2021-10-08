@@ -9,12 +9,10 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     get, handler,
 ///     http::{header, HeaderValue, StatusCode, Uri},
-///     route,
-///     route::get,
 ///     web::Redirect,
-///     Endpoint, Request,
+///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -22,7 +20,7 @@ use crate::{
 ///     Redirect::moved_permanent(Uri::from_static("https://www.google.com"))
 /// }
 ///
-/// let app = route().at("/", get(index));
+/// let app = Route::new().at("/", get(index));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = app.call(Request::default()).await;
 /// assert_eq!(resp.status(), StatusCode::MOVED_PERMANENTLY);

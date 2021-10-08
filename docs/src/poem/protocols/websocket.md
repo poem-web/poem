@@ -14,8 +14,7 @@ connection cannot be created correctly.**
 ```rust
 use futures_util::{SinkExt, StreamExt};
 use poem::{
-    handler, route,
-    route::get,
+    handler, Route, get,
     web::websocket::{Message, WebSocket},
     IntoResponse,
 };
@@ -28,4 +27,6 @@ async fn index(ws: WebSocket) -> impl IntoResponse {
         }
     })
 }
+
+let app = Route::new().at("/", get(index));
 ```

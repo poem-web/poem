@@ -54,7 +54,7 @@ pub(crate) fn create_ui_endpoint(absolute_uri: &str, document: &str) -> impl End
     .render()
     .unwrap();
 
-    poem::route()
+    poem::Route::new()
         .at("/", make_sync(move |_| Html(index_html.clone())))
         .at(
             "/oauth2-redirect.html",

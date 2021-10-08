@@ -2,7 +2,7 @@ use hello_world::{
     greeter_server::{Greeter, GreeterServer},
     HelloReply, HelloRequest,
 };
-use poem::{listener::TcpListener, route, service::TowerCompatExt, Server};
+use poem::{listener::TcpListener, service::TowerCompatExt, Route, Server};
 use tonic::{transport::NamedService, Request, Response, Status};
 
 pub mod hello_world {
@@ -33,7 +33,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = route().nest_no_strip(
+    let app = Route::new().nest_no_strip(
         format!("/{}", GreeterServer::<MyGreeter>::NAME),
         GreeterServer::new(MyGreeter).compat(),
     );
