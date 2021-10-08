@@ -8,12 +8,29 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// use poem::{handler, http::Uri, web::Redirect};
+/// use poem::{
+///     handler,
+///     http::{header, HeaderValue, StatusCode, Uri},
+///     route,
+///     route::get,
+///     web::Redirect,
+///     Endpoint, Request,
+/// };
 ///
 /// #[handler]
 /// async fn index() -> Redirect {
 ///     Redirect::moved_permanent(Uri::from_static("https://www.google.com"))
 /// }
+///
+/// let app = route().at("/", get(index));
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app.call(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::MOVED_PERMANENTLY);
+/// assert_eq!(
+///     resp.headers().get(header::LOCATION),
+///     Some(&HeaderValue::from_static("https://www.google.com/"))
+/// );
+/// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Redirect {

@@ -25,6 +25,17 @@ struct Config {
 }
 
 /// Middleware for CORS
+///
+/// # Example
+///
+/// ```
+/// use poem::{http::Method, middleware::Cors};
+///
+/// let cors = Cors::new()
+///     .allow_method(Method::GET)
+///     .allow_method(Method::POST)
+///     .allow_credentials(false);
+/// ```
 #[derive(Default)]
 pub struct Cors {
     config: Config,

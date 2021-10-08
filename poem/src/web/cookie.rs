@@ -47,6 +47,16 @@ impl Cookie {
     }
 
     /// Creates a new `Cookie` with the given name and an empty value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::named("foo");
+    /// assert_eq!(cookie.name(), "foo");
+    /// assert!(cookie.value_str().is_empty());
+    /// ```
     pub fn named(name: impl Into<String>) -> Self {
         Self::new_with_str(name, "")
     }
@@ -96,17 +106,55 @@ impl Cookie {
 
     /// Makes `self` a `permanent` cookie by extending its expiration and max
     /// age 20 years into the future.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::time::Duration;
+    ///
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let mut cookie = Cookie::new_with_str("foo", "bar");
+    /// cookie.make_permanent();
+    /// assert_eq!(
+    ///     cookie.max_age(),
+    ///     Some(Duration::from_secs(60 * 60 * 24 * 365 * 20))
+    /// );
+    /// ```
     pub fn make_permanent(&mut self) {
         self.0.make_permanent();
     }
 
     /// Make `self` a `removal` cookie by clearing its value, setting a max-age
     /// of 0, and setting an expiration date far in the past.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::time::Duration;
+    ///
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let mut cookie = Cookie::new_with_str("foo", "bar");
+    /// cookie.make_removal();
+    /// assert_eq!(cookie.max_age(), Some(Duration::from_secs(0)));
+    /// ```
     pub fn make_removal(&mut self) {
-        self.0.make_permanent();
+        self.0.make_removal();
     }
 
     /// Returns the specified max-age of the cookie if one was specified.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::time::Duration;
+    ///
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar; Max-Age=3600").unwrap();
+    /// assert_eq!(cookie.max_age(), Some(Duration::from_secs(3600)));
+    /// ```
     pub fn max_age(&self) -> Option<Duration> {
         self.0.max_age().map(|d| {
             let seconds = d.whole_seconds().max(0) as u64;
