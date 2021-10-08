@@ -1,7 +1,4 @@
-use std::{
-    fmt::{self, Display, Formatter},
-    sync::Arc,
-};
+use std::fmt::{self, Display, Formatter};
 
 /// Remote peer's address.
 #[derive(Debug, Clone)]
@@ -11,7 +8,7 @@ pub enum RemoteAddr {
     /// Unix domain socket address
     #[cfg(unix)]
     #[cfg_attr(docsrs, doc(cfg(unix)))]
-    Unix(Arc<tokio::net::unix::SocketAddr>),
+    Unix(std::sync::Arc<tokio::net::unix::SocketAddr>),
     /// Custom address
     Custom(&'static str, String),
 }
@@ -20,6 +17,7 @@ impl PartialEq for RemoteAddr {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (RemoteAddr::SocketAddr(addr1), RemoteAddr::SocketAddr(addr2)) => addr1 == addr2,
+            #[cfg(unix)]
             (RemoteAddr::Unix(addr1), RemoteAddr::Unix(addr2)) => {
                 addr1.as_pathname() == addr2.as_pathname()
             }
@@ -37,6 +35,7 @@ impl From<std::net::SocketAddr> for RemoteAddr {
     }
 }
 
+#[cfg(unix)]
 impl From<tokio::net::unix::SocketAddr> for RemoteAddr {
     fn from(addr: tokio::net::unix::SocketAddr) -> Self {
         RemoteAddr::Unix(addr.into())
@@ -72,6 +71,8 @@ impl RemoteAddr {
 
     /// If the address is a unix socket address, returns it. Returns None
     /// otherwise.
+    #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(unix)))]
     pub fn as_unix_socket_addr(&self) -> Option<&tokio::net::unix::SocketAddr> {
         match self {
             RemoteAddr::Unix(addr) => Some(addr),
