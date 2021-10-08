@@ -58,6 +58,19 @@ pub struct Files {
 
 impl Files {
     /// Create new Files service for a specified base directory.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{service::Files, Route};
+    ///
+    /// let app = Route::new().nest(
+    ///     "/files",
+    ///     Files::new("/etc/www")
+    ///         .show_files_listing()
+    ///         .index_file("index.html"),
+    /// );
+    /// ```
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),
