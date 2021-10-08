@@ -37,28 +37,26 @@ impl<A: Listener, B: Listener> Listener for Combined<A, B> {
 
 #[async_trait::async_trait]
 impl<A: Acceptor, B: Acceptor> Acceptor for Combined<A, B> {
-    type Addr = RemoteAddr;
     type Io = CombinedStream<A::Io, B::Io>;
 
-    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
+    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
         Ok(self
             .a
             .local_addr()?
             .into_iter()
-            .map(RemoteAddr::new)
-            .chain(self.b.local_addr()?.into_iter().map(RemoteAddr::new))
+            .chain(self.b.local_addr()?.into_iter())
             .collect())
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
         tokio::select! {
             res = self.a.accept() => {
                 let (stream, addr) = res?;
-                Ok((CombinedStream::A(stream), RemoteAddr::new(addr)))
+                Ok((CombinedStream::A(stream), addr))
             }
             res = self.b.accept() => {
                 let (stream, addr) = res?;
-                Ok((CombinedStream::B(stream), RemoteAddr::new(addr)))
+                Ok((CombinedStream::B(stream), addr))
             }
         }
     }

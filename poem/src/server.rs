@@ -43,7 +43,7 @@ impl<T: Acceptor> Server<T> {
     }
 
     /// Returns the local address that this server is bound to.
-    pub fn local_addr(&self) -> IoResult<Vec<T::Addr>> {
+    pub fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
         self.acceptor.local_addr()
     }
 
@@ -105,11 +105,11 @@ impl<T: Acceptor> Server<T> {
 
                             if timeout.is_some() {
                                 tokio::select! {
-                                    _ = serve_connection(socket, RemoteAddr::new(remote_addr), ep) => {}
+                                    _ = serve_connection(socket, remote_addr, ep) => {}
                                     _ = timeout_notify.notified() => {}
                                 }
                             } else {
-                                serve_connection(socket, RemoteAddr::new(remote_addr), ep).await;
+                                serve_connection(socket, remote_addr, ep).await;
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::SeqCst) == 1 {

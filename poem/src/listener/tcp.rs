@@ -1,11 +1,14 @@
-use std::{io::Result, net::SocketAddr};
+use std::io::Result;
 
 use tokio::{
     io::Result as IoResult,
     net::{TcpListener as TokioTcpListener, TcpStream, ToSocketAddrs},
 };
 
-use crate::listener::{Acceptor, Listener};
+use crate::{
+    listener::{Acceptor, Listener},
+    web::RemoteAddr,
+};
 
 /// A TCP listener.
 pub struct TcpListener<T> {
@@ -36,17 +39,19 @@ pub struct TcpAcceptor {
 
 #[async_trait::async_trait]
 impl Acceptor for TcpAcceptor {
-    type Addr = SocketAddr;
     type Io = TcpStream;
 
     #[inline]
-    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
-        Ok(vec![self.listener.local_addr()?])
+    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
+        Ok(vec![self.listener.local_addr()?.into()])
     }
 
     #[inline]
-    async fn accept(&mut self) -> Result<(Self::Io, Self::Addr)> {
-        self.listener.accept().await
+    async fn accept(&mut self) -> Result<(Self::Io, RemoteAddr)> {
+        self.listener
+            .accept()
+            .await
+            .map(|(io, addr)| (io, addr.into()))
     }
 }
 
@@ -60,10 +65,12 @@ mod tests {
     async fn tcp_listener() {
         let listener = TcpListener::bind("127.0.0.1:0");
         let mut acceptor = listener.into_acceptor().await.unwrap();
-        let addr = acceptor.local_addr().unwrap().remove(0);
+        let local_addr = acceptor.local_addr().unwrap().remove(0);
 
         tokio::spawn(async move {
-            let mut stream = TcpStream::connect(addr).await.unwrap();
+            let mut stream = TcpStream::connect(*local_addr.as_socket_addr().unwrap())
+                .await
+                .unwrap();
             stream.write_i32(10).await.unwrap();
         });
 

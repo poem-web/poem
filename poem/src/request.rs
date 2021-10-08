@@ -35,7 +35,8 @@ pub(crate) struct RequestState {
 
 impl Default for RequestState {
     fn default() -> Self {
-        static UNKNOWN_REMOTE_ADDR: Lazy<RemoteAddr> = Lazy::new(|| RemoteAddr::new("unknown"));
+        static UNKNOWN_REMOTE_ADDR: Lazy<RemoteAddr> =
+            Lazy::new(|| RemoteAddr::custom("unknown", "unknown"));
 
         Self {
             remote_addr: UNKNOWN_REMOTE_ADDR.clone(),

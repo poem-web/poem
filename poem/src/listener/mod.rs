@@ -8,7 +8,6 @@ mod tls;
 mod unix;
 
 use std::{
-    fmt::Display,
     io::Error,
     pin::Pin,
     task::{Context, Poll},
@@ -27,26 +26,23 @@ use crate::web::RemoteAddr;
 /// Represents a acceptor type.
 #[async_trait::async_trait]
 pub trait Acceptor: Send + Sync {
-    /// Address type.
-    type Addr: Send + Display + 'static;
-
     /// IO stream type.
     type Io: AsyncRead + AsyncWrite + Send + Unpin + 'static;
 
     /// Returns the local address that this listener is bound to.
-    fn local_addr(&self) -> IoResult<Vec<Self::Addr>>;
+    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>>;
 
     /// Accepts a new incoming connection from this listener.
     ///
     /// This function will yield once a new TCP connection is established. When
     /// established, the corresponding IO stream and the remote peer’s
     /// address will be returned.
-    async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)>;
+    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)>;
 }
 
 /// An owned dynamically typed Acceptor for use in cases where you can’t
 /// statically type your result or need to add some indirection.
-pub type BoxAcceptor = Box<dyn Acceptor<Addr = RemoteAddr, Io = BoxIo>>;
+pub type BoxAcceptor = Box<dyn Acceptor<Io = BoxIo>>;
 
 /// Extension trait for [`Acceptor`].
 pub trait AcceptorExt: Acceptor {
@@ -112,14 +108,13 @@ pub trait Listener: Send {
 
 #[async_trait::async_trait]
 impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
-    type Addr = T::Addr;
     type Io = T::Io;
 
-    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
+    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
         self.as_ref().local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
         self.as_mut().accept().await
     }
 }
@@ -176,20 +171,17 @@ struct WrappedAcceptor<T: Acceptor>(T);
 
 #[async_trait::async_trait]
 impl<T: Acceptor> Acceptor for WrappedAcceptor<T> {
-    type Addr = RemoteAddr;
     type Io = BoxIo;
 
-    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
-        self.0
-            .local_addr()
-            .map(|addrs| addrs.into_iter().map(RemoteAddr::new).collect())
+    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
+        self.0.local_addr().map(|addrs| addrs.into_iter().collect())
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, Self::Addr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
         self.0
             .accept()
             .await
-            .map(|(io, addr)| (BoxIo::new(io), RemoteAddr::new(addr)))
+            .map(|(io, addr)| (BoxIo::new(io), addr))
     }
 }
 

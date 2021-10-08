@@ -1,15 +1,14 @@
-use std::{
-    fmt::{self, Display, Formatter},
-    io::Result,
-    path::Path,
-};
+use std::{io::Result, path::Path};
 
 use tokio::{
     io::Result as IoResult,
-    net::{unix::SocketAddr, UnixListener as TokioUnixListener, UnixStream},
+    net::{UnixListener as TokioUnixListener, UnixStream},
 };
 
-use crate::listener::{Acceptor, Listener};
+use crate::{
+    listener::{Acceptor, Listener},
+    web::RemoteAddr,
+};
 
 /// A Unix domain socket listener.
 #[cfg_attr(docsrs, doc(cfg(unix)))]
@@ -34,19 +33,6 @@ impl<T: AsRef<Path> + Send> Listener for UnixListener<T> {
     }
 }
 
-/// Unix domain socket address.
-#[derive(Debug)]
-pub struct UnixSocketAddr(SocketAddr);
-
-impl Display for UnixSocketAddr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.0.as_pathname() {
-            Some(path) => write!(f, "{}", path.display()),
-            None => write!(f, "unnamed"),
-        }
-    }
-}
-
 /// A acceptor that accepts connections.
 #[cfg_attr(docsrs, doc(cfg(unix)))]
 pub struct UnixAcceptor {
@@ -55,20 +41,17 @@ pub struct UnixAcceptor {
 
 #[async_trait::async_trait]
 impl Acceptor for UnixAcceptor {
-    type Addr = UnixSocketAddr;
     type Io = UnixStream;
 
     #[inline]
-    fn local_addr(&self) -> IoResult<Vec<Self::Addr>> {
-        self.listener
-            .local_addr()
-            .map(|addr| vec![UnixSocketAddr(addr)])
+    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
+        self.listener.local_addr().map(|addr| vec![addr.into()])
     }
 
     #[inline]
-    async fn accept(&mut self) -> Result<(Self::Io, Self::Addr)> {
+    async fn accept(&mut self) -> Result<(Self::Io, RemoteAddr)> {
         let (stream, addr) = self.listener.accept().await?;
-        Ok((stream, UnixSocketAddr(addr)))
+        Ok((stream, addr.into()))
     }
 }
 

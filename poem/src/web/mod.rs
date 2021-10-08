@@ -934,7 +934,7 @@ mod tests {
                 .header("Value2", "456")
                 .uri(Uri::from_static("http://example.com/a/b"))
                 .body("abc");
-            req.state_mut().remote_addr = RemoteAddr::new("127.0.0.1:12345");
+            req.state_mut().remote_addr = RemoteAddr::custom("test", "example");
             req
         }
 
@@ -967,7 +967,7 @@ mod tests {
         // &RemoteAddr
         assert_eq!(
             <&RemoteAddr>::from_request(&req, &mut body).await.unwrap(),
-            &RemoteAddr::new("127.0.0.1:12345")
+            &RemoteAddr::custom("test", "example")
         );
 
         // &Method
