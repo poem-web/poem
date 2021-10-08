@@ -54,7 +54,6 @@ which are disabled by default:
 |multipart         | Support for Multipart          |
 |sse               | Support Server-Sent Events (SSE)       |
 |tls               | Support for HTTP server over TLS   |
-|typed-headers     | Support for [`typed-headers`](https://crates.io/crates/typed-headers)    |
 |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 

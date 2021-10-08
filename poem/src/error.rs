@@ -382,8 +382,6 @@ impl From<ParseMultipartError> for Error {
 }
 
 /// A possible error value when parsing typed headers.
-#[cfg(feature = "typed-headers")]
-#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 #[derive(Debug, thiserror::Error)]
 pub enum ParseTypedHeaderError {
     /// A specified header is required.
@@ -392,10 +390,9 @@ pub enum ParseTypedHeaderError {
 
     /// Parse error.
     #[error("parse: {0}")]
-    TypedHeader(#[from] typed_headers::Error),
+    TypedHeader(#[from] headers::Error),
 }
 
-#[cfg(feature = "typed-headers")]
 impl From<ParseTypedHeaderError> for Error {
     fn from(err: ParseTypedHeaderError) -> Self {
         Error::bad_request(err)

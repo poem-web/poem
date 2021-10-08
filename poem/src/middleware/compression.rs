@@ -1,10 +1,10 @@
 use std::{cmp::Reverse, str::FromStr};
 
-use typed_headers::{AcceptEncoding, HeaderMapExt};
+use typed_headers::{AcceptEncoding, ContentCoding, HeaderMapExt};
 
 use crate::{
     http::header,
-    web::{type_headers::ContentCoding, Compress, CompressionAlgo},
+    web::{Compress, CompressionAlgo},
     Body, Endpoint, IntoResponse, Middleware, Request, Response,
 };
 

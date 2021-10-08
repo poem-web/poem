@@ -20,22 +20,12 @@ pub mod sse;
 #[cfg(feature = "tempfile")]
 mod tempfile;
 mod template;
-#[cfg(feature = "typed-headers")]
+#[doc(inline)]
+pub use headers;
 mod typed_header;
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub mod websocket;
-
-/// Commonly used typed headers.
-#[cfg(feature = "typed-headers")]
-#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
-pub mod type_headers {
-    pub use typed_headers::{
-        Accept, AcceptEncoding, Allow, AuthScheme, Authorization, ContentCoding, ContentEncoding,
-        ContentLength, ContentType, Credentials, Host, HttpDate, ProxyAuthorization, Quality,
-        QualityItem, RetryAfter, Token68,
-    };
-}
 
 use std::convert::{Infallible, TryInto};
 
@@ -52,8 +42,6 @@ pub use query::Query;
 pub use redirect::Redirect;
 pub use remote_addr::RemoteAddr;
 pub use template::{HtmlTemplate, Template};
-#[cfg(feature = "typed-headers")]
-#[cfg_attr(docsrs, doc(cfg(feature = "typed-headers")))]
 pub use typed_header::TypedHeader;
 
 #[cfg(feature = "tempfile")]

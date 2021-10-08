@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use typed_headers::{Header, HeaderMapExt};
+use headers::{Header, HeaderMapExt};
 
 use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Result};
 
@@ -12,13 +12,13 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 /// use poem::{
 ///     get, handler,
 ///     http::{header, StatusCode},
-///     web::{type_headers::Host, TypedHeader},
+///     web::{headers::Host, TypedHeader},
 ///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
 /// fn index(TypedHeader(host): TypedHeader<Host>) -> String {
-///     host.host().to_string()
+///     host.hostname().to_string()
 /// }
 ///
 /// let app = Route::new().at("/", get(index));
@@ -56,7 +56,7 @@ impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
     type Error = ParseTypedHeaderError;
 
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
-        let value = req.headers().typed_get::<T>()?;
+        let value = req.headers().typed_try_get::<T>()?;
         Ok(Self(value.ok_or_else(|| {
             ParseTypedHeaderError::HeaderRequired(T::name().to_string())
         })?))
@@ -66,12 +66,12 @@ impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, Endpoint};
+    use crate::{handler, web::headers::ContentLength, Endpoint};
 
     #[tokio::test]
     async fn test_typed_header_extractor() {
         #[handler(internal)]
-        async fn index(content_length: TypedHeader<typed_headers::ContentLength>) {
+        async fn index(content_length: TypedHeader<ContentLength>) {
             assert_eq!(content_length.0 .0, 3);
         }
 
