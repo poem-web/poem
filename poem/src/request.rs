@@ -6,7 +6,6 @@ use std::{
 
 #[cfg(feature = "websocket")]
 use hyper::upgrade::OnUpgrade;
-use once_cell::sync::Lazy;
 #[cfg(feature = "websocket")]
 use parking_lot::Mutex;
 
@@ -35,11 +34,8 @@ pub(crate) struct RequestState {
 
 impl Default for RequestState {
     fn default() -> Self {
-        static UNKNOWN_REMOTE_ADDR: Lazy<RemoteAddr> =
-            Lazy::new(|| RemoteAddr::custom("unknown", "unknown"));
-
         Self {
-            remote_addr: UNKNOWN_REMOTE_ADDR.clone(),
+            remote_addr: RemoteAddr::custom("unknown", "unknown"),
             original_uri: Default::default(),
             match_params: Default::default(),
             #[cfg(feature = "cookie")]

@@ -86,9 +86,9 @@ enum CreateBlogResponse {
 
 fn bad_request_handler(err: ParseRequestError) -> CreateBlogResponse {
     // When the parsing request fails, a custom error content is returned, which is a JSON
-    CreateBlogResponse::BadRequest(ErrorMessage {
+    CreateBlogResponse::BadRequest(Json(ErrorMessage {
         code: -1,
         reason: err.to_string(),
-    })
+    }))
 }
 ```

@@ -1,7 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
 use http::StatusCode;
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 use super::tree::Tree;
@@ -435,9 +434,8 @@ pub fn trace(ep: impl IntoEndpoint) -> RouteMethod {
 }
 
 fn normalize_path(path: &str) -> String {
-    static RE_MERGE_SLASH: Lazy<Regex> = Lazy::new(|| Regex::new("//+").unwrap());
-
-    let mut path = RE_MERGE_SLASH.replace_all(path, "/").to_string();
+    let re = Regex::new("//+").unwrap();
+    let mut path = re.replace_all(path, "/").to_string();
     if !path.starts_with('/') {
         path.insert(0, '/');
     }
