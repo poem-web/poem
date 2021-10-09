@@ -235,20 +235,20 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         #[#crate_name::poem::async_trait]
         impl #impl_generics #crate_name::payload::ParsePayload for #ident #ty_generics #where_clause {
-            async fn from_request(request: &#crate_name::poem::Request, body: &mut #crate_name::poem::RequestBody) -> Result<Self, #crate_name::ParseRequestError> {
+            async fn from_request(request: &#crate_name::poem::Request, body: &mut #crate_name::poem::RequestBody) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
                 if body.is_some() {
                     let mut multipart = <#crate_name::poem::web::Multipart as #crate_name::poem::FromRequest>::from_request(request, body).await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody {
                         reason: ::std::string::ToString::to_string(&err),
                     })?;
                     #(#skip_fields)*
                     #(let mut #fields = ::std::option::Option::None;)*
-                    while let Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody { reason: ::std::string::ToString::to_string(&err) })? {
+                    while let ::std::option::Option::Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody { reason: ::std::string::ToString::to_string(&err) })? {
                         #(#deserialize_fields)*
                     }
                     #(#deserialize_none)*
                     ::std::result::Result::Ok(Self { #(#fields,)* #(#skip_idents),* })
                 } else {
-                    Err(#crate_name::ParseRequestError::ParseRequestBody {
+                    ::std::result::Result::Err(#crate_name::ParseRequestError::ParseRequestBody {
                         reason: ::std::convert::Into::into("expect request body"),
                     })
                 }

@@ -1,4 +1,5 @@
 #![no_implicit_prelude]
+#![allow(dead_code)]
 
 use ::poem_openapi;
 use ::std::boxed::Box;
@@ -100,6 +101,82 @@ impl Api {
         }
     }
 }
+
+#[derive(::poem_openapi::Multipart, Debug, Eq, PartialEq)]
+#[oai(rename_all = "UPPERCASE")]
+struct A {
+    name: ::std::string::String,
+    file: ::poem_openapi::types::Binary,
+}
+
+#[derive(::poem_openapi::Object, Debug, PartialEq)]
+struct A1 {
+    v1: i32,
+    v2: ::std::string::String,
+}
+
+#[derive(::poem_openapi::Object, Debug, PartialEq)]
+struct B1 {
+    v3: f32,
+}
+
+#[derive(::poem_openapi::OneOf, Debug, PartialEq)]
+#[oai(property_name = "type")]
+enum MyOneOf {
+    A(A1),
+    B(B1),
+}
+
+#[derive(::poem_openapi::Tags)]
+#[oai(rename_all = "camelCase")]
+enum MyTags {
+    UserOperations,
+    PetOperations,
+}
+
+#[derive(::poem_openapi::SecurityScheme)]
+#[oai(type = "basic")]
+struct BasicSecurityScheme(::poem_openapi::auth::Basic);
+
+#[derive(::poem_openapi::SecurityScheme)]
+#[oai(type = "bearer")]
+struct MyBearerScheme(::poem_openapi::auth::Bearer);
+
+#[derive(::poem_openapi::SecurityScheme)]
+#[oai(type = "api_key", key_name = "X-API-Key", in = "header")]
+struct MySecuritySchemeInHeader(::poem_openapi::auth::ApiKey);
+
+#[derive(::poem_openapi::SecurityScheme)]
+#[oai(type = "api_key", key_name = "key", in = "query")]
+struct MySecuritySchemeInQuery(::poem_openapi::auth::ApiKey);
+
+#[derive(::poem_openapi::SecurityScheme)]
+#[oai(type = "api_key", key_name = "key", in = "cookie")]
+struct MySecuritySchemeInCookie(::poem_openapi::auth::ApiKey);
+
+#[derive(::poem_openapi::OAuthScopes)]
+enum GithubScopes {
+    Read,
+    Write,
+}
+
+#[derive(::poem_openapi::SecurityScheme)]
+#[oai(
+    type = "oauth2",
+    flows(
+        implicit(
+            authorization_url = "https://test.com/authorize",
+            scopes = "GithubScopes"
+        ),
+        password(token_url = "https://test.com/token"),
+        client_credentials(token_url = "https://test.com/token"),
+        authorization_code(
+            authorization_url = "https://test.com/authorize",
+            token_url = "https://test.com/token"
+        ),
+    )
+)]
+struct OAuth2SecurityScheme(::poem_openapi::auth::Bearer);
 
 #[test]
 fn test_hygiene() {}

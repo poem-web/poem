@@ -82,7 +82,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = quote! {
         impl #crate_name::OAuthScopes for #ident {
-            fn meta() -> Vec<#crate_name::registry::MetaOAuthScope> {
+            fn meta() -> ::std::vec::Vec<#crate_name::registry::MetaOAuthScope> {
                 ::std::vec![#(#meta_items),*]
             }
 

@@ -101,14 +101,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
                 #crate_name::registry::MetaSchemaRef::Inline(#crate_name::registry::MetaSchema {
-                    one_of: vec![#(<#types as #crate_name::types::Type>::schema_ref()),*],
-                    properties: vec![(#property_name, #crate_name::registry::MetaSchemaRef::Inline(#crate_name::registry::MetaSchema {
-                        enum_items: vec![#(::std::convert::Into::into(#names)),*],
+                    one_of: ::std::vec![#(<#types as #crate_name::types::Type>::schema_ref()),*],
+                    properties: ::std::vec![(#property_name, #crate_name::registry::MetaSchemaRef::Inline(#crate_name::registry::MetaSchema {
+                        enum_items: ::std::vec![#(::std::convert::Into::into(#names)),*],
                         ..#crate_name::registry::MetaSchema::new("string")
                     }))],
                     discriminator: ::std::option::Option::Some(#crate_name::registry::MetaDiscriminatorObject {
                         property_name: #property_name,
-                        mapping: vec![#(#mapping),*],
+                        mapping: ::std::vec![#(#mapping),*],
                     }),
                     ..#crate_name::registry::MetaSchema::new("object")
                 })
