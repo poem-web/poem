@@ -76,6 +76,10 @@ struct APIOperationParam {
     #[darling(default, rename = "in")]
     param_in: Option<ParamIn>,
     #[darling(default)]
+    private: bool,
+    #[darling(default)]
+    signed: bool,
+    #[darling(default)]
     extract: bool,
     #[darling(default)]
     auth: Option<Auth>,
@@ -387,8 +391,15 @@ fn generate_operation(
                 }
 
                 let meta_in = {
-                    let ty = param_in.to_meta();
-                    quote!(#crate_name::registry::MetaParamIn::#ty)
+                    let meta_ty = match param_in {
+                        ParamIn::Path => quote!(Path),
+                        ParamIn::Query => quote!(Query),
+                        ParamIn::Header => quote!(Header),
+                        ParamIn::Cookie if operation_param.private => quote!(CookiePrivate),
+                        ParamIn::Cookie if operation_param.signed => quote!(CookieSigned),
+                        ParamIn::Cookie => quote!(Cookie),
+                    };
+                    quote!(#crate_name::registry::MetaParamIn::#meta_ty)
                 };
                 let validators_checker = operation_param
                     .validators()

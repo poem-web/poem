@@ -204,6 +204,10 @@ pub enum MetaParamIn {
     Header,
     Path,
     Cookie,
+    #[serde(rename = "cookie")]
+    CookiePrivate,
+    #[serde(rename = "cookie")]
+    CookieSigned,
 }
 
 #[derive(Debug, PartialEq, Serialize)]

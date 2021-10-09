@@ -132,17 +132,6 @@ pub(crate) enum ParamIn {
     Cookie,
 }
 
-impl ParamIn {
-    pub(crate) fn to_meta(self) -> TokenStream {
-        match self {
-            ParamIn::Path => quote!(Path),
-            ParamIn::Query => quote!(Query),
-            ParamIn::Header => quote!(Header),
-            ParamIn::Cookie => quote!(Cookie),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub(crate) enum DefaultValue {
     Default,

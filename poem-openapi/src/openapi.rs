@@ -1,6 +1,10 @@
-use poem::{endpoint::BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint, Response, Route};
+use poem::{
+    endpoint::BoxEndpoint, web::cookie::CookieKey, Endpoint, EndpointExt, IntoEndpoint, Response,
+    Route,
+};
 
 use crate::{
+    param::InternalCookieKey,
     registry::{Document, MetaInfo, MetaServer, Registry},
     ui::create_ui_endpoint,
     OpenApi,
@@ -11,6 +15,7 @@ pub struct OpenApiService<T> {
     api: T,
     info: Option<MetaInfo>,
     servers: Vec<MetaServer>,
+    cookie_key: Option<CookieKey>,
 }
 
 impl<T> OpenApiService<T> {
@@ -21,6 +26,7 @@ impl<T> OpenApiService<T> {
             api,
             info: None,
             servers: Vec::new(),
+            cookie_key: None,
         }
     }
 
@@ -74,6 +80,14 @@ impl<T> OpenApiService<T> {
         self
     }
 
+    /// Sets the cookie key.
+    pub fn cookie_key(self, key: CookieKey) -> Self {
+        Self {
+            cookie_key: Some(key),
+            ..self
+        }
+    }
+
     /// Create the Swagger UI endpoint.
     #[must_use]
     pub fn swagger_ui(&self, absolute_uri: impl AsRef<str>) -> impl Endpoint
@@ -100,6 +114,13 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
     type Endpoint = BoxEndpoint<Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
-        self.api.add_routes(Route::new()).boxed()
+        match self.cookie_key {
+            Some(key) => self
+                .api
+                .add_routes(Route::new())
+                .data(InternalCookieKey(key))
+                .boxed(),
+            None => self.api.add_routes(Route::new()).boxed(),
+        }
     }
 }

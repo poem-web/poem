@@ -1,6 +1,6 @@
 use poem::{
     http::{header, Method, StatusCode, Uri},
-    web::cookie::Cookie,
+    web::cookie::{Cookie, CookieJar, CookieKey},
     Endpoint, IntoEndpoint, Request,
 };
 use poem_openapi::{
@@ -159,19 +159,42 @@ async fn cookie() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(name = "v", in = "cookie")] v: i32) {
-            assert_eq!(v, 10);
+        async fn test(
+            &self,
+            #[oai(name = "v1", in = "cookie")] v1: i32,
+            #[oai(name = "v2", in = "cookie", private)] v2: i32,
+            #[oai(name = "v3", in = "cookie", signed)] v3: i32,
+        ) {
+            assert_eq!(v1, 10);
+            assert_eq!(v2, 100);
+            assert_eq!(v3, 1000);
         }
     }
 
-    let api = poem::warps_endpoint(OpenApiService::new(Api).into_endpoint());
-    let cookie = Cookie::new_with_str("v", "10");
+    let cookie_key = CookieKey::generate();
+    let api = poem::warps_endpoint(
+        OpenApiService::new(Api)
+            .cookie_key(cookie_key.clone())
+            .into_endpoint(),
+    );
+
+    let cookie_jar = CookieJar::default();
+    cookie_jar.add(Cookie::new_with_str("v1", "10"));
+    cookie_jar
+        .private(&cookie_key)
+        .add(Cookie::new_with_str("v2", "100"));
+    cookie_jar
+        .signed(&cookie_key)
+        .add(Cookie::new_with_str("v3", "1000"));
+    let cookie = format!(
+        "{}; {}; {}",
+        cookie_jar.get("v1").unwrap(),
+        cookie_jar.get("v2").unwrap(),
+        cookie_jar.get("v3").unwrap()
+    );
+
     let resp = api
-        .call(
-            Request::builder()
-                .header(header::COOKIE, cookie.to_string())
-                .finish(),
-        )
+        .call(Request::builder().header(header::COOKIE, cookie).finish())
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }

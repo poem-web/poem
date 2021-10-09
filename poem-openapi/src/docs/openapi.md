@@ -15,6 +15,8 @@ Define a OpenAPI.
 |---------------|---------------------------|----------|----------|
 | name          | Parameter name. When this value is set, it means this is an OpenAPI parameter type.           | string   | Y        |
 | in            | Where to parse the parameter. The possible values are "query", "path", "header", "cookie". | string   | Y        |
+| private       | It means that the value of this cookie is encrypted. | bool | Y |
+| signed        | It means that the value of this cookie is signed. | bool | Y |
 | extract       | It means this parameter is a Poem extractor. | bool | Y |
 | auth          | It means this parameter is a authorization extractor. | bool | Y |
 | desc          | Argument description      | string   | Y        |
