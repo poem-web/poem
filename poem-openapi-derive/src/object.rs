@@ -31,6 +31,10 @@ struct ObjectField {
     rename: Option<String>,
     #[darling(default)]
     default: Option<DefaultValue>,
+    #[darling(default)]
+    write_only: bool,
+    #[darling(default)]
+    read_only: bool,
 
     #[darling(default)]
     multiple_of: Option<SpannedValue<f64>>,
@@ -101,6 +105,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     for field in &s.fields {
         let field_ident = field.ident.as_ref().unwrap();
         let field_ty = &field.ty;
+        let read_only = field.read_only;
+        let write_only = field.write_only;
 
         if field.skip {
             deserialize_fields.push(quote! {
@@ -108,6 +114,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             });
             fields.push(field_ident);
             continue;
+        }
+
+        if read_only && write_only {
+            return Err(Error::new_spanned(
+                field_ident,
+                "The `write_only` and `read_only` attributes cannot be enabled at the same time.",
+            )
+            .into());
         }
 
         let field_name = field.rename.clone().unwrap_or_else(|| {
@@ -124,16 +138,22 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         fields.push(field_ident);
 
-        match &field.default {
-            Some(default_value) => {
-                let default_value = match default_value {
-                    DefaultValue::Default => {
-                        quote!(<#field_ty as ::std::default::Default>::default())
-                    }
-                    DefaultValue::Function(func_name) => quote!(#func_name()),
-                };
+        if read_only {
+            deserialize_fields.push(quote! {
+                #[allow(non_snake_case)]
+                let #field_ident: #field_ty = Default::default();
+            });
+        } else {
+            match &field.default {
+                Some(default_value) => {
+                    let default_value = match default_value {
+                        DefaultValue::Default => {
+                            quote!(<#field_ty as ::std::default::Default>::default())
+                        }
+                        DefaultValue::Function(func_name) => quote!(#func_name()),
+                    };
 
-                deserialize_fields.push(quote! {
+                    deserialize_fields.push(quote! {
                     #[allow(non_snake_case)]
                     let #field_ident: #field_ty = {
                         match obj.get(#field_name).cloned().unwrap_or_default() {
@@ -146,9 +166,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         }
                     };
                 });
-            }
-            _ => {
-                deserialize_fields.push(quote! {
+                }
+                _ => {
+                    deserialize_fields.push(quote! {
                     #[allow(non_snake_case)]
                     let #field_ident: #field_ty = {
                         let value = #crate_name::types::ParseFromJSON::parse_from_json(obj.get(#field_name).cloned().unwrap_or_default())
@@ -157,13 +177,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         value
                     };
                 });
-            }
-        };
+                }
+            };
+        }
 
-        serialize_fields.push(quote! {
-            let value = #crate_name::types::ToJSON::to_json(&self.#field_ident);
-            object.insert(::std::string::ToString::to_string(#field_name), value);
-        });
+        if write_only {
+            serialize_fields.push(quote! {});
+        } else {
+            serialize_fields.push(quote! {
+                let value = #crate_name::types::ToJSON::to_json(&self.#field_ident);
+                object.insert(::std::string::ToString::to_string(#field_name), value);
+            });
+        }
 
         let field_meta_default = match &field.default {
             Some(DefaultValue::Default) => {
@@ -182,6 +207,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             if let #crate_name::registry::MetaSchemaRef::Inline(schema) = &mut schema_ref {
                 schema.default = #field_meta_default;
+                schema.read_only = #read_only;
+                schema.write_only = #write_only;
 
                 if let ::std::option::Option::Some(title) = #field_title {
                     schema.title = ::std::option::Option::Some(title);

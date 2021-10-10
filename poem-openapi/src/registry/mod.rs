@@ -71,6 +71,10 @@ pub struct MetaSchema {
     pub one_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminator: Option<MetaDiscriminatorObject>,
+    #[serde(skip_serializing_if = "is_false")]
+    pub read_only: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub write_only: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiple_of: Option<f64>,
@@ -121,6 +125,8 @@ impl MetaSchema {
         deprecated: false,
         one_of: vec![],
         discriminator: None,
+        read_only: false,
+        write_only: false,
         multiple_of: None,
         maximum: None,
         exclusive_maximum: None,
@@ -148,6 +154,8 @@ impl MetaSchema {
             deprecated: false,
             one_of: vec![],
             discriminator: None,
+            read_only: false,
+            write_only: false,
             multiple_of: None,
             maximum: None,
             exclusive_maximum: None,
