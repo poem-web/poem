@@ -246,6 +246,12 @@ impl Request {
         &mut self.extensions
     }
 
+    /// Returns a reference to the remote address.
+    #[inline]
+    pub fn remote_addr(&self) -> &RemoteAddr {
+        &self.state.remote_addr
+    }
+
     /// Returns a reference to the [`CookieJar`]
     #[cfg(feature = "cookie")]
     #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
