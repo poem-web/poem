@@ -22,12 +22,12 @@
 //!
 //! ## Crate features
 //!
-//! To avoid compiling unused dependencies, Poem gates certain features, all of
-//! which are disabled by default:
-//!
-//! |Feature           |Description                     |
-//! |------------------|--------------------------------|
-//! |chrono            | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).          |
+//! To avoid compiling unused dependencies, Poem gates certain features, some of which are disabled by default:
+//! 
+//! | Feature    | Description                                                  | Default enabled    |
+//! | ---------- | ------------------------------------------------------------ | ------------------ |
+//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x:                |
+//! | swagger-ui | Add swagger UI support                                       | :heavy_check_mark: |
 //!
 //! ## Example
 //!
@@ -98,6 +98,7 @@ pub mod payload;
 pub mod registry;
 pub mod types;
 #[doc(hidden)]
+#[cfg(feature = "swagger-ui")]
 pub mod ui;
 #[doc(hidden)]
 pub mod validation;

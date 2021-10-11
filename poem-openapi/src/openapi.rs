@@ -6,9 +6,11 @@ use poem::{
 use crate::{
     param::InternalCookieKey,
     registry::{Document, MetaInfo, MetaServer, Registry},
-    ui::create_ui_endpoint,
     OpenApi,
 };
+
+#[cfg(feature = "swagger-ui")]
+use crate::ui::create_ui_endpoint;
 
 /// An OpenAPI service for Poem.
 pub struct OpenApiService<T> {
@@ -90,6 +92,7 @@ impl<T> OpenApiService<T> {
 
     /// Create the Swagger UI endpoint.
     #[must_use]
+    #[cfg(feature = "swagger-ui")]
     pub fn swagger_ui(&self, absolute_uri: impl AsRef<str>) -> impl Endpoint
     where
         T: OpenApi,
@@ -98,7 +101,7 @@ impl<T> OpenApiService<T> {
     }
 
     /// Returns the OAS specification file.
-    fn spec(&self) -> String
+    pub fn spec(&self) -> String
     where
         T: OpenApi,
     {
