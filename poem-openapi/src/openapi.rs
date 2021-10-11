@@ -94,10 +94,13 @@ impl<T> OpenApiService<T> {
     where
         T: OpenApi,
     {
+        create_ui_endpoint(absolute_uri.as_ref(), &self.spec())
+    }
+
+    /// Returns the OAS specification file.
+    fn spec(&self) -> String {
         let mut registry = Registry::new();
         let metadata = T::meta();
-
-        T::register(&mut registry);
 
         let doc = Document {
             info: self.info.as_ref(),
@@ -105,8 +108,7 @@ impl<T> OpenApiService<T> {
             apis: &metadata,
             registry: &registry,
         };
-        let doc_json = serde_json::to_string_pretty(&doc).unwrap();
-        create_ui_endpoint(absolute_uri.as_ref(), &doc_json)
+        serde_json::to_string_pretty(&doc).unwrap()
     }
 }
 
