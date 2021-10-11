@@ -1,4 +1,4 @@
-use poem::{get, handler, web::Path, Route};
+use poem::{get, handler, web::Path, IntoResponse, Route};
 use poem_lambda::{run, Error};
 
 #[handler]

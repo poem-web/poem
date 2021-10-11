@@ -48,7 +48,7 @@ pub use typed_header::TypedHeader;
 pub use self::tempfile::TempFile;
 use crate::{
     body::Body,
-    error::{Error, ReadBodyError, Result},
+    error::{ReadBodyError, Result},
     http::{
         header::{HeaderMap, HeaderName},
         HeaderValue, Method, StatusCode, Uri, Version,
@@ -207,7 +207,9 @@ impl RequestBody {
 ///     fmt::{self, Display, Formatter},
 /// };
 ///
-/// use poem::{get, handler, Endpoint, Error, FromRequest, Request, RequestBody, Route};
+/// use poem::{
+///     get, handler, Endpoint, Error, FromRequest, IntoResponse, Request, RequestBody, Route,
+/// };
 ///
 /// struct Token(String);
 ///
@@ -263,7 +265,7 @@ pub trait FromRequest<'a>: Sized {
     /// The error type of this extractor.
     ///
     /// If you don't know what type you should use, you can use [`Error`].
-    type Error: Into<Error>;
+    type Error: IntoResponse;
 
     /// Perform the extraction.
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error>;
@@ -575,12 +577,6 @@ impl IntoResponse for () {
     }
 }
 
-impl IntoResponse for Infallible {
-    fn into_response(self) -> Response {
-        Response::builder().body(Body::empty())
-    }
-}
-
 impl IntoResponse for StatusCode {
     fn into_response(self) -> Response {
         Response::builder().status(self).finish()
@@ -749,6 +745,7 @@ impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T, T::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Error;
 
     #[tokio::test]
     async fn into_response() {

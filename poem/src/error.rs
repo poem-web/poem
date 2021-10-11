@@ -28,12 +28,6 @@ pub struct Error {
     reason: anyhow::Error,
 }
 
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        self.as_response()
-    }
-}
-
 impl From<Infallible> for Error {
     fn from(_: Infallible) -> Self {
         unreachable!()
@@ -378,6 +372,12 @@ pub enum ParseMultipartError {
 impl From<ParseMultipartError> for Error {
     fn from(err: ParseMultipartError) -> Self {
         Error::bad_request(err)
+    }
+}
+
+impl<T: Into<Error> + Send> IntoResponse for T {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 

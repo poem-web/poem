@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use poem::{get, handler, listener::TcpListener, web::Path, Route, Server};
+//! use poem::{get, handler, listener::TcpListener, web::Path, IntoResponse, Route, Server};
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>) -> String {

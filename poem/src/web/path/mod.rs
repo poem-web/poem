@@ -16,7 +16,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///     get, handler,
 ///     http::{StatusCode, Uri},
 ///     web::Path,
-///     Endpoint, Request, Route,
+///     Endpoint, IntoResponse, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -45,7 +45,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///     get, handler,
 ///     http::{StatusCode, Uri},
 ///     web::Path,
-///     Endpoint, Request, Route,
+///     Endpoint, IntoResponse, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -75,7 +75,7 @@ use crate::{error::ErrorInvalidPathParams, FromRequest, Request, RequestBody, Re
 ///     get, handler,
 ///     http::{StatusCode, Uri},
 ///     web::Path,
-///     Endpoint, Request, Route,
+///     Endpoint, IntoResponse, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///

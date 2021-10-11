@@ -13,7 +13,7 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 ///     get, handler,
 ///     http::{Method, StatusCode, Uri},
 ///     web::Query,
-///     Endpoint, Request, Route,
+///     Endpoint, IntoResponse, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -73,7 +73,7 @@ mod tests {
     use serde::Deserialize;
 
     use super::*;
-    use crate::{handler, http::Uri, Endpoint};
+    use crate::{handler, http::Uri, Endpoint, IntoResponse};
 
     #[tokio::test]
     async fn test_query_extractor() {

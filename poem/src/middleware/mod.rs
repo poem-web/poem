@@ -31,7 +31,7 @@ use crate::endpoint::Endpoint;
 /// # Example
 ///
 /// ```
-/// use poem::{handler, web::Data, Endpoint, EndpointExt, Middleware, Request};
+/// use poem::{handler, web::Data, Endpoint, EndpointExt, IntoResponse, Middleware, Request};
 ///
 /// /// A middleware that extract token from HTTP headers.
 /// struct TokenMiddleware;

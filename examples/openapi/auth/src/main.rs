@@ -1,4 +1,4 @@
-use poem::{handler, http::StatusCode, listener::TcpListener, Error, Result, Route};
+use poem::{handler, http::StatusCode, listener::TcpListener, Error, IntoResponse, Result, Route};
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
