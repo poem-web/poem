@@ -20,7 +20,7 @@ use crate::{
 ///     http::{Method, StatusCode},
 ///     post,
 ///     web::Json,
-///     Endpoint, Request, Route,
+///     Endpoint, IntoResponse, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///

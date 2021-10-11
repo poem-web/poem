@@ -9,7 +9,7 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 /// ```
 /// use poem::{
 ///     get, handler, http::StatusCode, middleware::AddData, web::Data, Endpoint, EndpointExt,
-///     Request, Route,
+///     IntoResponse, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -48,7 +48,9 @@ impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, http::StatusCode, middleware::AddData, Endpoint, EndpointExt};
+    use crate::{
+        handler, http::StatusCode, middleware::AddData, Endpoint, EndpointExt, IntoResponse,
+    };
 
     #[tokio::test]
     async fn test_data_extractor() {

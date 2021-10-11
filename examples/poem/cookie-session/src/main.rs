@@ -7,7 +7,7 @@ use poem::{
     get, handler,
     listener::TcpListener,
     web::cookie::{Cookie, CookieJar},
-    Route, Server,
+    IntoResponse, Route, Server,
 };
 
 #[handler]

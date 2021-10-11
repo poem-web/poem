@@ -135,7 +135,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     /// use poem::{
     ///     get, handler, http::StatusCode, middleware::AddData, web::Data, Endpoint, EndpointExt,
-    ///     Request, Route,
+    ///     IntoResponse, Request, Route,
     /// };
     ///
     /// #[handler]
@@ -163,7 +163,9 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, http::StatusCode, web::Data, Endpoint, EndpointExt, Request};
+    /// use poem::{
+    ///     handler, http::StatusCode, web::Data, Endpoint, EndpointExt, IntoResponse, Request,
+    /// };
     ///
     /// #[handler]
     /// async fn index(data: Data<&i32>) -> String {
@@ -189,7 +191,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result};
+    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result, IntoResponse};
     ///
     /// #[handler]
     /// async fn index(data: String) -> String {

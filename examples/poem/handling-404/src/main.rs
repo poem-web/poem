@@ -1,6 +1,6 @@
 use poem::{
-    get, handler, http::StatusCode, listener::TcpListener, web::Path, EndpointExt, Response, Route,
-    Server,
+    get, handler, http::StatusCode, listener::TcpListener, web::Path, EndpointExt, IntoResponse,
+    Response, Route, Server,
 };
 
 #[handler]

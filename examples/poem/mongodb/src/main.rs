@@ -10,7 +10,7 @@ use poem::{
     listener::TcpListener,
     middleware::AddData,
     web::{Data, Json},
-    EndpointExt, Route, Server,
+    EndpointExt, IntoResponse, Route, Server,
 };
 use serde::Deserialize;
 

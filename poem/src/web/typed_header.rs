@@ -13,7 +13,7 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 ///     get, handler,
 ///     http::{header, StatusCode},
 ///     web::{headers::Host, TypedHeader},
-///     Endpoint, Request, Route,
+///     Endpoint, IntoResponse, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -66,7 +66,7 @@ impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, web::headers::ContentLength, Endpoint};
+    use crate::{handler, web::headers::ContentLength, Endpoint, IntoResponse};
 
     #[tokio::test]
     async fn test_typed_header_extractor() {
