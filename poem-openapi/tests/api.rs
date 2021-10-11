@@ -81,6 +81,41 @@ fn tag() {
 }
 
 #[tokio::test]
+async fn common_attributes() {
+    #[derive(Tags)]
+    enum MyTags {
+        UserOperations,
+        CommonOperations,
+    }
+
+    struct Api;
+
+    #[OpenApi(prefix_path = "/hello", tag = "MyTags::CommonOperations")]
+    impl Api {
+        #[oai(path = "/world", method = "get", tag = "MyTags::UserOperations")]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/hello/world");
+    assert_eq!(
+        meta.paths[0].operations[0].tags,
+        vec!["common_operations", "user_operations"]
+    );
+
+    let ep = OpenApiService::new(Api).into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/hello/world"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
 async fn request() {
     /// Test request
     #[derive(ApiRequest)]
