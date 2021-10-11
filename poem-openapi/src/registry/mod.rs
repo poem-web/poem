@@ -69,6 +69,8 @@ pub struct MetaSchema {
     pub deprecated: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub one_of: Vec<MetaSchemaRef>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub all_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminator: Option<MetaDiscriminatorObject>,
     #[serde(skip_serializing_if = "is_false")]
@@ -124,6 +126,7 @@ impl MetaSchema {
         enum_items: vec![],
         deprecated: false,
         one_of: vec![],
+        all_of: vec![],
         discriminator: None,
         read_only: false,
         write_only: false,
@@ -153,6 +156,7 @@ impl MetaSchema {
             enum_items: vec![],
             deprecated: false,
             one_of: vec![],
+            all_of: vec![],
             discriminator: None,
             read_only: false,
             write_only: false,
@@ -168,6 +172,64 @@ impl MetaSchema {
             min_items: None,
             unique_items: None,
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self == &Self::ANY
+    }
+
+    pub fn merge(
+        mut self,
+        MetaSchema {
+            default,
+            read_only,
+            write_only,
+            title,
+            description,
+            multiple_of,
+            maximum,
+            exclusive_maximum,
+            minimum,
+            exclusive_minimum,
+            max_length,
+            min_length,
+            pattern,
+            max_items,
+            min_items,
+            unique_items,
+            ..
+        }: MetaSchema,
+    ) -> Self {
+        self.read_only |= read_only;
+        self.write_only |= write_only;
+
+        macro_rules! merge_optional {
+            ($($name:ident),*) => {
+                $(
+                if $name.is_some() {
+                    self.$name = $name;
+                }
+                )*
+            };
+        }
+
+        merge_optional!(
+            default,
+            title,
+            description,
+            multiple_of,
+            maximum,
+            exclusive_maximum,
+            minimum,
+            exclusive_minimum,
+            max_length,
+            min_length,
+            pattern,
+            max_items,
+            min_items,
+            unique_items
+        );
+        self
     }
 }
 
@@ -201,6 +263,23 @@ impl MetaSchemaRef {
         match self {
             MetaSchemaRef::Inline(_) => panic!(),
             MetaSchemaRef::Reference(name) => name,
+        }
+    }
+
+    pub fn merge(self, other: MetaSchema) -> Self {
+        match self {
+            MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(schema.merge(other)),
+            MetaSchemaRef::Reference(name) => {
+                let other = MetaSchema::ANY.merge(other);
+                if other.is_empty() {
+                    MetaSchemaRef::Reference(name)
+                } else {
+                    MetaSchemaRef::Inline(MetaSchema {
+                        all_of: vec![MetaSchemaRef::Reference(name), MetaSchemaRef::Inline(other)],
+                        ..MetaSchema::ANY
+                    })
+                }
+            }
         }
     }
 }

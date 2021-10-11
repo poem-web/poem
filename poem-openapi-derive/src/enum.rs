@@ -136,6 +136,20 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 #crate_name::serde_json::Value::String(::std::string::ToString::to_string(name))
             }
         }
+
+        #[#crate_name::poem::async_trait]
+        impl #crate_name::types::ParseFromMultipartField for #ident {
+            async fn parse_from_multipart(field: ::std::option::Option<#crate_name::poem::web::Field>) -> #crate_name::types::ParseResult<Self> {
+                use poem_openapi::types::ParseFromParameter;
+                match field {
+                    ::std::option::Option::Some(field) => {
+                        let s = field.text().await?;
+                        Self::parse_from_parameter(::std::option::Option::Some(&s))
+                    },
+                    ::std::option::Option::None => ::std::result::Result::Err(#crate_name::types::ParseError::expected_input()),
+                }
+            }
+        }
     };
 
     Ok(expanded)

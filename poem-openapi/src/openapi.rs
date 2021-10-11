@@ -98,9 +98,13 @@ impl<T> OpenApiService<T> {
     }
 
     /// Returns the OAS specification file.
-    fn spec(&self) -> String {
+    fn spec(&self) -> String
+    where
+        T: OpenApi,
+    {
         let mut registry = Registry::new();
         let metadata = T::meta();
+        T::register(&mut registry);
 
         let doc = Document {
             info: self.info.as_ref(),

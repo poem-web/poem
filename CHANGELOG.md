@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `write_only` and `read_only` attributes for object fields.
 - Add `OpenApiService::spec` method to get the generated OAS specification file.
+- Implements `Default` trait for `poem_openapi::types::multipart::JsonField<T>`.
+- Implements `ParseFromMultipartField` for some types.
 
 ## [1.0.1] 2021-10-10
 

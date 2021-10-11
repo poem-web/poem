@@ -174,7 +174,7 @@ impl<'a> Validators<'a> {
             Ok(Some(quote! {
                 #(
                     let validator = #validators;
-                    #crate_name::validation::ValidatorMeta::update_meta(&validator, schema);
+                    #crate_name::validation::ValidatorMeta::update_meta(&validator, &mut schema);
                 )*
             }))
         } else {

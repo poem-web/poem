@@ -487,14 +487,12 @@ fn generate_operation(
                     #crate_name::registry::MetaOperationParam {
                         name: #param_oai_typename,
                         schema: {
-                            let mut schema_ref = <#arg_ty as #crate_name::types::Type>::schema_ref();
-
-                            if let #crate_name::registry::MetaSchemaRef::Inline(schema) = &mut schema_ref {
+                            <#arg_ty as #crate_name::types::Type>::schema_ref().merge({
+                                let mut schema = #crate_name::registry::MetaSchema::ANY;
                                 schema.default = #meta_arg_default;
                                 #validators_update_meta
-                            }
-
-                            schema_ref
+                                schema
+                            })
                         },
                         in_type: #meta_in,
                         description: #desc,

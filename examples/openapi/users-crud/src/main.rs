@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-
 use poem::{listener::TcpListener, Route};
 use poem_openapi::{
     payload::Json, types::Password, ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
+use slab::Slab;
 use tokio::sync::Mutex;
 
 #[derive(Tags)]
@@ -16,6 +15,7 @@ enum ApiTags {
 #[derive(Debug, Object, Clone, Eq, PartialEq)]
 struct User {
     /// Id
+    #[oai(read_only)]
     id: i64,
     /// Name
     #[oai(max_length = 64)]
@@ -38,10 +38,7 @@ struct UpdateUser {
 enum CreateUserResponse {
     /// Returns when the user is successfully created.
     #[oai(status = 200)]
-    Ok,
-    /// Returns when the user already exists.
-    #[oai(status = 409)]
-    UserAlreadyExists,
+    Ok(Json<i64>),
 }
 
 #[derive(ApiResponse)]
@@ -76,7 +73,7 @@ enum UpdateUserResponse {
 
 #[derive(Default)]
 struct Api {
-    users: Mutex<HashMap<i64, User>>,
+    users: Mutex<Slab<User>>,
 }
 
 #[OpenApi]
@@ -85,11 +82,8 @@ impl Api {
     #[oai(path = "/users", method = "post", tag = "ApiTags::User")]
     async fn create_user(&self, user: Json<User>) -> CreateUserResponse {
         let mut users = self.users.lock().await;
-        if users.contains_key(&user.0.id) {
-            return CreateUserResponse::UserAlreadyExists;
-        }
-        users.insert(user.0.id, user.0);
-        CreateUserResponse::Ok
+        let id = users.insert(user.0) as i64;
+        CreateUserResponse::Ok(Json(id))
     }
 
     /// Find user by id
@@ -99,7 +93,7 @@ impl Api {
         #[oai(name = "user_id", in = "path")] user_id: i64,
     ) -> FindUserResponse {
         let users = self.users.lock().await;
-        match users.get(&user_id) {
+        match users.get(user_id as usize) {
             Some(user) => FindUserResponse::Ok(Json(user.clone())),
             None => FindUserResponse::NotFound,
         }
@@ -112,9 +106,12 @@ impl Api {
         #[oai(name = "user_id", in = "path")] user_id: i64,
     ) -> DeleteUserResponse {
         let mut users = self.users.lock().await;
-        match users.remove(&user_id) {
-            Some(_) => DeleteUserResponse::Ok,
-            None => DeleteUserResponse::NotFound,
+        let user_id = user_id as usize;
+        if users.contains(user_id) {
+            users.remove(user_id);
+            DeleteUserResponse::Ok
+        } else {
+            DeleteUserResponse::NotFound
         }
     }
 
@@ -126,7 +123,7 @@ impl Api {
         update: Json<UpdateUser>,
     ) -> UpdateUserResponse {
         let mut users = self.users.lock().await;
-        match users.get_mut(&user_id) {
+        match users.get_mut(user_id as usize) {
             Some(user) => {
                 if let Some(name) = update.0.name {
                     user.name = name;

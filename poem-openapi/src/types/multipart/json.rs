@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// A JSON type for multipart field.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct JsonField<T>(pub T);
 
 impl<T: Type> Type for JsonField<T> {

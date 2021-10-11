@@ -3,12 +3,12 @@ use std::io::Write;
 use poem::{Request, RequestBody};
 use poem_openapi::{
     payload::{ParsePayload, Payload},
-    registry::MetaSchema,
+    registry::{MetaSchema, MetaSchemaRef},
     types::{
         multipart::{JsonField, Upload},
         Binary,
     },
-    Multipart, ParseRequestError,
+    Enum, Multipart, Object, ParseRequestError,
 };
 
 fn create_multipart_payload(parts: &[(&str, Option<&str>, &[u8])]) -> Vec<u8> {
@@ -427,4 +427,74 @@ async fn repeated_error() {
                 .to_string()
         }
     )
+}
+
+#[test]
+fn inline_field() {
+    #[derive(Multipart, Debug, PartialEq)]
+    struct A {
+        /// Inner Obj
+        #[oai(default)]
+        inner_obj: JsonField<InlineObj>,
+        /// Inner Enum
+        #[oai(default)]
+        inner_enum: InlineEnum,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct InlineObj {
+        v: i32,
+    }
+
+    impl Default for InlineObj {
+        fn default() -> Self {
+            Self { v: 100 }
+        }
+    }
+
+    #[derive(Enum, Debug, PartialEq)]
+    enum InlineEnum {
+        A,
+        B,
+        C,
+    }
+
+    impl Default for InlineEnum {
+        fn default() -> Self {
+            Self::B
+        }
+    }
+
+    let schema_ref = A::schema_ref();
+    let schema: &MetaSchema = schema_ref.unwrap_inline();
+
+    let meta_inner_obj = schema.properties[0].1.unwrap_inline();
+    assert_eq!(
+        meta_inner_obj.all_of[0],
+        MetaSchemaRef::Reference("InlineObj")
+    );
+    assert_eq!(
+        meta_inner_obj.all_of[1],
+        MetaSchemaRef::Inline(MetaSchema {
+            title: Some("Inner Obj"),
+            default: Some(serde_json::json!({
+                "v": 100,
+            })),
+            ..MetaSchema::ANY
+        })
+    );
+
+    let meta_inner_enum = schema.properties[1].1.unwrap_inline();
+    assert_eq!(
+        meta_inner_enum.all_of[0],
+        MetaSchemaRef::Reference("InlineEnum")
+    );
+    assert_eq!(
+        meta_inner_enum.all_of[1],
+        MetaSchemaRef::Inline(MetaSchema {
+            title: Some("Inner Enum"),
+            default: Some(serde_json::json!("B")),
+            ..MetaSchema::ANY
+        })
+    );
 }

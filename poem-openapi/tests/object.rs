@@ -1,7 +1,7 @@
 use poem_openapi::{
-    registry::{MetaSchema, Registry},
+    registry::{MetaSchema, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    Object,
+    Enum, Object,
 };
 use serde_json::json;
 
@@ -283,5 +283,145 @@ fn serde_generic() {
     assert_eq!(
         serde_json::from_value::<Obj<i32>>(json!({ "a": 10 })).unwrap(),
         Obj { a: 10 }
+    );
+}
+
+#[test]
+fn read_only() {
+    #[derive(Debug, Object, PartialEq)]
+    struct Obj {
+        #[oai(read_only)]
+        id: i32,
+        value: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.properties[0].0, "id");
+    assert!(meta.properties[0].1.unwrap_inline().read_only);
+
+    assert_eq!(
+        serde_json::from_value::<Obj>(serde_json::json!({
+            "value": 100,
+        }))
+        .unwrap(),
+        Obj { id: 0, value: 100 }
+    );
+
+    assert_eq!(
+        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        serde_json::json!({
+            "id": 99,
+            "value": 100,
+        })
+    );
+
+    assert_eq!(
+        serde_json::from_value::<Obj>(serde_json::json!({
+            "id": 99,
+            "value": 100,
+        }))
+        .unwrap_err()
+        .to_string(),
+        r#"failed to parse "Obj": properties `id` is read only."#,
+    );
+}
+
+#[test]
+fn write_only() {
+    #[derive(Debug, Object, PartialEq)]
+    struct Obj {
+        id: i32,
+        #[oai(write_only)]
+        value: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.properties[1].0, "value");
+    assert!(meta.properties[1].1.unwrap_inline().write_only);
+
+    assert_eq!(
+        serde_json::from_value::<Obj>(serde_json::json!({
+            "id": 99,
+            "value": 100,
+        }))
+        .unwrap(),
+        Obj { id: 99, value: 100 }
+    );
+
+    assert_eq!(
+        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        serde_json::json!({
+            "id": 99,
+        })
+    );
+}
+
+#[test]
+fn inline_field() {
+    #[derive(Object)]
+    struct Obj {
+        /// Inner Obj
+        #[oai(default)]
+        inner_obj: InlineObj,
+        /// Inner Enum
+        #[oai(default)]
+        inner_enum: InlineEnum,
+    }
+
+    #[derive(Object)]
+    struct InlineObj {
+        v: i32,
+    }
+
+    impl Default for InlineObj {
+        fn default() -> Self {
+            Self { v: 100 }
+        }
+    }
+
+    #[derive(Enum)]
+    enum InlineEnum {
+        A,
+        B,
+        C,
+    }
+
+    impl Default for InlineEnum {
+        fn default() -> Self {
+            Self::B
+        }
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.properties[0].0, "innerObj");
+
+    let meta_inner_obj = meta.properties[0].1.unwrap_inline();
+    assert_eq!(
+        meta_inner_obj.all_of[0],
+        MetaSchemaRef::Reference("InlineObj")
+    );
+    assert_eq!(
+        meta_inner_obj.all_of[1],
+        MetaSchemaRef::Inline(MetaSchema {
+            title: Some("Inner Obj"),
+            default: Some(serde_json::json!({
+                "v": 100,
+            })),
+            ..MetaSchema::ANY
+        })
+    );
+
+    let meta_inner_enum = meta.properties[1].1.unwrap_inline();
+    assert_eq!(
+        meta_inner_enum.all_of[0],
+        MetaSchemaRef::Reference("InlineEnum")
+    );
+    assert_eq!(
+        meta_inner_enum.all_of[1],
+        MetaSchemaRef::Inline(MetaSchema {
+            title: Some("Inner Enum"),
+            default: Some(serde_json::json!("B")),
+            ..MetaSchema::ANY
+        })
     );
 }

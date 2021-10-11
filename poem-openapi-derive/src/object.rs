@@ -119,7 +119,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         if read_only && write_only {
             return Err(Error::new_spanned(
                 field_ident,
-                "The `write_only` and `read_only` attributes cannot be enabled at the same time.",
+                "The `write_only` and `read_only` attributes cannot be enabled both.",
             )
             .into());
         }
@@ -141,7 +141,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         if read_only {
             deserialize_fields.push(quote! {
                 #[allow(non_snake_case)]
-                let #field_ident: #field_ty = Default::default();
+                let #field_ident: #field_ty = {
+                    if obj.contains_key(#field_name) {
+                        return Err(#crate_name::types::ParseError::custom(format!("properties `{}` is read only.", #field_name)));
+                    }
+                    Default::default()
+                };
             });
         } else {
             match &field.default {
@@ -203,9 +208,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         meta_fields.push(quote! {{
             <#field_ty>::register(registry);
 
-            let mut schema_ref = <#field_ty as #crate_name::types::Type>::schema_ref();
-
-            if let #crate_name::registry::MetaSchemaRef::Inline(schema) = &mut schema_ref {
+            let patch_schema = {
+                let mut schema = #crate_name::registry::MetaSchema::ANY;
                 schema.default = #field_meta_default;
                 schema.read_only = #read_only;
                 schema.write_only = #write_only;
@@ -218,9 +222,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     schema.description = ::std::option::Option::Some(field_description);
                 }
                 #validators_update_meta
-            }
+                schema
+            };
 
-            (#field_name, schema_ref)
+            (#field_name, <#field_ty as #crate_name::types::Type>::schema_ref().merge(patch_schema))
         }});
 
         required_fields.push(quote! {

@@ -1,8 +1,12 @@
+use poem::web::Field;
 use serde_json::{Number, Value};
 
 use crate::{
     registry::MetaSchemaRef,
-    types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type, TypeName},
+    types::{
+        ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
+        ToJSON, Type, TypeName,
+    },
 };
 
 macro_rules! impl_type_for_floats {
@@ -38,6 +42,16 @@ macro_rules! impl_type_for_floats {
             fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
                 match value {
                     Some(value) => value.parse().map_err(ParseError::custom),
+                    None => Err(ParseError::expected_input()),
+                }
+            }
+        }
+
+        #[poem::async_trait]
+        impl ParseFromMultipartField for $ty {
+            async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
+                match field {
+                    Some(field) => Ok(field.text().await?.parse()?),
                     None => Err(ParseError::expected_input()),
                 }
             }

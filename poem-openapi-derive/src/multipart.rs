@@ -180,9 +180,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         };
 
         meta_fields.push(quote! {{
-            let mut schema_ref = <#field_ty as #crate_name::types::Type>::schema_ref();
-
-            if let #crate_name::registry::MetaSchemaRef::Inline(schema) = &mut schema_ref {
+            let mut patch_schema = {
+                let mut schema = #crate_name::registry::MetaSchema::ANY;
                 schema.default = #field_meta_default;
 
                 if let ::std::option::Option::Some(title) = #field_title {
@@ -194,9 +193,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
 
                 #validators_update_meta
-            }
+                schema
+            };
 
-            (#field_name, schema_ref)
+            (#field_name, <#field_ty as #crate_name::types::Type>::schema_ref().merge(patch_schema))
         }});
 
         register_fields.push(quote! {
