@@ -207,9 +207,7 @@ impl RequestBody {
 ///     fmt::{self, Display, Formatter},
 /// };
 ///
-/// use poem::{
-///     get, handler, Endpoint, Error, FromRequest, IntoResponse, Request, RequestBody, Route,
-/// };
+/// use poem::{get, handler, Endpoint, Error, FromRequest, Request, RequestBody, Route};
 ///
 /// struct Token(String);
 ///

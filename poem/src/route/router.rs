@@ -33,7 +33,7 @@ impl Route {
     ///     get, handler,
     ///     http::{StatusCode, Uri},
     ///     web::Path,
-    ///     Endpoint, IntoResponse, Request, Route,
+    ///     Endpoint, Request, Route,
     /// };
     ///
     /// #[handler]

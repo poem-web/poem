@@ -27,7 +27,7 @@ use crate::{
 ///     get, handler,
 ///     http::{Method, StatusCode, Uri},
 ///     web::Form,
-///     Endpoint, IntoResponse, Request, Route,
+///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -119,7 +119,7 @@ mod tests {
     use crate::{
         handler,
         http::{StatusCode, Uri},
-        Endpoint, IntoResponse,
+        Endpoint,
     };
 
     #[tokio::test]
