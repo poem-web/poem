@@ -24,6 +24,10 @@ use crate::{
 struct APIArgs {
     #[darling(default)]
     internal: bool,
+    #[darling(default)]
+    prefix_path: Option<SpannedValue<String>>,
+    #[darling(default, multiple, rename = "tag")]
+    common_tags: Vec<Path>,
 }
 
 #[derive(FromMeta)]
@@ -126,7 +130,11 @@ pub(crate) fn generate(
     args: AttributeArgs,
     mut item_impl: ItemImpl,
 ) -> GeneratorResult<TokenStream> {
-    let APIArgs { internal } = match APIArgs::from_list(&args) {
+    let APIArgs {
+        internal,
+        prefix_path,
+        common_tags,
+    } = match APIArgs::from_list(&args) {
         Ok(args) => args,
         Err(err) => return Ok(err.write_errors()),
     };
@@ -151,7 +159,14 @@ pub(crate) fn generate(
                     );
                 }
 
-                generate_operation(&mut ctx, &crate_name, operation_args, method)?;
+                generate_operation(
+                    &mut ctx,
+                    &crate_name,
+                    &prefix_path,
+                    &common_tags,
+                    operation_args,
+                    method,
+                )?;
                 remove_oai_attrs(&mut method.attrs);
             }
         }
@@ -242,6 +257,8 @@ pub(crate) fn generate(
 fn generate_operation(
     ctx: &mut Context,
     crate_name: &TokenStream,
+    prefix_path: &Option<SpannedValue<String>>,
+    common_tags: &[Path],
     args: APIOperation,
     item_method: &mut ImplItemMethod,
 ) -> GeneratorResult<()> {
@@ -257,8 +274,9 @@ fn generate_operation(
     let (summary, description) = get_summary_and_description(&item_method.attrs)?;
     let summary = optional_literal(&summary);
     let description = optional_literal(&description);
+    let tags = common_tags.iter().chain(&tags);
 
-    let (oai_path, new_path, path_vars) = convert_oai_path(&path)?;
+    let (oai_path, new_path, path_vars) = convert_oai_path(&path, prefix_path)?;
 
     if item_method.sig.inputs.is_empty() {
         return Err(Error::new_spanned(
@@ -353,7 +371,7 @@ fn generate_operation(
                             arg,
                             r#"Missing a name. #[oai(name = "...")]"#,
                         )
-                        .into())
+                        .into());
                     }
                 };
 
@@ -364,7 +382,7 @@ fn generate_operation(
                             arg,
                             r#"Missing a input type. #[oai(in = "...")]"#,
                         )
-                        .into())
+                        .into());
                     }
                 };
 
@@ -555,7 +573,7 @@ fn generate_operation(
     });
 
     let mut tag_names = Vec::new();
-    for tag in &tags {
+    for tag in tags {
         ctx.tags.push(quote!(#tag));
         tag_names.push(quote!(#crate_name::Tags::name(&#tag)));
     }
