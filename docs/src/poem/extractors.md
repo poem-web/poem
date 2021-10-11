@@ -154,12 +154,10 @@ You can also implement your own extractor.
  token from the `MyToken` header.
  
 ```rust
-use std::{
-    error::Error as StdError,
-    fmt::{self, Display, Formatter},
+use poem::{
+    get, handler, http::StatusCode, listener::TcpListener, FromRequest, IntoResponse, Request,
+    RequestBody, Response, Route, Server,
 };
-
-use poem::{handler, Endpoint, Error, FromRequest, Request, RequestBody};
 
 struct Token(String);
 
@@ -167,17 +165,12 @@ struct Token(String);
 #[derive(Debug)]
 struct MissingToken;
 
-impl Display for MissingToken {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "missing token")
-    }
-}
-
-impl StdError for MissingToken {}
-
-impl From<MissingToken> for Error {
-    fn from(err: MissingToken) -> Self {
-        Error::bad_request(err)
+/// custom-error can also be reused
+impl IntoResponse for MissingToken {
+    fn into_response(self) -> Response {
+        Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body("missing token")
     }
 }
 
@@ -186,10 +179,7 @@ impl From<MissingToken> for Error {
 impl<'a> FromRequest<'a> for Token {
     type Error = MissingToken;
 
-    async fn from_request(
-        req: &'a Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         let token = req
             .headers()
             .get("MyToken")
@@ -202,5 +192,18 @@ impl<'a> FromRequest<'a> for Token {
 #[handler]
 async fn index(token: Token) {
     assert_eq!(token.0, "token123");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), std::io::Error> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug");
+    }
+    tracing_subscriber::fmt::init();
+
+    let app = Route::new().at("/", get(index));
+    let listener = TcpListener::bind("127.0.0.1:3000");
+    let server = Server::new(listener).await?;
+    server.run(app).await
 }
 ```
