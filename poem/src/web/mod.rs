@@ -315,6 +315,10 @@ pub trait FromRequest<'a>: Sized {
 /// `application/octet-stream`. The vector’s data is used as the body of the
 /// response.
 ///
+/// - **Body**
+///
+///     Sets the status to `OK` and use the specified body.
+///
 /// - **StatusCode**
 ///
 ///    Sets the status to the specified status code [`StatusCode`] with an empty
@@ -574,6 +578,12 @@ impl IntoResponse for Vec<u8> {
 impl IntoResponse for () {
     fn into_response(self) -> Response {
         Response::builder().body(Body::empty())
+    }
+}
+
+impl IntoResponse for Body {
+    fn into_response(self) -> Response {
+        Response::builder().body(self)
     }
 }
 

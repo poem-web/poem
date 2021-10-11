@@ -68,6 +68,10 @@ used as the body of the response.
 `application/octet-stream`. The vector’s data is used as the body of the
 response.
 
+- **Body**
+
+  Sets the status to `OK` and use the specified body.
+
 - **StatusCode**
 
    Sets the status to the specified status code `StatusCode` with an empty
