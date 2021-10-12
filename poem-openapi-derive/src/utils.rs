@@ -91,9 +91,10 @@ pub(crate) fn parse_oai_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResu
     Ok(None)
 }
 
-pub(crate) fn convert_oai_path(
-    path: &SpannedValue<String>,
-) -> Result<(String, String, HashSet<&str>)> {
+pub(crate) fn convert_oai_path<'a, 'b: 'a>(
+    path: &'a SpannedValue<String>,
+    prefix_path: &'b Option<SpannedValue<String>>,
+) -> Result<(String, String, HashSet<&'a str>)> {
     if !path.starts_with('/') {
         return Err(Error::new(path.span(), "The path must start with '/'."));
     }
@@ -102,6 +103,29 @@ pub(crate) fn convert_oai_path(
     let mut oai_path = String::new();
     let mut new_path = String::new();
 
+    if let Some(prefix_path) = prefix_path {
+        handle_path(prefix_path, &mut vars, &mut oai_path, &mut new_path)?;
+    }
+
+    handle_path(path, &mut vars, &mut oai_path, &mut new_path)?;
+
+    if oai_path.is_empty() {
+        oai_path += "/";
+    }
+
+    if new_path.is_empty() {
+        new_path += "/";
+    }
+
+    Ok((oai_path, new_path, vars))
+}
+
+fn handle_path<'a>(
+    path: &'a SpannedValue<String>,
+    vars: &mut HashSet<&'a str>,
+    oai_path: &mut String,
+    new_path: &mut String,
+) -> Result<()> {
     for s in path.split('/') {
         if s.is_empty() {
             continue;
@@ -129,14 +153,5 @@ pub(crate) fn convert_oai_path(
             new_path.push_str(s);
         }
     }
-
-    if oai_path.is_empty() {
-        oai_path += "/";
-    }
-
-    if new_path.is_empty() {
-        new_path += "/";
-    }
-
-    Ok((oai_path, new_path, vars))
+    Ok(())
 }
