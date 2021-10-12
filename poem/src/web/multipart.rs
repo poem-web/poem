@@ -141,7 +141,7 @@ impl Multipart {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, http::StatusCode, Endpoint, IntoResponse};
+    use crate::{handler, http::StatusCode, Endpoint};
 
     #[tokio::test]
     async fn test_multipart_extractor_content_type() {

@@ -315,7 +315,7 @@ impl<'a> FromRequest<'a> for Cookie {
 ///     http::{header, StatusCode},
 ///     middleware::CookieJarManager,
 ///     web::cookie::{Cookie, CookieJar},
-///     Endpoint, EndpointExt, IntoResponse, Request, Route,
+///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]

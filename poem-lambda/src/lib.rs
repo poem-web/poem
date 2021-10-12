@@ -20,7 +20,7 @@ use poem::{Body, Endpoint, FromRequest, IntoEndpoint, Request, RequestBody};
 /// # Example
 ///
 /// ```
-/// use poem::{handler, IntoResponse, Request};
+/// use poem::{handler, Request};
 /// use poem_lambda::Context;
 ///
 /// #[handler]

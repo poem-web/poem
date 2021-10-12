@@ -155,7 +155,7 @@ You can also implement your own extractor.
  
 ```rust
 use poem::{
-    get, handler, http::StatusCode, listener::TcpListener, FromRequest, IntoResponse, Request,
+    get, handler, http::StatusCode, listener::TcpListener, FromRequest, Request,
     RequestBody, Response, Route, Server,
 };
 

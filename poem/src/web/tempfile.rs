@@ -44,7 +44,7 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{handler, Endpoint, IntoResponse};
+    use crate::{handler, Endpoint};
 
     #[tokio::test]
     async fn test_tempfile_extractor() {
