@@ -249,13 +249,7 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        endpoint::make_sync,
-        handler,
-        middleware::CookieJarManager,
-        web::cookie::{Cookie, CookieJar},
-        EndpointExt,
-    };
+    use crate::{endpoint::make_sync, EndpointExt};
 
     const ALLOW_ORIGIN: &str = "example.com";
     const EXPOSE_HEADER: &str = "X-My-Custom-Header";
@@ -417,8 +411,14 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
 
+    #[cfg(feature = "cookie")]
     #[tokio::test]
     async fn retain_cookies() {
+        use crate::{
+            handler,
+            middleware::CookieJarManager,
+            web::cookie::{Cookie, CookieJar},
+        };
         #[handler(internal)]
         async fn index(cookie_jar: &CookieJar) {
             cookie_jar.add(Cookie::new_with_str("foo", "bar"));

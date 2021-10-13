@@ -17,7 +17,7 @@ impl Type for Base64 {
     };
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Self::NAME.into())
+        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
     }
 
     impl_value_type!();

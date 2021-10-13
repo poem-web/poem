@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use crate::{
-    registry::{MetaSchema, MetaSchemaRef},
+    registry::MetaSchemaRef,
     types::{ParseFromJSON, ParseResult, ToJSON, Type, TypeName},
 };
 
@@ -12,7 +12,7 @@ impl Type for Value {
     };
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(MetaSchema::ANY)
+        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
     }
 
     impl_value_type!();

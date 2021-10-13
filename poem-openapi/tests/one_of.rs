@@ -27,13 +27,13 @@ enum MyObj {
 fn one_of_meta() {
     assert_eq!(
         MyObj::schema_ref(),
-        MetaSchemaRef::Inline(MetaSchema {
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
             properties: vec![(
                 "type",
-                MetaSchemaRef::Inline(MetaSchema {
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
                     enum_items: vec!["A".into(), "B".into()],
                     ..MetaSchema::new("string")
-                })
+                }))
             )],
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
@@ -41,7 +41,7 @@ fn one_of_meta() {
             }),
             one_of: vec![MetaSchemaRef::Reference("A"), MetaSchemaRef::Reference("B")],
             ..MetaSchema::new("object")
-        })
+        }))
     );
 
     let mut registry = Registry::new();
@@ -130,13 +130,13 @@ fn mapping() {
 
     assert_eq!(
         MyOneOf::schema_ref(),
-        MetaSchemaRef::Inline(MetaSchema {
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
             properties: vec![(
                 "type",
-                MetaSchemaRef::Inline(MetaSchema {
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
                     enum_items: vec!["a1".into(), "a2".into()],
                     ..MetaSchema::new("string")
-                })
+                }))
             )],
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
@@ -150,7 +150,7 @@ fn mapping() {
                 MetaSchemaRef::Reference("Def")
             ],
             ..MetaSchema::new("object")
-        })
+        }))
     );
 
     let mut registry = Registry::new();

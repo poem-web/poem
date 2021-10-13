@@ -225,7 +225,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     properties: ::std::vec![#(#meta_fields),*],
                     ..#crate_name::registry::MetaSchema::new("object")
                 };
-                #crate_name::registry::MetaSchemaRef::Inline(schema)
+                #crate_name::registry::MetaSchemaRef::Inline(Box::new(schema))
             }
 
             fn register(registry: &mut #crate_name::registry::Registry) {

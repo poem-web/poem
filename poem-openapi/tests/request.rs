@@ -32,7 +32,7 @@ fn meta() {
                 },
                 MetaMediaType {
                     content_type: "text/plain",
-                    schema: MetaSchemaRef::Inline(MetaSchema::new("string")),
+                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
                 }
             ],
             required: true
