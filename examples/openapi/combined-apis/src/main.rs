@@ -42,7 +42,7 @@ async fn main() -> Result<(), std::io::Error> {
     let api_service = OpenApiService::new(Api1.combine(Api2).combine(Api3))
         .title("Combined APIs")
         .server("http://localhost:3000/api");
-    let ui = api_service.swagger_ui("http://localhost:3000");
+    let ui = api_service.swagger_ui();
 
     poem::Server::new(listener)
         .await?

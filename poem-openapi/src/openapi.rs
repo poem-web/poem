@@ -1,6 +1,6 @@
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
-    web::{cookie::CookieKey, Json},
+    web::cookie::CookieKey,
     Endpoint, EndpointExt, IntoEndpoint, Response, Route,
 };
 
@@ -93,27 +93,24 @@ impl<T> OpenApiService<T> {
     /// Create the Swagger UI endpoint.
     #[must_use]
     #[cfg(feature = "swagger-ui")]
-    pub fn swagger_ui(&self, absolute_uri: impl AsRef<str>) -> impl Endpoint
+    pub fn swagger_ui(&self) -> impl Endpoint
     where
         T: OpenApi,
     {
-        create_ui_endpoint(absolute_uri.as_ref(), &self.spec())
+        create_ui_endpoint(&self.spec())
     }
 
     /// Create an endpoint to serve the open api specification.
-    pub fn serve_spec(&self, absolute_uri: impl AsRef<str>) -> impl Endpoint
+    pub fn spec_endpoint(&self) -> impl Endpoint
     where
         T: OpenApi,
     {
         let spec = self.spec();
-        poem::Route::new().at(
-            absolute_uri,
-            make_sync(move |_| {
-                Response::builder()
-                    .content_type("application/json")
-                    .body(spec.clone())
-            }),
-        )
+        make_sync(move |_| {
+            Response::builder()
+                .content_type("application/json")
+                .body(spec.clone())
+        })
     }
 
     /// Returns the OAS specification file.

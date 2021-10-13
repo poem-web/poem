@@ -50,7 +50,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 
 | Feature    | Description                                                  | Default enabled    |
 | ---------- | ------------------------------------------------------------ | ------------------ |
-| chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x:                |
+| chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x:       |
 | swagger-ui | Add swagger UI support                                       | :heavy_check_mark: |
 
 ## Safety

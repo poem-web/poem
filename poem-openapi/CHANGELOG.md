@@ -6,11 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- [[#57]] Add `prefix_path` and `tag` attributes for `#[OpenApi]`
-
-### Breaking Changes
-
-- [[#59]] `MetaSchemaRef::Inline(MetaSchema)` -> `MetaSchemaRef::Inline(Box<MetaSchema>)`
+- Add `prefix_path` and `tag` attributes for `#[OpenApi]`. [#57](https://github.com/poem-web/poem/pull/57)
+- `OpenApiService::swagger_ui` method no longer needs the `absolute_uri` parameter.
 
 ## [1.0.2] 2021-10-11
 

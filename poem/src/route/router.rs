@@ -204,12 +204,13 @@ impl Route {
                 let new_uri = {
                     let uri = std::mem::take(req.uri_mut());
                     let mut uri_parts = uri.into_parts();
-                    uri_parts.path_and_query = Some(
-                        PathAndQuery::from_str(
-                            &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..],
-                        )
-                        .unwrap(),
-                    );
+                    let path =
+                        &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..];
+                    uri_parts.path_and_query = Some(if !path.starts_with('/') {
+                        PathAndQuery::from_str(&format!("/{}", path)).unwrap()
+                    } else {
+                        PathAndQuery::from_str(path).unwrap()
+                    });
                     Uri::from_parts(uri_parts).unwrap()
                 };
                 *req.uri_mut() = new_uri;
@@ -539,6 +540,19 @@ mod tests {
             ),
         );
         assert_eq!(get(&r, "/a/b/c?name=abc").await, "/c?name=abc");
+    }
+
+    #[tokio::test]
+    async fn nested2() {
+        let r = Route::new().nest(
+            "/a",
+            Route::new().nest(
+                "/",
+                make_sync(|req| req.uri().path_and_query().unwrap().to_string()),
+            ),
+        );
+        assert_eq!(get(&r, "/a").await, "/");
+        assert_eq!(get(&r, "/a?a=1").await, "/?a=1");
     }
 
     #[tokio::test]

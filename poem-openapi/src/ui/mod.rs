@@ -24,12 +24,25 @@ const OAUTH2_REDIRECT_HTML: &str = include_str!("oauth2-redirect.html");
 <div id="ui"></div>
 <script>
     let spec = {{ spec|safe }};
+    let oauth2RedirectUrl;
+    
+    let query = window.location.href.indexOf("?");
+    if (query > 0) {
+        oauth2RedirectUrl = window.location.href.substring(0, query);
+    } else {
+        oauth2RedirectUrl = window.location.href;
+    }
+    
+    if (!oauth2RedirectUrl.endsWith("/")) {
+        oauth2RedirectUrl += "/";
+    }
+    oauth2RedirectUrl += "oauth2-redirect.html";
 
     SwaggerUIBundle({
         dom_id: '#ui',
         spec: spec,
-        filter:false,
-        oauth2RedirectUrl: "{{ oauth2_redirect_url|safe }}"
+        filter: false,
+        oauth2RedirectUrl: oauth2RedirectUrl,
     })
 </script>
 
@@ -40,16 +53,13 @@ struct UITemplate<'a> {
     spec: &'a str,
     script: &'static str,
     css: &'static str,
-    oauth2_redirect_url: &'a str,
 }
 
-pub(crate) fn create_ui_endpoint(absolute_uri: &str, document: &str) -> impl Endpoint {
-    let oauth2_redirect_url = format!("{}/oauth2-redirect.html", absolute_uri);
+pub(crate) fn create_ui_endpoint(document: &str) -> impl Endpoint {
     let index_html = UITemplate {
         spec: document,
         script: SWAGGER_UI_JS,
         css: SWAGGER_UI_CSS,
-        oauth2_redirect_url: &oauth2_redirect_url,
     }
     .render()
     .unwrap();
