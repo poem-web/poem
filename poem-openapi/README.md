@@ -46,11 +46,12 @@ important business implementations.
 
 ## Crate features
 
-To avoid compiling unused dependencies, Poem gates certain features, all of which are disabled by default:
+To avoid compiling unused dependencies, Poem gates certain features, some of which are disabled by default:
 
-|Feature           |Description                     |
-|------------------|--------------------------------|
-|chrono            | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).          |
+| Feature    | Description                                                  | Default enabled    |
+| ---------- | ------------------------------------------------------------ | ------------------ |
+| chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x:                |
+| swagger-ui | Add swagger UI support                                       | :heavy_check_mark: |
 
 ## Safety
 

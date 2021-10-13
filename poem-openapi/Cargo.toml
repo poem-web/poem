@@ -16,7 +16,9 @@ categories = [
 ]
 
 [features]
-default = []
+default = ["swagger-ui"]
+
+swagger-ui = ["askama"]
 
 [dependencies]
 poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.0" }
@@ -27,13 +29,13 @@ serde_json = "1.0.68"
 base64 = "0.13.0"
 serde = { version = "1.0.130", features = ["derive"] }
 thiserror = "1.0.29"
-askama = "0.10.5"
 derive_more = "0.99.16"
 num-traits = "0.2.14"
 regex = "1.5.4"
 typed-headers = "0.2.0"
 
 # Feature optional dependencies
+askama = { version = "0.10.5", optional = true }
 chrono = { version = "0.4.19", optional = true }
 
 [dev-dependencies]
