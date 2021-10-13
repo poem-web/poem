@@ -87,11 +87,11 @@ async fn query_default() {
     assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
     assert_eq!(
         meta.paths[0].operations[0].params[0].schema,
-        MetaSchemaRef::Inline(MetaSchema {
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
             format: Some("int32"),
             default: Some(json!(999)),
             ..i32::schema_ref().unwrap_inline().clone()
-        })
+        }))
     );
 
     let api = OpenApiService::new(Api).into_endpoint();

@@ -190,6 +190,7 @@ mod tests {
     use super::{AcceptorExt, *};
     use crate::listener::TcpListener;
 
+    #[cfg(feature = "tls")]
     #[tokio::test]
     #[should_panic]
     #[allow(unused_variables, unused_assignments)]

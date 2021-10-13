@@ -57,7 +57,7 @@ fn meta() {
                     status: None,
                     content: vec![MetaMediaType {
                         content_type: "text/plain",
-                        schema: MetaSchemaRef::Inline(MetaSchema::new("string")),
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
                     }],
                     headers: vec![]
                 }
@@ -125,16 +125,16 @@ async fn headers() {
                 name: "MY-HEADER1",
                 description: Some("header1"),
                 required: true,
-                schema: MetaSchemaRef::Inline(MetaSchema {
+                schema: MetaSchemaRef::Inline(Box::new(MetaSchema {
                     format: Some("int32"),
                     ..MetaSchema::new("integer")
-                })
+                }))
             },
             MetaHeader {
                 name: "MY-HEADER2",
                 description: None,
                 required: true,
-                schema: MetaSchemaRef::Inline(MetaSchema::new("string"))
+                schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
             }
         ]
     );

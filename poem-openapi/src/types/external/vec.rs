@@ -11,10 +11,10 @@ impl<T: Type> Type for Vec<T> {
     const NAME: TypeName = TypeName::Array(&T::NAME);
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(MetaSchema {
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
             items: Some(Box::new(T::schema_ref())),
             ..MetaSchema::new("array")
-        })
+        }))
     }
 
     impl_value_type!();

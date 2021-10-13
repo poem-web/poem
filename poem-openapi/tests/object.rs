@@ -402,13 +402,13 @@ fn inline_field() {
     );
     assert_eq!(
         meta_inner_obj.all_of[1],
-        MetaSchemaRef::Inline(MetaSchema {
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
             title: Some("Inner Obj"),
             default: Some(serde_json::json!({
                 "v": 100,
             })),
             ..MetaSchema::ANY
-        })
+        }))
     );
 
     let meta_inner_enum = meta.properties[1].1.unwrap_inline();
@@ -418,10 +418,10 @@ fn inline_field() {
     );
     assert_eq!(
         meta_inner_enum.all_of[1],
-        MetaSchemaRef::Inline(MetaSchema {
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
             title: Some("Inner Enum"),
             default: Some(serde_json::json!("B")),
             ..MetaSchema::ANY
-        })
+        }))
     );
 }
