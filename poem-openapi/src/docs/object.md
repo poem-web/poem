@@ -6,6 +6,7 @@ Define a OpenAPI object
 |---------------|---------------------------|----------|----------|
 | rename        | Rename the object         | string   | Y        |
 | rename_all    | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string   | Y        |
+| inline        | Generate inline object.   | bool     | Y        |
 | concretes     | Specify how the concrete type of the generic Schema should be implemented. | ConcreteType |  Y |
 | deprecated    | Schema deprecated          | bool     | Y        |
 

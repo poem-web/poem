@@ -1,6 +1,6 @@
 use crate::{
     poem::web::Field as PoemField,
-    registry::{MetaSchema, MetaSchemaRef},
+    registry::{MetaSchema, MetaSchemaRef, Registry},
     serde_json::Value,
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type, TypeName,
@@ -18,6 +18,10 @@ impl<T: Type> Type for Vec<T> {
     }
 
     impl_value_type!();
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
+    }
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Vec<T> {

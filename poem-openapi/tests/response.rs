@@ -7,8 +7,8 @@ use poem::{
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
-    types::{ParseFromJSON, ToJSON},
-    ApiResponse, Object,
+    types::ToJSON,
+    ApiResponse, Object, ParseRequestError,
 };
 use serde_json::Value;
 
@@ -200,6 +200,30 @@ async fn headers() {
 }
 
 #[tokio::test]
+async fn bad_request_handler() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    #[oai(bad_request_handler = "bad_request_handler")]
+    #[allow(dead_code)]
+    pub enum CustomApiResponse {
+        #[oai(status = 200)]
+        Ok,
+        #[oai(status = 400)]
+        BadRequest,
+    }
+
+    fn bad_request_handler(_: ParseRequestError) -> CustomApiResponse {
+        CustomApiResponse::BadRequest
+    }
+
+    assert_eq!(
+        CustomApiResponse::from_parse_request_error(ParseRequestError::ParseRequestBody {
+            reason: "error".to_string(),
+        }),
+        CustomApiResponse::BadRequest
+    );
+}
+
+#[tokio::test]
 async fn generic() {
     #[derive(ApiResponse)]
     pub enum CustomApiResponse<T: ToJSON> {
@@ -215,7 +239,7 @@ async fn generic() {
                 status: Some(200),
                 content: vec![MetaMediaType {
                     content_type: "application/json",
-                    schema: MetaSchemaRef::Inline(MetaSchema::new("string"))
+                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
                 }],
                 headers: vec![]
             },],

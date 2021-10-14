@@ -357,7 +357,7 @@ fn write_only() {
 }
 
 #[test]
-fn inline_field() {
+fn inline_fields() {
     #[derive(Object)]
     struct Obj {
         /// Inner Obj
@@ -424,4 +424,28 @@ fn inline_field() {
             ..MetaSchema::ANY
         }))
     );
+}
+
+#[test]
+fn inline() {
+    #[derive(Object)]
+    #[oai(inline)]
+    struct Obj {
+        a: i32,
+    }
+
+    let schema_ref = Obj::schema_ref();
+    let meta: &MetaSchema = schema_ref.unwrap_inline();
+    assert_eq!(meta.properties[0].0, "a");
+
+    #[derive(Object)]
+    #[oai(inline)]
+    struct ObjGeneric<T: ParseFromJSON + ToJSON> {
+        a: T,
+    }
+
+    let schema_ref = ObjGeneric::<String>::schema_ref();
+    let meta: &MetaSchema = schema_ref.unwrap_inline();
+    assert_eq!(meta.properties[0].0, "a");
+    assert_eq!(meta.properties[0].1.unwrap_inline().ty, "string");
 }

@@ -88,7 +88,7 @@ async fn generic() {
             description: None,
             content: vec![MetaMediaType {
                 content_type: "application/json",
-                schema: MetaSchemaRef::Inline(MetaSchema::new("string")),
+                schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
             },],
             required: true
         }
