@@ -8,4 +8,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Change the trait bounds of `FromRequest::Error` from `Into<Error>` to `IntoResponse`.
 - Implements `IntoResponse` for `Body`.
-
+- The `CookieJar::private` and `CookieJar::signed` methods now use the key specified by `CookieJarManager::with_key`.

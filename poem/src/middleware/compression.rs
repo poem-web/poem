@@ -17,6 +17,14 @@ use crate::{
 #[derive(Default)]
 pub struct Compression;
 
+impl Compression {
+    /// Creates a new `Compression` middleware.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<E: Endpoint> Middleware<E> for Compression {
     type Output = CompressionEndpoint<E>;
 

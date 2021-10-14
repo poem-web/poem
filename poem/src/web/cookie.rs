@@ -329,7 +329,9 @@ impl<'a> FromRequest<'a> for Cookie {
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = Route::new().at("/", get(index)).with(CookieJarManager);
+/// let app = Route::new()
+///     .at("/", get(index))
+///     .with(CookieJarManager::new());
 ///
 /// let resp = app.call(Request::default()).await;
 /// assert_eq!(resp.status(), StatusCode::OK);
@@ -343,18 +345,21 @@ impl<'a> FromRequest<'a> for Cookie {
 /// # });
 /// ```
 #[derive(Default, Clone)]
-pub struct CookieJar(pub(crate) Arc<Mutex<libcookie::CookieJar>>);
+pub struct CookieJar {
+    jar: Arc<Mutex<libcookie::CookieJar>>,
+    pub(crate) key: Option<Arc<CookieKey>>,
+}
 
 impl CookieJar {
     /// Adds cookie to this jar. If a cookie with the same name already exists,
     /// it is replaced with cookie.
     pub fn add(&self, cookie: Cookie) {
-        self.0.lock().add(cookie.0);
+        self.jar.lock().add(cookie.0);
     }
 
     /// Removes cookie from this jar.
     pub fn remove(&self, name: impl AsRef<str>) {
-        self.0
+        self.jar
             .lock()
             .remove(libcookie::Cookie::named(name.as_ref().to_string()));
     }
@@ -362,12 +367,12 @@ impl CookieJar {
     /// Returns a reference to the [`Cookie`] inside this jar with the `name`.
     /// If no such cookie exists, returns `None`.
     pub fn get(&self, name: &str) -> Option<Cookie> {
-        self.0.lock().get(name).cloned().map(Cookie)
+        self.jar.lock().get(name).cloned().map(Cookie)
     }
 
     /// Removes all delta cookies.
     pub fn reset_delta(&self) {
-        self.0.lock().reset_delta();
+        self.jar.lock().reset_delta();
     }
 
     /// Returns a PrivateJar with self as its parent jar using the key to
@@ -383,26 +388,40 @@ impl CookieJar {
     /// let cookie_jar = CookieJar::default();
     ///
     /// cookie_jar
-    ///     .private(&key)
+    ///     .private_with_key(&key)
     ///     .add(Cookie::new_with_str("foo", "bar"));
     ///
     /// assert_ne!(cookie_jar.get("foo").unwrap().value_str(), "bar");
     /// assert_eq!(
-    ///     cookie_jar.private(&key).get("foo").unwrap().value_str(),
+    ///     cookie_jar
+    ///         .private_with_key(&key)
+    ///         .get("foo")
+    ///         .unwrap()
+    ///         .value_str(),
     ///     "bar"
     /// );
     ///
     /// let key2 = CookieKey::generate();
-    /// assert!(cookie_jar.private(&key2).get("foo").is_none());
+    /// assert!(cookie_jar.private_with_key(&key2).get("foo").is_none());
     /// ```
-    pub fn private<'a>(&'a self, key: &'a CookieKey) -> PrivateCookieJar<'a> {
+    pub fn private_with_key<'a>(&'a self, key: &'a CookieKey) -> PrivateCookieJar<'a> {
         PrivateCookieJar {
             key,
             cookie_jar: self,
         }
     }
 
-    /// Returns a read-only SignedJar with self as its parent jar using the key
+    /// Similar to the `private_with_key` function, but using the key specified
+    /// by the `CookieJarManager::with_key`.
+    pub fn private(&self) -> PrivateCookieJar {
+        self.private_with_key(
+            self.key
+                .as_ref()
+                .expect("You must use the `CookieJarManager::with_key` to specify a `CookieKey`."),
+        )
+    }
+
+    /// Returns a SignedJar with self as its parent jar using the key
     /// key to verify cookies retrieved from the child jar. Any retrievals from
     /// the child jar will be made from the parent jar.
     ///
@@ -416,23 +435,37 @@ impl CookieJar {
     /// let cookie_jar = CookieJar::default();
     ///
     /// cookie_jar
-    ///     .signed(&key)
+    ///     .signed_with_key(&key)
     ///     .add(Cookie::new_with_str("foo", "bar"));
     ///
     /// assert!(cookie_jar.get("foo").unwrap().value_str().contains("bar"));
     /// assert_eq!(
-    ///     cookie_jar.signed(&key).get("foo").unwrap().value_str(),
+    ///     cookie_jar
+    ///         .signed_with_key(&key)
+    ///         .get("foo")
+    ///         .unwrap()
+    ///         .value_str(),
     ///     "bar"
     /// );
     ///
     /// let key2 = CookieKey::generate();
-    /// assert!(cookie_jar.signed(&key2).get("foo").is_none());
+    /// assert!(cookie_jar.signed_with_key(&key2).get("foo").is_none());
     /// ```
-    pub fn signed<'a>(&'a self, key: &'a CookieKey) -> SignedCookieJar<'a> {
+    pub fn signed_with_key<'a>(&'a self, key: &'a CookieKey) -> SignedCookieJar<'a> {
         SignedCookieJar {
             key,
             cookie_jar: self,
         }
+    }
+
+    /// Similar to the `signed_with_key` function, but using the key specified
+    /// by the `CookieJarManager::with_key`.
+    pub fn signed(&self) -> SignedCookieJar {
+        self.signed_with_key(
+            self.key
+                .as_ref()
+                .expect("You must use the `CookieJarManager::with_key` to specify a `CookieKey`."),
+        )
     }
 }
 
@@ -448,7 +481,10 @@ impl FromStr for CookieJar {
             }
         }
 
-        Ok(CookieJar(Arc::new(Mutex::new(cookie_jar))))
+        Ok(CookieJar {
+            jar: Arc::new(Mutex::new(cookie_jar)),
+            key: None,
+        })
     }
 }
 
@@ -471,7 +507,7 @@ impl CookieJar {
     }
 
     pub(crate) fn append_delta_to_headers(&self, headers: &mut HeaderMap) {
-        let cookie = self.0.lock();
+        let cookie = self.jar.lock();
         for cookie in cookie.delta() {
             let value = cookie.to_string();
             if let Ok(value) = HeaderValue::from_str(&value) {
@@ -495,14 +531,14 @@ impl<'a> PrivateCookieJar<'a> {
     /// authenticated encryption assuring confidentiality, integrity, and
     /// authenticity.
     pub fn add(&self, cookie: Cookie) {
-        let mut cookie_jar = self.cookie_jar.0.lock();
+        let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut private_cookie_jar = cookie_jar.private_mut(self.key);
         private_cookie_jar.add(cookie.0);
     }
 
     /// Removes cookie from the parent jar.
     pub fn remove(&self, name: impl AsRef<str>) {
-        let mut cookie_jar = self.cookie_jar.0.lock();
+        let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut private_cookie_jar = cookie_jar.private_mut(self.key);
         private_cookie_jar.remove(libcookie::Cookie::named(name.as_ref().to_string()));
     }
@@ -512,7 +548,7 @@ impl<'a> PrivateCookieJar<'a> {
     /// value. If the cookie cannot be found, or the cookie fails to
     /// authenticate or decrypt, None is returned.
     pub fn get(&self, name: &str) -> Option<Cookie> {
-        let cookie_jar = self.cookie_jar.0.lock();
+        let cookie_jar = self.cookie_jar.jar.lock();
         let private_cookie_jar = cookie_jar.private(self.key);
         private_cookie_jar.get(name).map(Cookie)
     }
@@ -528,14 +564,14 @@ impl<'a> SignedCookieJar<'a> {
     /// Adds cookie to the parent jar. The cookie’s value is signed assuring
     /// integrity and authenticity.
     pub fn add(&self, cookie: Cookie) {
-        let mut cookie_jar = self.cookie_jar.0.lock();
+        let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut signed_cookie_jar = cookie_jar.signed_mut(self.key);
         signed_cookie_jar.add(cookie.0);
     }
 
     /// Removes cookie from the parent jar.
     pub fn remove(&self, name: impl AsRef<str>) {
-        let mut cookie_jar = self.cookie_jar.0.lock();
+        let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut signed_cookie_jar = cookie_jar.signed_mut(self.key);
         signed_cookie_jar.remove(libcookie::Cookie::named(name.as_ref().to_string()));
     }
@@ -545,7 +581,7 @@ impl<'a> SignedCookieJar<'a> {
     /// value. If the cookie cannot be found, or the cookie fails to
     /// authenticate or decrypt, None is returned.
     pub fn get(&self, name: &str) -> Option<Cookie> {
-        let cookie_jar = self.cookie_jar.0.lock();
+        let cookie_jar = self.cookie_jar.jar.lock();
         let signed_cookie_jar = cookie_jar.signed(self.key);
         signed_cookie_jar.get(name).map(Cookie)
     }
@@ -615,14 +651,14 @@ mod tests {
     async fn private() {
         let key = CookieKey::generate();
         let cookie_jar = CookieJar::default();
-        let private = cookie_jar.private(&key);
+        let private = cookie_jar.private_with_key(&key);
         private.add(Cookie::new_with_str("a", "123"));
 
         assert_eq!(private.get("a").unwrap().value_str(), "123");
         assert!(!cookie_jar.get("a").unwrap().value_str().contains("123"));
 
         let new_key = CookieKey::generate();
-        let private = cookie_jar.private(&new_key);
+        let private = cookie_jar.private_with_key(&new_key);
         assert_eq!(private.get("a"), None);
     }
 
@@ -630,14 +666,14 @@ mod tests {
     async fn signed() {
         let key = CookieKey::generate();
         let cookie_jar = CookieJar::default();
-        let signed = cookie_jar.signed(&key);
+        let signed = cookie_jar.signed_with_key(&key);
         signed.add(Cookie::new_with_str("a", "123"));
 
         assert_eq!(signed.get("a").unwrap().value_str(), "123");
         assert!(cookie_jar.get("a").unwrap().value_str().contains("123"));
 
         let new_key = CookieKey::generate();
-        let signed = cookie_jar.signed(&new_key);
+        let signed = cookie_jar.signed_with_key(&new_key);
         assert_eq!(signed.get("a"), None);
     }
 }

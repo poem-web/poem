@@ -7,7 +7,7 @@ use poem::{
 #[cfg(feature = "swagger-ui")]
 use crate::ui::create_ui_endpoint;
 use crate::{
-    param::InternalCookieKey,
+    poem::middleware::CookieJarManager,
     registry::{Document, MetaInfo, MetaServer, Registry},
     OpenApi,
 };
@@ -140,9 +140,13 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
             Some(key) => self
                 .api
                 .add_routes(Route::new())
-                .data(InternalCookieKey(key))
+                .with(CookieJarManager::with_key(key))
                 .boxed(),
-            None => self.api.add_routes(Route::new()).boxed(),
+            None => self
+                .api
+                .add_routes(Route::new())
+                .with(CookieJarManager::new())
+                .boxed(),
         }
     }
 }

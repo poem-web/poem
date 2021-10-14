@@ -172,19 +172,17 @@ async fn cookie() {
     }
 
     let cookie_key = CookieKey::generate();
-    let api = poem::warps_endpoint(
-        OpenApiService::new(Api)
-            .cookie_key(cookie_key.clone())
-            .into_endpoint(),
-    );
+    let api = OpenApiService::new(Api)
+        .cookie_key(cookie_key.clone())
+        .into_endpoint();
 
     let cookie_jar = CookieJar::default();
     cookie_jar.add(Cookie::new_with_str("v1", "10"));
     cookie_jar
-        .private(&cookie_key)
+        .private_with_key(&cookie_key)
         .add(Cookie::new_with_str("v2", "100"));
     cookie_jar
-        .signed(&cookie_key)
+        .signed_with_key(&cookie_key)
         .add(Cookie::new_with_str("v3", "1000"));
     let cookie = format!(
         "{}; {}; {}",
@@ -211,7 +209,7 @@ async fn cookie_default() {
         }
     }
 
-    let api = poem::warps_endpoint(OpenApiService::new(Api).into_endpoint());
+    let api = OpenApiService::new(Api).into_endpoint();
     let resp = api.call(Request::builder().finish()).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }

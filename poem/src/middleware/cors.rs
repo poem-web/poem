@@ -425,7 +425,7 @@ mod tests {
         }
 
         let ep = index
-            .with(CookieJarManager)
+            .with(CookieJarManager::new())
             .with(Cors::new().allow_origin(ALLOW_ORIGIN));
         let resp = ep.map_to_response().call(get_request()).await;
 
