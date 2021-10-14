@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Attribute, DeriveInput, Error, Type};
+use syn::{Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
     error::GeneratorResult,
@@ -24,6 +24,7 @@ struct RequestItem {
 struct RequestArgs {
     ident: Ident,
     attrs: Vec<Attribute>,
+    generics: Generics,
     data: Data<RequestItem, Ignored>,
 
     #[darling(default)]
@@ -33,6 +34,7 @@ struct RequestArgs {
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: RequestArgs = RequestArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
+    let (impl_generics, ty_generics, where_clause) = args.generics.split_for_impl();
     let ident = &args.ident;
     let e = match &args.data {
         Data::Enum(e) => e,
@@ -80,7 +82,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let expanded = {
         quote! {
             #[#crate_name::poem::async_trait]
-            impl #crate_name::ApiRequest for #ident {
+            impl #impl_generics #crate_name::ApiRequest for #ident #ty_generics #where_clause {
                 fn meta() -> #crate_name::registry::MetaRequest {
                     #crate_name::registry::MetaRequest {
                         description: #description,

@@ -1,6 +1,7 @@
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaRequest, MetaSchema, MetaSchemaRef},
+    types::ParseFromJSON,
     ApiRequest, Object,
 };
 
@@ -67,5 +68,37 @@ async fn from_request() {
     assert_eq!(
         MyRequest::from_request(&request, &mut body).await.unwrap(),
         MyRequest::CreateByPlainText(PlainText("abcdef".to_string()))
+    );
+}
+
+#[tokio::test]
+async fn generic() {
+    #[derive(Debug, ApiRequest, Eq, PartialEq)]
+    enum MyRequest<T: ParseFromJSON> {
+        CreateByJson(Json<T>),
+    }
+
+    let request = poem::Request::builder()
+        .content_type("application/json")
+        .body(serde_json::to_vec(&serde_json::json!("hello")).unwrap());
+
+    assert_eq!(
+        MyRequest::<String>::meta(),
+        MetaRequest {
+            description: None,
+            content: vec![MetaMediaType {
+                content_type: "application/json",
+                schema: MetaSchemaRef::Inline(MetaSchema::new("string")),
+            },],
+            required: true
+        }
+    );
+
+    let (request, mut body) = request.split();
+    assert_eq!(
+        MyRequest::<String>::from_request(&request, &mut body)
+            .await
+            .unwrap(),
+        MyRequest::CreateByJson(Json("hello".to_string()))
     );
 }

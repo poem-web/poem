@@ -7,6 +7,7 @@ use poem::{
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
+    types::{ParseFromJSON, ToJSON},
     ApiResponse, Object,
 };
 use serde_json::Value;
@@ -195,5 +196,36 @@ async fn headers() {
     assert_eq!(
         resp.headers().get("MY-HEADER2"),
         Some(&HeaderValue::from_static("abc"))
+    );
+}
+
+#[tokio::test]
+async fn generic() {
+    #[derive(ApiResponse)]
+    pub enum CustomApiResponse<T: ToJSON> {
+        #[oai(status = 200)]
+        Ok(Json<T>),
+    }
+
+    assert_eq!(
+        CustomApiResponse::<String>::meta(),
+        MetaResponses {
+            responses: vec![MetaResponse {
+                description: None,
+                status: Some(200),
+                content: vec![MetaMediaType {
+                    content_type: "application/json",
+                    schema: MetaSchemaRef::Inline(MetaSchema::new("string"))
+                }],
+                headers: vec![]
+            },],
+        },
+    );
+
+    let mut resp = CustomApiResponse::Ok(Json("success".to_string())).into_response();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::json!("success")
     );
 }
