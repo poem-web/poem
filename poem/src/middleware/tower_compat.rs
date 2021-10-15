@@ -52,7 +52,7 @@ pub struct EndpointToTowerService<E>(Arc<E>);
 
 impl<E> Service<Request> for EndpointToTowerService<E>
 where
-    E: Endpoint,
+    E: Endpoint + 'static,
 {
     type Response = E::Output;
     type Error = Infallible;

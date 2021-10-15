@@ -46,18 +46,26 @@ impl<T: Acceptor> Server<T> {
     }
 
     /// Run this server.
-    pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
+    pub async fn run<E>(self, ep: E) -> IoResult<()>
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.run_with_graceful_shutdown(ep, futures_util::future::pending(), None)
             .await
     }
 
     /// Run this server and a signal to initiate graceful shutdown.
-    pub async fn run_with_graceful_shutdown(
+    pub async fn run_with_graceful_shutdown<E>(
         self,
-        ep: impl IntoEndpoint,
+        ep: E,
         signal: impl Future<Output = ()>,
         timeout: Option<Duration>,
-    ) -> IoResult<()> {
+    ) -> IoResult<()>
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         let ep = ep.into_endpoint();
         let ep = Arc::new(ep.map_to_response());
         let Server { mut acceptor } = self;

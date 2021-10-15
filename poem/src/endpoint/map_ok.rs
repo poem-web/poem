@@ -19,8 +19,8 @@ impl<E, F> MapOk<E, F> {
 impl<E, F, Fut, R, R2> Endpoint for MapOk<E, F>
 where
     E: Endpoint<Output = Result<R>>,
-    F: Fn(R) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = R2> + Send + 'static,
+    F: Fn(R) -> Fut + Send + Sync,
+    Fut: Future<Output = R2> + Send,
     R: IntoResponse,
     R2: IntoResponse,
 {

@@ -99,7 +99,11 @@ impl Route {
     /// # });
     /// ```
     #[must_use]
-    pub fn at(mut self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
+    pub fn at<E>(mut self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.router.add(
             &normalize_path(path.as_ref()),
             Box::new(ep.into_endpoint().map_to_response()),
@@ -138,7 +142,11 @@ impl Route {
     /// # });
     /// ```
     #[must_use]
-    pub fn nest(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
+    pub fn nest<E>(self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.internal_nest(&normalize_path(path.as_ref()), ep, true)
     }
 
@@ -173,11 +181,19 @@ impl Route {
     /// # });
     /// ```
     #[must_use]
-    pub fn nest_no_strip(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
+    pub fn nest_no_strip<E>(self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.internal_nest(&normalize_path(path.as_ref()), ep, false)
     }
 
-    fn internal_nest(mut self, path: &str, ep: impl IntoEndpoint, strip: bool) -> Self {
+    fn internal_nest<E>(mut self, path: &str, ep: E, strip: bool) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         let ep = Arc::new(ep.into_endpoint());
         let mut path = path.to_string();
         if !path.ends_with('/') {
@@ -312,54 +328,94 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for specified `method`.
-    pub fn method(mut self, method: Method, ep: impl IntoEndpoint) -> Self {
+    pub fn method<E>(mut self, method: Method, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.methods
             .push((method, Box::new(ep.into_endpoint().map_to_response())));
         self
     }
 
     /// Sets the endpoint for `GET`.
-    pub fn get(self, ep: impl IntoEndpoint) -> Self {
+    pub fn get<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::GET, ep)
     }
 
     /// Sets the endpoint for `POST`.
-    pub fn post(self, ep: impl IntoEndpoint) -> Self {
+    pub fn post<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::POST, ep)
     }
 
     /// Sets the endpoint for `PUT`.
-    pub fn put(self, ep: impl IntoEndpoint) -> Self {
+    pub fn put<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::PUT, ep)
     }
 
     /// Sets the endpoint for `DELETE`.
-    pub fn delete(self, ep: impl IntoEndpoint) -> Self {
+    pub fn delete<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::DELETE, ep)
     }
 
     /// Sets the endpoint for `HEAD`.
-    pub fn head(self, ep: impl IntoEndpoint) -> Self {
+    pub fn head<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::HEAD, ep)
     }
 
     /// Sets the endpoint for `OPTIONS`.
-    pub fn options(self, ep: impl IntoEndpoint) -> Self {
+    pub fn options<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::OPTIONS, ep)
     }
 
     /// Sets the endpoint for `CONNECT`.
-    pub fn connect(self, ep: impl IntoEndpoint) -> Self {
+    pub fn connect<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::CONNECT, ep)
     }
 
     /// Sets the endpoint for `PATCH`.
-    pub fn patch(self, ep: impl IntoEndpoint) -> Self {
+    pub fn patch<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::PATCH, ep)
     }
 
     /// Sets the endpoint for `TRACE`.
-    pub fn trace(self, ep: impl IntoEndpoint) -> Self {
+    pub fn trace<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.method(Method::TRACE, ep)
     }
 }
@@ -390,47 +446,83 @@ impl Endpoint for RouteMethod {
 }
 
 /// A helper function, similar to `RouteMethod::new().get(ep)`.
-pub fn get(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn get<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().get(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().post(ep)`.
-pub fn post(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn post<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().post(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().put(ep)`.
-pub fn put(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn put<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().put(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().delete(ep)`.
-pub fn delete(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn delete<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().delete(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().head(ep)`.
-pub fn head(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn head<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().head(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().options(ep)`.
-pub fn options(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn options<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().options(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().connect(ep)`.
-pub fn connect(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn connect<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().connect(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().patch(ep)`.
-pub fn patch(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn patch<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().patch(ep)
 }
 
 /// A helper function, similar to `RouteMethod::new().trace(ep)`.
-pub fn trace(ep: impl IntoEndpoint) -> RouteMethod {
+pub fn trace<E>(ep: E) -> RouteMethod
+where
+    E: IntoEndpoint,
+    E::Endpoint: 'static,
+{
     RouteMethod::new().trace(ep)
 }
 

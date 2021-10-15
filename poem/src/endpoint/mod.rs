@@ -2,6 +2,7 @@
 
 mod after;
 mod and_then;
+mod around;
 mod before;
 #[allow(clippy::module_inception)]
 mod endpoint;

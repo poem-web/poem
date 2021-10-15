@@ -133,7 +133,7 @@ impl<T> OpenApiService<T> {
 }
 
 impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
-    type Endpoint = BoxEndpoint<Response>;
+    type Endpoint = BoxEndpoint<'static, Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
         match self.cookie_key {
