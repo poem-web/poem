@@ -13,6 +13,7 @@ mod map_to_result;
 
 pub use after::After;
 pub use and_then::AndThen;
+pub use around::Around;
 pub use before::Before;
 pub use endpoint::{make, make_sync, BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint};
 pub use map_err::MapErr;

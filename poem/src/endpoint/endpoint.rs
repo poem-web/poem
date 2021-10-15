@@ -1,7 +1,10 @@
 use std::{future::Future, sync::Arc};
 
+use futures_util::future::BoxFuture;
+
 use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
 use crate::{
+    endpoint::Around,
     middleware::{AddData, AddDataEndpoint},
     IntoResponse, Middleware, Request, Result,
 };
@@ -206,6 +209,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///     .await;
     /// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
     /// # });
+    /// ```
     fn before<F, Fut>(self, f: F) -> Before<Self, F>
     where
         F: Fn(Request) -> Fut + Send + Sync,
@@ -229,13 +233,12 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let mut resp = index
-    ///     .after(|mut resp| async move {
-    ///         resp.take_body().into_string().await.unwrap() + "def"
-    ///     })
+    ///     .after(|mut resp| async move { resp.take_body().into_string().await.unwrap() + "def" })
     ///     .call(Request::default())
     ///     .await;
     /// assert_eq!(resp, "abcdef");
     /// # });
+    /// ```
     fn after<F, Fut, R>(self, f: F) -> After<Self::Endpoint, F>
     where
         F: Fn(<Self::Endpoint as Endpoint>::Output) -> Fut + Send + Sync,
@@ -244,6 +247,52 @@ pub trait EndpointExt: IntoEndpoint {
         Self: Sized,
     {
         After::new(self.into_endpoint(), f)
+    }
+
+    /// Do something before or after the request is processed.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use http::HeaderMap;
+    /// use poem::{
+    ///     handler,
+    ///     http::{HeaderValue, StatusCode},
+    ///     Endpoint, EndpointExt, Error, Request, Result,
+    /// };
+    ///
+    /// #[handler]
+    /// async fn index(headers: &HeaderMap) -> String {
+    ///     headers
+    ///         .get("x-value")
+    ///         .and_then(|value| value.to_str().ok())
+    ///         .unwrap()
+    ///         .to_string()
+    ///         + ","
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let mut resp = index
+    ///     .around(|ep, mut req| {
+    ///         Box::pin(async move {
+    ///             req.headers_mut()
+    ///                 .insert("x-value", HeaderValue::from_static("hello"));
+    ///             let mut resp = ep.call(req).await;
+    ///             resp.take_body().into_string().await.unwrap() + "world"
+    ///         })
+    ///     })
+    ///     .call(Request::default())
+    ///     .await;
+    /// assert_eq!(resp, "hello,world");
+    /// # });
+    /// ```
+    fn around<F, R>(self, f: F) -> Around<Self::Endpoint, F>
+    where
+        F: for<'a> Fn(&'a Self::Endpoint, Request) -> BoxFuture<'a, R> + Send + Send + Sync,
+        R: IntoResponse,
+        Self: Sized,
+    {
+        Around::new(self.into_endpoint(), f)
     }
 
     /// Convert the output of this endpoint into a response.
