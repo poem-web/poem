@@ -357,18 +357,12 @@ pub(crate) struct Matches<'a, T> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Tree<T> {
+pub(crate) struct RadixTree<T> {
     root: Node<T>,
 }
 
-impl<T> Default for Tree<T> {
+impl<T> Default for RadixTree<T> {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T> Tree<T> {
-    pub(crate) fn new() -> Self {
         Self {
             root: Node {
                 node_type: NodeType::Root,
@@ -383,7 +377,9 @@ impl<T> Tree<T> {
             },
         }
     }
+}
 
+impl<T> RadixTree<T> {
     pub(crate) fn add(&mut self, path: &str, data: T) -> bool {
         let raw_segments = match parse_path_segments(path.as_bytes()) {
             Some(raw_segments) => raw_segments,
@@ -468,14 +464,14 @@ mod tests {
 
     #[test]
     fn test_insert_static_child_1() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("/abc", 1);
         tree.add("/abcdef", 2);
         tree.add("/abcdefgh", 3);
 
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -523,7 +519,7 @@ mod tests {
 
     #[test]
     fn test_insert_static_child_2() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("/abcd", 1);
         tree.add("/ab1234", 2);
         tree.add("/ab1256", 3);
@@ -531,7 +527,7 @@ mod tests {
 
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -615,12 +611,12 @@ mod tests {
 
     #[test]
     fn test_insert_static_child_3() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("/abc", 1);
         tree.add("/ab", 2);
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -658,13 +654,13 @@ mod tests {
 
     #[test]
     fn test_insert_param_child() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("/abc/:p1", 1);
         tree.add("/abc/:p1/p2", 2);
         tree.add("/abc/:p1/:p3", 3);
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -732,12 +728,12 @@ mod tests {
 
     #[test]
     fn test_catch_all_child_1() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("/abc/*p1", 1);
         tree.add("/ab/de", 2);
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -798,11 +794,11 @@ mod tests {
 
     #[test]
     fn test_catch_all_child_2() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("*p1", 1);
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -830,13 +826,13 @@ mod tests {
 
     #[test]
     fn test_insert_regex_child() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         tree.add("/abc/<\\d+>/def", 1);
         tree.add("/abc/def/:name<\\d+>", 2);
 
         assert_eq!(
             tree,
-            Tree {
+            RadixTree {
                 root: Node {
                     node_type: NodeType::Root,
                     name: vec![],
@@ -904,7 +900,7 @@ mod tests {
 
     #[test]
     fn test_add_result() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         assert!(tree.add("/a/b", 1));
         assert!(!tree.add("/a/b", 2));
         assert!(tree.add("/a/b/:p/d", 1));
@@ -932,7 +928,7 @@ mod tests {
 
     #[test]
     fn test_matches() {
-        let mut tree = Tree::new();
+        let mut tree = RadixTree::default();
         let paths = vec![
             ("/ab/def", 1),
             ("/abc/def", 2),

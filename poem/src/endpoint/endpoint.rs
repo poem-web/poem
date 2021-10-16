@@ -249,15 +249,14 @@ pub trait EndpointExt: IntoEndpoint {
         After::new(self.into_endpoint(), f)
     }
 
-    /// Do something before or after the request is processed.
+    /// Maps the request and response of this endpoint.
     ///
     /// # Example
     ///
     /// ```
-    /// use http::HeaderMap;
     /// use poem::{
     ///     handler,
-    ///     http::{HeaderValue, StatusCode},
+    ///     http::{HeaderMap, HeaderValue, StatusCode},
     ///     Endpoint, EndpointExt, Error, Request, Result,
     /// };
     ///
