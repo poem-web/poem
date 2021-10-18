@@ -247,7 +247,7 @@ async fn api_key_auth() {
         }
     }
 
-    let service = poem::warps_endpoint(OpenApiService::new(MyApi).into_endpoint());
+    let service = OpenApiService::new(MyApi).into_endpoint();
     let mut resp = service
         .call(
             poem::Request::builder()

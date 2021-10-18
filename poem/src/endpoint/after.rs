@@ -19,8 +19,8 @@ impl<E, F> After<E, F> {
 impl<E, F, Fut, R> Endpoint for After<E, F>
 where
     E: Endpoint,
-    F: Fn(E::Output) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = R> + Send + 'static,
+    F: Fn(E::Output) -> Fut + Send + Sync,
+    Fut: Future<Output = R> + Send,
     R: IntoResponse,
 {
     type Output = R;

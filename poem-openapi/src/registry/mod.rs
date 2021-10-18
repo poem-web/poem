@@ -247,7 +247,7 @@ impl From<TypeName> for MetaSchema {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetaSchemaRef {
-    Inline(MetaSchema),
+    Inline(Box<MetaSchema>),
     Reference(&'static str),
 }
 
@@ -268,16 +268,19 @@ impl MetaSchemaRef {
 
     pub fn merge(self, other: MetaSchema) -> Self {
         match self {
-            MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(schema.merge(other)),
+            MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(Box::new(schema.merge(other))),
             MetaSchemaRef::Reference(name) => {
                 let other = MetaSchema::ANY.merge(other);
                 if other.is_empty() {
                     MetaSchemaRef::Reference(name)
                 } else {
-                    MetaSchemaRef::Inline(MetaSchema {
-                        all_of: vec![MetaSchemaRef::Reference(name), MetaSchemaRef::Inline(other)],
+                    MetaSchemaRef::Inline(Box::new(MetaSchema {
+                        all_of: vec![
+                            MetaSchemaRef::Reference(name),
+                            MetaSchemaRef::Inline(Box::new(other)),
+                        ],
                         ..MetaSchema::ANY
-                    })
+                    }))
                 }
             }
         }

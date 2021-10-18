@@ -1,14 +1,17 @@
 use std::{future::Future, sync::Arc};
 
+use futures_util::future::BoxFuture;
+
 use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
 use crate::{
+    endpoint::Around,
     middleware::{AddData, AddDataEndpoint},
     IntoResponse, Middleware, Request, Result,
 };
 
 /// An HTTP request handler.
 #[async_trait::async_trait]
-pub trait Endpoint: Send + Sync + 'static {
+pub trait Endpoint: Send + Sync {
     /// Represents the response of the endpoint.
     type Output: IntoResponse;
 
@@ -21,7 +24,7 @@ struct SyncFnEndpoint<F>(F);
 #[async_trait::async_trait]
 impl<F, R> Endpoint for SyncFnEndpoint<F>
 where
-    F: Fn(Request) -> R + Send + Sync + 'static,
+    F: Fn(Request) -> R + Send + Sync,
     R: IntoResponse,
 {
     type Output = R;
@@ -36,7 +39,7 @@ struct AsyncFnEndpoint<F>(F);
 #[async_trait::async_trait]
 impl<F, Fut, R> Endpoint for AsyncFnEndpoint<F>
 where
-    F: Fn(Request) -> Fut + Sync + Send + 'static,
+    F: Fn(Request) -> Fut + Sync + Send,
     Fut: Future<Output = R> + Send,
     R: IntoResponse,
 {
@@ -65,7 +68,7 @@ where
 /// ```
 pub fn make_sync<F, R>(f: F) -> impl Endpoint<Output = R>
 where
-    F: Fn(Request) -> R + Send + Sync + 'static,
+    F: Fn(Request) -> R + Send + Sync,
     R: IntoResponse,
 {
     SyncFnEndpoint(f)
@@ -89,11 +92,20 @@ where
 /// ```
 pub fn make<F, Fut, R>(f: F) -> impl Endpoint<Output = R>
 where
-    F: Fn(Request) -> Fut + Send + Sync + 'static,
+    F: Fn(Request) -> Fut + Send + Sync,
     Fut: Future<Output = R> + Send,
     R: IntoResponse,
 {
     AsyncFnEndpoint(f)
+}
+
+#[async_trait::async_trait]
+impl<T: Endpoint + ?Sized> Endpoint for &T {
+    type Output = T::Output;
+
+    async fn call(&self, req: Request) -> Self::Output {
+        T::call(self, req).await
+    }
 }
 
 #[async_trait::async_trait]
@@ -116,14 +128,14 @@ impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
 
 /// An owned dynamically typed `Endpoint` for use in cases where you can’t
 /// statically type your result or need to add some indirection.
-pub type BoxEndpoint<T> = Box<dyn Endpoint<Output = T>>;
+pub type BoxEndpoint<'a, T> = Box<dyn Endpoint<Output = T> + 'a>;
 
 /// Extension trait for [`Endpoint`].
 pub trait EndpointExt: IntoEndpoint {
     /// Wrap the endpoint in a Box.
-    fn boxed(self) -> BoxEndpoint<<Self::Endpoint as Endpoint>::Output>
+    fn boxed<'a>(self) -> BoxEndpoint<'a, <Self::Endpoint as Endpoint>::Output>
     where
-        Self: Sized + 'static,
+        Self: Sized + 'a,
     {
         Box::new(self.into_endpoint())
     }
@@ -206,10 +218,11 @@ pub trait EndpointExt: IntoEndpoint {
     ///     .await;
     /// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
     /// # });
+    /// ```
     fn before<F, Fut>(self, f: F) -> Before<Self, F>
     where
-        F: Fn(Request) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Request> + Send + 'static,
+        F: Fn(Request) -> Fut + Send + Sync,
+        Fut: Future<Output = Request> + Send,
         Self: Sized,
     {
         Before::new(self, f)
@@ -229,21 +242,65 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let mut resp = index
-    ///     .after(|mut resp| async move {
-    ///         resp.take_body().into_string().await.unwrap() + "def"
-    ///     })
+    ///     .after(|mut resp| async move { resp.take_body().into_string().await.unwrap() + "def" })
     ///     .call(Request::default())
     ///     .await;
     /// assert_eq!(resp, "abcdef");
     /// # });
+    /// ```
     fn after<F, Fut, R>(self, f: F) -> After<Self::Endpoint, F>
     where
-        F: Fn(<Self::Endpoint as Endpoint>::Output) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = R> + Send + 'static,
+        F: Fn(<Self::Endpoint as Endpoint>::Output) -> Fut + Send + Sync,
+        Fut: Future<Output = R> + Send,
         R: IntoResponse,
         Self: Sized,
     {
         After::new(self.into_endpoint(), f)
+    }
+
+    /// Maps the request and response of this endpoint.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     handler,
+    ///     http::{HeaderMap, HeaderValue, StatusCode},
+    ///     Endpoint, EndpointExt, Error, Request, Result,
+    /// };
+    ///
+    /// #[handler]
+    /// async fn index(headers: &HeaderMap) -> String {
+    ///     headers
+    ///         .get("x-value")
+    ///         .and_then(|value| value.to_str().ok())
+    ///         .unwrap()
+    ///         .to_string()
+    ///         + ","
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let mut resp = index
+    ///     .around(|ep, mut req| {
+    ///         Box::pin(async move {
+    ///             req.headers_mut()
+    ///                 .insert("x-value", HeaderValue::from_static("hello"));
+    ///             let mut resp = ep.call(req).await;
+    ///             resp.take_body().into_string().await.unwrap() + "world"
+    ///         })
+    ///     })
+    ///     .call(Request::default())
+    ///     .await;
+    /// assert_eq!(resp, "hello,world");
+    /// # });
+    /// ```
+    fn around<F, R>(self, f: F) -> Around<Self::Endpoint, F>
+    where
+        F: for<'a> Fn(&'a Self::Endpoint, Request) -> BoxFuture<'a, R> + Send + Send + Sync,
+        R: IntoResponse,
+        Self: Sized,
+    {
+        Around::new(self.into_endpoint(), f)
     }
 
     /// Convert the output of this endpoint into a response.
@@ -321,8 +378,8 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     fn and_then<F, Fut, Err, R, R2>(self, f: F) -> AndThen<Self::Endpoint, F>
     where
-        F: Fn(R) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<R2, Err>> + Send + 'static,
+        F: Fn(R) -> Fut + Send + Sync,
+        Fut: Future<Output = Result<R2, Err>> + Send,
         Err: IntoResponse,
         R: IntoResponse,
         R2: IntoResponse,
@@ -351,8 +408,8 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     fn map_ok<F, Fut, Err, R, R2>(self, f: F) -> MapOk<Self::Endpoint, F>
     where
-        F: Fn(R) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = R2> + Send + 'static,
+        F: Fn(R) -> Fut + Send + Sync,
+        Fut: Future<Output = R2> + Send,
         R: IntoResponse,
         R2: IntoResponse,
         Self: Sized,
@@ -391,8 +448,8 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     fn map_err<F, Fut, InErr, OutErr, R>(self, f: F) -> MapErr<Self::Endpoint, F>
     where
-        F: Fn(InErr) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = OutErr> + Send + 'static,
+        F: Fn(InErr) -> Fut + Send + Sync,
+        Fut: Future<Output = OutErr> + Send,
         InErr: IntoResponse,
         OutErr: IntoResponse,
         R: IntoResponse,

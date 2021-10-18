@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
+use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Type};
 
 use crate::{
     common_args::{
@@ -69,6 +69,8 @@ struct ObjectArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
+    inline: bool,
+    #[darling(default)]
     rename: Option<String>,
     #[darling(default)]
     rename_all: Option<RenameRule>,
@@ -88,7 +90,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         _ => {
             return Err(
                 Error::new_spanned(ident, "Object can only be applied to an struct.").into(),
-            )
+            );
         }
     };
     let oai_typename = args
@@ -98,9 +100,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let (title, description) = get_summary_and_description(&args.attrs)?;
     let mut deserialize_fields = Vec::new();
     let mut serialize_fields = Vec::new();
+    let mut register_types = Vec::new();
     let mut fields = Vec::new();
     let mut meta_fields = Vec::new();
     let mut required_fields = Vec::new();
+
+    if args.inline && !args.concretes.is_empty() {
+        return Err(Error::new_spanned(
+            ident,
+            "Inline objects cannot have the `concretes` attribute.",
+        )
+        .into());
+    }
 
     for field in &s.fields {
         let field_ident = field.ident.as_ref().unwrap();
@@ -205,9 +216,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             None => quote!(::std::option::Option::None),
         };
 
-        meta_fields.push(quote! {{
-            <#field_ty>::register(registry);
+        register_types.push(quote!(<#field_ty>::register(registry);));
 
+        meta_fields.push(quote! {{
             let patch_schema = {
                 let mut schema = #crate_name::registry::MetaSchema::ANY;
                 schema.default = #field_meta_default;
@@ -255,8 +266,31 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     };
 
     let expanded = if args.concretes.is_empty() {
+        let mut de_impl_generics = args.generics.clone();
+        de_impl_generics
+            .params
+            .insert(0, GenericParam::Lifetime(syn::parse_str("'de").unwrap()));
+        let (de_impl_generics, _, _) = de_impl_generics.split_for_impl();
+
+        let (fn_schema_ref, fn_register) = if args.inline {
+            (
+                quote!(#crate_name::registry::MetaSchemaRef::Inline(Box::new(#meta))),
+                quote! {
+                    #(#register_types)*
+                },
+            )
+        } else {
+            (
+                quote!(#crate_name::registry::MetaSchemaRef::Reference(#oai_typename)),
+                quote! {
+                    #(#register_types)*
+                    registry.create_schema(#oai_typename, |registry| #meta)
+                },
+            )
+        };
+
         quote! {
-            impl #crate_name::types::Type for #ident {
+            impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
                 const NAME: #crate_name::types::TypeName = #crate_name::types::TypeName::Normal {
                     ty: #oai_typename,
                     format: ::std::option::Option::None,
@@ -266,11 +300,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 type ValueType = Self;
 
                 fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                    #crate_name::registry::MetaSchemaRef::Reference(#oai_typename)
+                    #fn_schema_ref
                 }
 
                 fn register(registry: &mut #crate_name::registry::Registry) {
-                    registry.create_schema(#oai_typename, |registry| #meta);
+                    #fn_register
                 }
 
                 fn as_value(&self) -> ::std::option::Option<&Self> {
@@ -278,7 +312,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
 
-            impl #crate_name::types::ParseFromJSON for #ident {
+            impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
                 fn parse_from_json(value: #crate_name::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
                     match value {
                         #crate_name::serde_json::Value::Object(obj) => {
@@ -290,7 +324,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
 
-            impl #crate_name::types::ToJSON for #ident {
+            impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
                 fn to_json(&self) -> #crate_name::serde_json::Value {
                     let mut object = ::#crate_name::serde_json::Map::new();
                     #(#serialize_fields)*
@@ -298,13 +332,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
 
-            impl #crate_name::serde::Serialize for #ident {
+            impl #impl_generics #crate_name::serde::Serialize for #ident #ty_generics #where_clause {
                 fn serialize<S: #crate_name::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
                     #crate_name::types::ToJSON::to_json(self).serialize(serializer)
                 }
             }
 
-            impl<'de> #crate_name::serde::Deserialize<'de> for #ident {
+            impl #de_impl_generics #crate_name::serde::Deserialize<'de> for #ident #ty_generics #where_clause {
                 fn deserialize<D: #crate_name::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
                     let value: #crate_name::serde_json::Value = #crate_name::serde::de::Deserialize::deserialize(deserializer)?;
                     #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::serde::de::Error::custom(err.into_message()))
@@ -317,6 +351,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         code.push(quote! {
             impl #impl_generics #ident #ty_generics #where_clause {
                 fn __internal_register(registry: &mut #crate_name::registry::Registry) where Self: #crate_name::types::Type {
+                    #(#register_types)*
                     registry.create_schema(Self::NAME.type_name(), |registry| #meta);
                 }
 

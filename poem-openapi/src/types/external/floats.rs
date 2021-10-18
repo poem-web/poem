@@ -19,7 +19,7 @@ macro_rules! impl_type_for_floats {
             };
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Self::NAME.into())
+                MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
             }
 
             impl_value_type!();

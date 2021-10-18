@@ -2,7 +2,7 @@ use poem::web::Field as PoemField;
 use serde_json::Value;
 
 use crate::{
-    registry::MetaSchemaRef,
+    registry::{MetaSchemaRef, Registry},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
         ToJSON, Type, TypeName,
@@ -17,6 +17,10 @@ impl<T: Type> Type for Option<T> {
 
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
     }
 
     fn as_value(&self) -> Option<&Self::ValueType> {

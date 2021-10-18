@@ -21,8 +21,8 @@ where
     E: Endpoint<Output = Result<R, InErr>>,
     InErr: IntoResponse,
     OutErr: IntoResponse,
-    F: Fn(InErr) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = OutErr> + Send + 'static,
+    F: Fn(InErr) -> Fut + Send + Sync,
+    Fut: Future<Output = OutErr> + Send,
     R: IntoResponse,
 {
     type Output = Result<R, OutErr>;

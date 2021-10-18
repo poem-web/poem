@@ -19,8 +19,8 @@ impl<E, F> AndThen<E, F> {
 impl<E, F, Fut, Err, R, R2> Endpoint for AndThen<E, F>
 where
     E: Endpoint<Output = Result<R, Err>>,
-    F: Fn(R) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<R2, Err>> + Send + 'static,
+    F: Fn(R) -> Fut + Send + Sync,
+    Fut: Future<Output = Result<R2, Err>> + Send,
     Err: IntoResponse,
     R: IntoResponse,
     R2: IntoResponse,

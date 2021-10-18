@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{Attribute, DeriveInput, Error, Type};
+use syn::{Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
     error::GeneratorResult,
@@ -39,6 +39,7 @@ struct ResponseItem {
 struct ResponseArgs {
     ident: Ident,
     data: Data<ResponseItem, Ignored>,
+    generics: Generics,
 
     #[darling(default)]
     internal: bool,
@@ -49,6 +50,7 @@ struct ResponseArgs {
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: ResponseArgs = ResponseArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
+    let (impl_generics, ty_generics, where_clause) = args.generics.split_for_impl();
     let ident = &args.ident;
     let e = match &args.data {
         Data::Enum(e) => e,
@@ -222,7 +224,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = {
         quote! {
-            impl #crate_name::poem::IntoResponse for #ident {
+            impl #impl_generics #crate_name::poem::IntoResponse for #ident #ty_generics #where_clause {
                 fn into_response(self) -> #crate_name::poem::Response {
                     match self {
                         #(#into_responses)*
@@ -230,7 +232,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
 
-            impl #crate_name::ApiResponse for #ident {
+            impl #impl_generics #crate_name::ApiResponse for #ident #ty_generics #where_clause {
                 #bad_request_handler_const
 
                 fn meta() -> #crate_name::registry::MetaResponses {

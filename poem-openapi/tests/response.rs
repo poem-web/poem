@@ -7,7 +7,8 @@ use poem::{
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
-    ApiResponse, Object,
+    types::ToJSON,
+    ApiResponse, Object, ParseRequestError,
 };
 use serde_json::Value;
 
@@ -57,7 +58,7 @@ fn meta() {
                     status: None,
                     content: vec![MetaMediaType {
                         content_type: "text/plain",
-                        schema: MetaSchemaRef::Inline(MetaSchema::new("string")),
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
                     }],
                     headers: vec![]
                 }
@@ -125,16 +126,16 @@ async fn headers() {
                 name: "MY-HEADER1",
                 description: Some("header1"),
                 required: true,
-                schema: MetaSchemaRef::Inline(MetaSchema {
+                schema: MetaSchemaRef::Inline(Box::new(MetaSchema {
                     format: Some("int32"),
                     ..MetaSchema::new("integer")
-                })
+                }))
             },
             MetaHeader {
                 name: "MY-HEADER2",
                 description: None,
                 required: true,
-                schema: MetaSchemaRef::Inline(MetaSchema::new("string"))
+                schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
             }
         ]
     );
@@ -195,5 +196,60 @@ async fn headers() {
     assert_eq!(
         resp.headers().get("MY-HEADER2"),
         Some(&HeaderValue::from_static("abc"))
+    );
+}
+
+#[tokio::test]
+async fn bad_request_handler() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    #[oai(bad_request_handler = "bad_request_handler")]
+    #[allow(dead_code)]
+    pub enum CustomApiResponse {
+        #[oai(status = 200)]
+        Ok,
+        #[oai(status = 400)]
+        BadRequest,
+    }
+
+    fn bad_request_handler(_: ParseRequestError) -> CustomApiResponse {
+        CustomApiResponse::BadRequest
+    }
+
+    assert_eq!(
+        CustomApiResponse::from_parse_request_error(ParseRequestError::ParseRequestBody {
+            reason: "error".to_string(),
+        }),
+        CustomApiResponse::BadRequest
+    );
+}
+
+#[tokio::test]
+async fn generic() {
+    #[derive(ApiResponse)]
+    pub enum CustomApiResponse<T: ToJSON> {
+        #[oai(status = 200)]
+        Ok(Json<T>),
+    }
+
+    assert_eq!(
+        CustomApiResponse::<String>::meta(),
+        MetaResponses {
+            responses: vec![MetaResponse {
+                description: None,
+                status: Some(200),
+                content: vec![MetaMediaType {
+                    content_type: "application/json",
+                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
+                }],
+                headers: vec![]
+            },],
+        },
+    );
+
+    let mut resp = CustomApiResponse::Ok(Json("success".to_string())).into_response();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::json!("success")
     );
 }

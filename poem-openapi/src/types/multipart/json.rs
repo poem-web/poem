@@ -2,7 +2,7 @@ use poem::web::Field as PoemField;
 use serde_json::Value;
 
 use crate::{
-    registry::MetaSchemaRef,
+    registry::{MetaSchemaRef, Registry},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type, TypeName,
     },
@@ -20,6 +20,10 @@ impl<T: Type> Type for JsonField<T> {
     #[inline]
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
     }
 
     #[inline]

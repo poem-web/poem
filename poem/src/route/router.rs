@@ -3,16 +3,17 @@ use std::{str::FromStr, sync::Arc};
 use http::StatusCode;
 use regex::Regex;
 
-use super::tree::Tree;
 use crate::{
-    http::{uri::PathAndQuery, Method, Uri},
-    Body, Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response,
+    endpoint::BoxEndpoint,
+    http::{uri::PathAndQuery, Uri},
+    route::internal::radix_tree::RadixTree,
+    Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response,
 };
 
 /// Routing object
 #[derive(Default)]
 pub struct Route {
-    router: Tree<Box<dyn Endpoint<Output = Response>>>,
+    tree: RadixTree<BoxEndpoint<'static, Response>>,
 }
 
 impl Route {
@@ -99,8 +100,12 @@ impl Route {
     /// # });
     /// ```
     #[must_use]
-    pub fn at(mut self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
-        self.router.add(
+    pub fn at<E>(mut self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        self.tree.add(
             &normalize_path(path.as_ref()),
             Box::new(ep.into_endpoint().map_to_response()),
         );
@@ -138,7 +143,11 @@ impl Route {
     /// # });
     /// ```
     #[must_use]
-    pub fn nest(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
+    pub fn nest<E>(self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.internal_nest(&normalize_path(path.as_ref()), ep, true)
     }
 
@@ -173,11 +182,19 @@ impl Route {
     /// # });
     /// ```
     #[must_use]
-    pub fn nest_no_strip(self, path: impl AsRef<str>, ep: impl IntoEndpoint) -> Self {
+    pub fn nest_no_strip<E>(self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.internal_nest(&normalize_path(path.as_ref()), ep, false)
     }
 
-    fn internal_nest(mut self, path: &str, ep: impl IntoEndpoint, strip: bool) -> Self {
+    fn internal_nest<E>(mut self, path: &str, ep: E, strip: bool) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         let ep = Arc::new(ep.into_endpoint());
         let mut path = path.to_string();
         if !path.ends_with('/') {
@@ -204,12 +221,13 @@ impl Route {
                 let new_uri = {
                     let uri = std::mem::take(req.uri_mut());
                     let mut uri_parts = uri.into_parts();
-                    uri_parts.path_and_query = Some(
-                        PathAndQuery::from_str(
-                            &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..],
-                        )
-                        .unwrap(),
-                    );
+                    let path =
+                        &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..];
+                    uri_parts.path_and_query = Some(if !path.starts_with('/') {
+                        PathAndQuery::from_str(&format!("/{}", path)).unwrap()
+                    } else {
+                        PathAndQuery::from_str(path).unwrap()
+                    });
                     Uri::from_parts(uri_parts).unwrap()
                 };
                 *req.uri_mut() = new_uri;
@@ -226,7 +244,7 @@ impl Route {
             false => 0,
             true => path.len() - 1,
         };
-        self.router.add(
+        self.tree.add(
             &format!("{}*--poem-rest", path),
             Box::new(Nest {
                 inner: ep.clone(),
@@ -234,7 +252,7 @@ impl Route {
                 prefix_len,
             }),
         );
-        self.router.add(
+        self.tree.add(
             &path[..path.len() - 1],
             Box::new(Nest {
                 inner: ep,
@@ -252,7 +270,7 @@ impl Endpoint for Route {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Self::Output {
-        match self.router.matches(req.uri().path()) {
+        match self.tree.matches(req.uri().path()) {
             Some(matches) => {
                 req.state_mut().match_params.extend(matches.params);
                 matches.data.call(req).await
@@ -260,177 +278,6 @@ impl Endpoint for Route {
             None => StatusCode::NOT_FOUND.into(),
         }
     }
-}
-
-/// Routing object for HTTP methods
-#[derive(Default)]
-pub struct RouteMethod {
-    methods: Vec<(Method, Box<dyn Endpoint<Output = Response>>)>,
-}
-
-impl RouteMethod {
-    /// Create a `RouteMethod` object.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::{
-    ///     handler,
-    ///     http::{Method, StatusCode},
-    ///     Endpoint, Request, RouteMethod,
-    /// };
-    ///
-    /// #[handler]
-    /// fn handle_get() -> &'static str {
-    ///     "get"
-    /// }
-    ///
-    /// #[handler]
-    /// fn handle_post() -> &'static str {
-    ///     "post"
-    /// }
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let route_method = RouteMethod::new().get(handle_get).post(handle_post);
-    ///
-    /// let resp = route_method
-    ///     .call(Request::builder().method(Method::GET).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "get");
-    ///
-    /// let resp = route_method
-    ///     .call(Request::builder().method(Method::POST).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "post");
-    /// # });
-    /// ```
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    /// Sets the endpoint for specified `method`.
-    pub fn method(mut self, method: Method, ep: impl IntoEndpoint) -> Self {
-        self.methods
-            .push((method, Box::new(ep.into_endpoint().map_to_response())));
-        self
-    }
-
-    /// Sets the endpoint for `GET`.
-    pub fn get(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::GET, ep)
-    }
-
-    /// Sets the endpoint for `POST`.
-    pub fn post(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::POST, ep)
-    }
-
-    /// Sets the endpoint for `PUT`.
-    pub fn put(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::PUT, ep)
-    }
-
-    /// Sets the endpoint for `DELETE`.
-    pub fn delete(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::DELETE, ep)
-    }
-
-    /// Sets the endpoint for `HEAD`.
-    pub fn head(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::HEAD, ep)
-    }
-
-    /// Sets the endpoint for `OPTIONS`.
-    pub fn options(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::OPTIONS, ep)
-    }
-
-    /// Sets the endpoint for `CONNECT`.
-    pub fn connect(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::CONNECT, ep)
-    }
-
-    /// Sets the endpoint for `PATCH`.
-    pub fn patch(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::PATCH, ep)
-    }
-
-    /// Sets the endpoint for `TRACE`.
-    pub fn trace(self, ep: impl IntoEndpoint) -> Self {
-        self.method(Method::TRACE, ep)
-    }
-}
-
-#[async_trait::async_trait]
-impl Endpoint for RouteMethod {
-    type Output = Response;
-
-    async fn call(&self, mut req: Request) -> Self::Output {
-        match self
-            .methods
-            .iter()
-            .find(|(method, _)| method == req.method())
-            .map(|(_, ep)| ep)
-        {
-            Some(ep) => ep.call(req).await,
-            None => {
-                if req.method() == Method::HEAD {
-                    req.set_method(Method::GET);
-                    let mut resp = self.call(req).await;
-                    resp.set_body(Body::empty());
-                    return resp;
-                }
-                StatusCode::NOT_FOUND.into()
-            }
-        }
-    }
-}
-
-/// A helper function, similar to `RouteMethod::new().get(ep)`.
-pub fn get(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().get(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().post(ep)`.
-pub fn post(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().post(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().put(ep)`.
-pub fn put(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().put(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().delete(ep)`.
-pub fn delete(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().delete(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().head(ep)`.
-pub fn head(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().head(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().options(ep)`.
-pub fn options(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().options(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().connect(ep)`.
-pub fn connect(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().connect(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().patch(ep)`.
-pub fn patch(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().patch(ep)
-}
-
-/// A helper function, similar to `RouteMethod::new().trace(ep)`.
-pub fn trace(ep: impl IntoEndpoint) -> RouteMethod {
-    RouteMethod::new().trace(ep)
 }
 
 fn normalize_path(path: &str) -> String {
@@ -542,69 +389,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn route_method() {
-        #[handler(internal)]
-        fn index() -> &'static str {
-            "hello"
-        }
-
-        for method in &[
-            Method::GET,
-            Method::POST,
-            Method::DELETE,
-            Method::PUT,
-            Method::HEAD,
-            Method::OPTIONS,
-            Method::CONNECT,
-            Method::PATCH,
-            Method::TRACE,
-        ] {
-            let route = RouteMethod::new().method(method.clone(), index).post(index);
-            let resp = route
-                .call(Request::builder().method(method.clone()).finish())
-                .await;
-            assert_eq!(resp.status(), StatusCode::OK);
-            assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
-        }
-
-        macro_rules! test_method {
-            ($(($id:ident, $method:ident)),*) => {
-                $(
-                let route = RouteMethod::new().$id(index).post(index);
-                let resp = route
-                    .call(Request::builder().method(Method::$method).finish())
-                    .await;
-                assert_eq!(resp.status(), StatusCode::OK);
-                assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
-                )*
-            };
-        }
-
-        test_method!(
-            (get, GET),
-            (post, POST),
-            (delete, DELETE),
-            (put, PUT),
-            (head, HEAD),
-            (options, OPTIONS),
-            (connect, CONNECT),
-            (patch, PATCH),
-            (trace, TRACE)
+    async fn nested2() {
+        let r = Route::new().nest(
+            "/a",
+            Route::new().nest(
+                "/",
+                make_sync(|req| req.uri().path_and_query().unwrap().to_string()),
+            ),
         );
-    }
-
-    #[tokio::test]
-    async fn head_method() {
-        #[handler(internal)]
-        fn index() -> &'static str {
-            "hello"
-        }
-
-        let route = RouteMethod::new().get(index);
-        let resp = route
-            .call(Request::builder().method(Method::HEAD).finish())
-            .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert!(resp.into_body().into_vec().await.unwrap().is_empty());
+        assert_eq!(get(&r, "/a").await, "/");
+        assert_eq!(get(&r, "/a?a=1").await, "/?a=1");
     }
 }

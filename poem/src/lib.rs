@@ -55,6 +55,8 @@ pub mod error;
 pub mod listener;
 pub mod middleware;
 pub mod service;
+#[cfg(feature = "session")]
+pub mod session;
 pub mod web;
 
 #[doc(inline)]
@@ -74,6 +76,8 @@ pub use middleware::Middleware;
 pub use poem_derive::handler;
 pub use request::{Request, RequestBuilder, RequestParts};
 pub use response::{Response, ResponseBuilder, ResponseParts};
-pub use route::{connect, delete, get, head, options, patch, post, put, trace, Route, RouteMethod};
-pub use server::{warps_endpoint, Server};
+pub use route::{
+    connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,
+};
+pub use server::Server;
 pub use web::{FromRequest, IntoResponse, RequestBody};

@@ -16,8 +16,6 @@ use tokio::{
 };
 use tracing::{Instrument, Level};
 
-#[cfg(feature = "cookie")]
-use crate::middleware::CookieJarManager;
 use crate::{
     listener::{Acceptor, Listener},
     web::RemoteAddr,
@@ -48,19 +46,27 @@ impl<T: Acceptor> Server<T> {
     }
 
     /// Run this server.
-    pub async fn run(self, ep: impl IntoEndpoint) -> IoResult<()> {
+    pub async fn run<E>(self, ep: E) -> IoResult<()>
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.run_with_graceful_shutdown(ep, futures_util::future::pending(), None)
             .await
     }
 
     /// Run this server and a signal to initiate graceful shutdown.
-    pub async fn run_with_graceful_shutdown(
+    pub async fn run_with_graceful_shutdown<E>(
         self,
-        ep: impl IntoEndpoint,
+        ep: E,
         signal: impl Future<Output = ()>,
         timeout: Option<Duration>,
-    ) -> IoResult<()> {
-        let ep = warps_endpoint(ep.into_endpoint());
+    ) -> IoResult<()>
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        let ep = ep.into_endpoint();
         let ep = Arc::new(ep.map_to_response());
         let Server { mut acceptor } = self;
         let alive_connections = Arc::new(AtomicUsize::new(0));
@@ -180,11 +186,4 @@ async fn serve_connection(
     #[cfg(feature = "websocket")]
     let conn = conn.with_upgrades();
     let _ = conn.await;
-}
-
-#[doc(hidden)]
-pub fn warps_endpoint(ep: impl Endpoint) -> impl Endpoint<Output = Response> {
-    #[cfg(feature = "cookie")]
-    let ep = ep.with(CookieJarManager);
-    ep.map_to_response()
 }

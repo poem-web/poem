@@ -22,12 +22,13 @@
 //!
 //! ## Crate features
 //!
-//! To avoid compiling unused dependencies, Poem gates certain features, all of
+//! To avoid compiling unused dependencies, Poem gates certain features, some of
 //! which are disabled by default:
 //!
-//! |Feature           |Description                     |
-//! |------------------|--------------------------------|
-//! |chrono            | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).          |
+//! | Feature    | Description                      | Default enabled |
+//! | ---------- | -------------------------------- | --------------- |
+//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x: |
+//! | swagger-ui | Add swagger UI support  | :heavy_check_mark: |
 //!
 //! ## Example
 //!
@@ -57,7 +58,7 @@
 //!     let api_service = OpenApiService::new(Api)
 //!         .title("Hello World")
 //!         .server("http://localhost:3000/api");
-//!     let ui = api_service.swagger_ui("http://localhost:3000");
+//!     let ui = api_service.swagger_ui();
 //!
 //!     poem::Server::new(listener)
 //!         .await?
@@ -98,6 +99,7 @@ pub mod payload;
 pub mod registry;
 pub mod types;
 #[doc(hidden)]
+#[cfg(feature = "swagger-ui")]
 pub mod ui;
 #[doc(hidden)]
 pub mod validation;

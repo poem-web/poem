@@ -19,8 +19,8 @@ impl<E, F> Before<E, F> {
 impl<E, F, Fut> Endpoint for Before<E, F>
 where
     E: Endpoint,
-    F: Fn(Request) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Request> + Send + 'static,
+    F: Fn(Request) -> Fut + Send + Sync,
+    Fut: Future<Output = Request> + Send,
 {
     type Output = E::Output;
 

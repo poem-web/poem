@@ -1,12 +1,14 @@
 use poem::{
-    endpoint::BoxEndpoint, web::cookie::CookieKey, Endpoint, EndpointExt, IntoEndpoint, Response,
-    Route,
+    endpoint::{make_sync, BoxEndpoint},
+    web::cookie::CookieKey,
+    Endpoint, EndpointExt, IntoEndpoint, Response, Route,
 };
 
+#[cfg(feature = "swagger-ui")]
+use crate::ui::create_ui_endpoint;
 use crate::{
-    param::InternalCookieKey,
+    poem::middleware::CookieJarManager,
     registry::{Document, MetaInfo, MetaServer, Registry},
-    ui::create_ui_endpoint,
     OpenApi,
 };
 
@@ -90,15 +92,29 @@ impl<T> OpenApiService<T> {
 
     /// Create the Swagger UI endpoint.
     #[must_use]
-    pub fn swagger_ui(&self, absolute_uri: impl AsRef<str>) -> impl Endpoint
+    #[cfg(feature = "swagger-ui")]
+    pub fn swagger_ui(&self) -> impl Endpoint
     where
         T: OpenApi,
     {
-        create_ui_endpoint(absolute_uri.as_ref(), &self.spec())
+        create_ui_endpoint(&self.spec())
+    }
+
+    /// Create an endpoint to serve the open api specification.
+    pub fn spec_endpoint(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+    {
+        let spec = self.spec();
+        make_sync(move |_| {
+            Response::builder()
+                .content_type("application/json")
+                .body(spec.clone())
+        })
     }
 
     /// Returns the OAS specification file.
-    fn spec(&self) -> String
+    pub fn spec(&self) -> String
     where
         T: OpenApi,
     {
@@ -117,16 +133,20 @@ impl<T> OpenApiService<T> {
 }
 
 impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
-    type Endpoint = BoxEndpoint<Response>;
+    type Endpoint = BoxEndpoint<'static, Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
         match self.cookie_key {
             Some(key) => self
                 .api
                 .add_routes(Route::new())
-                .data(InternalCookieKey(key))
+                .with(CookieJarManager::with_key(key))
                 .boxed(),
-            None => self.api.add_routes(Route::new()).boxed(),
+            None => self
+                .api
+                .add_routes(Route::new())
+                .with(CookieJarManager::new())
+                .boxed(),
         }
     }
 }
