@@ -28,6 +28,11 @@ fn hello(req: Json<CreateSomething>) -> Json<serde_json::Value> {
 /// Main method in service.
 ///
 /// Details ref the doc in hello-world
+///
+/// usage:
+/// 1. build & start the main.rs
+/// 2. post a json data '{ "name": "$name" }' to the url: `http://localhost:3000/hello`
+/// 3. '{ "code": 0, "message": "$name" }' will be returned
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     if std::env::var_os("RUST_LOG").is_none() {

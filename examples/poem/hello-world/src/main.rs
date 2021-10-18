@@ -36,7 +36,12 @@ fn hello(Path(name): Path<String>) -> String {
 /// for this api.
 ///
 /// The other parts, maintain the server and tcp listener were the same with the sample code in
-/// <The Book>. 
+/// <The Book>.
+///
+/// usage:
+/// 1. build & start the main.rs
+/// 2. curl the url: `http://localhost:3000/hello/$name`
+/// 3. "hello $name" will be returned
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     if std::env::var_os("RUST_LOG").is_none() {

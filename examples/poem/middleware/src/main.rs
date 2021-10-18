@@ -61,9 +61,14 @@ fn index() -> String {
 ///
 /// `let app = Route::new().at("/", get(index)).with(Log);` has extra code `with($middleware)`
 /// which used for assigning the aspect of biz logic
-/// [`Endpoint::with`] will do some extra loigc (defined in the implement of struct `Log`) as an aspect
+/// [`Endpoint::with`] will do some extra logic (defined in the implement of struct `Log`) as an aspect
 /// around the original biz logic(defined in function `index`).
 /// Other details ref the doc in hello-world
+///
+/// usage:
+/// 1. build & start the main.rs
+/// 2. curl the url: `http://localhost:3000`
+/// 3. "hello" will be returned
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     if std::env::var_os("RUST_LOG").is_none() {
