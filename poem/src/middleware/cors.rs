@@ -216,17 +216,10 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
 
         let mut resp = self.inner.call(req).await.into_response();
 
-        if self.config.allow_origins.is_empty() {
-            resp.headers_mut().insert(
-                header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                HeaderValue::from_static("*"),
-            );
-        } else {
-            resp.headers_mut().insert(
-                header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                HeaderValue::from_str(&origin).unwrap(),
-            );
-        }
+        resp.headers_mut().insert(
+            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+            HeaderValue::from_str(&origin).unwrap(),
+        );
 
         if self.config.allow_credentials {
             resp.headers_mut().insert(
@@ -331,7 +324,7 @@ mod tests {
             resp.headers()
                 .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
                 .unwrap(),
-            "*"
+            "example.com"
         );
     }
 

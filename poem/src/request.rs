@@ -257,12 +257,9 @@ impl Request {
     #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
     #[inline]
     pub fn cookie(&self) -> &CookieJar {
-        match &self.state.cookie_jar {
-            Some(cookie_jar) => cookie_jar,
-            None => panic!(
-                "To use the `CookieJar` extractor, the `CookieJarManager` middleware is required."
-            ),
-        }
+        self.state.cookie_jar.as_ref().expect(
+            "To use the `CookieJar` extractor, the `CookieJarManager` middleware is required.",
+        )
     }
 
     /// Sets the body for this request.

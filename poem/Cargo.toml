@@ -26,6 +26,8 @@ sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
+session = ["cookie"]
+redis-session = ["session", "rand"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.0.0" }
@@ -66,6 +68,8 @@ tower = { version = "0.4.8", optional = true, default-features = true, features 
 chrono = { version = "0.4.19", optional = true }
 time = { version = "0.2.27", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
+rand = { version = "0.8.4", optional = true }
+redis = { version = "0.21.2", optional = true, features = ["aio", "tokio-comp", "connection-manager"] }
 
 # Feature optional dependencies
 tempfile = { version = "3.2.0", optional = true }

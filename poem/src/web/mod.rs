@@ -262,7 +262,8 @@ impl RequestBody {
 pub trait FromRequest<'a>: Sized {
     /// The error type of this extractor.
     ///
-    /// If you don't know what type you should use, you can use [`Error`].
+    /// If you don't know what type you should use, you can use
+    /// [`Error`](crate::Error).
     type Error: IntoResponse;
 
     /// Perform the extraction.
@@ -616,7 +617,7 @@ impl<T: IntoResponse> IntoResponse for (HeaderMap, T) {
     }
 }
 
-impl<T, E> IntoResponse for core::result::Result<T, E>
+impl<T, E> IntoResponse for std::result::Result<T, E>
 where
     T: IntoResponse,
     E: IntoResponse,

@@ -376,8 +376,7 @@ impl CookieJar {
     }
 
     /// Returns a PrivateJar with self as its parent jar using the key to
-    /// sign/encrypt and verify/decrypt cookies added/retrieved from the child
-    /// jar.
+    /// encrypt and decrypt cookies added/retrieved from the child jar.
     ///
     /// # Example
     ///

@@ -6,9 +6,10 @@
 use poem::{
     get, handler,
     listener::TcpListener,
-    session::{CookieConfig, CookieSession, Session},
+    session::{CookieConfig, RedisSession, Session},
     EndpointExt, Route, Server,
 };
+use redis::{aio::ConnectionManager, Client};
 
 #[handler]
 async fn count(session: &Session) -> String {
@@ -34,9 +35,12 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = Route::new()
-        .at("/", get(count))
-        .with(CookieSession::new(CookieConfig::default()));
+    let client = Client::open("redis://127.0.0.1/").unwrap();
+
+    let app = Route::new().at("/", get(count)).with(RedisSession::new(
+        CookieConfig::default(),
+        ConnectionManager::new(client).await.unwrap(),
+    ));
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await

@@ -41,7 +41,7 @@ where
     }
 }
 
-/// Endpoint for CookieJarManager middleware.
+/// Endpoint for `CookieJarManager` middleware.
 pub struct CookieJarManagerEndpoint<E> {
     inner: E,
     key: Option<Arc<CookieKey>>,
@@ -111,10 +111,10 @@ mod tests {
                 Request::builder()
                     .header(
                         "Cookie",
-                        format!(
-                            "{}; {}",
-                            cookie_jar.get("value1").unwrap().to_string(),
-                            cookie_jar.get("value2").unwrap().to_string()
+                        &format!(
+                            "value1={}; value2={}",
+                            cookie_jar.get("value1").unwrap().value_str(),
+                            cookie_jar.get("value2").unwrap().value_str()
                         ),
                     )
                     .finish(),
