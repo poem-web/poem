@@ -226,7 +226,7 @@ impl StdError for SimpleError {}
 
 define_simple_errors!(
     /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
-    (ErrorInvalidPathParams, INTERNAL_SERVER_ERROR, "invalid path params");
+    (ErrorInvalidPathParams, BAD_REQUEST, "invalid path params");
 );
 
 /// A possible error value when reading the body.

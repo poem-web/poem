@@ -100,6 +100,15 @@ where
 }
 
 #[async_trait::async_trait]
+impl<T: Endpoint + ?Sized> Endpoint for &T {
+    type Output = T::Output;
+
+    async fn call(&self, req: Request) -> Self::Output {
+        T::call(self, req).await
+    }
+}
+
+#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
     type Output = T::Output;
 

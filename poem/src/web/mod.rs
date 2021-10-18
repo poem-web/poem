@@ -616,7 +616,7 @@ impl<T: IntoResponse> IntoResponse for (HeaderMap, T) {
     }
 }
 
-impl<T, E> IntoResponse for core::result::Result<T, E>
+impl<T, E> IntoResponse for std::result::Result<T, E>
 where
     T: IntoResponse,
     E: IntoResponse,

@@ -1,5 +1,5 @@
 [package]
-name = "example-cookie-session"
+name = "example-memory-session"
 version = "0.1.0"
 edition = "2018"
 publish = false
