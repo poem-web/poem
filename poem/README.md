@@ -56,6 +56,8 @@ which are disabled by default:
 |tls               | Support for HTTP server over TLS   |
 |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
+|session           | Support for CookieSession    |
+|redis-session     | Support for RedisSession     |
 
 ## Safety
 
