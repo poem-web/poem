@@ -18,7 +18,10 @@ use crate::{
         Extensions, Method, Uri, Version,
     },
     route::PathParams,
-    web::RemoteAddr,
+    web::{
+        headers::{Header, HeaderMapExt},
+        RemoteAddr,
+    },
     RequestBody,
 };
 
@@ -343,7 +346,7 @@ impl RequestBuilder {
         Self { version, ..self }
     }
 
-    /// Appends a header to this response builder.
+    /// Appends a header to this request.
     #[must_use]
     pub fn header<K, V>(mut self, key: K, value: V) -> Self
     where
@@ -358,7 +361,14 @@ impl RequestBuilder {
         self
     }
 
-    /// Sets the `Content-Type` header on the response.
+    /// Inserts a typed header to this request.
+    #[must_use]
+    pub fn typed_header<T: Header>(mut self, header: T) -> Self {
+        self.headers.typed_insert(header);
+        self
+    }
+
+    /// Sets the `Content-Type` header to this request.
     #[must_use]
     pub fn content_type(mut self, content_type: &str) -> Self {
         if let Ok(value) = content_type.try_into() {

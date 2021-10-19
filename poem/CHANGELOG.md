@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# Unreleased
+# [1.0.5] 2010-10-19
 
 - Add `RouteDomain` for `Host` header routing.
+- Add `CookieSession` and `RedisSession` middlewares.
+- Add `RequestBuilder::typed_header` and `ResponseBuilder::typed_header` methods.
+- Improve Cors middleware.
 
 # [1.0.4] 2010-10-15
 

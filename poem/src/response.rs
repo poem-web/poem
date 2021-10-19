@@ -4,11 +4,14 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
+use headers::HeaderMapExt;
+
 use crate::{
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, StatusCode, Version,
     },
+    web::headers::Header,
     Body, Error,
 };
 
@@ -256,6 +259,13 @@ impl ResponseBuilder {
         if let (Ok(key), Ok(value)) = (key, value) {
             self.headers.append(key, value);
         }
+        self
+    }
+
+    /// Inserts a typed header to this response.
+    #[must_use]
+    pub fn typed_header<T: Header>(mut self, header: T) -> Self {
+        self.headers.typed_insert(header);
         self
     }
 
