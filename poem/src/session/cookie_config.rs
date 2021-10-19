@@ -123,7 +123,7 @@ impl CookieConfig {
 
     /// Returns the TTL(time-to-live) of the cookie.
     #[inline]
-    pub fn ttl(&self) -> Option<Duration> {
+    pub(crate) fn ttl(&self) -> Option<Duration> {
         self.max_age
     }
 
