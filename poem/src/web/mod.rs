@@ -262,7 +262,8 @@ impl RequestBody {
 pub trait FromRequest<'a>: Sized {
     /// The error type of this extractor.
     ///
-    /// If you don't know what type you should use, you can use [`Error`].
+    /// If you don't know what type you should use, you can use
+    /// [`Error`](crate::Error).
     type Error: IntoResponse;
 
     /// Perform the extraction.
