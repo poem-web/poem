@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.0.4"
+version = "1.0.5"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -26,7 +26,8 @@ sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
-session = ["cookie", "rand"]
+session = ["cookie"]
+redis-session = ["session", "rand", "redis"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.0.0" }
