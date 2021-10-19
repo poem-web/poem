@@ -56,7 +56,6 @@ pub mod listener;
 pub mod middleware;
 pub mod service;
 #[cfg(feature = "session")]
-#[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;
 pub mod web;
 
