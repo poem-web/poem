@@ -9,6 +9,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:5.0.7
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
     steps:
       - uses: actions/checkout@v1
 
