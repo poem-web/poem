@@ -85,11 +85,23 @@ fn index(remote_addr: SocketAddr, method: Method, uri: &Uri) {}
     _This extractor will take over the requested body, so you should avoid
  using multiple extractors of this type in one handler._
 
+ - **&CookieJar**
+
+    Extracts the `CookieJar`](cookie::CookieJar) from the incoming request.
+
+    _Requires `CookieJarManager` middleware._
+
+ - **&Session**
+
+    Extracts the [`Session`](crate::session::Session) from the incoming request.
+
+    _Requires `CookieSession` or `RedisSession` middleware._
+
  - **Body**
 
-    Extracts the `Body` from the incoming request.
+     Extracts the `Body` from the incoming request.
 
-    _This extractor will take over the requested body, so you should avoid
+     _This extractor will take over the requested body, so you should avoid
  using multiple extractors of this type in one handler._
 
  - **String**
