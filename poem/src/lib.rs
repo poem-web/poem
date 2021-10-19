@@ -42,8 +42,6 @@
 //! |tls               | Support for HTTP server over TLS   |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
-//! |session           | Support for CookieSession    |
-//! |redis-session     | Support for RedisSession     |
 
 #![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
 #![doc(html_logo_url = "https://poem.rs/assets/logo.png")]
@@ -58,7 +56,6 @@ pub mod listener;
 pub mod middleware;
 pub mod service;
 #[cfg(feature = "session")]
-#[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;
 pub mod web;
 

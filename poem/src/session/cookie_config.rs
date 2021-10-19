@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use chrono::Utc;
+
 use crate::web::cookie::{Cookie, CookieJar, CookieKey, SameSite};
 
 /// Cookie security for session.
@@ -25,6 +27,7 @@ pub struct CookieConfig {
     secure: bool,
     http_only: bool,
     max_age: Option<Duration>,
+    expires_in: Option<Duration>,
     same_site: Option<SameSite>,
 }
 
@@ -38,6 +41,7 @@ impl Default for CookieConfig {
             secure: true,
             http_only: true,
             max_age: None,
+            expires_in: None,
             same_site: None,
         }
     }
@@ -121,10 +125,18 @@ impl CookieConfig {
         }
     }
 
+    /// Sets the `Expires` to the session cookie.
+    pub fn expires_in(self, value: Duration) -> Self {
+        Self {
+            expires_in: Some(value),
+            ..self
+        }
+    }
+
     /// Returns the TTL(time-to-live) of the cookie.
     #[inline]
     pub fn ttl(&self) -> Option<Duration> {
-        self.max_age
+        self.expires_in
     }
 
     /// Set the cookie value to `CookieJar`.
@@ -142,6 +154,12 @@ impl CookieConfig {
 
         if let Some(max_age) = &self.max_age {
             cookie.set_max_age(*max_age);
+        }
+
+        if let Some(expires_in) = &self.expires_in {
+            if let Ok(duration) = chrono::Duration::from_std(*expires_in) {
+                cookie.set_expires(Utc::now() + duration);
+            }
         }
 
         if let Some(same_site) = &self.same_site {
