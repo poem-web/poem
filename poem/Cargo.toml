@@ -27,7 +27,7 @@ compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
 session = ["cookie"]
-redis-session = ["session", "rand"]
+redis-session = ["session", "rand", "redis"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.0.0" }
