@@ -70,10 +70,10 @@ time = { version = "0.2.27", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
 redis = { version = "0.21.2", optional = true, features = ["aio", "tokio-comp", "connection-manager"] }
+libcookie = { package = "cookie", version = "0.15.1", features = ["percent-encode", "private", "signed", "key-expansion", "secure"], optional = true }
 
 # Feature optional dependencies
 tempfile = { version = "3.2.0", optional = true }
-libcookie = { package = "cookie", version = "0.15.1", features = ["percent-encode", "private", "signed", "key-expansion", "secure"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
