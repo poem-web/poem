@@ -77,3 +77,29 @@ impl IntoResponse for Redirect {
             .into_response()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! test_redirect {
+        ($fn:ident, $status:ident) => {
+            #[test]
+            fn $fn() {
+                let resp = Redirect::$fn(Uri::from_static("https://example.com/")).into_response();
+                assert_eq!(resp.status(), StatusCode::$status);
+                assert_eq!(
+                    resp.headers()
+                        .get(header::LOCATION)
+                        .and_then(|value| value.to_str().ok()),
+                    Some("https://example.com/")
+                );
+            }
+        };
+    }
+
+    test_redirect!(permanent, PERMANENT_REDIRECT);
+    test_redirect!(moved_permanent, MOVED_PERMANENTLY);
+    test_redirect!(see_other, SEE_OTHER);
+    test_redirect!(temporary, TEMPORARY_REDIRECT);
+}

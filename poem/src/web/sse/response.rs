@@ -70,8 +70,11 @@ impl IntoResponse for SSE {
             let comment = Bytes::from_static(b":\n\n");
             stream = futures_util::stream::select(
                 stream,
-                tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(duration))
-                    .map(move |_| Ok(comment.clone())),
+                tokio_stream::wrappers::IntervalStream::new(tokio::time::interval_at(
+                    tokio::time::Instant::now() + duration,
+                    duration,
+                ))
+                .map(move |_| Ok(comment.clone())),
             )
             .boxed();
         }

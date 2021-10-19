@@ -66,7 +66,11 @@ impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, web::headers::ContentLength, Endpoint};
+    use crate::{
+        handler,
+        web::headers::{ContentLength, Host},
+        Endpoint,
+    };
 
     #[tokio::test]
     async fn test_typed_header_extractor() {
@@ -78,5 +82,16 @@ mod tests {
         index
             .call(Request::builder().header("content-length", 3).body("abc"))
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_typed_header_extractor_error() {
+        let (req, mut body) = Request::builder().body("abc").split();
+        let res = TypedHeader::<Host>::from_request(&req, &mut body).await;
+
+        match res {
+            Err(ParseTypedHeaderError::HeaderRequired(name)) if name == "host" => {}
+            _ => panic!(),
+        }
     }
 }
