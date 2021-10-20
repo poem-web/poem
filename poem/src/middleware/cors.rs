@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::TryFrom, str::FromStr};
+use std::{collections::HashSet, convert::TryFrom, str::FromStr, sync::Arc};
 
 use headers::{
     AccessControlAllowHeaders, AccessControlAllowMethods, AccessControlExposeHeaders, HeaderMapExt,
@@ -33,6 +33,7 @@ use crate::{
 pub struct Cors {
     allow_credentials: bool,
     allow_origins: HashSet<HeaderValue>,
+    allow_origins_fn: Option<Arc<dyn Fn(&str) -> bool + Send + Sync>>,
     allow_headers: HashSet<HeaderName>,
     allow_methods: HashSet<Method>,
     expose_headers: HashSet<HeaderName>,
@@ -104,6 +105,20 @@ impl Cors {
         self
     }
 
+    /// Determinate allowed origins by processing requests which didn’t match
+    /// any origins specified in the `allow_origin`.
+    ///
+    /// This function will receive the `Origin` header, which can be used to
+    /// determine whether to allow the request.
+    #[must_use]
+    pub fn allow_origins_fn<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&str) -> bool + Send + Sync + 'static,
+    {
+        self.allow_origins_fn = Some(Arc::new(f));
+        self
+    }
+
     /// Add an expose method.
     #[must_use]
     pub fn expose_header<T>(mut self, header: T) -> Self
@@ -134,6 +149,7 @@ impl<E: Endpoint> Middleware<E> for Cors {
             inner: ep,
             allow_credentials: self.allow_credentials,
             allow_origins: self.allow_origins.clone(),
+            allow_origins_fn: self.allow_origins_fn.clone(),
             allow_headers: self.allow_headers.clone(),
             allow_methods: self.allow_methods.clone(),
             allow_headers_header: self.allow_headers.clone().into_iter().collect(),
@@ -149,6 +165,7 @@ pub struct CorsEndpoint<E> {
     inner: E,
     allow_credentials: bool,
     allow_origins: HashSet<HeaderValue>,
+    allow_origins_fn: Option<Arc<dyn Fn(&str) -> bool + Send + Sync>>,
     allow_headers: HashSet<HeaderName>,
     allow_methods: HashSet<Method>,
     allow_headers_header: AccessControlAllowHeaders,
@@ -158,11 +175,23 @@ pub struct CorsEndpoint<E> {
 }
 
 impl<E> CorsEndpoint<E> {
-    fn is_valid_origin(&self, origin: &HeaderValue) -> bool {
-        if self.allow_origins.is_empty() {
-            true
+    fn is_valid_origin(&self, origin: &HeaderValue) -> (bool, bool) {
+        if self.allow_origins.contains(origin) {
+            return (true, false);
+        }
+
+        if let Some(allow_origins_fn) = &self.allow_origins_fn {
+            if let Ok(origin) = origin.to_str() {
+                if allow_origins_fn(origin) {
+                    return (true, true);
+                }
+            }
+        }
+
+        if self.allow_origins.is_empty() && self.allow_origins_fn.is_none() {
+            (true, true)
         } else {
-            self.allow_origins.contains(origin)
+            (false, false)
         }
     }
 
@@ -219,7 +248,8 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
             }
         };
 
-        if !self.is_valid_origin(&origin) {
+        let (origin_is_allow, vary_header) = self.is_valid_origin(&origin);
+        if !origin_is_allow {
             return Err(Error::new(StatusCode::UNAUTHORIZED));
         }
 
@@ -240,25 +270,29 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
             }
 
-            let allow_header = req
-                .headers()
-                .get(header::ACCESS_CONTROL_REQUEST_HEADERS)
-                .and_then(|value| value.to_str().ok())
-                .map(|s| {
-                    if self.allow_headers.is_empty() {
-                        true
-                    } else {
-                        for header in s.split(',') {
-                            if let Ok(header) = HeaderName::from_str(header.trim()) {
-                                if self.allow_headers.contains(&header) {
-                                    return true;
+            let allow_headers = {
+                let mut allow_headers = true;
+                if !self.allow_headers.is_empty() {
+                    if let Some(request_header) =
+                        req.headers().get(header::ACCESS_CONTROL_REQUEST_HEADERS)
+                    {
+                        allow_headers = false;
+                        if let Ok(s) = request_header.to_str() {
+                            for header in s.split(',') {
+                                if let Ok(header) = HeaderName::from_str(header.trim()) {
+                                    if self.allow_headers.contains(&header) {
+                                        allow_headers = true;
+                                        break;
+                                    }
                                 }
                             }
                         }
-                        false
                     }
-                });
-            if !matches!(allow_header, Some(true)) {
+                }
+                allow_headers
+            };
+
+            if !allow_headers {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
             }
 
@@ -279,6 +313,12 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
 
         resp.headers_mut()
             .typed_insert(self.expose_headers_header.clone());
+
+        if vary_header {
+            resp.headers_mut()
+                .insert(header::VARY, HeaderValue::from_static("Origin"));
+        }
+
         Ok(resp)
     }
 }
@@ -370,10 +410,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn preflight_request_default_cors() {
-        let ep = make_sync(|_| "hello").with(Cors::new());
+    async fn default_cors() {
+        let ep = make_sync(|_| "hello").with(Cors::new()).map_to_response();
         let resp = ep
-            .map_to_response()
             .call(
                 Request::builder()
                     .method(Method::OPTIONS)
@@ -416,12 +455,116 @@ mod tests {
             resp.headers().get(header::ACCESS_CONTROL_MAX_AGE).unwrap(),
             "86400"
         );
+
+        let resp = ep
+            .call(
+                Request::builder()
+                    .method(Method::GET)
+                    .header(header::ORIGIN, ALLOW_ORIGIN)
+                    .finish(),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
+            Some(&HeaderValue::from_static(ALLOW_ORIGIN))
+        );
+        assert_eq!(
+            resp.headers().get(header::VARY),
+            Some(&HeaderValue::from_static("Origin"))
+        );
+    }
+
+    #[tokio::test]
+    async fn allow_origins_fn_1() {
+        let ep = make_sync(|_| "hello")
+            .with(Cors::new().allow_origins_fn(|_| true))
+            .map_to_response();
+
+        let resp = ep
+            .call(
+                Request::builder()
+                    .method(Method::GET)
+                    .header(header::ORIGIN, ALLOW_ORIGIN)
+                    .finish(),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
+            Some(&HeaderValue::from_static(ALLOW_ORIGIN))
+        );
+        assert_eq!(
+            resp.headers().get(header::VARY),
+            Some(&HeaderValue::from_static("Origin"))
+        );
+    }
+
+    #[tokio::test]
+    async fn allow_origins_fn_2() {
+        let ep = make_sync(|_| "hello")
+            .with(
+                Cors::new()
+                    .allow_origin(ALLOW_ORIGIN)
+                    .allow_origins_fn(|_| true),
+            )
+            .map_to_response();
+
+        let resp = ep
+            .call(
+                Request::builder()
+                    .method(Method::GET)
+                    .header(header::ORIGIN, ALLOW_ORIGIN)
+                    .finish(),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
+            Some(&HeaderValue::from_static(ALLOW_ORIGIN))
+        );
+        assert!(resp.headers().get(header::VARY).is_none());
+
+        let resp = ep
+            .call(
+                Request::builder()
+                    .method(Method::GET)
+                    .header(header::ORIGIN, "https://abc.com")
+                    .finish(),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
+            Some(&HeaderValue::from_static("https://abc.com"))
+        );
+        assert_eq!(
+            resp.headers().get(header::VARY),
+            Some(&HeaderValue::from_static("Origin"))
+        );
+    }
+
+    #[tokio::test]
+    async fn allow_origins_fn_3() {
+        let ep = make_sync(|_| "hello")
+            .with(Cors::new().allow_origins_fn(|_| false))
+            .map_to_response();
+
+        let resp = ep
+            .call(
+                Request::builder()
+                    .method(Method::GET)
+                    .header(header::ORIGIN, ALLOW_ORIGIN)
+                    .finish(),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
     async fn default_cors_middleware() {
-        let ep = make_sync(|_| "hello").with(Cors::new());
-        let resp = ep.map_to_response().call(get_request()).await;
+        let ep = make_sync(|_| "hello").with(Cors::new()).map_to_response();
+        let resp = ep.call(get_request()).await;
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers()

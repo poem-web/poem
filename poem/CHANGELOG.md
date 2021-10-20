@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - `Cors` middleware allows all HTTP methods and headers by default.
+- Add `Cors::allow_origins_fn` method.
 
 # [1.0.5] 2010-10-19
 
