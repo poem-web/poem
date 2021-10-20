@@ -64,7 +64,7 @@ impl Field {
     #[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
     pub async fn tempfile(self) -> Result<File, IoError> {
         let mut reader = self.into_async_read();
-        let mut file = tokio::fs::File::from_std(::tempfile::tempfile()?);
+        let mut file = tokio::fs::File::from_std(::libtempfile::tempfile()?);
         tokio::io::copy(&mut reader, &mut file).await?;
         file.seek(SeekFrom::Start(0)).await?;
         Ok(file)

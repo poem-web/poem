@@ -58,6 +58,8 @@ which are disabled by default:
 |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 |session           | Support for CookieSession    |
 |redis-session     | Support for RedisSession     |
+|opentelemetry     | Support for opentelemetry    |
+|prometheus        | Support for Prometheus       |
 
 ## Safety
 

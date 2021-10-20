@@ -8,7 +8,7 @@ use crate::{
     Endpoint, Middleware, Request, Result,
 };
 
-/// A middleware for server-side session.
+/// Middleware for server-side session.
 pub struct ServerSession<T> {
     config: Arc<CookieConfig>,
     storage: Arc<T>,
@@ -52,7 +52,11 @@ pub struct ServerSessionEndpoint<T, E> {
 }
 
 #[async_trait::async_trait]
-impl<T: SessionStorage, E: Endpoint> Endpoint for ServerSessionEndpoint<T, E> {
+impl<T, E> Endpoint for ServerSessionEndpoint<T, E>
+where
+    T: SessionStorage,
+    E: Endpoint,
+{
     type Output = Result<E::Output>;
 
     async fn call(&self, mut req: Request) -> Self::Output {

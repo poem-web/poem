@@ -22,7 +22,7 @@ impl<'a> FromRequest<'a> for TempFile {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
         let body = body.take()?;
         let mut reader = body.into_async_read();
-        let mut file = tokio::fs::File::from_std(::tempfile::tempfile()?);
+        let mut file = tokio::fs::File::from_std(::libtempfile::tempfile()?);
         tokio::io::copy(&mut reader, &mut file).await?;
         file.seek(SeekFrom::Start(0)).await?;
         Ok(Self(file))

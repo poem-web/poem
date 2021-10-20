@@ -44,6 +44,8 @@
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |session           | Support for CookieSession    |
 //! |redis-session     | Support for RedisSession     |
+//! |opentelemetry     | Support for opentelemetry    |
+//! |prometheus        | Support for Prometheus       |
 
 #![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
 #![doc(html_logo_url = "https://poem.rs/assets/logo.png")]
@@ -56,7 +58,6 @@ pub mod endpoint;
 pub mod error;
 pub mod listener;
 pub mod middleware;
-pub mod service;
 #[cfg(feature = "session")]
 #[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;

@@ -2,7 +2,7 @@ use hello_world::{
     greeter_server::{Greeter, GreeterServer},
     HelloReply, HelloRequest,
 };
-use poem::{listener::TcpListener, service::TowerCompatExt, Route, Server};
+use poem::{endpoint::TowerCompatExt, listener::TcpListener, Route, Server};
 use tonic::{transport::NamedService, Request, Response, Status};
 
 pub mod hello_world {

@@ -7,6 +7,10 @@ mod compression;
 mod cookie_jar_manager;
 mod cors;
 mod normalize_path;
+#[cfg(feature = "opentelemetry")]
+mod opentelemetry_metrics;
+#[cfg(feature = "opentelemetry")]
+mod opentelemetry_tracing;
 mod set_header;
 #[cfg(feature = "tower-compat")]
 mod tower_compat;
@@ -18,6 +22,10 @@ pub use compression::{Compression, CompressionEndpoint};
 pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
 pub use cors::{Cors, CorsEndpoint};
 pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
+#[cfg(feature = "opentelemetry")]
+pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
+#[cfg(feature = "opentelemetry")]
+pub use opentelemetry_tracing::{OpenTelemetryEndpoint, OpenTelemetryTracing};
 pub use set_header::{SetHeader, SetHeaderEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerLayerCompatExt;
