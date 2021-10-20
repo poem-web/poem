@@ -37,6 +37,6 @@ jobs:
       - name: Check with clippy
         run: cargo clippy --all --all-features
       - name: Check with cargo-hack
-        run: cargo hack check --all --feature-powerset --no-dev-deps
+        run: cargo hack check --all --each-feature --no-dev-deps
       - name: Run tests
         run: cargo test --all --all-features --verbose
