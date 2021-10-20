@@ -62,7 +62,7 @@ impl Files {
     /// # Example
     ///
     /// ```
-    /// use poem::{service::Files, Route};
+    /// use poem::{endpoint::Files, Route};
     ///
     /// let app = Route::new().nest(
     ///     "/files",
