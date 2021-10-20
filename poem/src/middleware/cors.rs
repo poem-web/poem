@@ -57,6 +57,8 @@ impl Cors {
     }
 
     /// Add an allow header.
+    ///
+    /// NOTE: Default is allow any header.
     #[must_use]
     pub fn allow_header<T>(mut self, header: T) -> Self
     where
@@ -71,6 +73,8 @@ impl Cors {
     }
 
     /// Add an allow method.
+    ///
+    /// NOTE: Default is allow any method.
     #[must_use]
     pub fn allow_method<T>(mut self, method: T) -> Self
     where
@@ -165,10 +169,34 @@ impl<E> CorsEndpoint<E> {
     fn build_preflight_response(&self, origin: &HeaderValue) -> Response {
         let mut builder = Response::builder()
             .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin)
-            .typed_header(self.allow_methods_header.clone())
-            .typed_header(self.allow_headers_header.clone())
             .typed_header(self.expose_headers_header.clone())
             .header(header::ACCESS_CONTROL_MAX_AGE, self.max_age);
+
+        if self.allow_methods.is_empty() {
+            builder = builder.typed_header(
+                vec![
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::DELETE,
+                    Method::HEAD,
+                    Method::OPTIONS,
+                    Method::CONNECT,
+                    Method::PATCH,
+                    Method::TRACE,
+                ]
+                .into_iter()
+                .collect::<AccessControlAllowMethods>(),
+            );
+        } else {
+            builder = builder.typed_header(self.allow_methods_header.clone());
+        }
+
+        if self.allow_headers.is_empty() {
+            builder = builder.header(header::ACCESS_CONTROL_ALLOW_HEADERS, "*");
+        } else {
+            builder = builder.typed_header(self.allow_headers_header.clone());
+        }
 
         if self.allow_credentials {
             builder = builder.header(header::ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
@@ -201,7 +229,13 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                 .get(header::ACCESS_CONTROL_REQUEST_METHOD)
                 .and_then(|value| value.to_str().ok())
                 .and_then(|value| value.parse::<Method>().ok())
-                .map(|method| self.allow_methods.contains(&method));
+                .map(|method| {
+                    if self.allow_methods.is_empty() {
+                        true
+                    } else {
+                        self.allow_methods.contains(&method)
+                    }
+                });
             if !matches!(allow_method, Some(true)) {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
             }
@@ -211,14 +245,18 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                 .get(header::ACCESS_CONTROL_REQUEST_HEADERS)
                 .and_then(|value| value.to_str().ok())
                 .map(|s| {
-                    for header in s.split(',') {
-                        if let Ok(header) = HeaderName::from_str(header.trim()) {
-                            if self.allow_headers.contains(&header) {
-                                return true;
+                    if self.allow_headers.is_empty() {
+                        true
+                    } else {
+                        for header in s.split(',') {
+                            if let Ok(header) = HeaderName::from_str(header.trim()) {
+                                if self.allow_headers.contains(&header) {
+                                    return true;
+                                }
                             }
                         }
+                        false
                     }
-                    false
                 });
             if !matches!(allow_header, Some(true)) {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
@@ -333,11 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn preflight_request_default_cors() {
-        let ep = make_sync(|_| "hello").with(
-            Cors::new()
-                .allow_method(Method::GET)
-                .allow_header("X-Token"),
-        );
+        let ep = make_sync(|_| "hello").with(Cors::new());
         let resp = ep
             .map_to_response()
             .call(
@@ -364,13 +398,19 @@ mod tests {
             .map(|value| value.split(',').map(|s| s.trim()).collect::<HashSet<_>>());
         assert_eq!(
             allow_methods,
-            Some(vec!["GET"].into_iter().collect::<HashSet<_>>()),
+            Some(
+                vec![
+                    "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "CONNECT", "PATCH", "TRACE"
+                ]
+                .into_iter()
+                .collect::<HashSet<_>>()
+            ),
         );
         assert_eq!(
             resp.headers()
                 .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
                 .unwrap(),
-            "x-token"
+            "*"
         );
         assert_eq!(
             resp.headers().get(header::ACCESS_CONTROL_MAX_AGE).unwrap(),
