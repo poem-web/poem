@@ -1,8 +1,3 @@
-//! Run with
-//!
-//! ```not_rust
-//! cargo run --example cookie_session
-//! ```
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -12,18 +7,8 @@ use poem::{
 
 #[handler]
 async fn count(session: &Session) -> String {
-    let count = match session.get::<i32>("count") {
-        Some(value) => {
-            let count = value + 1;
-            session.set("count", count);
-            count
-        }
-        None => {
-            session.set("count", 1);
-            1
-        }
-    };
-
+    let count = session.get::<i32>("count").unwrap_or(0) + 1;
+    session.set("count", count);
     format!("Hello!\nHow many times have seen you: {}", count)
 }
 
@@ -36,7 +21,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new()
         .at("/", get(count))
-        .with(CookieSession::new(CookieConfig::default()));
+        .with(CookieSession::new(CookieConfig::default().secure(false)));
     let listener = TcpListener::bind("127.0.0.1:3000");
     let server = Server::new(listener).await?;
     server.run(app).await
