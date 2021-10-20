@@ -27,6 +27,14 @@ This repo contains the following main components:
 |[poem-lambda](https://crates.io/crates/poem-lambda)     | Poem for AWS Lambda             | [(README)](poem-lambda/README.md)  |                                              |
 |[poem-openapi](https://crates.io/crates/poem-openapi)   | OpenAPI for Poem Web            | [(README)](poem-openapi/README.md) | [(CHANGELOG)](poem-openapi/CHANGELOG.md)     |
 
+***
+
+The following are cases of community use:
+| Repo                                                  | Description                     | Documentation                      | ChangeLog                                    |
+|--------------------------------------------------------|---------------------------------|------------------------------------|----------------------------------------------|
+|[delicate](https://github.com/BinChengZhao/delicate)                   | A distributed task scheduling platform written in rust. | [(README)](https://delicate-rs.github.io/Roadmap.html)         | [(CHANGELOG)](https://github.com/BinChengZhao/delicate/blob/main/CHANGELOG.md)             
+
+
 ### Resources
 
 - [Book](https://poem.rs)
