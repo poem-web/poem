@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use libopentelemetry::{
     global,
-    trace::{Span, SpanKind, Tracer},
+    trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
+    Context,
 };
 use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{resource, trace};
@@ -75,15 +76,22 @@ where
             .start(&*self.tracer);
 
         span.add_event("request.started".to_string(), vec![]);
-        let resp = self.inner.call(req).await.into_response();
-        span.add_event("request.completed".to_string(), vec![]);
 
-        span.set_attribute(trace::HTTP_STATUS_CODE.i64(resp.status().as_u16() as i64));
+        async move {
+            let resp = self.inner.call(req).await.into_response();
 
-        if let Some(content_length) = resp.headers().typed_get::<headers::ContentLength>() {
-            span.set_attribute(trace::HTTP_RESPONSE_CONTENT_LENGTH.i64(content_length.0 as i64));
+            let cx = Context::current();
+            let span = cx.span();
+            span.add_event("request.completed".to_string(), vec![]);
+            span.set_attribute(trace::HTTP_STATUS_CODE.i64(resp.status().as_u16() as i64));
+            if let Some(content_length) = resp.headers().typed_get::<headers::ContentLength>() {
+                span.set_attribute(
+                    trace::HTTP_RESPONSE_CONTENT_LENGTH.i64(content_length.0 as i64),
+                );
+            }
+            resp
         }
-
-        resp
+        .with_context(Context::current_with_span(span))
+        .await
     }
 }

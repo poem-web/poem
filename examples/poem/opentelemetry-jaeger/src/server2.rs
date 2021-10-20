@@ -1,11 +1,6 @@
 use opentelemetry::{
     global,
-    sdk::{
-        export::trace::stdout,
-        propagation::TraceContextPropagator,
-        trace::{self, Sampler},
-    },
-    trace::Tracer,
+    sdk::{propagation::TraceContextPropagator, trace::Tracer},
 };
 use poem::{
     endpoint::PrometheusExporter,
@@ -15,16 +10,18 @@ use poem::{
     EndpointExt, Route, Server,
 };
 
-fn init_tracer() -> impl Tracer {
+fn init_tracer() -> Tracer {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    stdout::new_pipeline()
-        .with_trace_config(trace::config().with_sampler(Sampler::AlwaysOn))
+    opentelemetry_jaeger::new_pipeline()
+        .with_service_name("poem")
+        .with_collector_endpoint("http://localhost:14268/api/traces")
         .install_simple()
+        .unwrap()
 }
 
 #[handler]
-fn index() -> &'static str {
-    "hello world"
+fn index(body: String) -> String {
+    body + "server2\n"
 }
 
 #[tokio::main]
@@ -34,12 +31,15 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
+    let tracer = init_tracer();
+
     let app = Route::new()
-        .at("/", get(index))
+        .at("/api2", get(index))
         .at("/metrics", PrometheusExporter::new())
+        .data(tracer.clone())
         .with(OpenTelemetryMetrics::new())
-        .with(OpenTelemetryTracing::new(init_tracer()));
-    let listener = TcpListener::bind("127.0.0.1:3000");
+        .with(OpenTelemetryTracing::new(tracer));
+    let listener = TcpListener::bind("127.0.0.1:3002");
     let server = Server::new(listener).await?;
     server.run(app).await
 }
