@@ -190,11 +190,10 @@ impl<E> CorsEndpoint<E> {
             }
         }
 
-        if self.allow_origins.is_empty() && self.allow_origins_fn.is_none() {
-            (true, true)
-        } else {
-            (false, false)
-        }
+        (
+            self.allow_origins.is_empty() && self.allow_origins_fn.is_none(),
+            true,
+        )
     }
 
     fn build_preflight_response(&self, origin: &HeaderValue) -> Response {
@@ -205,7 +204,7 @@ impl<E> CorsEndpoint<E> {
 
         if self.allow_methods.is_empty() {
             builder = builder.typed_header(
-                vec![
+                [
                     Method::GET,
                     Method::POST,
                     Method::PUT,
@@ -216,7 +215,8 @@ impl<E> CorsEndpoint<E> {
                     Method::PATCH,
                     Method::TRACE,
                 ]
-                .into_iter()
+                .iter()
+                .cloned()
                 .collect::<AccessControlAllowMethods>(),
             );
         } else {

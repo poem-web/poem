@@ -12,6 +12,7 @@ mod opentelemetry_metrics;
 #[cfg(feature = "opentelemetry")]
 mod opentelemetry_tracing;
 mod set_header;
+mod size_limit;
 #[cfg(feature = "tower-compat")]
 mod tower_compat;
 
@@ -27,6 +28,7 @@ pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoi
 #[cfg(feature = "opentelemetry")]
 pub use opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
 pub use set_header::{SetHeader, SetHeaderEndpoint};
+pub use size_limit::{SizeLimit, SizeLimitEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerLayerCompatExt;
 
