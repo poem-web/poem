@@ -11,6 +11,7 @@ use opentelemetry_semantic_conventions::{resource, trace};
 use crate::{web::headers::HeaderMapExt, Endpoint, IntoResponse, Middleware, Request, Response};
 
 /// Middleware for tracing with OpenTelemetry.
+#[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
 pub struct OpenTelemetryTracing<T> {
     tracer: Arc<T>,
 }
@@ -29,24 +30,25 @@ where
     T: Tracer + Send + Sync,
     E: Endpoint,
 {
-    type Output = OpenTelemetryEndpoint<T, E>;
+    type Output = OpenTelemetryTracingEndpoint<T, E>;
 
     fn transform(&self, ep: E) -> Self::Output {
-        OpenTelemetryEndpoint {
+        OpenTelemetryTracingEndpoint {
             tracer: self.tracer.clone(),
             inner: ep,
         }
     }
 }
 
-/// Endpoint for `OpenTelemetry` middleware.
-pub struct OpenTelemetryEndpoint<T, E> {
+/// Endpoint for `OpenTelemetryTracing` middleware.
+#[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
+pub struct OpenTelemetryTracingEndpoint<T, E> {
     tracer: Arc<T>,
     inner: E,
 }
 
 #[async_trait::async_trait]
-impl<T, E> Endpoint for OpenTelemetryEndpoint<T, E>
+impl<T, E> Endpoint for OpenTelemetryTracingEndpoint<T, E>
 where
     T: Tracer + Send + Sync,
     E: Endpoint,

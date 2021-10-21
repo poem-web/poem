@@ -15,7 +15,7 @@ struct CreateSomething {
 /// `#[handler]`([`handler`]) macro marks the following method can be used for
 /// handle api request.
 ///
-/// [`req: Json<CreateSomething>`] in input parameter would be the data schema
+/// `req: Json<CreateSomething>` in input parameter would be the data schema
 /// of request. The fields in request body can be more than we defined in data
 /// structure, but the ones other than we defined in structure would be ignored
 #[handler]

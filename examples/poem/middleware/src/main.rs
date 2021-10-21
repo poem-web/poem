@@ -31,9 +31,9 @@ struct LogImpl<E>(E);
 /// api) Function `call` is the "real" logic to handle the input parameters
 /// `self.0.call(req).await.into_response()` was the original biz logic.
 /// By adding extra logic before & after the original one to extend the
-/// attribute or add commonly logics [`poem`] also have the [`Endpoint::before`]
-/// and [`Endpoint::after`] function instead the `with` to specifically take
-/// action on each step of biz logic's invoking
+/// attribute or add commonly logics [`poem`] also have the
+/// [`EndpointExt::before`] and [`EndpointExt::after`] function instead the
+/// `with` to specifically take action on each step of biz logic's invoking
 #[async_trait]
 impl<E: Endpoint> Endpoint for LogImpl<E> {
     type Output = Response;
@@ -62,7 +62,7 @@ fn index() -> String {
 ///
 /// `let app = Route::new().at("/", get(index)).with(Log);` has extra code
 /// `with($middleware)` which used for assigning the aspect of biz logic
-/// [`Endpoint::with`] will do some extra logic (defined in the implement of
+/// [`EndpointExt::with`] will do some extra logic (defined in the implement of
 /// struct `Log`) as an aspect around the original biz logic(defined in function
 /// `index`). Other details ref the doc in hello-world
 ///

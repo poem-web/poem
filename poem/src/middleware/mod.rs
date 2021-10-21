@@ -25,7 +25,7 @@ pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
 #[cfg(feature = "opentelemetry")]
 pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
 #[cfg(feature = "opentelemetry")]
-pub use opentelemetry_tracing::{OpenTelemetryEndpoint, OpenTelemetryTracing};
+pub use opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
 pub use set_header::{SetHeader, SetHeaderEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerLayerCompatExt;

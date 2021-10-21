@@ -143,12 +143,7 @@ macro_rules! impl_type_for_unsigneds {
     };
 }
 
-impl_type_for_integers!(
-    (i8, "int8"),
-    (i16, "int16"),
-    (i32, "int32"),
-    (i64, "int64")
-);
+impl_type_for_integers!((i8, "int8"), (i16, "int16"), (i32, "int32"), (i64, "int64"));
 
 impl_type_for_unsigneds!(
     (u8, "uint8"),

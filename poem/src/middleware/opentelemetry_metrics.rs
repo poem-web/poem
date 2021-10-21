@@ -13,6 +13,7 @@ const PATH_KEY: Key = Key::from_static_str("request_path");
 const STATUS_KEY: Key = Key::from_static_str("response_status_code");
 
 /// Middleware for metrics with OpenTelemetry.
+#[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
 pub struct OpenTelemetryMetrics {
     request_count: Counter<u64>,
     error_count: Counter<u64>,
@@ -62,7 +63,8 @@ impl<E: Endpoint> Middleware<E> for OpenTelemetryMetrics {
     }
 }
 
-#[doc(hidden)]
+/// Endpoint for OpenTelemetryMetrics middleware.
+#[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
 pub struct OpenTelemetryMetricsEndpoint<E> {
     request_count: Counter<u64>,
     error_count: Counter<u64>,

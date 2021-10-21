@@ -152,6 +152,7 @@ impl<E: Endpoint> Middleware<E> for Cors {
             allow_origins_fn: self.allow_origins_fn.clone(),
             allow_headers: self.allow_headers.clone(),
             allow_methods: self.allow_methods.clone(),
+            expose_headers: self.expose_headers.clone(),
             allow_headers_header: self.allow_headers.clone().into_iter().collect(),
             allow_methods_header: self.allow_methods.clone().into_iter().collect(),
             expose_headers_header: self.expose_headers.clone().into_iter().collect(),
@@ -168,6 +169,7 @@ pub struct CorsEndpoint<E> {
     allow_origins_fn: Option<Arc<dyn Fn(&str) -> bool + Send + Sync>>,
     allow_headers: HashSet<HeaderName>,
     allow_methods: HashSet<Method>,
+    expose_headers: HashSet<HeaderName>,
     allow_headers_header: AccessControlAllowHeaders,
     allow_methods_header: AccessControlAllowMethods,
     expose_headers_header: AccessControlExposeHeaders,
@@ -311,8 +313,10 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
             );
         }
 
-        resp.headers_mut()
-            .typed_insert(self.expose_headers_header.clone());
+        if !self.expose_headers.is_empty() {
+            resp.headers_mut()
+                .typed_insert(self.expose_headers_header.clone());
+        }
 
         if vary_header {
             resp.headers_mut()

@@ -34,6 +34,7 @@ impl<E: Endpoint> Middleware<E> for Compression {
 }
 
 /// Endpoint for Compression middleware.
+#[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,
 }

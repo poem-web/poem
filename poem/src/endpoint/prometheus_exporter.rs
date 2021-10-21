@@ -7,6 +7,7 @@ use crate::{
 };
 
 /// An endpoint that exports metrics for Prometheus.
+#[cfg_attr(docsrs, doc(cfg(feature = "prometheus")))]
 #[derive(Default)]
 pub struct PrometheusExporter {
     global_labels: Vec<KeyValue>,
@@ -37,6 +38,7 @@ impl IntoEndpoint for PrometheusExporter {
     }
 }
 
+#[doc(hidden)]
 pub struct PrometheusExporterEndpoint {
     exporter: opentelemetry_prometheus::PrometheusExporter,
 }

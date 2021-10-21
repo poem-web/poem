@@ -20,7 +20,7 @@ fn hello(Path(name): Path<String>) -> String {
 
 /// Main method in service.
 ///
-/// `#[tokio::main]`([`tokio::main`]) was in necessary as poem was depend on it.
+/// [`tokio::main`] was in necessary as poem was depend on it.
 ///
 /// [`tracing_subscriber`] was an optional component which was used for
 /// collecting the tracing labels.
@@ -29,10 +29,10 @@ fn hello(Path(name): Path<String>) -> String {
 /// `Route::new().at("$path", $http_method($handler_method)); =>
 /// Route::new().at("/hello/:name", get(hello));`
 ///
-/// Function [`at`] is used for defined the end point of api, and bind the
-/// handler method against the api. The variable name (`:name` in this sample)
-/// must be the same with the key defined by [`Path(T)`] in input parameter of
-/// handler method (`Path(name)` in this sample)
+/// Function [`Route::at`] is used for defined the end point of api, and bind
+/// the handler method against the api. The variable name (`:name` in this
+/// sample) must be the same with the key defined by [`Path(T)`] in input
+/// parameter of handler method (`Path(name)` in this sample)
 ///
 /// The `$http_method` ([`get`] in this sample) defines the accept route method
 /// of the api.

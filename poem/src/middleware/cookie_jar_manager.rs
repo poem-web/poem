@@ -6,6 +6,7 @@ use crate::{
 };
 
 /// Middleware for CookieJar support.
+#[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
 #[derive(Default)]
 pub struct CookieJarManager {
     key: Option<Arc<CookieKey>>,
@@ -42,6 +43,7 @@ where
 }
 
 /// Endpoint for `CookieJarManager` middleware.
+#[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
 pub struct CookieJarManagerEndpoint<E> {
     inner: E,
     key: Option<Arc<CookieKey>>,

@@ -374,12 +374,15 @@ fn test_unsigned_integers() {
             "u16": u16::MAX as u64,
             "u32": u32::MAX as u64,
             "u64": u64::MAX as u64,
-        })).unwrap(), A {
+        }))
+        .unwrap(),
+        A {
             u8: u8::MAX,
             u16: u16::MAX,
             u32: u32::MAX,
             u64: u64::MAX,
-        });
+        }
+    );
     assert_eq!(
         A::parse_from_json(json!({
             "u8": u8::MAX as u64 + 1,
