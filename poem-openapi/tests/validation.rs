@@ -12,6 +12,16 @@ use poem_openapi::{
 use serde_json::json;
 
 #[test]
+fn test_u64() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        n: u64,
+    }
+
+    assert_eq!(A::parse_from_json(json!({ "n": 1 })).unwrap(), A { n: 1 });
+}
+
+#[test]
 fn test_multiple_of() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
@@ -346,5 +356,39 @@ fn test_multiple_validators() {
             .unwrap_err()
             .into_message(),
         "failed to parse \"A\": field `n` verification failed. maximum(500, exclusive: false)"
+    );
+}
+
+#[test]
+fn test_unsigned_integers() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        u8: u8,
+        u16: u16,
+        u32: u32,
+        u64: u64,
+    }
+    assert_eq!(
+        A::parse_from_json(json!({
+            "u8": u8::MAX as u64,
+            "u16": u16::MAX as u64,
+            "u32": u32::MAX as u64,
+            "u64": u64::MAX as u64,
+        })).unwrap(), A {
+            u8: u8::MAX,
+            u16: u16::MAX,
+            u32: u32::MAX,
+            u64: u64::MAX,
+        });
+    assert_eq!(
+        A::parse_from_json(json!({
+            "u8": u8::MAX as u64 + 1,
+            "u16": u16::MAX as u64,
+            "u32": u32::MAX as u64,
+            "u64": u64::MAX as u64,
+        }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"integer($uint8)\": Only integers from 0 to 255 are accepted. (occurred while parsing \"A\")"
     );
 }
