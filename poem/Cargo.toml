@@ -22,7 +22,6 @@ default = []
 websocket = ["tokio-tungstenite"]
 multipart = ["multer"]
 tls = ["tokio-rustls"]
-
 sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
