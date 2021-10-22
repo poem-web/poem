@@ -9,6 +9,8 @@ Define a OpenAPI object
 | inline        | Generate inline object.   | bool     | Y        |
 | concretes     | Specify how the concrete type of the generic Schema should be implemented. | ConcreteType |  Y |
 | deprecated    | Schema deprecated          | bool     | Y        |
+| read_only_all | set all fields openapi readOnly property | bool     | Y        |
+| write_only_all | set all fields openapi writeOnly property | bool     | Y        |
 
 # Field parameters
 
@@ -17,6 +19,8 @@ Define a OpenAPI object
 | skip          | Skip this field           | bool     | Y        |
 | rename        | Rename the field          | string   | Y        |
 | default       | Default value             | bool,string | Y     |
+| read_only     | set field openapi readOnly property, field readOnly property = args.read_only_all \|\| field.read_only | bool     | Y        |
+| write_only    | set field openapi writeOnly property, field writeOnly property = args.write_only_all \|\| field.write_only | bool     | Y        |
 | multiple_of   | The value of "multiple_of" MUST be a number, strictly greater than 0. A numeric instance is only valid if division by this value results in an integer. | number | Y |
 | maximum       | The value of "maximum" MUST be a number, representing an upper limit for a numeric instance. If `exclusive` is `true` and instance is less than the provided value, or else if the instance is less than or exactly equal to the provided value. | { value: `<number>`, exclusive: `<bool>`} | Y |
 | minimum       | The value of "minimum" MUST be a number, representing a lower limit for a numeric instance. If `exclusive` is `true` and instance is greater than the provided value, or else if the instance is greater than or exactly equal to the provided value. | { value: `<number>`, exclusive: `<bool>`} | Y |
