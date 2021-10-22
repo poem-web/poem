@@ -78,6 +78,10 @@ struct ObjectArgs {
     concretes: Vec<ConcreteType>,
     #[darling(default)]
     deprecated: bool,
+    #[darling(default)]
+    read_only_all: bool,
+    #[darling(default)]
+    write_only_all: bool,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -116,8 +120,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     for field in &s.fields {
         let field_ident = field.ident.as_ref().unwrap();
         let field_ty = &field.ty;
-        let read_only = field.read_only;
-        let write_only = field.write_only;
+        let read_only = args.read_only_all || field.read_only;
+        let write_only = args.write_only_all || field.write_only;
 
         if field.skip {
             deserialize_fields.push(quote! {

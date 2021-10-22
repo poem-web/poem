@@ -82,6 +82,75 @@ fn deprecated() {
     let meta = get_meta::<ObjDeprecated>();
     assert!(meta.deprecated);
 }
+
+#[test]
+fn read_only_all() {
+    #[derive(Debug, Object, PartialEq)]
+    #[oai(read_only_all)]
+    struct Obj {
+        id: i32,
+        value: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    let field_id_schema = meta.properties[0].1.unwrap_inline();
+    let field_value_schema = meta.properties[1].1.unwrap_inline();
+    assert!(field_id_schema.read_only);
+    assert!(!field_id_schema.write_only);
+    assert!(field_value_schema.read_only);
+    assert!(!field_value_schema.write_only);
+
+    assert_eq!(
+        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        serde_json::json!({
+            "id": 99,
+            "value": 100,
+        })
+    );
+
+    assert_eq!(
+        serde_json::from_value::<Obj>(serde_json::json!({
+            "id": 99,
+            "value": 100,
+        }))
+        .unwrap_err()
+        .to_string(),
+        r#"failed to parse "Obj": properties `id` is read only."#,
+    );
+}
+
+#[test]
+fn write_only_all() {
+    #[derive(Debug, Object, PartialEq)]
+    #[oai(write_only_all)]
+    struct Obj {
+        id: i32,
+        value: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    let field_id_schema = meta.properties[0].1.unwrap_inline();
+    let field_value_schema = meta.properties[1].1.unwrap_inline();
+    assert!(!field_id_schema.read_only);
+    assert!(field_id_schema.write_only);
+    assert!(!field_value_schema.read_only);
+    assert!(field_value_schema.write_only);
+
+    assert_eq!(
+        serde_json::from_value::<Obj>(serde_json::json!({
+            "id": 99,
+            "value": 100,
+        }))
+        .unwrap(),
+        Obj { id: 99, value: 100 }
+    );
+
+    assert_eq!(
+        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        serde_json::json!({})
+    );
+}
+
 #[test]
 fn field_skip() {
     #[derive(Object, Debug, Eq, PartialEq)]
