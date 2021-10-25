@@ -5,7 +5,6 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
-    time::SystemTime,
 };
 
 use hyper::server::conn::Http;
@@ -14,7 +13,6 @@ use tokio::{
     sync::Notify,
     time::Duration,
 };
-use tracing::{Instrument, Level};
 
 use crate::{
     listener::{Acceptor, Listener},
@@ -148,36 +146,8 @@ async fn serve_connection(
             let ep = ep.clone();
             let remote_addr = remote_addr.clone();
             async move {
-                let span = tracing::span!(
-                    target: module_path!(),
-                    Level::INFO,
-                    "request",
-                    remote_addr = %remote_addr,
-                    version = ?req.version(),
-                    method = %req.method(),
-                    path = %req.uri(),
-                );
-
-                let fut = async move {
-                    let now = SystemTime::now();
-                    let resp: http::Response<hyper::Body> =
-                        ep.call((req, remote_addr).into()).await.into();
-                    match now.elapsed() {
-                        Ok(duration) => tracing::info!(
-                            status = %resp.status(),
-                            duration = ?duration,
-                            "response"
-                        ),
-                        Err(_) => tracing::info!(
-                            status = %resp.status(),
-                            "response"
-                        ),
-                    }
-                    resp
-                }
-                .instrument(span);
-
-                Ok::<_, Infallible>(fut.await)
+                let resp = ep.call((req, remote_addr).into()).await.into();
+                Ok::<_, Infallible>(resp)
             }
         }
     });

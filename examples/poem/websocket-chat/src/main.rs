@@ -9,10 +9,6 @@ use poem::{
     EndpointExt, IntoResponse, Route, Server,
 };
 
-/// The sample page for websocket usage
-///
-/// Returns a html page include simple input & submit button for communicating
-/// with backend service through websocket
 #[handler]
 fn index() -> Html<&'static str> {
     Html(
@@ -63,15 +59,6 @@ fn index() -> Html<&'static str> {
     )
 }
 
-/// The websocket handler method
-///
-/// [`Path`] receive the path variable in the first attempt of connection
-/// ws ([`WebSocket`]) contains the websocket connection object
-/// sender ([`Data<T>`]) was used for exchanging data through the T (tokio
-/// broadcast channel here) ws will register 2 thread, 1 for receive the message
-/// sent by other service through websocket, and send into the channel init
-/// before; and the other receive the message from internal channel and
-/// send back to other service through websocket as the answer.
 #[handler]
 fn ws(
     Path(name): Path<String>,
@@ -103,24 +90,6 @@ fn ws(
     })
 }
 
-/// Main method in service.
-///
-/// ```
-/// let app = Route::new().at("/", get(index)).at(
-///     "/ws/:name",
-///     get(ws.data(tokio::sync::broadcast::channel::<String>(32).0)),
-/// );
-/// ```
-/// register the websocket api in router, which would take action on handling
-/// the messages exchanged through websocket
-/// Other details ref the doc in hello-world
-///
-/// usage:
-/// 1. build & start the main.rs
-/// 2. connect service by ws protocol through http://localhost:3000/ws/$name
-/// 3. send message
-/// 4. service will send message back through websocket with log print in
-/// console
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     if std::env::var_os("RUST_LOG").is_none() {

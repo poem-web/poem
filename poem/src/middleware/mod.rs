@@ -15,6 +15,7 @@ mod set_header;
 mod size_limit;
 #[cfg(feature = "tower-compat")]
 mod tower_compat;
+mod tracing_mw;
 
 pub use add_data::{AddData, AddDataEndpoint};
 #[cfg(feature = "compression")]
@@ -31,9 +32,10 @@ pub use set_header::{SetHeader, SetHeaderEndpoint};
 pub use size_limit::{SizeLimit, SizeLimitEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerLayerCompatExt;
+pub use tracing_mw::{Tracing, TracingEndpoint};
 
 #[cfg(feature = "tracing")]
-pub use self::tracing::{Tracing, TracingEndpoint};
+pub use self::tracing_mw::{Tracing, TracingEndpoint};
 use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
