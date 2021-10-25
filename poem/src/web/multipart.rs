@@ -30,7 +30,7 @@ impl Field {
         self.0.file_name()
     }
 
-    /// The field name found in the `Content-Disposition` header.
+    /// The name found in the `Content-Disposition` header.
     #[inline]
     pub fn name(&self) -> Option<&str> {
         self.0.name()
