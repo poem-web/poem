@@ -8,18 +8,8 @@ use redis::{aio::ConnectionManager, Client};
 
 #[handler]
 async fn count(session: &Session) -> String {
-    let count = match session.get::<i32>("count") {
-        Some(value) => {
-            let count = value + 1;
-            session.set("count", count);
-            count
-        }
-        None => {
-            session.set("count", 1);
-            1
-        }
-    };
-
+    let count = session.get::<i32>("count").unwrap_or(0) + 1;
+    session.set("count", count);
     format!("Hello!\nHow many times have seen you: {}", count)
 }
 
@@ -33,7 +23,7 @@ async fn main() -> Result<(), std::io::Error> {
     let client = Client::open("redis://127.0.0.1/").unwrap();
 
     let app = Route::new().at("/", get(count)).with(ServerSession::new(
-        CookieConfig::default(),
+        CookieConfig::default().secure(false),
         RedisStorage::new(ConnectionManager::new(client).await.unwrap()),
     ));
     let listener = TcpListener::bind("127.0.0.1:3000");
