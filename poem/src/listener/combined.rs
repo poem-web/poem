@@ -7,7 +7,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
 use crate::{
     listener::{Acceptor, Listener},
-    web::RemoteAddr,
+    web::{LocalAddr, RemoteAddr},
 };
 
 /// Listener for the [`Listener::combine`](crate::listener::Listener::combine)
@@ -39,24 +39,23 @@ impl<A: Listener, B: Listener> Listener for Combined<A, B> {
 impl<A: Acceptor, B: Acceptor> Acceptor for Combined<A, B> {
     type Io = CombinedStream<A::Io, B::Io>;
 
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
-        Ok(self
-            .a
-            .local_addr()?
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        self.a
+            .local_addr()
             .into_iter()
-            .chain(self.b.local_addr()?.into_iter())
-            .collect())
+            .chain(self.b.local_addr().into_iter())
+            .collect()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
         tokio::select! {
             res = self.a.accept() => {
-                let (stream, addr) = res?;
-                Ok((CombinedStream::A(stream), addr))
+                let (stream, local_addr, remote_addr) = res?;
+                Ok((CombinedStream::A(stream), local_addr, remote_addr))
             }
             res = self.b.accept() => {
-                let (stream, addr) = res?;
-                Ok((CombinedStream::B(stream), addr))
+                let (stream, local_addr, remote_addr) = res?;
+                Ok((CombinedStream::B(stream), local_addr, remote_addr))
             }
         }
     }
@@ -146,10 +145,10 @@ mod tests {
             stream.write_i32(20).await.unwrap();
         });
 
-        let (mut stream, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
 
-        let (mut stream, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 20);
     }
 }

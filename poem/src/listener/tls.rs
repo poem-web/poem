@@ -11,7 +11,7 @@ use tokio_rustls::{
 
 use crate::{
     listener::{Acceptor, Listener},
-    web::RemoteAddr,
+    web::{LocalAddr, RemoteAddr},
 };
 
 #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
@@ -174,14 +174,14 @@ pub struct TlsAcceptor<T> {
 impl<T: Acceptor> Acceptor for TlsAcceptor<T> {
     type Io = TlsStream<T::Io>;
 
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
+    fn local_addr(&self) -> Vec<LocalAddr> {
         self.inner.local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
-        let (stream, addr) = self.inner.accept().await?;
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+        let (stream, local_addr, remote_addr) = self.inner.accept().await?;
         let stream = self.acceptor.accept(stream).await?;
-        Ok((stream, addr))
+        Ok((stream, local_addr, remote_addr))
     }
 }
 
@@ -349,7 +349,7 @@ B1Y0rlLoKG62pnkeXp1O4I57gnClatWRg5qw11a8V8e3jvDKIYM=
     async fn tls_listener() {
         let listener = TcpListener::bind("127.0.0.1:0").tls(TlsConfig::new().key(KEY).cert(CERT));
         let mut acceptor = listener.into_acceptor().await.unwrap();
-        let local_addr = acceptor.local_addr().unwrap().pop().unwrap();
+        let local_addr = acceptor.local_addr().pop().unwrap();
 
         tokio::spawn(async move {
             let mut config = ClientConfig::new();
@@ -367,7 +367,7 @@ B1Y0rlLoKG62pnkeXp1O4I57gnClatWRg5qw11a8V8e3jvDKIYM=
             stream.write_i32(10).await.unwrap();
         });
 
-        let (mut stream, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
     }
 }

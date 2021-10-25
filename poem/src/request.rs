@@ -20,12 +20,14 @@ use crate::{
     route::PathParams,
     web::{
         headers::{Header, HeaderMapExt},
-        RemoteAddr,
+        LocalAddr, RemoteAddr,
     },
     RequestBody,
 };
 
+#[derive(Default)]
 pub(crate) struct RequestState {
+    pub(crate) local_addr: LocalAddr,
     pub(crate) remote_addr: RemoteAddr,
     pub(crate) original_uri: Uri,
     pub(crate) match_params: PathParams,
@@ -33,20 +35,6 @@ pub(crate) struct RequestState {
     pub(crate) cookie_jar: Option<CookieJar>,
     #[cfg(feature = "websocket")]
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
-}
-
-impl Default for RequestState {
-    fn default() -> Self {
-        Self {
-            remote_addr: RemoteAddr::custom("unknown", "unknown"),
-            original_uri: Default::default(),
-            match_params: Default::default(),
-            #[cfg(feature = "cookie")]
-            cookie_jar: Default::default(),
-            #[cfg(feature = "websocket")]
-            on_upgrade: Default::default(),
-        }
-    }
 }
 
 /// Component parts of an HTTP Request.
@@ -101,8 +89,10 @@ impl Debug for Request {
     }
 }
 
-impl From<(http::Request<hyper::Body>, RemoteAddr)> for Request {
-    fn from((req, remote_addr): (http::Request<hyper::Body>, RemoteAddr)) -> Self {
+impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
+    fn from(
+        (req, local_addr, remote_addr): (http::Request<hyper::Body>, LocalAddr, RemoteAddr),
+    ) -> Self {
         #[allow(unused_mut)]
         let (mut parts, body) = req.into_parts();
         #[cfg(feature = "websocket")]
@@ -116,6 +106,7 @@ impl From<(http::Request<hyper::Body>, RemoteAddr)> for Request {
             extensions: parts.extensions,
             body: Body(body),
             state: RequestState {
+                local_addr,
                 remote_addr,
                 original_uri: parts.uri,
                 match_params: Default::default(),
@@ -253,6 +244,12 @@ impl Request {
     #[inline]
     pub fn remote_addr(&self) -> &RemoteAddr {
         &self.state.remote_addr
+    }
+
+    /// Returns a reference to the local address.
+    #[inline]
+    pub fn local_addr(&self) -> &LocalAddr {
+        &self.state.local_addr
     }
 
     /// Returns a reference to the [`CookieJar`]

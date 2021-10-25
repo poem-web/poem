@@ -7,7 +7,7 @@ use tokio::{
 
 use crate::{
     listener::{Acceptor, Listener},
-    web::RemoteAddr,
+    web::{LocalAddr, RemoteAddr},
 };
 
 /// A TCP listener.
@@ -28,12 +28,20 @@ impl<T: ToSocketAddrs + Send> Listener for TcpListener<T> {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         let listener = TokioTcpListener::bind(self.addr).await?;
-        Ok(TcpAcceptor { listener })
+        let local_addr = listener
+            .local_addr()
+            .map(|addr| LocalAddr(addr.into()))
+            .unwrap_or_default();
+        Ok(TcpAcceptor {
+            local_addr,
+            listener,
+        })
     }
 }
 
 /// A acceptor that accepts TCP connections.
 pub struct TcpAcceptor {
+    local_addr: LocalAddr,
     listener: TokioTcpListener,
 }
 
@@ -42,16 +50,16 @@ impl Acceptor for TcpAcceptor {
     type Io = TcpStream;
 
     #[inline]
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
-        Ok(vec![self.listener.local_addr()?.into()])
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        vec![self.local_addr.clone()]
     }
 
     #[inline]
-    async fn accept(&mut self) -> Result<(Self::Io, RemoteAddr)> {
+    async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr)> {
         self.listener
             .accept()
             .await
-            .map(|(io, addr)| (io, addr.into()))
+            .map(|(io, addr)| (io, self.local_addr.clone(), RemoteAddr(addr.into())))
     }
 }
 
@@ -65,7 +73,7 @@ mod tests {
     async fn tcp_listener() {
         let listener = TcpListener::bind("127.0.0.1:0");
         let mut acceptor = listener.into_acceptor().await.unwrap();
-        let local_addr = acceptor.local_addr().unwrap().remove(0);
+        let local_addr = acceptor.local_addr().remove(0);
 
         tokio::spawn(async move {
             let mut stream = TcpStream::connect(*local_addr.as_socket_addr().unwrap())
@@ -74,7 +82,7 @@ mod tests {
             stream.write_i32(10).await.unwrap();
         });
 
-        let (mut stream, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
     }
 }

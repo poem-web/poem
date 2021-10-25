@@ -1,8 +1,11 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display, Formatter},
+};
 
-/// Remote peer's address.
+/// An network address.
 #[derive(Debug, Clone)]
-pub enum RemoteAddr {
+pub enum Addr {
     /// Internet socket address
     SocketAddr(std::net::SocketAddr),
     /// Unix domain socket address
@@ -10,18 +13,22 @@ pub enum RemoteAddr {
     #[cfg_attr(docsrs, doc(cfg(unix)))]
     Unix(std::sync::Arc<tokio::net::unix::SocketAddr>),
     /// Custom address
-    Custom(&'static str, String),
+    Custom(&'static str, Cow<'static, str>),
 }
 
-impl PartialEq for RemoteAddr {
+impl Default for Addr {
+    fn default() -> Self {
+        Self::Custom("unknown", "unknown".into())
+    }
+}
+
+impl PartialEq for Addr {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (RemoteAddr::SocketAddr(addr1), RemoteAddr::SocketAddr(addr2)) => addr1 == addr2,
+            (Addr::SocketAddr(addr1), Addr::SocketAddr(addr2)) => addr1 == addr2,
             #[cfg(unix)]
-            (RemoteAddr::Unix(addr1), RemoteAddr::Unix(addr2)) => {
-                addr1.as_pathname() == addr2.as_pathname()
-            }
-            (RemoteAddr::Custom(scheme1, addr1), RemoteAddr::Custom(scheme2, addr2)) => {
+            (Addr::Unix(addr1), Addr::Unix(addr2)) => addr1.as_pathname() == addr2.as_pathname(),
+            (Addr::Custom(scheme1, addr1), Addr::Custom(scheme2, addr2)) => {
                 scheme1 == scheme2 && addr1 == addr2
             }
             _ => false,
@@ -29,20 +36,20 @@ impl PartialEq for RemoteAddr {
     }
 }
 
-impl From<std::net::SocketAddr> for RemoteAddr {
+impl From<std::net::SocketAddr> for Addr {
     fn from(addr: std::net::SocketAddr) -> Self {
-        RemoteAddr::SocketAddr(addr)
+        Addr::SocketAddr(addr)
     }
 }
 
 #[cfg(unix)]
-impl From<tokio::net::unix::SocketAddr> for RemoteAddr {
+impl From<tokio::net::unix::SocketAddr> for Addr {
     fn from(addr: tokio::net::unix::SocketAddr) -> Self {
-        RemoteAddr::Unix(addr.into())
+        Addr::Unix(addr.into())
     }
 }
 
-impl RemoteAddr {
+impl Addr {
     /// Create a internet socket address.
     pub fn socket(addr: std::net::SocketAddr) -> Self {
         Self::SocketAddr(addr)
@@ -56,7 +63,7 @@ impl RemoteAddr {
     }
 
     /// Create a custom address.
-    pub fn custom(scheme: &'static str, addr: impl Into<String>) -> Self {
+    pub fn custom(scheme: &'static str, addr: impl Into<Cow<'static, str>>) -> Self {
         Self::Custom(scheme, addr.into())
     }
 
@@ -64,7 +71,7 @@ impl RemoteAddr {
     /// otherwise.
     pub fn as_socket_addr(&self) -> Option<&std::net::SocketAddr> {
         match self {
-            RemoteAddr::SocketAddr(addr) => Some(addr),
+            Addr::SocketAddr(addr) => Some(addr),
             _ => None,
         }
     }
@@ -75,22 +82,22 @@ impl RemoteAddr {
     #[cfg_attr(docsrs, doc(cfg(unix)))]
     pub fn as_unix_socket_addr(&self) -> Option<&tokio::net::unix::SocketAddr> {
         match self {
-            RemoteAddr::Unix(addr) => Some(addr),
+            Addr::Unix(addr) => Some(addr),
             _ => None,
         }
     }
 }
 
-impl Display for RemoteAddr {
+impl Display for Addr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            RemoteAddr::SocketAddr(addr) => write!(f, "socket://{}", addr),
+            Addr::SocketAddr(addr) => write!(f, "socket://{}", addr),
             #[cfg(unix)]
-            RemoteAddr::Unix(addr) => match addr.as_pathname() {
+            Addr::Unix(addr) => match addr.as_pathname() {
                 Some(path) => write!(f, "unix://{}", path.display()),
                 None => f.write_str("unix://unknown"),
             },
-            RemoteAddr::Custom(scheme, addr) => write!(f, "{}://{}", scheme, addr),
+            Addr::Custom(scheme, addr) => write!(f, "{}://{}", scheme, addr),
         }
     }
 }

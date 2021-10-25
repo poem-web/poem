@@ -66,12 +66,14 @@ pub mod web;
 #[doc(inline)]
 pub use http;
 
+mod addr;
 mod body;
 mod request;
 mod response;
 mod route;
 mod server;
 
+pub use addr::Addr;
 pub use async_trait::async_trait;
 pub use body::Body;
 pub use endpoint::{Endpoint, EndpointExt, IntoEndpoint};

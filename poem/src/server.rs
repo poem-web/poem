@@ -16,7 +16,7 @@ use tokio::{
 
 use crate::{
     listener::{Acceptor, Listener},
-    web::RemoteAddr,
+    web::{LocalAddr, RemoteAddr},
     Endpoint, EndpointExt, IntoEndpoint, Response,
 };
 
@@ -39,7 +39,7 @@ impl<T: Acceptor> Server<T> {
     }
 
     /// Returns the local address that this server is bound to.
-    pub fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
+    pub fn local_addr(&self) -> Vec<LocalAddr> {
         self.acceptor.local_addr()
     }
 
@@ -73,7 +73,7 @@ impl<T: Acceptor> Server<T> {
 
         tokio::pin!(signal);
 
-        for addr in acceptor.local_addr()? {
+        for addr in acceptor.local_addr() {
             tracing::info!(addr = %addr, "listening");
         }
         tracing::info!("server started");
@@ -98,7 +98,7 @@ impl<T: Acceptor> Server<T> {
                     break;
                 },
                 res = acceptor.accept() => {
-                    if let Ok((socket, remote_addr)) = res {
+                    if let Ok((socket, local_addr, remote_addr)) = res {
                         let ep = ep.clone();
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
@@ -109,11 +109,11 @@ impl<T: Acceptor> Server<T> {
 
                             if timeout.is_some() {
                                 tokio::select! {
-                                    _ = serve_connection(socket, remote_addr, ep) => {}
+                                    _ = serve_connection(socket, local_addr, remote_addr, ep) => {}
                                     _ = timeout_notify.notified() => {}
                                 }
                             } else {
-                                serve_connection(socket, remote_addr, ep).await;
+                                serve_connection(socket, local_addr, remote_addr, ep).await;
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::SeqCst) == 1 {
@@ -138,15 +138,17 @@ impl<T: Acceptor> Server<T> {
 
 async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
+    local_addr: LocalAddr,
     remote_addr: RemoteAddr,
     ep: Arc<dyn Endpoint<Output = Response>>,
 ) {
     let service = hyper::service::service_fn({
         move |req: hyper::Request<hyper::Body>| {
             let ep = ep.clone();
+            let local_addr = local_addr.clone();
             let remote_addr = remote_addr.clone();
             async move {
-                let resp = ep.call((req, remote_addr).into()).await.into();
+                let resp = ep.call((req, local_addr, remote_addr).into()).await.into();
                 Ok::<_, Infallible>(resp)
             }
         }

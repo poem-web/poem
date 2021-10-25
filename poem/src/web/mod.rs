@@ -1,5 +1,6 @@
 //! Commonly used as the type of extractor or response.
 
+mod addr;
 #[cfg(feature = "compression")]
 mod compress;
 #[cfg(feature = "cookie")]
@@ -13,7 +14,6 @@ mod multipart;
 mod path;
 mod query;
 mod redirect;
-mod remote_addr;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
@@ -29,6 +29,7 @@ pub mod websocket;
 
 use std::convert::{Infallible, TryInto};
 
+pub use addr::{LocalAddr, RemoteAddr};
 use bytes::Bytes;
 #[cfg(feature = "compression")]
 pub use compress::{Compress, CompressionAlgo};
@@ -40,7 +41,6 @@ pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
 pub use redirect::Redirect;
-pub use remote_addr::RemoteAddr;
 pub use template::{HtmlTemplate, Template};
 pub use typed_header::TypedHeader;
 
@@ -102,6 +102,10 @@ impl RequestBody {
 /// - **RemoteAddr**
 ///
 ///    Extracts the remote peer's address [`RemoteAddr`] from request.
+///
+/// - **LocalAddr**
+///
+///    Extracts the local server's address [`LocalAddr`] from request.
 ///
 /// - **Method**
 ///
@@ -767,7 +771,7 @@ impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T, T::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Error;
+    use crate::{Addr, Error};
 
     #[tokio::test]
     async fn into_response() {
@@ -941,7 +945,7 @@ mod tests {
                 .header("Value2", "456")
                 .uri(Uri::from_static("http://example.com/a/b"))
                 .body("abc");
-            req.state_mut().remote_addr = RemoteAddr::custom("test", "example");
+            req.state_mut().remote_addr = RemoteAddr(Addr::custom("test", "example"));
             req
         }
 
@@ -974,7 +978,7 @@ mod tests {
         // &RemoteAddr
         assert_eq!(
             <&RemoteAddr>::from_request(&req, &mut body).await.unwrap(),
-            &RemoteAddr::custom("test", "example")
+            &RemoteAddr(Addr::custom("test", "example"))
         );
 
         // &Method

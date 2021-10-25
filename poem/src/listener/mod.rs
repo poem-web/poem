@@ -21,7 +21,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 #[cfg(unix)]
 pub use unix::{UnixAcceptor, UnixListener};
 
-use crate::web::RemoteAddr;
+use crate::web::{LocalAddr, RemoteAddr};
 
 /// Represents a acceptor type.
 #[async_trait::async_trait]
@@ -30,14 +30,14 @@ pub trait Acceptor: Send + Sync {
     type Io: AsyncRead + AsyncWrite + Send + Unpin + 'static;
 
     /// Returns the local address that this listener is bound to.
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>>;
+    fn local_addr(&self) -> Vec<LocalAddr>;
 
     /// Accepts a new incoming connection from this listener.
     ///
     /// This function will yield once a new TCP connection is established. When
     /// established, the corresponding IO stream and the remote peer’s
     /// address will be returned.
-    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)>;
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)>;
 }
 
 /// An owned dynamically typed Acceptor for use in cases where you can’t
@@ -110,11 +110,11 @@ pub trait Listener: Send {
 impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
     type Io = T::Io;
 
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
+    fn local_addr(&self) -> Vec<LocalAddr> {
         self.as_ref().local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
         self.as_mut().accept().await
     }
 }
@@ -173,15 +173,15 @@ struct WrappedAcceptor<T: Acceptor>(T);
 impl<T: Acceptor> Acceptor for WrappedAcceptor<T> {
     type Io = BoxIo;
 
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
-        self.0.local_addr().map(|addrs| addrs.into_iter().collect())
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        self.0.local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
         self.0
             .accept()
             .await
-            .map(|(io, addr)| (BoxIo::new(io), addr))
+            .map(|(io, local_addr, remote_addr)| (BoxIo::new(io), local_addr, remote_addr))
     }
 }
 

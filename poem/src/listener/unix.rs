@@ -7,7 +7,7 @@ use tokio::{
 
 use crate::{
     listener::{Acceptor, Listener},
-    web::RemoteAddr,
+    web::{LocalAddr, RemoteAddr},
 };
 
 /// A Unix domain socket listener.
@@ -29,13 +29,21 @@ impl<T: AsRef<Path> + Send> Listener for UnixListener<T> {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         let listener = TokioUnixListener::bind(self.path)?;
-        Ok(UnixAcceptor { listener })
+        let local_addr = listener
+            .local_addr()
+            .map(|addr| LocalAddr(addr.into()))
+            .unwrap_or_default();
+        Ok(UnixAcceptor {
+            local_addr,
+            listener,
+        })
     }
 }
 
 /// A acceptor that accepts connections.
 #[cfg_attr(docsrs, doc(cfg(unix)))]
 pub struct UnixAcceptor {
+    local_addr: LocalAddr,
     listener: TokioUnixListener,
 }
 
@@ -44,14 +52,14 @@ impl Acceptor for UnixAcceptor {
     type Io = UnixStream;
 
     #[inline]
-    fn local_addr(&self) -> IoResult<Vec<RemoteAddr>> {
-        self.listener.local_addr().map(|addr| vec![addr.into()])
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        vec![self.local_addr.clone()]
     }
 
     #[inline]
-    async fn accept(&mut self) -> Result<(Self::Io, RemoteAddr)> {
+    async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr)> {
         let (stream, addr) = self.listener.accept().await?;
-        Ok((stream, addr.into()))
+        Ok((stream, self.local_addr.clone(), RemoteAddr(addr.into())))
     }
 }
 
@@ -74,7 +82,7 @@ mod tests {
             stream.write_i32(10).await.unwrap();
         });
 
-        let (mut stream, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
 
         tokio::time::sleep(Duration::from_secs(1)).await;

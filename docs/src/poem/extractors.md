@@ -28,6 +28,10 @@ fn index(remote_addr: SocketAddr, method: Method, uri: &Uri) {}
 
    Extracts the remote peer's address [`RemoteAddr`] from request.
 
+ - **LocalAddr**
+
+   Extracts the local server's address [`LocalAddr`] from request.
+
  - **Method**
 
     Extracts the `Method` from the incoming request.
