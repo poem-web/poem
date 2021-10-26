@@ -6,7 +6,7 @@ use crate::Result;
 #[async_trait::async_trait]
 pub trait SessionStorage: Send + Sync {
     /// Load session entries.
-    async fn load_session(&self, session_id: &str) -> Result<BTreeMap<String, String>>;
+    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, String>>>;
 
     /// Insert or update a session.
     async fn update_session(

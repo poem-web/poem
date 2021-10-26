@@ -61,12 +61,15 @@ where
 
     async fn call(&self, mut req: Request) -> Self::Output {
         let cookie_jar = req.cookie().clone();
-        let session_id = self.config.get_cookie_value(&cookie_jar);
+        let mut session_id = self.config.get_cookie_value(&cookie_jar);
         let session = match &session_id {
-            Some(session_id) => {
-                let entries = self.storage.load_session(session_id).await?;
-                Session::new(entries)
-            }
+            Some(id) => match self.storage.load_session(id).await? {
+                Some(entries) => Session::new(entries),
+                None => {
+                    session_id = None;
+                    Session::default()
+                }
+            },
             None => Session::default(),
         };
 

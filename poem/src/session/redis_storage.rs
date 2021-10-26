@@ -19,14 +19,20 @@ impl<T> RedisStorage<T> {
 
 #[async_trait::async_trait]
 impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T> {
-    async fn load_session(&self, session_id: &str) -> Result<BTreeMap<String, String>> {
-        let data: String = self
+    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, String>>> {
+        let data: Option<String> = self
             .connection
             .clone()
             .get(session_id)
             .await
             .map_err(Error::internal_server_error)?;
-        Ok(serde_json::from_str::<BTreeMap<String, String>>(&data).unwrap_or_default())
+        match data {
+            Some(data) => match serde_json::from_str::<BTreeMap<String, String>>(&data) {
+                Ok(entries) => Ok(Some(entries)),
+                Err(_) => Ok(None),
+            },
+            None => Ok(None),
+        }
     }
 
     async fn update_session(
