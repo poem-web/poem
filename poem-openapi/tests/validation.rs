@@ -392,6 +392,6 @@ fn test_unsigned_integers() {
         }))
             .unwrap_err()
             .into_message(),
-        "failed to parse \"integer($uint8)\": Only integers from 0 to 255 are accepted. (occurred while parsing \"A\")"
+        "failed to parse \"integer(uint8)\": Only integers from 0 to 255 are accepted. (occurred while parsing \"A\")"
     );
 }

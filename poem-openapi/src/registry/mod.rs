@@ -11,8 +11,6 @@ pub(crate) use ser::Document;
 use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::Value;
 
-use crate::types::TypeName;
-
 #[allow(clippy::trivially_copy_pass_by_ref)]
 #[inline]
 const fn is_false(value: &bool) -> bool {
@@ -174,6 +172,37 @@ impl MetaSchema {
         }
     }
 
+    pub const fn new_with_format(ty: &'static str, format: &'static str) -> Self {
+        MetaSchema {
+            ty,
+            format: Some(format),
+            title: None,
+            description: None,
+            default: None,
+            required: vec![],
+            properties: vec![],
+            items: None,
+            enum_items: vec![],
+            deprecated: false,
+            one_of: vec![],
+            all_of: vec![],
+            discriminator: None,
+            read_only: false,
+            write_only: false,
+            multiple_of: None,
+            maximum: None,
+            exclusive_maximum: None,
+            minimum: None,
+            exclusive_minimum: None,
+            max_length: None,
+            min_length: None,
+            pattern: None,
+            max_items: None,
+            min_items: None,
+            unique_items: None,
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         self == &Self::ANY
     }
@@ -230,18 +259,6 @@ impl MetaSchema {
             unique_items
         );
         self
-    }
-}
-
-impl From<TypeName> for MetaSchema {
-    fn from(name: TypeName) -> Self {
-        if let TypeName::Normal { ty, format } = name {
-            let mut schema = MetaSchema::new(ty);
-            schema.format = format;
-            schema
-        } else {
-            unreachable!()
-        }
     }
 }
 

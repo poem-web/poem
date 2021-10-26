@@ -55,7 +55,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let object_ty = &variant.fields.fields[0];
                 let mapping_name = match &variant.mapping {
                     Some(mapping) => quote!(#mapping),
-                    None => quote!(<#object_ty as #crate_name::types::Type>::NAME.type_name()),
+                    None => {
+                        quote!(::std::convert::AsRef::as_ref(&<#object_ty as #crate_name::types::Type>::name()))
+                    }
                 };
 
                 types.push(object_ty);
@@ -91,13 +93,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
-            const NAME: #crate_name::types::TypeName = #crate_name::types::TypeName::Normal {
-                ty: "object",
-                format: ::std::option::Option::None,
-            };
             const IS_REQUIRED: bool = true;
 
             type ValueType = Self;
+
+            fn name() -> ::std::borrow::Cow<'static, str> {
+                ::std::convert::Into::into("object")
+            }
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
                 #crate_name::registry::MetaSchemaRef::Inline(Box::new(#crate_name::registry::MetaSchema {

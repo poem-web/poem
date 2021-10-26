@@ -1,9 +1,11 @@
+use std::borrow::Cow;
+
 use poem::Error;
 use serde_json::Value;
 
 use crate::{
-    registry::MetaSchemaRef,
-    types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type, TypeName},
+    registry::{MetaSchema, MetaSchemaRef},
+    types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type},
 };
 
 /// Represents a binary data encoded with base64.
@@ -11,16 +13,15 @@ use crate::{
 pub struct Base64(pub Vec<u8>);
 
 impl Type for Base64 {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: Some("bytes"),
-    };
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+    fn name() -> Cow<'static, str> {
+        "string(bytes)".into()
     }
 
     impl_value_type!();
+
+    fn schema_ref() -> MetaSchemaRef {
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("bytes", "string")))
+    }
 }
 
 impl ParseFromJSON for Base64 {

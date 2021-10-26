@@ -1,4 +1,3 @@
-mod any;
 mod bool;
 #[cfg(feature = "chrono")]
 mod datetime;

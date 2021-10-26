@@ -1,25 +1,26 @@
+use std::borrow::Cow;
+
 use poem::web::Field;
 use serde_json::Value;
 
 use crate::{
-    registry::MetaSchemaRef,
+    registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type, TypeName,
+        ToJSON, Type,
     },
 };
 
 impl Type for String {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: None,
-    };
-
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
     }
 
     impl_value_type!();
+
+    fn name() -> Cow<'static, str> {
+        "string".into()
+    }
 }
 
 impl ParseFromJSON for String {
@@ -58,16 +59,15 @@ impl ToJSON for String {
 }
 
 impl<'a> Type for &'a str {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: None,
-    };
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+    fn name() -> Cow<'static, str> {
+        "string".into()
     }
 
     impl_value_type!();
+
+    fn schema_ref() -> MetaSchemaRef {
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
+    }
 }
 
 impl<'a> ToJSON for &'a str {

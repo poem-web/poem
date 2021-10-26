@@ -1,26 +1,27 @@
+use std::borrow::Cow;
+
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
 
 use crate::{
     poem::web::Field,
-    registry::MetaSchemaRef,
+    registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type, TypeName,
+        ToJSON, Type,
     },
 };
 
 impl Type for DateTime<FixedOffset> {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: Some("data-time"),
-    };
-
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "date-time")))
     }
 
     impl_value_type!();
+
+    fn name() -> Cow<'static, str> {
+        "string(date-time)".into()
+    }
 }
 
 impl ParseFromJSON for DateTime<FixedOffset> {

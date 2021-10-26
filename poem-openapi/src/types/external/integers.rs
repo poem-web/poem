@@ -1,11 +1,13 @@
+use std::borrow::Cow;
+
 use poem::web::Field;
 use serde_json::Value;
 
 use crate::{
-    registry::MetaSchemaRef,
+    registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type, TypeName,
+        ToJSON, Type,
     },
 };
 
@@ -13,13 +15,12 @@ macro_rules! impl_type_for_integers {
     ($(($ty:ty, $format:literal)),*) => {
         $(
         impl Type for $ty {
-            const NAME: TypeName = TypeName::Normal {
-                ty: "integer",
-                format: Some($format),
-            };
+            fn name() -> Cow<'static, str> {
+                format!("integer({})", $format).into()
+            }
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+                MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
             }
 
             impl_value_type!();
@@ -80,13 +81,12 @@ macro_rules! impl_type_for_unsigneds {
     ($(($ty:ty, $format:literal)),*) => {
         $(
         impl Type for $ty {
-            const NAME: TypeName = TypeName::Normal {
-                ty: "integer",
-                format: Some($format),
-            };
+            fn name() -> Cow<'static, str> {
+                format!("integer({})", $format).into()
+            }
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+                MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
             }
 
             impl_value_type!();

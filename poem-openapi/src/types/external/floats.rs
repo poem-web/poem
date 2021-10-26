@@ -1,11 +1,13 @@
+use std::borrow::Cow;
+
 use poem::web::Field;
 use serde_json::{Number, Value};
 
 use crate::{
-    registry::MetaSchemaRef,
+    registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type, TypeName,
+        ToJSON, Type,
     },
 };
 
@@ -13,13 +15,12 @@ macro_rules! impl_type_for_floats {
     ($(($ty:ty, $format:literal)),*) => {
         $(
         impl Type for $ty {
-            const NAME: TypeName = TypeName::Normal {
-                ty: "number",
-                format: Some($format),
-            };
+            fn name() -> Cow<'static, str> {
+                format!("number({})", $format).into()
+            }
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+                MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("number", $format)))
             }
 
             impl_value_type!();

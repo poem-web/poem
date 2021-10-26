@@ -399,7 +399,7 @@ async fn bad_request_handler() {
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        r#"!!! failed to parse param `code`: Type "integer($uint16)" expects an input value."#
+        r#"!!! failed to parse param `code`: Type "integer(uint16)" expects an input value."#
     );
 }
 

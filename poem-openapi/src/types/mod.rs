@@ -3,6 +3,7 @@
 #[macro_use]
 mod macros;
 
+mod any;
 mod base64_type;
 mod binary;
 mod error;
@@ -11,8 +12,9 @@ mod password;
 
 pub mod multipart;
 
-use std::fmt::{self, Display, Formatter};
+use std::borrow::Cow;
 
+pub use any::Any;
 pub use base64_type::Base64;
 pub use binary::Binary;
 pub use error::{ParseError, ParseResult};
@@ -22,56 +24,16 @@ use serde_json::Value;
 
 use crate::registry::{MetaSchemaRef, Registry};
 
-/// Represents a type name.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum TypeName {
-    /// Normal type name.
-    Normal {
-        /// Type name
-        ty: &'static str,
-
-        /// Format name
-        format: Option<&'static str>,
-    },
-    /// The type name of array.
-    Array(&'static TypeName),
-}
-
-impl TypeName {
-    /// Returns the type name.
-    pub fn type_name(&self) -> &'static str {
-        match self {
-            TypeName::Normal { ty, .. } => ty,
-            TypeName::Array(type_name) => type_name.type_name(),
-        }
-    }
-}
-
-impl Display for TypeName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            TypeName::Normal { ty, format } => match format {
-                _ if ty.is_empty() => write!(f, "any"),
-                Some(format) => write!(f, "{}(${})", ty, format),
-                None => write!(f, "{}", ty),
-            },
-            TypeName::Array(ty) => {
-                write!(f, "[{}]", ty)
-            }
-        }
-    }
-}
-
 /// Represents a OpenAPI type.
-pub trait Type: Sized + Send + Sync {
-    /// The name of this type.
-    const NAME: TypeName;
-
+pub trait Type: Send + Sync {
     /// If it is `true`, it means that this value is required.
     const IS_REQUIRED: bool = true;
 
     /// The value type of this type.
     type ValueType;
+
+    /// Returns the name of this type
+    fn name() -> Cow<'static, str>;
 
     /// Get schema reference of this type.
     fn schema_ref() -> MetaSchemaRef;
@@ -87,24 +49,33 @@ pub trait Type: Sized + Send + Sync {
 /// Represents a type that can parsing from JSON.
 pub trait ParseFromJSON: Type {
     /// Parse from [`serde_json::Value`].
-    fn parse_from_json(value: Value) -> ParseResult<Self>;
+    fn parse_from_json(value: Value) -> ParseResult<Self>
+    where
+        Self: Sized;
 }
 
 /// Represents a type that can parsing from parameter. (header, query, path,
 /// cookie)
 pub trait ParseFromParameter: Type {
     /// Parse from parameter.
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self>;
+    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self>
+    where
+        Self: Sized;
 }
 
 /// Represents a type that can parsing from multipart.
 #[poem::async_trait]
 pub trait ParseFromMultipartField: Type {
     /// Parse from multipart field.
-    async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self>;
+    async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self>
+    where
+        Self: Sized;
 
     /// Parse from repeated multipart field.
-    async fn parse_from_repeated_field(self, _field: PoemField) -> ParseResult<Self> {
+    async fn parse_from_repeated_field(self, _field: PoemField) -> ParseResult<Self>
+    where
+        Self: Sized,
+    {
         Err(ParseError::<Self>::custom("repeated field"))
     }
 }

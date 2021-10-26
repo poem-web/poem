@@ -295,13 +295,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         quote! {
             impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
-                const NAME: #crate_name::types::TypeName = #crate_name::types::TypeName::Normal {
-                    ty: #oai_typename,
-                    format: ::std::option::Option::None,
-                };
                 const IS_REQUIRED: bool = true;
 
                 type ValueType = Self;
+
+                fn name() -> ::std::borrow::Cow<'static, str> {
+                    ::std::convert::Into::into(#oai_typename)
+                }
 
                 fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
                     #fn_schema_ref
@@ -354,9 +354,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         code.push(quote! {
             impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_register(registry: &mut #crate_name::registry::Registry) where Self: #crate_name::types::Type {
+                fn __internal_register(name: &'static str, registry: &mut #crate_name::registry::Registry) where Self: #crate_name::types::Type {
                     #(#register_types)*
-                    registry.create_schema(Self::NAME.type_name(), |registry| #meta);
+                    registry.create_schema(name, |registry| #meta);
                 }
 
                 fn __internal_parse_from_json(value: #crate_name::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
@@ -384,16 +384,16 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             let expanded = quote! {
                 impl #crate_name::types::Type for #concrete_type {
-                    const NAME: #crate_name::types::TypeName = #crate_name::types::TypeName::Normal {
-                        ty: #oai_typename,
-                        format: ::std::option::Option::None,
-                    };
                     const IS_REQUIRED: bool = true;
 
                     type ValueType = Self;
 
+                    fn name() -> ::std::borrow::Cow<'static, str> {
+                        ::std::convert::Into::into(#oai_typename)
+                    }
+
                     fn as_value(&self) -> Option<&Self> {
-                        Some(self)
+                        ::std::option::Option::Some(self)
                     }
 
                     fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
@@ -401,7 +401,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     }
 
                     fn register(registry: &mut #crate_name::registry::Registry) {
-                        Self::__internal_register(registry);
+                        Self::__internal_register(#oai_typename, registry);
                     }
                 }
 

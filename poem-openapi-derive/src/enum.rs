@@ -80,13 +80,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
-            const NAME: #crate_name::types::TypeName = #crate_name::types::TypeName::Normal {
-                ty: #oai_typename,
-                format: ::std::option::Option::None,
-            };
             const IS_REQUIRED: bool = true;
 
             type ValueType = Self;
+
+            fn name() -> ::std::borrow::Cow<'static, str> {
+                ::std::convert::Into::into(#oai_typename)
+            }
 
             fn as_value(&self) -> ::std::option::Option<&Self> {
                 ::std::option::Option::Some(self)

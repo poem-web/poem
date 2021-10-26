@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use poem::web::Field as PoemField;
 use serde_json::Value;
 
@@ -5,15 +7,18 @@ use crate::{
     registry::{MetaSchemaRef, Registry},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type, TypeName,
+        ToJSON, Type,
     },
 };
 
 impl<T: Type> Type for Option<T> {
-    const NAME: TypeName = T::NAME;
     const IS_REQUIRED: bool = false;
 
     type ValueType = T;
+
+    fn name() -> Cow<'static, str> {
+        T::name()
+    }
 
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()

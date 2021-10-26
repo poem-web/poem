@@ -1,4 +1,7 @@
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    borrow::Cow,
+    fmt::{self, Debug, Formatter},
+};
 
 use poem::web::Field as PoemField;
 use tokio::{
@@ -7,8 +10,8 @@ use tokio::{
 };
 
 use crate::{
-    registry::MetaSchemaRef,
-    types::{ParseError, ParseFromMultipartField, ParseResult, Type, TypeName},
+    registry::{MetaSchema, MetaSchemaRef},
+    types::{ParseError, ParseFromMultipartField, ParseResult, Type},
 };
 
 /// A uploaded file for multipart.
@@ -70,16 +73,15 @@ impl Upload {
 }
 
 impl Type for Upload {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: Some("binary"),
-    };
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+    fn name() -> Cow<'static, str> {
+        "string(binary)".into()
     }
 
     impl_value_type!();
+
+    fn schema_ref() -> MetaSchemaRef {
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "binary")))
+    }
 }
 
 #[poem::async_trait]

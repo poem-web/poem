@@ -8,7 +8,7 @@ use serde_json::json;
 fn get_meta<T: Type>() -> MetaSchema {
     let mut registry = Registry::new();
     T::register(&mut registry);
-    registry.schemas.remove(&*T::NAME.to_string()).unwrap()
+    registry.schemas.remove(&*T::name()).unwrap()
 }
 
 #[test]
@@ -18,7 +18,7 @@ fn rename() {
     struct Obj {
         a: i32,
     }
-    assert_eq!(Obj::NAME.to_string(), "Abc");
+    assert_eq!(Obj::name(), "Abc");
 }
 
 #[test]
@@ -46,7 +46,7 @@ fn concretes() {
         delete_user: T2,
     }
 
-    assert_eq!(<Obj<i32, i64>>::NAME.to_string(), "Obj_i32_i64");
+    assert_eq!(<Obj<i32, i64>>::name(), "Obj_i32_i64");
     let meta = get_meta::<Obj<i32, i64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "integer");
     assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("int32"));
@@ -54,7 +54,7 @@ fn concretes() {
     assert_eq!(meta.properties[1].1.unwrap_inline().ty, "integer");
     assert_eq!(meta.properties[1].1.unwrap_inline().format, Some("int64"));
 
-    assert_eq!(<Obj<f32, f64>>::NAME.to_string(), "Obj_f32_f64");
+    assert_eq!(<Obj<f32, f64>>::name(), "Obj_f32_f64");
     let meta = get_meta::<Obj<f32, f64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "number");
     assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("float32"));

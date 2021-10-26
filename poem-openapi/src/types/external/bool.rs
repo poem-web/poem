@@ -1,25 +1,26 @@
+use std::borrow::Cow;
+
 use serde_json::Value;
 
 use crate::{
     poem::web::Field,
-    registry::MetaSchemaRef,
+    registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type, TypeName,
+        ToJSON, Type,
     },
 };
 
 impl Type for bool {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "boolean",
-        format: None,
-    };
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+    fn name() -> Cow<'static, str> {
+        "boolean".into()
     }
 
     impl_value_type!();
+
+    fn schema_ref() -> MetaSchemaRef {
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new("boolean")))
+    }
 }
 
 impl ParseFromJSON for bool {

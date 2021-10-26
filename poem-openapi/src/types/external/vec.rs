@@ -1,14 +1,18 @@
+use std::borrow::Cow;
+
 use crate::{
     poem::web::Field as PoemField,
     registry::{MetaSchema, MetaSchemaRef, Registry},
     serde_json::Value,
-    types::{
-        ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type, TypeName,
-    },
+    types::{ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type},
 };
 
 impl<T: Type> Type for Vec<T> {
-    const NAME: TypeName = TypeName::Array(&T::NAME);
+    fn name() -> Cow<'static, str> {
+        format!("[{}]", T::name()).into()
+    }
+
+    impl_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
@@ -16,8 +20,6 @@ impl<T: Type> Type for Vec<T> {
             ..MetaSchema::new("array")
         }))
     }
-
-    impl_value_type!();
 
     fn register(registry: &mut Registry) {
         T::register(registry);

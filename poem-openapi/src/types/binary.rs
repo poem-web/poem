@@ -1,8 +1,10 @@
+use std::borrow::Cow;
+
 use poem::web::Field;
 
 use crate::{
-    registry::MetaSchemaRef,
-    types::{ParseError, ParseFromMultipartField, ParseResult, Type, TypeName},
+    registry::{MetaSchema, MetaSchemaRef},
+    types::{ParseError, ParseFromMultipartField, ParseResult, Type},
 };
 
 /// Represents a binary data.
@@ -10,16 +12,15 @@ use crate::{
 pub struct Binary(pub Vec<u8>);
 
 impl Type for Binary {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: Some("binary"),
-    };
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+    fn name() -> Cow<'static, str> {
+        "string(binary)".into()
     }
 
     impl_value_type!();
+
+    fn schema_ref() -> MetaSchemaRef {
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "binary")))
+    }
 }
 
 #[poem::async_trait]

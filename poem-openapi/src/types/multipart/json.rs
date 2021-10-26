@@ -1,11 +1,11 @@
+use std::borrow::Cow;
+
 use poem::web::Field as PoemField;
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchemaRef, Registry},
-    types::{
-        ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type, TypeName,
-    },
+    types::{ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type},
 };
 
 /// A JSON type for multipart field.
@@ -13,9 +13,11 @@ use crate::{
 pub struct JsonField<T>(pub T);
 
 impl<T: Type> Type for JsonField<T> {
-    const NAME: TypeName = T::NAME;
-
     type ValueType = T::ValueType;
+
+    fn name() -> Cow<'static, str> {
+        T::name()
+    }
 
     #[inline]
     fn schema_ref() -> MetaSchemaRef {

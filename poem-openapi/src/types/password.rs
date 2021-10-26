@@ -1,8 +1,10 @@
+use std::borrow::Cow;
+
 use serde_json::Value;
 
 use crate::{
-    registry::MetaSchemaRef,
-    types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type, TypeName},
+    registry::{MetaSchema, MetaSchemaRef},
+    types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type},
 };
 
 /// A password type.
@@ -19,16 +21,15 @@ impl AsRef<str> for Password {
 }
 
 impl Type for Password {
-    const NAME: TypeName = TypeName::Normal {
-        ty: "string",
-        format: Some("password"),
-    };
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(Self::NAME.into()))
+    fn name() -> Cow<'static, str> {
+        "string(password)".into()
     }
 
     impl_value_type!();
+
+    fn schema_ref() -> MetaSchemaRef {
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "password")))
+    }
 }
 
 impl ParseFromJSON for Password {
