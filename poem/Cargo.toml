@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.0.8"
+version = "1.0.9"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2018"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
