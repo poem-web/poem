@@ -2,8 +2,8 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
 use crate::{
     payload::{ParsePayload, Payload},
-    registry::{MetaSchema, MetaSchemaRef},
-    ParseRequestError,
+    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
+    ApiResponse, ParseRequestError,
 };
 
 /// A binary payload.
@@ -41,4 +41,22 @@ impl<T: Into<Vec<u8>> + Send> IntoResponse for Binary<T> {
             .content_type(Self::CONTENT_TYPE)
             .body(self.0.into())
     }
+}
+
+impl<T: Into<Vec<u8>> + Send> ApiResponse for Binary<T> {
+    fn meta() -> MetaResponses {
+        MetaResponses {
+            responses: vec![MetaResponse {
+                description: None,
+                status: Some(200),
+                content: vec![MetaMediaType {
+                    content_type: Self::CONTENT_TYPE,
+                    schema: Self::schema_ref(),
+                }],
+                headers: vec![],
+            }],
+        }
+    }
+
+    fn register(_registry: &mut Registry) {}
 }

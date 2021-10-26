@@ -226,13 +226,12 @@ impl SecuritySchemeArgs {
     fn validate_api_key(&self) -> GeneratorResult<()> {
         match &self.key_name {
             Some(name) => {
-                if HeaderName::try_from(&**name).is_err() {
-                    return Err(Error::new(
+                HeaderName::try_from(&**name).map_err(|_| {
+                    Error::new(
                         name.span(),
                         format!("`{}` is not a valid header name.", &**name),
                     )
-                    .into());
-                }
+                })?;
             }
             None => {
                 return Err(Error::new_spanned(

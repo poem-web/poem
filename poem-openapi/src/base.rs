@@ -99,19 +99,9 @@ impl ApiResponse for () {
     fn register(_registry: &mut Registry) {}
 }
 
-impl<T: Payload + IntoResponse> ApiResponse for T {
+impl<T: ApiResponse, E: IntoResponse> ApiResponse for Result<T, E> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: None,
-                status: Some(200),
-                content: vec![MetaMediaType {
-                    content_type: T::CONTENT_TYPE,
-                    schema: T::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        T::meta()
     }
 
     fn register(registry: &mut Registry) {

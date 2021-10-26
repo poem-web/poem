@@ -3,9 +3,9 @@ use serde_json::Value;
 
 use crate::{
     payload::{ParsePayload, Payload},
-    registry::{MetaSchemaRef, Registry},
+    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    ParseRequestError,
+    ApiResponse, ParseRequestError,
 };
 
 /// A JSON payload.
@@ -47,5 +47,25 @@ impl<T: ParseFromJSON> ParsePayload for Json<T> {
 impl<T: ToJSON> IntoResponse for Json<T> {
     fn into_response(self) -> Response {
         poem::web::Json(self.0.to_json()).into_response()
+    }
+}
+
+impl<T: ToJSON> ApiResponse for Json<T> {
+    fn meta() -> MetaResponses {
+        MetaResponses {
+            responses: vec![MetaResponse {
+                description: None,
+                status: Some(200),
+                content: vec![MetaMediaType {
+                    content_type: Self::CONTENT_TYPE,
+                    schema: Self::schema_ref(),
+                }],
+                headers: vec![],
+            }],
+        }
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
     }
 }

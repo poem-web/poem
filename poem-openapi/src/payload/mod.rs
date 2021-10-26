@@ -37,14 +37,6 @@ pub trait ParsePayload: Sized {
     ) -> Result<Self, ParseRequestError>;
 }
 
-impl<T: Payload> Payload for Result<T> {
-    const CONTENT_TYPE: &'static str = T::CONTENT_TYPE;
-
-    fn schema_ref() -> MetaSchemaRef {
-        T::schema_ref()
-    }
-}
-
 #[poem::async_trait]
 impl<T: ParsePayload> ParsePayload for Result<T> {
     async fn from_request(
