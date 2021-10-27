@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, time::Duration};
 
 use redis::{aio::ConnectionLike, AsyncCommands, Cmd};
 
-use crate::{session::session_storage::SessionStorage, Error, Result};
+use crate::{error::InternalServerError, session::session_storage::SessionStorage, Result};
 
 /// A session storage using redis.
 #[cfg_attr(docsrs, doc(cfg(feature = "redis-session")))]
@@ -25,7 +25,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
             .clone()
             .get(session_id)
             .await
-            .map_err(Error::internal_server_error)?;
+            .map_err(InternalServerError)?;
         match data {
             Some(data) => match serde_json::from_str::<BTreeMap<String, String>>(&data) {
                 Ok(entries) => Ok(Some(entries)),
@@ -48,7 +48,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
         };
         cmd.query_async(&mut self.connection.clone())
             .await
-            .map_err(Error::internal_server_error)?;
+            .map_err(InternalServerError)?;
         Ok(())
     }
 
@@ -56,7 +56,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
         Cmd::del(session_id)
             .query_async(&mut self.connection.clone())
             .await
-            .map_err(Error::internal_server_error)?;
+            .map_err(InternalServerError)?;
         Ok(())
     }
 }

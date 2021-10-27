@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.0.11] 2010-10-27
+
+- Bump `poem` to `1.0.11`.
+
 # [1.0.10] 2010-10-26
 
 - Make the return type of operation function more flexible.
@@ -22,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [1.0.4] 2010-10-15
 
-- Bump `poem` from `1.0.3` from `1.0.4`.
+- Bump `poem` from `1.0.3` to `1.0.4`.
 
 # [1.0.3] 2010-10-14
 

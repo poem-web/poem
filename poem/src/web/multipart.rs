@@ -85,11 +85,15 @@ impl Field {
 /// # Example
 ///
 /// ```
-/// use poem::{error::Error, web::Multipart, Result};
+/// use poem::{
+///     error::{BadRequest, Error},
+///     web::Multipart,
+///     Result,
+/// };
 ///
 /// async fn upload(mut multipart: Multipart) -> Result<()> {
 ///     while let Some(field) = multipart.next_field().await? {
-///         let data = field.bytes().await.map_err(Error::bad_request)?;
+///         let data = field.bytes().await.map_err(BadRequest)?;
 ///         println!("{} bytes", data.len());
 ///     }
 ///     Ok(())

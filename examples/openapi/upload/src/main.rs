@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use poem::{listener::TcpListener, Error, Result, Route};
+use poem::{error::BadRequest, listener::TcpListener, Result, Route};
 use poem_openapi::{
     payload::{Binary, Json},
     types::multipart::Upload,
@@ -59,7 +59,7 @@ impl Api {
             desc: upload.desc,
             content_type: upload.file.content_type().map(ToString::to_string),
             filename: upload.file.file_name().map(ToString::to_string),
-            data: upload.file.into_vec().await.map_err(Error::bad_request)?,
+            data: upload.file.into_vec().await.map_err(BadRequest)?,
         };
         status.files.insert(id, file);
         Ok(Json(id))

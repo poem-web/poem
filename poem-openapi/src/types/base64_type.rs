@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
-use poem::Error;
 use serde_json::Value;
 
 use crate::{
+    poem::error::BadRequest,
     registry::{MetaSchema, MetaSchemaRef},
     types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type},
 };
@@ -27,7 +27,7 @@ impl Type for Base64 {
 impl ParseFromJSON for Base64 {
     fn parse_from_json(value: Value) -> ParseResult<Self> {
         if let Value::String(value) = value {
-            Ok(Self(base64::decode(value).map_err(Error::bad_request)?))
+            Ok(Self(base64::decode(value).map_err(BadRequest)?))
         } else {
             Err(ParseError::expected_type(value))
         }

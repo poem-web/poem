@@ -3,8 +3,10 @@ use std::ops::{Deref, DerefMut};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    error::ParseJsonError, http::header, web::RequestBody, Error, FromRequest, IntoResponse,
-    Request, Response, Result,
+    error::{InternalServerError, ParseJsonError},
+    http::header,
+    web::RequestBody,
+    FromRequest, IntoResponse, Request, Response, Result,
 };
 
 /// JSON extractor and response.
@@ -113,7 +115,7 @@ impl<T: Serialize + Send> IntoResponse for Json<T> {
     fn into_response(self) -> Response {
         let data = match serde_json::to_vec(&self.0) {
             Ok(data) => data,
-            Err(err) => return Error::internal_server_error(err).as_response(),
+            Err(err) => return InternalServerError(err).as_response(),
         };
         Response::builder()
             .header(header::CONTENT_TYPE, "application/json")

@@ -219,45 +219,27 @@ impl RequestBody {
 /// token from the `MyToken` header.
 ///
 /// ```
-/// use std::{
-///     error::Error as StdError,
-///     fmt::{self, Display, Formatter},
-/// };
+/// use std::fmt::{self, Display, Formatter};
 ///
-/// use poem::{get, handler, Endpoint, Error, FromRequest, Request, RequestBody, Route};
+/// use poem::{
+///     get, handler, http::StatusCode, Endpoint, Error, FromRequest, Request, RequestBody, Result,
+///     Route,
+/// };
 ///
 /// struct Token(String);
 ///
-/// #[derive(Debug)]
-/// struct MissingToken;
-///
-/// impl Display for MissingToken {
-///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-///         write!(f, "missing token")
-///     }
-/// }
-///
-/// impl StdError for MissingToken {}
-///
-/// impl From<MissingToken> for Error {
-///     fn from(err: MissingToken) -> Self {
-///         Error::bad_request(err)
-///     }
-/// }
-///
 /// #[poem::async_trait]
 /// impl<'a> FromRequest<'a> for Token {
-///     type Error = MissingToken;
+///     type Error = Error;
 ///
-///     async fn from_request(
-///         req: &'a Request,
-///         body: &mut RequestBody,
-///     ) -> Result<Self, Self::Error> {
+///     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
 ///         let token = req
 ///             .headers()
 ///             .get("MyToken")
 ///             .and_then(|value| value.to_str().ok())
-///             .ok_or(MissingToken)?;
+///             .ok_or_else(|| {
+///                 Error::new(StatusCode::BAD_REQUEST).with_reason_string("missing token")
+///             })?;
 ///         Ok(Token(token.to_string()))
 ///     }
 /// }

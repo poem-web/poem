@@ -1,4 +1,10 @@
-use poem::{handler, http::StatusCode, listener::TcpListener, Error, Result, Route};
+use poem::{
+    error::{BadRequest, InternalServerError},
+    handler,
+    http::StatusCode,
+    listener::TcpListener,
+    Error, Result, Route,
+};
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
@@ -80,10 +86,10 @@ impl Api {
             .header("user-agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
             .send()
             .await
-            .map_err(Error::internal_server_error)?
+            .map_err(InternalServerError)?
             .text()
             .await
-            .map_err(Error::internal_server_error)?;
+            .map_err(InternalServerError)?;
         Ok(PlainText(text))
     }
 }
@@ -105,12 +111,12 @@ async fn oauth_token_url_proxy(req: &poem::Request, body: poem::Body) -> Result<
         .body(body)
         .send()
         .await
-        .map_err(Error::bad_request)?;
+        .map_err(BadRequest)?;
 
     let mut r = poem::Response::default();
     r.set_status(resp.status());
     *r.headers_mut() = resp.headers().clone();
-    r.set_body(resp.bytes().await.map_err(Error::bad_request)?);
+    r.set_body(resp.bytes().await.map_err(BadRequest)?);
     Ok(r)
 }
 

@@ -1,6 +1,8 @@
 use poem::http::StatusCode;
 use thiserror::Error;
 
+use crate::poem::error::{BadRequest, MethodNotAllowed};
+
 /// This type represents errors that occur when parsing the HTTP request.
 #[derive(Debug, Error, Clone, Eq, PartialEq)]
 pub enum ParseRequestError {
@@ -44,13 +46,11 @@ pub enum ParseRequestError {
 impl From<ParseRequestError> for poem::Error {
     fn from(err: ParseRequestError) -> Self {
         match &err {
-            ParseRequestError::ParseParam { .. } => poem::Error::bad_request(err),
-            ParseRequestError::ParseRequestBody { .. } => poem::Error::bad_request(err),
-            ParseRequestError::ContentTypeNotSupported { .. } => {
-                poem::Error::method_not_allowed(err)
-            }
-            ParseRequestError::ExpectContentType => poem::Error::method_not_allowed(err),
-            ParseRequestError::Extractor(_) => poem::Error::bad_request(err),
+            ParseRequestError::ParseParam { .. } => BadRequest(err),
+            ParseRequestError::ParseRequestBody { .. } => BadRequest(err),
+            ParseRequestError::ContentTypeNotSupported { .. } => MethodNotAllowed(err),
+            ParseRequestError::ExpectContentType => MethodNotAllowed(err),
+            ParseRequestError::Extractor(_) => BadRequest(err),
             ParseRequestError::Authorization => poem::Error::new(StatusCode::UNAUTHORIZED),
         }
     }
