@@ -34,6 +34,7 @@ pub enum ParseRequestError {
     Authorization,
 }
 
+#[allow(clippy::inherent_to_string)]
 impl ParseRequestError {
     /// Convert this error to string.
     pub fn to_string(&self) -> String {
