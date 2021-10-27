@@ -47,6 +47,15 @@ impl Display for Error {
     }
 }
 
+impl From<anyhow::Error> for Error {
+    fn from(err: anyhow::Error) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            reason: err,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct StatusError(StatusCode);
 
@@ -84,6 +93,12 @@ impl Error {
             reason: anyhow::Error::msg(reason),
             ..self
         }
+    }
+
+    /// Sets the reason `anyhow::Error` for this error.
+    #[inline]
+    pub fn with_reason_anyhow(self, reason: anyhow::Error) -> Self {
+        Self { reason, ..self }
     }
 
     /// Returns the status code of this error.
