@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use mime::Mime;
 use poem::{IntoResponse, Request, RequestBody, Result, Route};
 
 use crate::{
@@ -50,16 +51,26 @@ impl<T: Payload + ParsePayload> ApiRequest for T {
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
         match request.content_type() {
-            Some(content_type) if content_type != T::CONTENT_TYPE => {
-                return Err(ParseRequestError::ContentTypeNotSupported {
-                    content_type: content_type.to_string(),
-                })
-            }
-            Some(_) => {}
-            None => return Err(ParseRequestError::ExpectContentType),
-        }
+            Some(content_type) => {
+                let mime: Mime = match content_type.parse() {
+                    Ok(mime) => mime,
+                    Err(_) => {
+                        return Err(ParseRequestError::ContentTypeNotSupported {
+                            content_type: content_type.to_string(),
+                        });
+                    }
+                };
 
-        <T as ParsePayload>::from_request(request, body).await
+                if mime.essence_str() != T::CONTENT_TYPE {
+                    return Err(ParseRequestError::ContentTypeNotSupported {
+                        content_type: content_type.to_string(),
+                    });
+                }
+
+                <T as ParsePayload>::from_request(request, body).await
+            }
+            None => Err(ParseRequestError::ExpectContentType),
+        }
     }
 }
 

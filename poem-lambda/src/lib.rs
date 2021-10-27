@@ -72,7 +72,10 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
                 let mut lambda_resp = poem::http::Response::new(if data.is_empty() {
                     LambdaBody::Empty
                 } else {
-                    LambdaBody::Binary(data)
+                    match String::from_utf8(data) {
+                        Ok(data) => LambdaBody::Text(data),
+                        Err(err) => LambdaBody::Binary(err.into_bytes()),
+                    }
                 });
                 *lambda_resp.status_mut() = parts.status;
                 *lambda_resp.version_mut() = parts.version;
