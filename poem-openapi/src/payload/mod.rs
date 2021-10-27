@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Represents a payload type.
-pub trait Payload {
+pub trait Payload: Send {
     /// The content type of this payload.
     const CONTENT_TYPE: &'static str;
 

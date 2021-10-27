@@ -131,7 +131,7 @@ impl<'a> Validators<'a> {
                                 name: #arg_name,
                                 reason: ::std::format!("verification failed. {}", validator),
                             };
-                            return Err(#crate_name::poem::error::BadRequest(err));
+                            return Err(::std::convert::Into::into(err));
                         }
                     }
                 )*

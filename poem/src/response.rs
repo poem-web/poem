@@ -321,8 +321,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
         assert!(resp.body.into_string().await.unwrap().is_empty());
 
-        let resp =
-            Response::from(Error::new(StatusCode::BAD_GATEWAY).with_reason_string("bad gateway"));
+        let resp = Response::from(Error::new(StatusCode::BAD_GATEWAY).with_reason("bad gateway"));
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
         assert_eq!(resp.body.into_string().await.unwrap(), "bad gateway");
 

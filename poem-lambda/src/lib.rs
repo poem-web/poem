@@ -7,7 +7,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
-use std::{convert::Infallible, ops::Deref, sync::Arc};
+use std::{convert::Infallible, io::ErrorKind, ops::Deref, sync::Arc};
 
 pub use lambda_http::lambda_runtime::Error;
 use lambda_http::{handler, lambda_runtime, Body as LambdaBody, Request as LambdaRequest};
@@ -68,7 +68,10 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
                 let resp = ep.call(req).await;
 
                 let (parts, body) = resp.into_parts();
-                let data = body.into_vec().await.map_err(Box::new)?;
+                let data = body
+                    .into_vec()
+                    .await
+                    .map_err(|_| std::io::Error::new(ErrorKind::Other, "invalid request"))?;
                 let mut lambda_resp = poem::http::Response::new(if data.is_empty() {
                     LambdaBody::Empty
                 } else {

@@ -360,7 +360,7 @@ async fn bad_request_handler() {
     }
 
     fn bad_request_handler(err: ParseRequestError) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {}", err.to_string())))
     }
 
     struct Api;

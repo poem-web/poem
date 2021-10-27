@@ -237,9 +237,7 @@ impl RequestBody {
 ///             .headers()
 ///             .get("MyToken")
 ///             .and_then(|value| value.to_str().ok())
-///             .ok_or_else(|| {
-///                 Error::new(StatusCode::BAD_REQUEST).with_reason_string("missing token")
-///             })?;
+///             .ok_or_else(|| Error::new(StatusCode::BAD_REQUEST).with_reason("missing token"))?;
 ///         Ok(Token(token.to_string()))
 ///     }
 /// }
@@ -484,6 +482,12 @@ pub trait IntoResponse: Send {
             inner: self,
             body: body.into(),
         }
+    }
+}
+
+impl IntoResponse for Infallible {
+    fn into_response(self) -> Response {
+        unreachable!()
     }
 }
 
@@ -835,9 +839,8 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
 
-        let resp =
-            Err::<(), _>(Error::new(StatusCode::BAD_GATEWAY).with_reason_string("bad gateway"))
-                .into_response();
+        let resp = Err::<(), _>(Error::new(StatusCode::BAD_GATEWAY).with_reason("bad gateway"))
+            .into_response();
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
         assert_eq!(resp.into_body().into_string().await.unwrap(), "bad gateway");
 

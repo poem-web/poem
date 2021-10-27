@@ -5,10 +5,9 @@ use std::{
 };
 
 use futures_util::{future::BoxFuture, FutureExt};
-use http::StatusCode;
 use tower::{buffer::Buffer, Layer, Service, ServiceExt};
 
-use crate::{Endpoint, Error, IntoResponse, Middleware, Request, Result};
+use crate::{Endpoint, IntoResponse, Middleware, Request, Result};
 
 /// Extension trait for tower layer compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
@@ -83,13 +82,8 @@ where
 
     async fn call(&self, req: Request) -> Self::Output {
         let mut svc = self.0.clone();
-        svc.ready()
-            .await
-            .map_err(|err| Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason_string(err))?;
-        let res = svc
-            .call(req)
-            .await
-            .map_err(|err| Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason_string(err))?;
+        svc.ready().await?;
+        let res = svc.call(req).await?;
         Ok(res)
     }
 }

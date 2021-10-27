@@ -40,6 +40,6 @@ enum CreateUserResponse {
 
 // Convert error to `CreateUserResponse::BadRequest`.
 fn bad_request_handler(err: ParseRequestError) -> CreateUserResponse {
-    CreateUserResponse::BadRequest(PlainText(format!("error: {}", err)))
+    CreateUserResponse::BadRequest(PlainText(format!("error: {}", err.to_string())))
 }
 ```

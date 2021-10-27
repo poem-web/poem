@@ -1,4 +1,4 @@
-use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
+use poem::{Error, FromRequest, IntoResponse, Request, RequestBody, Response};
 use serde_json::Value;
 
 use crate::{
@@ -34,7 +34,10 @@ impl<T: ParseFromJSON> ParsePayload for Json<T> {
         let value = poem::web::Json::<Value>::from_request(request, body)
             .await
             .map_err(|err| ParseRequestError::ParseRequestBody {
-                reason: err.to_string(),
+                reason: Into::<Error>::into(err)
+                    .reason()
+                    .unwrap_or_default()
+                    .to_string(),
             })?;
         let value =
             T::parse_from_json(value.0).map_err(|err| ParseRequestError::ParseRequestBody {

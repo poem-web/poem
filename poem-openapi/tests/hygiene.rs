@@ -42,7 +42,7 @@ enum CreateUserResponse {
 fn bad_request_handler(err: ::poem_openapi::ParseRequestError) -> CreateUserResponse {
     CreateUserResponse::BadRequest(::poem_openapi::payload::PlainText(::std::format!(
         "error: {}",
-        err
+        err.to_string()
     )))
 }
 

@@ -2,6 +2,7 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
 use crate::{
     payload::{ParsePayload, Payload},
+    poem::Error,
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
     ApiResponse, ParseRequestError,
 };
@@ -10,7 +11,7 @@ use crate::{
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Binary<T>(pub T);
 
-impl<T> Payload for Binary<T> {
+impl<T: Send> Payload for Binary<T> {
     const CONTENT_TYPE: &'static str = "application/octet-stream";
 
     fn schema_ref() -> MetaSchemaRef {
@@ -28,8 +29,13 @@ impl ParsePayload for Binary<Vec<u8>> {
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
         Ok(Self(<Vec<u8>>::from_request(request, body).await.map_err(
-            |err| ParseRequestError::ParseRequestBody {
-                reason: err.to_string(),
+            |err| {
+                ParseRequestError::ParseRequestBody {
+                    reason: Into::<Error>::into(err)
+                        .reason()
+                        .unwrap_or_default()
+                        .to_string(),
+                }
             },
         )?))
     }

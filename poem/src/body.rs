@@ -121,12 +121,7 @@ impl Body {
 
     /// Consumes this body object to return a [`String`] that contains all data.
     pub async fn into_string(self) -> Result<String, ReadBodyError> {
-        Ok(String::from_utf8(
-            self.into_bytes()
-                .await
-                .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
-                .to_vec(),
-        )?)
+        Ok(String::from_utf8(self.into_bytes().await?.to_vec())?)
     }
 
     /// Consumes this body object to return a reader.

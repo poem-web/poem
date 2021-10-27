@@ -238,11 +238,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             async fn from_request(request: &#crate_name::poem::Request, body: &mut #crate_name::poem::RequestBody) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
                 if body.is_some() {
                     let mut multipart = <#crate_name::poem::web::Multipart as #crate_name::poem::FromRequest>::from_request(request, body).await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody {
-                        reason: ::std::string::ToString::to_string(&err),
+                        reason: ::std::string::ToString::to_string(::std::convert::Into::<#crate_name::poem::Error>::into(err).reason().unwrap_or_default()),
                     })?;
                     #(#skip_fields)*
                     #(let mut #fields = ::std::option::Option::None;)*
-                    while let ::std::option::Option::Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody { reason: ::std::string::ToString::to_string(&err) })? {
+                    while let ::std::option::Option::Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody {
+                        reason: ::std::string::ToString::to_string(::std::convert::Into::<#crate_name::poem::Error>::into(err).reason().unwrap_or_default()),
+                    })? {
                         #(#deserialize_fields)*
                     }
                     #(#deserialize_none)*

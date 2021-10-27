@@ -1,13 +1,9 @@
-use poem::http::StatusCode;
-use thiserror::Error;
-
-use crate::poem::error::{BadRequest, MethodNotAllowed};
+use poem::{http::StatusCode, Error};
 
 /// This type represents errors that occur when parsing the HTTP request.
-#[derive(Debug, Error, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ParseRequestError {
     /// Failed to parse a parameter.
-    #[error("failed to parse param `{name}`: {reason}")]
     ParseParam {
         /// The name of the parameter.
         name: &'static str,
@@ -17,41 +13,57 @@ pub enum ParseRequestError {
     },
 
     /// Failed to parse a request body.
-    #[error("failed to parse request body: {reason}")]
     ParseRequestBody {
         /// The reason for the error.
         reason: String,
     },
 
     /// The `Content-Type` requested by the client is not supported.
-    #[error("the content type `{content_type}` is not supported.")]
     ContentTypeNotSupported {
         /// The `Content-Type` header requested by the client.
         content_type: String,
     },
 
     /// The client request does not include the `Content-Type` header.
-    #[error("expect a `Content-Type` header.")]
     ExpectContentType,
 
     /// Poem extractor error.
-    #[error("poem extract error: {0}")]
     Extractor(String),
 
     /// Authorization error.
-    #[error("authorization error")]
     Authorization,
+}
+
+impl ParseRequestError {
+    /// Convert this error to string.
+    pub fn to_string(&self) -> String {
+        Into::<Error>::into(self.clone())
+            .reason()
+            .unwrap_or_default()
+            .to_string()
+    }
 }
 
 impl From<ParseRequestError> for poem::Error {
     fn from(err: ParseRequestError) -> Self {
-        match &err {
-            ParseRequestError::ParseParam { .. } => BadRequest(err),
-            ParseRequestError::ParseRequestBody { .. } => BadRequest(err),
-            ParseRequestError::ContentTypeNotSupported { .. } => MethodNotAllowed(err),
-            ParseRequestError::ExpectContentType => MethodNotAllowed(err),
-            ParseRequestError::Extractor(_) => BadRequest(err),
-            ParseRequestError::Authorization => poem::Error::new(StatusCode::UNAUTHORIZED),
+        match err {
+            ParseRequestError::ParseParam { name, reason } => Error::new(StatusCode::BAD_REQUEST)
+                .with_reason(format!("failed to parse param `{}`: {}", name, reason)),
+            ParseRequestError::ParseRequestBody { reason } => Error::new(StatusCode::BAD_REQUEST)
+                .with_reason(format!("failed to parse request body: {}", reason)),
+            ParseRequestError::ContentTypeNotSupported { content_type } => {
+                Error::new(StatusCode::METHOD_NOT_ALLOWED).with_reason(format!(
+                    "the content type `{}` is not supported.",
+                    content_type
+                ))
+            }
+            ParseRequestError::ExpectContentType => Error::new(StatusCode::METHOD_NOT_ALLOWED)
+                .with_reason("expect a `Content-Type` header."),
+            ParseRequestError::Extractor(err) => Error::new(StatusCode::BAD_REQUEST)
+                .with_reason(format!("poem extract error: {}", err)),
+            ParseRequestError::Authorization => {
+                Error::new(StatusCode::UNAUTHORIZED).with_reason("authorization error")
+            }
         }
     }
 }

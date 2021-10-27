@@ -2,6 +2,7 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
 use crate::{
     payload::{ParsePayload, Payload},
+    poem::Error,
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
     ApiResponse, ParseRequestError,
@@ -11,7 +12,7 @@ use crate::{
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PlainText<T>(pub T);
 
-impl<T> Payload for PlainText<T> {
+impl<T: Send> Payload for PlainText<T> {
     const CONTENT_TYPE: &'static str = "text/plain";
 
     fn schema_ref() -> MetaSchemaRef {
@@ -26,8 +27,13 @@ impl ParsePayload for PlainText<String> {
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
         Ok(Self(String::from_request(request, body).await.map_err(
-            |err| ParseRequestError::ParseRequestBody {
-                reason: err.to_string(),
+            |err| {
+                ParseRequestError::ParseRequestBody {
+                    reason: Into::<Error>::into(err)
+                        .reason()
+                        .unwrap_or_default()
+                        .to_string(),
+                }
             },
         )?))
     }

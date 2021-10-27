@@ -1,9 +1,7 @@
 //! Some common error types.
 
 use std::{
-    convert::Infallible,
-    error::Error as StdError,
-    fmt::{self, Debug, Display, Formatter},
+    fmt::{Debug, Display},
     string::FromUtf8Error,
 };
 
@@ -15,57 +13,36 @@ macro_rules! define_http_error {
         $(#[$docs])*
         #[allow(non_snake_case)]
         #[inline]
-        pub fn $name(err: impl StdError + Send + Sync + 'static) -> Error {
+        pub fn $name(err: impl Display) -> Error {
             Error::new(StatusCode::$status).with_reason(err)
         }
         )*
     };
 }
 
-/// General error.
+/// General response error.
 #[derive(Debug)]
 pub struct Error {
     status: StatusCode,
-    reason: anyhow::Error,
+    reason: Option<String>,
 }
 
-impl<T: Into<Error> + Send> IntoResponse for T {
-    fn into_response(self) -> Response {
-        Into::<Error>::into(self).as_response()
-    }
-}
-
-impl From<Infallible> for Error {
-    fn from(_: Infallible) -> Self {
-        unreachable!()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.status.as_u16(), self.reason())
-    }
-}
-
-impl From<anyhow::Error> for Error {
-    fn from(err: anyhow::Error) -> Self {
+impl<T: Display> From<T> for Error {
+    #[inline]
+    fn from(err: T) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
-            reason: err,
+            reason: Some(err.to_string()),
         }
     }
 }
 
-#[derive(Debug)]
-struct StatusError(StatusCode);
-
-impl Display for StatusError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+impl IntoResponse for Error {
+    #[inline]
+    fn into_response(self) -> Response {
+        self.as_response()
     }
 }
-
-impl StdError for StatusError {}
 
 impl Error {
     /// Create a new error with status code.
@@ -73,32 +50,17 @@ impl Error {
     pub fn new(status: StatusCode) -> Self {
         Self {
             status,
-            reason: anyhow::Error::from(StatusError(status)),
+            reason: None,
         }
     }
 
     /// Sets the reason for this error.
     #[inline]
-    pub fn with_reason(self, reason: impl StdError + Send + Sync + 'static) -> Self {
+    pub fn with_reason(self, reason: impl Display) -> Self {
         Self {
-            reason: anyhow::Error::from(reason),
+            reason: Some(reason.to_string()),
             ..self
         }
-    }
-
-    /// Sets the reason string for this error.
-    #[inline]
-    pub fn with_reason_string(self, reason: impl Display + Debug + Send + Sync + 'static) -> Self {
-        Self {
-            reason: anyhow::Error::msg(reason),
-            ..self
-        }
-    }
-
-    /// Sets the reason `anyhow::Error` for this error.
-    #[inline]
-    pub fn with_reason_anyhow(self, reason: anyhow::Error) -> Self {
-        Self { reason, ..self }
     }
 
     /// Returns the status code of this error.
@@ -109,21 +71,19 @@ impl Error {
 
     /// Returns the reason of this error.
     #[inline]
-    pub fn reason(&self) -> &impl Display {
-        &self.reason
-    }
-
-    /// Downcast this error object by reference.
-    pub fn downcast_ref<T: Display + Debug + Send + Sync + 'static>(&self) -> Option<&T> {
-        self.reason.downcast_ref()
+    pub fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
     }
 
     /// Creates full response for this error.
     #[inline]
     pub fn as_response(&self) -> Response {
-        Response::builder()
-            .status(self.status)
-            .body(self.reason().to_string())
+        match &self.reason {
+            Some(reason) => Response::builder()
+                .status(self.status)
+                .body(reason.to_string()),
+            None => Response::builder().status(self.status).finish(),
+        }
     }
 }
 
@@ -219,32 +179,20 @@ macro_rules! define_simple_errors {
         pub struct $name;
 
         impl From<$name> for Error {
-            fn from(_: $name) -> Error {
-                Error::new(StatusCode::$status).with_reason(SimpleError($err_msg))
+            fn from(_: $name) -> Self {
+                Error::new(StatusCode::$status).with_reason($err_msg)
             }
         }
 
-        impl Display for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                write!(f, "{}", $err_msg)
+        impl IntoResponse for $name {
+            fn into_response(self) -> Response {
+                Into::<Error>::into(self).as_response()
             }
         }
 
-        impl std::error::Error for $name {}
         )*
     };
 }
-
-#[derive(Debug)]
-struct SimpleError(&'static str);
-
-impl Display for SimpleError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl StdError for SimpleError {}
 
 define_simple_errors!(
     /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
@@ -252,180 +200,324 @@ define_simple_errors!(
 );
 
 /// A possible error value when reading the body.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ReadBodyError {
     /// Body has been taken by other extractors.
-    #[error("the body has been taken")]
     BodyHasBeenTaken,
 
     /// Body is not a valid utf8 string.
-    #[error("parse utf8: {0}")]
-    Utf8(#[from] FromUtf8Error),
+    Utf8(FromUtf8Error),
 
     /// Io error.
-    #[error("io: {0}")]
-    Io(#[from] std::io::Error),
+    Io(std::io::Error),
+}
+
+impl From<FromUtf8Error> for ReadBodyError {
+    fn from(err: FromUtf8Error) -> Self {
+        Self::Utf8(err)
+    }
+}
+
+impl From<std::io::Error> for ReadBodyError {
+    fn from(err: std::io::Error) -> Self {
+        Self::Io(err)
+    }
 }
 
 impl From<ReadBodyError> for Error {
     fn from(err: ReadBodyError) -> Self {
         match err {
-            ReadBodyError::BodyHasBeenTaken => InternalServerError(err),
-            ReadBodyError::Utf8(err) => BadRequest(err),
-            ReadBodyError::Io(err) => BadRequest(err),
+            ReadBodyError::BodyHasBeenTaken => {
+                Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason("the body has been taken")
+            }
+            ReadBodyError::Utf8(err) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!("parse utf8: {}", err))
+            }
+            ReadBodyError::Io(err) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!("io: {}", err))
+            }
         }
+    }
+}
+
+impl IntoResponse for ReadBodyError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when parsing cookie.
 #[cfg(feature = "cookie")]
 #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ParseCookieError {
     /// Cookie value is illegal.
-    #[error("cookie is illegal")]
     CookieIllegal,
 
     /// A `Cookie` header is required.
-    #[error("`Cookie` header is required")]
     CookieHeaderRequired,
 
     /// Cookie value is illegal.
-    #[error("cookie is illegal")]
     ParseJsonValue(serde_json::Error),
 }
 
 #[cfg(feature = "cookie")]
 impl From<ParseCookieError> for Error {
     fn from(err: ParseCookieError) -> Self {
-        BadRequest(err)
+        match err {
+            ParseCookieError::CookieIllegal => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason("cookie is illegal")
+            }
+            ParseCookieError::CookieHeaderRequired => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason("`Cookie` header is required")
+            }
+            ParseCookieError::ParseJsonValue(_) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason("cookie is illegal")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "cookie")]
+impl IntoResponse for ParseCookieError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when extracts data from request fails.
-#[derive(Debug, thiserror::Error)]
-#[error("data of type `{0}` was not found.")]
+#[derive(Debug)]
 pub struct GetDataError(pub &'static str);
 
 impl From<GetDataError> for Error {
     fn from(err: GetDataError) -> Self {
-        InternalServerError(err)
+        Error::new(StatusCode::INTERNAL_SERVER_ERROR)
+            .with_reason(format!("data of type `{}` was not found.", err.0))
+    }
+}
+
+impl IntoResponse for GetDataError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when parsing form.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ParseFormError {
     /// Read body error.
-    #[error("read body: {0}")]
-    ReadBody(#[from] ReadBodyError),
+    ReadBody(ReadBodyError),
 
     /// Invalid content type.
-    #[error("invalid content type `{0}`, expect: `application/x-www-form-urlencoded`")]
     InvalidContentType(String),
 
     /// `Content-Type` header is required.
-    #[error("expect content type `application/x-www-form-urlencoded`")]
     ContentTypeRequired,
 
     /// Url decode error.
-    #[error("url decode: {0}")]
-    UrlDecode(#[from] serde_urlencoded::de::Error),
+    UrlDecode(serde_urlencoded::de::Error),
+}
+
+impl From<ReadBodyError> for ParseFormError {
+    fn from(err: ReadBodyError) -> Self {
+        Self::ReadBody(err)
+    }
+}
+
+impl From<serde_urlencoded::de::Error> for ParseFormError {
+    fn from(err: serde_urlencoded::de::Error) -> Self {
+        Self::UrlDecode(err)
+    }
 }
 
 impl From<ParseFormError> for Error {
     fn from(err: ParseFormError) -> Self {
-        BadRequest(err)
+        match err {
+            ParseFormError::ReadBody(err) => err.into(),
+            ParseFormError::InvalidContentType(content_type) => Error::new(StatusCode::BAD_REQUEST)
+                .with_reason(format!(
+                    "invalid content type `{}`, expect: `application/x-www-form-urlencoded`",
+                    content_type
+                )),
+            ParseFormError::ContentTypeRequired => Error::new(StatusCode::BAD_REQUEST)
+                .with_reason("expect content type `application/x-www-form-urlencoded`"),
+            ParseFormError::UrlDecode(err) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!("url decode: {}", err))
+            }
+        }
+    }
+}
+
+impl IntoResponse for ParseFormError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when parsing JSON.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ParseJsonError {
     /// Read body error.
-    #[error("read body: {0}")]
-    ReadBody(#[from] ReadBodyError),
+    ReadBody(ReadBodyError),
 
     /// Parse error.
-    #[error("parse: {0}")]
-    Json(#[from] serde_json::Error),
+    Json(serde_json::Error),
+}
+
+impl From<ReadBodyError> for ParseJsonError {
+    fn from(err: ReadBodyError) -> Self {
+        Self::ReadBody(err)
+    }
+}
+
+impl From<serde_json::Error> for ParseJsonError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::Json(err)
+    }
 }
 
 impl From<ParseJsonError> for Error {
     fn from(err: ParseJsonError) -> Self {
-        BadRequest(err)
+        match err {
+            ParseJsonError::ReadBody(err) => err.into(),
+            ParseJsonError::Json(err) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!("parse: {}", err))
+            }
+        }
+    }
+}
+
+impl IntoResponse for ParseJsonError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when parsing query.
-#[derive(Debug, thiserror::Error)]
-#[error("parse: {0}")]
-pub struct ParseQueryError(#[from] pub serde_urlencoded::de::Error);
+#[derive(Debug)]
+pub struct ParseQueryError(pub serde_urlencoded::de::Error);
+
+impl From<serde_urlencoded::de::Error> for ParseQueryError {
+    fn from(err: serde::de::value::Error) -> Self {
+        ParseQueryError(err)
+    }
+}
 
 impl From<ParseQueryError> for Error {
     fn from(err: ParseQueryError) -> Self {
-        BadRequest(err)
+        Error::new(StatusCode::BAD_REQUEST).with_reason(err.0.to_string())
+    }
+}
+
+impl IntoResponse for ParseQueryError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when parsing multipart.
 #[cfg(feature = "multipart")]
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ParseMultipartError {
     /// Read body error.
-    #[error("read body: {0}")]
-    ReadBody(#[from] ReadBodyError),
+    ReadBody(ReadBodyError),
 
     /// Invalid content type.
-    #[error("invalid content type `{0}`, expect: `multipart/form-data`")]
     InvalidContentType(String),
 
     /// `Content-Type` header is required.
-    #[error("expect content type `multipart/form-data`")]
     ContentTypeRequired,
 
     /// Parse error.
-    #[error("parse: {0}")]
-    Multipart(#[from] multer::Error),
+    Multipart(multer::Error),
+}
+
+#[cfg(feature = "multipart")]
+impl From<ReadBodyError> for ParseMultipartError {
+    fn from(err: ReadBodyError) -> Self {
+        Self::ReadBody(err)
+    }
+}
+#[cfg(feature = "multipart")]
+impl From<multer::Error> for ParseMultipartError {
+    fn from(err: multer::Error) -> Self {
+        Self::Multipart(err)
+    }
 }
 
 #[cfg(feature = "multipart")]
 impl From<ParseMultipartError> for Error {
     fn from(err: ParseMultipartError) -> Self {
-        BadRequest(err)
+        match err {
+            ParseMultipartError::ReadBody(err) => err.into(),
+            ParseMultipartError::InvalidContentType(content_type) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!(
+                    "invalid content type `{}`, expect: `multipart/form-data`",
+                    content_type
+                ))
+            }
+            ParseMultipartError::ContentTypeRequired => Error::new(StatusCode::BAD_REQUEST)
+                .with_reason("expect content type `multipart/form-data`"),
+            ParseMultipartError::Multipart(err) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!("parse: {}", err))
+            }
+        }
+    }
+}
+
+#[cfg(feature = "multipart")]
+impl IntoResponse for ParseMultipartError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when parsing typed headers.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ParseTypedHeaderError {
     /// A specified header is required.
-    #[error("header `{0}` is required")]
     HeaderRequired(String),
 
     /// Parse error.
-    #[error("parse: {0}")]
-    TypedHeader(#[from] headers::Error),
+    TypedHeader(headers::Error),
+}
+
+impl From<headers::Error> for ParseTypedHeaderError {
+    fn from(err: headers::Error) -> Self {
+        Self::TypedHeader(err)
+    }
 }
 
 impl From<ParseTypedHeaderError> for Error {
     fn from(err: ParseTypedHeaderError) -> Self {
-        BadRequest(err)
+        match err {
+            ParseTypedHeaderError::HeaderRequired(header_name) => {
+                Error::new(StatusCode::BAD_REQUEST)
+                    .with_reason(format!("header `{}` is required", header_name))
+            }
+            ParseTypedHeaderError::TypedHeader(err) => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason(format!("parse: {}", err))
+            }
+        }
+    }
+}
+
+impl IntoResponse for ParseTypedHeaderError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
     }
 }
 
 /// A possible error value when handling websocket.
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum WebSocketError {
     /// Invalid protocol
-    #[error("invalid protocol")]
     InvalidProtocol,
 
     /// No upgrade
-    #[error("no upgrade")]
     NoUpgrade,
 }
 
@@ -433,8 +525,40 @@ pub enum WebSocketError {
 impl From<WebSocketError> for Error {
     fn from(err: WebSocketError) -> Self {
         match &err {
-            WebSocketError::InvalidProtocol => BadRequest(err),
-            WebSocketError::NoUpgrade => InternalServerError(err),
+            WebSocketError::InvalidProtocol => {
+                Error::new(StatusCode::BAD_REQUEST).with_reason("invalid protocol")
+            }
+            WebSocketError::NoUpgrade => {
+                Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason("no upgrade")
+            }
         }
+    }
+}
+
+#[cfg(feature = "websocket")]
+impl IntoResponse for WebSocketError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_into_error() {
+        let err: Error = "a".into();
+        assert_eq!(err.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(err.reason(), Some("a"));
+    }
+
+    #[test]
+    fn extractor_err_into_error() {
+        let err: Error = ReadBodyError::BodyHasBeenTaken.into();
+        assert_eq!(err.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        let err: Error = ParseFormError::ContentTypeRequired.into();
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     }
 }
