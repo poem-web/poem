@@ -91,7 +91,7 @@ pub struct TlsListener<T> {
 }
 
 impl<T: Listener> TlsListener<T> {
-    pub(crate) fn new(config: TlsConfig, inner: T) -> Self {
+    pub(crate) fn new(inner: T, config: TlsConfig) -> Self {
         Self { config, inner }
     }
 }
@@ -101,18 +101,31 @@ impl<T: Listener> Listener for TlsListener<T> {
     type Acceptor = TlsAcceptor<T::Acceptor>;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
-        let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut self.config.cert.as_slice())
+        TlsAcceptor::new(self.inner.into_acceptor().await?, self.config)
+    }
+}
+
+/// A TLS or SSL protocol acceptor.
+#[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
+pub struct TlsAcceptor<T> {
+    acceptor: tokio_rustls::TlsAcceptor,
+    inner: T,
+}
+
+impl<T> TlsAcceptor<T> {
+    pub(crate) fn new(inner: T, config: TlsConfig) -> IoResult<Self> {
+        let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut config.cert.as_slice())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
         let key = {
             let mut pkcs8 = tokio_rustls::rustls::internal::pemfile::pkcs8_private_keys(
-                &mut self.config.key.as_slice(),
+                &mut config.key.as_slice(),
             )
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
             if !pkcs8.is_empty() {
                 pkcs8.remove(0)
             } else {
                 let mut rsa = tokio_rustls::rustls::internal::pemfile::rsa_private_keys(
-                    &mut self.config.key.as_slice(),
+                    &mut config.key.as_slice(),
                 )
                 .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
 
@@ -139,7 +152,7 @@ impl<T: Listener> Listener for TlsListener<T> {
             }
         }
 
-        let client_auth = match self.config.client_auth {
+        let client_auth = match config.client_auth {
             TlsClientAuth::Off => NoClientAuth::new(),
             TlsClientAuth::Optional(trust_anchor) => {
                 AllowAnyAnonymousOrAuthenticatedClient::new(read_trust_anchor(&trust_anchor)?)
@@ -149,25 +162,15 @@ impl<T: Listener> Listener for TlsListener<T> {
             }
         };
 
-        let mut config = ServerConfig::new(client_auth);
-        config
-            .set_single_cert_with_ocsp_and_sct(cert, key, self.config.ocsp_resp, Vec::new())
+        let mut server_config = ServerConfig::new(client_auth);
+        server_config
+            .set_single_cert_with_ocsp_and_sct(cert, key, config.ocsp_resp, Vec::new())
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
-        config.set_protocols(&["h2".into(), "http/1.1".into()]);
+        server_config.set_protocols(&["h2".into(), "http/1.1".into()]);
 
-        let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(config));
-        Ok(TlsAcceptor {
-            acceptor,
-            inner: self.inner.into_acceptor().await?,
-        })
+        let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_config));
+        Ok(TlsAcceptor { acceptor, inner })
     }
-}
-
-/// A TLS or SSL protocol acceptor.
-#[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
-pub struct TlsAcceptor<T> {
-    acceptor: tokio_rustls::TlsAcceptor,
-    inner: T,
 }
 
 #[async_trait::async_trait]
