@@ -12,7 +12,7 @@ The following table lists the Rust data types corresponding to some OpenAPI data
 |-----------------------------------------|-----------------------------------|
 | `{type: "integer", format: "int32" }`   | i32                               |
 | `{type: "integer", format: "float32" }` | f32                               |
-| `{type: "bool" }`                       | f32                               |
+| `{type: "bool" }`                       | bool                              |
 | `{type: "string" }`                     | String, &str                      |
 | `{type: "string", format: "binary" }`   | Binary                            |
 | `{type: "string", format: "bytes" }`    | Base64                            |

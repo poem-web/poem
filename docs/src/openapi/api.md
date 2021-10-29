@@ -49,7 +49,7 @@ impl Api {
     }
   
     /// Query pet by id
-    #[oai(path = "/pet/:pet_id", method = "delete")]
+    #[oai(path = "/pet", method = "delete")]
     async fn find_pet_by_id(&self, #[oai(name = "status", in = "query")] id: u64) -> Result<Json<Pet>> {
         todo!()
     } 
