@@ -542,6 +542,33 @@ impl IntoResponse for WebSocketError {
     }
 }
 
+/// A possible error value when upgrading connection.
+#[derive(Debug)]
+pub enum UpgradeError {
+    /// No upgrade
+    NoUpgrade,
+
+    /// Other error
+    Other(String),
+}
+
+impl From<UpgradeError> for Error {
+    fn from(err: UpgradeError) -> Self {
+        match err {
+            UpgradeError::NoUpgrade => {
+                Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason("no upgrade")
+            }
+            UpgradeError::Other(err) => Error::new(StatusCode::BAD_REQUEST).with_reason(err),
+        }
+    }
+}
+
+impl IntoResponse for UpgradeError {
+    fn into_response(self) -> Response {
+        Into::<Error>::into(self).as_response()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

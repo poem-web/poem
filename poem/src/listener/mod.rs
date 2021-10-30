@@ -66,7 +66,6 @@ pub trait AcceptorExt: Acceptor {
     /// Consume this acceptor and return a new TLS acceptor.
     #[cfg(feature = "tls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
-    #[must_use]
     fn tls(self, config: TlsConfig) -> IoResult<TlsAcceptor<Self>>
     where
         Self: Sized,

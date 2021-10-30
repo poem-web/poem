@@ -8,11 +8,13 @@ use std::{
 use hyper::upgrade::OnUpgrade;
 #[cfg(feature = "websocket")]
 use parking_lot::Mutex;
+use tokio::io::{AsyncRead, AsyncWrite};
 
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
 use crate::{
     body::Body,
+    error::UpgradeError,
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
@@ -308,6 +310,17 @@ impl Request {
             },
             self.body,
         )
+    }
+
+    /// Upgrade the connection and return a stream.
+    pub async fn upgrade(&self) -> Result<impl AsyncRead + AsyncWrite + Unpin, UpgradeError> {
+        let on_upgrade = match self.state.on_upgrade.lock().take() {
+            Some(on_upgrade) => on_upgrade,
+            None => return Err(UpgradeError::NoUpgrade),
+        };
+        Ok(on_upgrade
+            .await
+            .map_err(|err| UpgradeError::Other(err.to_string()))?)
     }
 }
 
