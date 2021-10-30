@@ -154,8 +154,8 @@ async fn serve_connection(
         }
     });
 
-    let conn = Http::new().serve_connection(socket, service);
-    #[cfg(feature = "websocket")]
-    let conn = conn.with_upgrades();
+    let conn = Http::new()
+        .serve_connection(socket, service)
+        .with_upgrades();
     let _ = conn.await;
 }

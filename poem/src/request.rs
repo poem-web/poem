@@ -4,9 +4,7 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-#[cfg(feature = "websocket")]
 use hyper::upgrade::OnUpgrade;
-#[cfg(feature = "websocket")]
 use parking_lot::Mutex;
 use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -35,7 +33,6 @@ pub(crate) struct RequestState {
     pub(crate) match_params: PathParams,
     #[cfg(feature = "cookie")]
     pub(crate) cookie_jar: Option<CookieJar>,
-    #[cfg(feature = "websocket")]
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
 }
 
@@ -97,7 +94,6 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
     ) -> Self {
         #[allow(unused_mut)]
         let (mut parts, body) = req.into_parts();
-        #[cfg(feature = "websocket")]
         let on_upgrade = Mutex::new(parts.extensions.remove::<OnUpgrade>());
 
         Self {
@@ -114,7 +110,6 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
                 match_params: Default::default(),
                 #[cfg(feature = "cookie")]
                 cookie_jar: None,
-                #[cfg(feature = "websocket")]
                 on_upgrade,
             },
         }
