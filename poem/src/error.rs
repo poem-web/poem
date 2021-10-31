@@ -521,6 +521,7 @@ pub enum WebSocketError {
     UpgradeError(UpgradeError),
 }
 
+#[cfg(feature = "websocket")]
 impl From<UpgradeError> for WebSocketError {
     fn from(err: UpgradeError) -> Self {
         Self::UpgradeError(err)
