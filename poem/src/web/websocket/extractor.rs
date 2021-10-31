@@ -1,6 +1,5 @@
 use std::{borrow::Cow, future::Future};
 
-use hyper::upgrade::OnUpgrade;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::{utils::sign, WebSocketStream};
@@ -10,7 +9,7 @@ use crate::{
         header::{self, HeaderValue},
         Method, StatusCode,
     },
-    Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
+    Body, FromRequest, IntoResponse, OnUpgrade, Request, RequestBody, Response, Result,
 };
 
 /// An extractor that can accept websocket connections.
@@ -43,14 +42,9 @@ impl<'a> FromRequest<'a> for WebSocket {
 
         let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
-        let on_upgrade = match req.state().on_upgrade.lock().take() {
-            Some(on_upgrade) => on_upgrade,
-            None => return Err(WebSocketError::NoUpgrade),
-        };
-
         Ok(Self {
             key,
-            on_upgrade,
+            on_upgrade: req.take_upgrade()?,
             protocols: None,
             sec_websocket_protocol,
         })

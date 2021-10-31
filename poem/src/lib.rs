@@ -80,7 +80,7 @@ pub use endpoint::{Endpoint, EndpointExt, IntoEndpoint};
 pub use error::{Error, Result};
 pub use middleware::Middleware;
 pub use poem_derive::handler;
-pub use request::{Request, RequestBuilder, RequestParts};
+pub use request::{OnUpgrade, Request, RequestBuilder, RequestParts, Upgraded};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{
     connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,

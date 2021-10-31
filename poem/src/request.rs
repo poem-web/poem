@@ -2,11 +2,14 @@ use std::{
     any::Any,
     convert::TryInto,
     fmt::{self, Debug, Formatter},
+    future::Future,
+    io::Error,
+    pin::Pin,
+    task::{Context, Poll},
 };
 
-use hyper::upgrade::OnUpgrade;
 use parking_lot::Mutex;
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
@@ -92,9 +95,13 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
     fn from(
         (req, local_addr, remote_addr): (http::Request<hyper::Body>, LocalAddr, RemoteAddr),
     ) -> Self {
-        #[allow(unused_mut)]
         let (mut parts, body) = req.into_parts();
-        let on_upgrade = Mutex::new(parts.extensions.remove::<OnUpgrade>());
+        let on_upgrade = Mutex::new(
+            parts
+                .extensions
+                .remove::<hyper::upgrade::OnUpgrade>()
+                .map(|fut| OnUpgrade { fut }),
+        );
 
         Self {
             method: parts.method,
@@ -308,14 +315,71 @@ impl Request {
     }
 
     /// Upgrade the connection and return a stream.
-    pub async fn upgrade(&self) -> Result<impl AsyncRead + AsyncWrite + Unpin, UpgradeError> {
-        let on_upgrade = match self.state.on_upgrade.lock().take() {
-            Some(on_upgrade) => on_upgrade,
-            None => return Err(UpgradeError::NoUpgrade),
-        };
-        Ok(on_upgrade
-            .await
-            .map_err(|err| UpgradeError::Other(err.to_string()))?)
+    pub fn take_upgrade(&self) -> Result<OnUpgrade, UpgradeError> {
+        self.state
+            .on_upgrade
+            .lock()
+            .take()
+            .ok_or(UpgradeError::NoUpgrade)
+    }
+}
+
+pin_project_lite::pin_project! {
+    /// A future for a possible HTTP upgrade.
+    pub struct OnUpgrade {
+        #[pin] fut: hyper::upgrade::OnUpgrade,
+    }
+}
+
+impl Future for OnUpgrade {
+    type Output = Result<Upgraded, UpgradeError>;
+
+    #[inline]
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.project();
+        this.fut
+            .poll(cx)
+            .map_ok(|stream| Upgraded { stream })
+            .map_err(|err| UpgradeError::Other(err.to_string()))
+    }
+}
+
+pin_project_lite::pin_project! {
+    /// An upgraded HTTP connection.
+    pub struct Upgraded {
+        #[pin] stream: hyper::upgrade::Upgraded,
+    }
+}
+
+impl AsyncRead for Upgraded {
+    #[inline]
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        self.project().stream.poll_read(cx, buf)
+    }
+}
+
+impl AsyncWrite for Upgraded {
+    #[inline]
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, Error>> {
+        self.project().stream.poll_write(cx, buf)
+    }
+
+    #[inline]
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        self.project().stream.poll_flush(cx)
+    }
+
+    #[inline]
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        self.project().stream.poll_shutdown(cx)
     }
 }
 

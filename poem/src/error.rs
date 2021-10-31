@@ -517,20 +517,24 @@ pub enum WebSocketError {
     /// Invalid protocol
     InvalidProtocol,
 
-    /// No upgrade
-    NoUpgrade,
+    /// Upgrade Error
+    UpgradeError(UpgradeError),
+}
+
+impl From<UpgradeError> for WebSocketError {
+    fn from(err: UpgradeError) -> Self {
+        Self::UpgradeError(err)
+    }
 }
 
 #[cfg(feature = "websocket")]
 impl From<WebSocketError> for Error {
     fn from(err: WebSocketError) -> Self {
-        match &err {
+        match err {
             WebSocketError::InvalidProtocol => {
                 Error::new(StatusCode::BAD_REQUEST).with_reason("invalid protocol")
             }
-            WebSocketError::NoUpgrade => {
-                Error::new(StatusCode::INTERNAL_SERVER_ERROR).with_reason("no upgrade")
-            }
+            WebSocketError::UpgradeError(err) => err.into(),
         }
     }
 }
