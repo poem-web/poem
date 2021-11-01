@@ -73,6 +73,18 @@ impl Cors {
         self
     }
 
+    /// Add many allow headers.
+    #[must_use]
+    pub fn allow_headers<I, T>(self, headers: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        HeaderName: TryFrom<T>,
+    {
+        headers
+            .into_iter()
+            .fold(self, |cors, header| cors.allow_header(header))
+    }
+
     /// Add an allow method.
     ///
     /// NOTE: Default is allow any method.
@@ -87,6 +99,18 @@ impl Cors {
         };
         self.allow_methods.insert(method);
         self
+    }
+
+    /// Add many allow methods.
+    #[must_use]
+    pub fn allow_methods<I, T>(self, methods: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        Method: TryFrom<T>,
+    {
+        methods
+            .into_iter()
+            .fold(self, |cors, method| cors.allow_method(method))
     }
 
     /// Add an allow origin.
@@ -105,6 +129,18 @@ impl Cors {
         self
     }
 
+    /// Add many allow origins.
+    #[must_use]
+    pub fn allow_origins<I, T>(self, origins: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        HeaderValue: TryFrom<T>,
+    {
+        origins
+            .into_iter()
+            .fold(self, |cors, origin| cors.allow_origin(origin))
+    }
+
     /// Determinate allowed origins by processing requests which didn’t match
     /// any origins specified in the `allow_origin`.
     ///
@@ -119,7 +155,7 @@ impl Cors {
         self
     }
 
-    /// Add an expose method.
+    /// Add an expose header.
     #[must_use]
     pub fn expose_header<T>(mut self, header: T) -> Self
     where
@@ -131,6 +167,18 @@ impl Cors {
         };
         self.expose_headers.insert(header);
         self
+    }
+
+    /// Add many expose headers.
+    #[must_use]
+    pub fn expose_headers<I, T>(self, headers: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        HeaderName: TryFrom<T>,
+    {
+        headers
+            .into_iter()
+            .fold(self, |cors, header| cors.expose_header(header))
     }
 
     /// Set max age.
@@ -339,10 +387,7 @@ mod tests {
     fn cors() -> Cors {
         Cors::new()
             .allow_origin(ALLOW_ORIGIN)
-            .allow_method(Method::GET)
-            .allow_method(Method::POST)
-            .allow_method(Method::OPTIONS)
-            .allow_method(Method::DELETE)
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::DELETE])
             .allow_header(ALLOW_HEADER)
             .expose_header(EXPOSE_HEADER)
             .allow_credentials(true)
