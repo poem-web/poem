@@ -434,18 +434,18 @@ pub struct MetaPath {
 #[derive(Debug, Default, PartialEq, Serialize)]
 pub struct MetaInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<&'static str>,
+    pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<&'static str>,
+    pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub version: Option<&'static str>,
+    pub version: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct MetaServer {
-    pub url: &'static str,
+    pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<&'static str>,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

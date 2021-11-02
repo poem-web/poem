@@ -36,15 +36,15 @@ impl<T> OpenApiService<T> {
     ///
     /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#infoObject>
     #[must_use]
-    pub fn title(mut self, title: &'static str) -> Self {
-        self.info.get_or_insert_with(Default::default).title = Some(title);
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.info.get_or_insert_with(Default::default).title = Some(title.into());
         self
     }
 
     /// Sets the description of the API container.
     #[must_use]
-    pub fn description(mut self, description: &'static str) -> Self {
-        self.info.get_or_insert_with(Default::default).description = Some(description);
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.info.get_or_insert_with(Default::default).description = Some(description.into());
         self
     }
 
@@ -55,8 +55,8 @@ impl<T> OpenApiService<T> {
     ///
     /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#infoObject>
     #[must_use]
-    pub fn version(mut self, version: &'static str) -> Self {
-        self.info.get_or_insert_with(Default::default).version = Some(version);
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.info.get_or_insert_with(Default::default).version = Some(version.into());
         self
     }
 
@@ -64,9 +64,9 @@ impl<T> OpenApiService<T> {
     ///
     /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#serverObject>
     #[must_use]
-    pub fn server(mut self, url: &'static str) -> Self {
+    pub fn server(mut self, url: impl Into<String>) -> Self {
         self.servers.push(MetaServer {
-            url,
+            url: url.into(),
             description: None,
         });
         self
@@ -74,10 +74,14 @@ impl<T> OpenApiService<T> {
 
     /// Appends a server and description to the API container.
     #[must_use]
-    pub fn server_with_description(mut self, url: &'static str, description: &'static str) -> Self {
+    pub fn server_with_description(
+        mut self,
+        url: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
         self.servers.push(MetaServer {
-            url,
-            description: Some(description),
+            url: url.into(),
+            description: Some(description.into()),
         });
         self
     }
