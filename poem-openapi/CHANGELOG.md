@@ -4,35 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.0.12] 2010-10-27
+# [1.0.12] 2021-10-27
 
 - Correctly determine the type of payload.
 
-# [1.0.11] 2010-10-27
+# [1.0.11] 2021-10-27
 
 - Bump `poem` to `1.0.11`.
 
-# [1.0.10] 2010-10-26
+# [1.0.10] 2021-10-26
 
 - Make the return type of operation function more flexible.
 
-# [1.0.9] 2010-10-26
+# [1.0.9] 2021-10-26
 
 - Add `Any` type.
 
-# [1.0.8] 2010-10-25
+# [1.0.8] 2021-10-25
 
 - Add `read_only_all` and `write_only_all` to `ObjectArgs`. [#71](https://github.com/poem-web/poem/pull/71)
 
-# [1.0.7] 2010-10-21
+# [1.0.7] 2021-10-21
 
 - Fix Json parsing not working for unsigned integers. [#68](https://github.com/poem-web/poem/pull/68)
 
-# [1.0.4] 2010-10-15
+# [1.0.4] 2021-10-15
 
 - Bump `poem` from `1.0.3` to `1.0.4`.
 
-# [1.0.3] 2010-10-14
+# [1.0.3] 2021-10-14
 
 - Add `prefix_path` and `tag` attributes for `#[OpenApi]`. [#57](https://github.com/poem-web/poem/pull/57)
 - `OpenApiService::swagger_ui` method no longer needs the `absolute_uri` parameter.
