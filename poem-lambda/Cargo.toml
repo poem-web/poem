@@ -1,6 +1,6 @@
 [package]
 name = "poem-lambda"
-version = "1.0.18"
+version = "1.0.19"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem for AWS Lambda"
