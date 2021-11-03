@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.0.19] 2021-11-03
 
 - Add `Request::data`, `Request::set_data`, `Response::data` and `Response::set_data` methods.
+- Use Rust 2021 edition.
 
 # [1.0.18] 2021-11-02
 
