@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use darling::{
     ast::{Data, Style},
     util::{Ignored, SpannedValue},

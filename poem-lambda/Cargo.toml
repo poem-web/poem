@@ -2,7 +2,7 @@
 name = "poem-lambda"
 version = "1.0.18"
 authors = ["sunli <scott_s829@163.com>"]
-edition = "2018"
+edition = "2021"
 description = "Poem for AWS Lambda"
 license = "MIT/Apache-2.0"
 documentation = "https://docs.rs/poem/"

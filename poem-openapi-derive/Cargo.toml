@@ -2,7 +2,7 @@
 name = "poem-openapi-derive"
 version = "1.0.13"
 authors = ["sunli <scott_s829@163.com>"]
-edition = "2018"
+edition = "2021"
 description = "Macros for poem-openapi"
 license = "MIT/Apache-2.0"
 documentation = "https://docs.rs/poem/"

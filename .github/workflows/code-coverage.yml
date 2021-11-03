@@ -16,6 +16,11 @@ jobs:
         options: --entrypoint redis-server
     steps:
       - uses: actions/checkout@v1
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.56.1
+          override: true
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:

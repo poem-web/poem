@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use darling::{util::SpannedValue, FromMeta};
 use http::header::HeaderName;
 use indexmap::IndexMap;
@@ -246,7 +244,7 @@ pub(crate) fn generate(
 
             fn add_routes(self, route: #crate_name::poem::Route) -> #crate_name::poem::Route {
                 let api_obj = ::std::sync::Arc::new(self);
-                route#(.#routes)*
+                route #(.#routes)*
             }
         }
     };

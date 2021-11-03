@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::TryFrom, str::FromStr, sync::Arc};
+use std::{collections::HashSet, str::FromStr, sync::Arc};
 
 use headers::{
     AccessControlAllowHeaders, AccessControlAllowMethods, AccessControlExposeHeaders, HeaderMapExt,
