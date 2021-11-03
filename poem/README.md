@@ -20,9 +20,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2021/07/29/Rust-1.54.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.54+-ab6000.svg"
-      alt="rustc 1.54+" />
+  <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.56.1.html">
+    <img src="https://img.shields.io/badge/rustc-1.56.1+-ab6000.svg"
+      alt="rustc 1.56.1+" />
   </a>
 </div>
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
@@ -90,7 +90,7 @@ More examples can be found [here][examples].
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.54.0`.
+The minimum supported Rust version for this crate is `1.56.1`.
 
 ## Contributing
 
