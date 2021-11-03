@@ -244,6 +244,19 @@ impl Request {
         &mut self.extensions
     }
 
+    /// Get a reference from extensions, similar to `self.extensions().get()`.
+    #[inline]
+    pub fn data<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.extensions.get()
+    }
+
+    /// Inserts a value to extensions, similar to
+    /// `self.extensions().insert(data)`.
+    #[inline]
+    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+        self.extensions.insert(data);
+    }
+
     /// Returns a reference to the remote address.
     #[inline]
     pub fn remote_addr(&self) -> &RemoteAddr {

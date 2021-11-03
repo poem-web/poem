@@ -130,6 +130,7 @@ pub trait Tags {
 }
 
 /// Represents a OpenAPI security scheme.
+#[poem::async_trait]
 pub trait SecurityScheme: Sized {
     /// The name of security scheme.
     const NAME: &'static str;
@@ -138,7 +139,7 @@ pub trait SecurityScheme: Sized {
     fn register(registry: &mut Registry);
 
     /// Parse authorization information from request.
-    fn from_request(
+    async fn from_request(
         req: &Request,
         query: &HashMap<String, String>,
     ) -> Result<Self, ParseRequestError>;
@@ -153,6 +154,7 @@ pub trait OAuthScopes {
     fn name(&self) -> &'static str;
 }
 
+#[poem::async_trait]
 impl<T: SecurityScheme> SecurityScheme for Option<T> {
     const NAME: &'static str = T::NAME;
 
@@ -160,11 +162,11 @@ impl<T: SecurityScheme> SecurityScheme for Option<T> {
         T::register(registry);
     }
 
-    fn from_request(
+    async fn from_request(
         req: &Request,
         query: &HashMap<String, String>,
     ) -> Result<Self, ParseRequestError> {
-        Ok(T::from_request(req, query).ok())
+        Ok(T::from_request(req, query).await.ok())
     }
 }
 

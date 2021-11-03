@@ -11,21 +11,6 @@ use poem_openapi::{
     OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
 
-/// Basic authorization
-///
-/// - User: `test`
-/// - Password: `123456`
-#[derive(SecurityScheme)]
-#[oai(type = "basic")]
-struct MyBasicAuthorization(Basic);
-
-/// ApiKey authorization
-///
-/// key: `123456`
-#[derive(SecurityScheme)]
-#[oai(type = "api_key", key_name = "X-API-Key", in = "header")]
-struct MyApiKeyAuthorization(ApiKey);
-
 #[derive(OAuthScopes)]
 enum GithubScopes {
     #[oai(rename = "public_repo")]
@@ -51,30 +36,8 @@ struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/basic", method = "get")]
-    async fn auth_basic(
-        &self,
-        #[oai(auth)] auth: MyBasicAuthorization,
-    ) -> Result<PlainText<String>> {
-        if auth.0.username != "test" || auth.0.password != "123456" {
-            return Err(Error::new(StatusCode::UNAUTHORIZED));
-        }
-        Ok(PlainText("hello".to_string()))
-    }
-
-    #[oai(path = "/api_key", method = "get")]
-    async fn auth_api_key(
-        &self,
-        #[oai(auth)] auth: MyApiKeyAuthorization,
-    ) -> Result<PlainText<String>> {
-        if auth.0.key != "123456" {
-            return Err(Error::new(StatusCode::UNAUTHORIZED));
-        }
-        Ok(PlainText("hello".to_string()))
-    }
-
-    #[oai(path = "/oauth2", method = "get")]
-    async fn auth_oauth2(
+    #[oai(path = "/repositories", method = "get")]
+    async fn repositories(
         &self,
         #[oai(auth("GithubScopes::PublicRepo"))] auth: GithubAuthorization,
     ) -> Result<PlainText<String>> {

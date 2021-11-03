@@ -349,7 +349,7 @@ fn generate_operation(
             Some(operation_param) if operation_param.auth.is_some() => {
                 let auth = operation_param.auth.as_ref().unwrap();
                 parse_args.push(quote! {
-                    let #pname = match <#arg_ty as #crate_name::SecurityScheme>::from_request(&request, &query.0) {
+                    let #pname = match <#arg_ty as #crate_name::SecurityScheme>::from_request(&request, &query.0).await {
                         ::std::result::Result::Ok(value) => value,
                         ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
                                 return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
