@@ -21,6 +21,7 @@ jobs:
         with:
           toolchain: 1.56.1
           override: true
+          components: rustfmt
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
