@@ -42,6 +42,7 @@ pub use multipart::{Field, Multipart};
 pub use path::Path;
 pub use query::Query;
 pub use redirect::Redirect;
+#[cfg(feature = "template")]
 pub use template::{HtmlTemplate, Template};
 pub use typed_header::TypedHeader;
 
