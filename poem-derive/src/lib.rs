@@ -9,10 +9,9 @@
 
 mod utils;
 
-use darling::FromMeta;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Member, Result};
+use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Member, Meta, NestedMeta, Result};
 
 /// Wrap an asynchronous function as an `Endpoint`.
 ///
@@ -25,25 +24,23 @@ use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Member, Result};
 /// ```
 #[proc_macro_attribute]
 pub fn handler(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = match HandlerArgs::from_list(&parse_macro_input!(args as AttributeArgs)) {
-        Ok(args) => args,
-        Err(err) => return err.write_errors().into(),
-    };
+    let args: AttributeArgs = parse_macro_input!(args as AttributeArgs);
+    let mut internal = false;
 
-    match generate_handler(args, input) {
+    for arg in args {
+        if matches!(arg,NestedMeta::Meta(Meta::Path(p)) if p.is_ident("internal")) {
+            internal = true;
+        }
+    }
+
+    match generate_handler(internal, input) {
         Ok(stream) => stream,
         Err(err) => err.into_compile_error().into(),
     }
 }
 
-#[derive(FromMeta, Default)]
-#[darling(default)]
-struct HandlerArgs {
-    internal: bool,
-}
-
-fn generate_handler(args: HandlerArgs, input: TokenStream) -> Result<TokenStream> {
-    let crate_name = utils::get_crate_name(args.internal);
+fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
+    let crate_name = utils::get_crate_name(internal);
     let item_fn = syn::parse::<ItemFn>(input)?;
     let vis = &item_fn.vis;
     let docs = item_fn

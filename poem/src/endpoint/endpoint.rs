@@ -1,7 +1,5 @@
 use std::{future::Future, sync::Arc};
 
-use futures_util::future::BoxFuture;
-
 use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
 use crate::{
     endpoint::Around,
@@ -281,22 +279,21 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let mut resp = index
-    ///     .around(|ep, mut req| {
-    ///         Box::pin(async move {
-    ///             req.headers_mut()
-    ///                 .insert("x-value", HeaderValue::from_static("hello"));
-    ///             let mut resp = ep.call(req).await;
-    ///             resp.take_body().into_string().await.unwrap() + "world"
-    ///         })
+    ///     .around(|ep, mut req| async move {
+    ///         req.headers_mut()
+    ///             .insert("x-value", HeaderValue::from_static("hello"));
+    ///         let mut resp = ep.call(req).await;
+    ///         resp.take_body().into_string().await.unwrap() + "world"
     ///     })
     ///     .call(Request::default())
     ///     .await;
     /// assert_eq!(resp, "hello,world");
     /// # });
     /// ```
-    fn around<F, R>(self, f: F) -> Around<Self::Endpoint, F>
+    fn around<F, Fut, R>(self, f: F) -> Around<Self::Endpoint, F>
     where
-        F: for<'a> Fn(&'a Self::Endpoint, Request) -> BoxFuture<'a, R> + Send + Send + Sync,
+        F: Fn(Arc<Self::Endpoint>, Request) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = R> + Send + 'static,
         R: IntoResponse,
         Self: Sized,
     {

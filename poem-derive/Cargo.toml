@@ -20,7 +20,6 @@ categories = [
 proc-macro = true
 
 [dependencies]
-darling = "0.13.0"
 proc-macro-crate = "1.1.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
