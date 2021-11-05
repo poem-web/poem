@@ -49,6 +49,7 @@ struct FileRef {
 }
 
 /// Static files handling service.
+#[cfg_attr(docsrs, doc(cfg(feature = "staticfiles")))]
 pub struct Files {
     path: PathBuf,
     show_files_listing: bool,

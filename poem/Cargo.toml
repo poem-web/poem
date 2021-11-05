@@ -32,6 +32,7 @@ opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semant
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile"]
 template = ["askama"]
+staticfiles = ["askama"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.0.0" }

@@ -47,6 +47,7 @@
 //! |opentelemetry     | Support for opentelemetry    |
 //! |prometheus        | Support for Prometheus       |
 //! |template          | Support for [`askama`](https://crates.io/crates/askama)       |
+//! |staticfiles       | Support for serve static files       |
 
 #![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
 #![doc(html_logo_url = "https://poem.rs/assets/logo.png")]

@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [1.0.21]
 
-- Add `template` feature.
+- Add `template` and `staticfiles` features.
 
 # [1.0.20]
 
