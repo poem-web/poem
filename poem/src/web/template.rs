@@ -2,6 +2,7 @@ use super::Html;
 use crate::{http::StatusCode, IntoResponse, Response};
 
 /// Template response using [`askama`](https://crates.io/crates/askama).
+#[cfg_attr(docsrs, doc(cfg(feature = "template")))]
 pub struct Template<T>(pub T);
 
 impl<T: askama::Template + Send> IntoResponse for Template<T> {
@@ -16,6 +17,7 @@ impl<T: askama::Template + Send> IntoResponse for Template<T> {
 }
 
 /// Template response with content-type "text/html" using [`askama`](https://crates.io/crates/askama).
+#[cfg_attr(docsrs, doc(cfg(feature = "template")))]
 pub struct HtmlTemplate<T>(pub T);
 
 impl<T: askama::Template + Send> IntoResponse for HtmlTemplate<T> {
