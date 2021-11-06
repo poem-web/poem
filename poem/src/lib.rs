@@ -35,7 +35,7 @@
 //!
 //! |Feature           |Description                     |
 //! |------------------|--------------------------------|
-//! |compression       | Support decompress request body and compress response body |
+//! |compression | Support decompress request body and compress response body |
 //! |cookie            | Support for Cookie             |
 //! |multipart         | Support for Multipart          |
 //! |opentelemetry     | Support for opentelemetry    |

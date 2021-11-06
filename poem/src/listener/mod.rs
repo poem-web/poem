@@ -16,7 +16,7 @@ use std::{
 pub use combined::{Combined, CombinedStream};
 pub use tcp::{TcpAcceptor, TcpListener};
 #[cfg(feature = "tls")]
-pub use tls::{TlsAcceptor, TlsConfig, TlsListener};
+pub use tls::{IntoTlsConfigStream, TlsAcceptor, TlsConfig, TlsListener};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 #[cfg(unix)]
 pub use unix::{UnixAcceptor, UnixListener};
@@ -25,7 +25,7 @@ use crate::web::{LocalAddr, RemoteAddr};
 
 /// Represents a acceptor type.
 #[async_trait::async_trait]
-pub trait Acceptor: Send + Sync {
+pub trait Acceptor: Send {
     /// IO stream type.
     type Io: AsyncRead + AsyncWrite + Send + Unpin + 'static;
 
@@ -66,11 +66,12 @@ pub trait AcceptorExt: Acceptor {
     /// Consume this acceptor and return a new TLS acceptor.
     #[cfg(feature = "tls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
-    fn tls(self, config: TlsConfig) -> IoResult<TlsAcceptor<Self>>
+    fn tls<S>(self, config_stream: S) -> TlsAcceptor<Self>
     where
         Self: Sized,
+        S: futures_util::Stream<Item = TlsConfig> + Send + 'static,
     {
-        TlsAcceptor::new(self, config)
+        TlsAcceptor::new(self, config_stream)
     }
 }
 
@@ -108,11 +109,11 @@ pub trait Listener: Send {
     #[cfg(feature = "tls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls")))]
     #[must_use]
-    fn tls(self, config: TlsConfig) -> TlsListener<Self>
+    fn tls<S: IntoTlsConfigStream>(self, config_stream: S) -> TlsListener<Self, S>
     where
         Self: Sized,
     {
-        TlsListener::new(self, config)
+        TlsListener::new(self, config_stream)
     }
 }
 
