@@ -28,7 +28,7 @@ mod typed_header;
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub mod websocket;
 
-use std::convert::Infallible;
+use std::convert::{Infallible, TryInto};
 
 pub use addr::{LocalAddr, RemoteAddr};
 use bytes::Bytes;

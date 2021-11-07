@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use darling::{util::SpannedValue, FromMeta};
 use http::header::HeaderName;
 use indexmap::IndexMap;
