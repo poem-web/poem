@@ -55,7 +55,7 @@ which are disabled by default:
 |opentelemetry     | Support for opentelemetry    |
 |prometheus        | Support for Prometheus       |
 |redis-session     | Support for RedisSession     |
-|session           | Support for CookieSession    |
+|session           | Support for session    |
 |sse               | Support Server-Sent Events (SSE)       |
 |staticfiles       | Support for serve static files       |
 |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |

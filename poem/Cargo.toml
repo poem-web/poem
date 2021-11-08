@@ -26,7 +26,7 @@ sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
-session = ["cookie", "rand"]
+session = ["cookie", "rand", "priority-queue"]
 redis-session = ["session", "redis"]
 opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
@@ -80,6 +80,7 @@ libprometheus = { package = "prometheus", version = "0.12.0", optional = true }
 libopentelemetry = { package = "opentelemetry", version = "0.16.0", features = ["metrics"], optional = true }
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 askama = { version = "0.10.5", optional = true }
+priority-queue = { version = "1.2.0", optional = true }
 
 # Feature optional dependencies
 

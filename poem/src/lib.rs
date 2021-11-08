@@ -40,7 +40,7 @@
 //! |multipart         | Support for Multipart          |
 //! |opentelemetry     | Support for opentelemetry    |
 //! |prometheus        | Support for Prometheus       |
-//! |redis-session     | Support for RedisSession     |
+//! |redis-session     | Support for session     |
 //! |session           | Support for CookieSession    |
 //! |sse               | Support Server-Sent Events (SSE)       |
 //! |staticfiles       | Support for serve static files       |

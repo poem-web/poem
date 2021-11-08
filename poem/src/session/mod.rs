@@ -2,6 +2,7 @@
 
 mod cookie_config;
 mod cookie_session;
+mod memory_storage;
 #[cfg(feature = "redis-session")]
 mod redis_storage;
 mod server_session;
@@ -13,6 +14,7 @@ pub(crate) mod test_harness;
 
 pub use cookie_config::{CookieConfig, CookieSecurity};
 pub use cookie_session::{CookieSession, CookieSessionEndpoint};
+pub use memory_storage::MemoryStorage;
 #[cfg(feature = "redis-session")]
 pub use redis_storage::RedisStorage;
 pub use server_session::{ServerSession, ServerSessionEndpoint};
