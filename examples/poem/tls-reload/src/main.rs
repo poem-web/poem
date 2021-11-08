@@ -31,7 +31,6 @@ async fn main() -> Result<(), std::io::Error> {
 }
 
 fn load_tls_config() -> Result<TlsConfig, std::io::Error> {
-    println!("{:?}", std::env::current_dir().unwrap());
     Ok(TlsConfig::new()
         .cert(std::fs::read("examples/poem/tls-reload/src/cert.pem")?)
         .key(std::fs::read("examples/poem/tls-reload/src/key.pem")?))
