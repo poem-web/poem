@@ -8,9 +8,10 @@ use std::{
 use bytes::Bytes;
 use futures_util::Stream;
 use hyper::body::HttpBody;
+use serde::{de::DeserializeOwned, Serialize};
 use tokio::io::AsyncRead;
 
-use crate::error::ReadBodyError;
+use crate::error::{ParseJsonError, ReadBodyError};
 
 /// A body object for requests and responses.
 #[derive(Default)]
@@ -97,6 +98,11 @@ impl Body {
         )))
     }
 
+    /// Create a body object from JSON.
+    pub fn from_json(body: impl Serialize) -> serde_json::Result<Self> {
+        Ok(serde_json::to_vec(&body)?.into())
+    }
+
     /// Create an empty body.
     #[inline]
     pub fn empty() -> Self {
@@ -122,6 +128,11 @@ impl Body {
     /// Consumes this body object to return a [`String`] that contains all data.
     pub async fn into_string(self) -> Result<String, ReadBodyError> {
         Ok(String::from_utf8(self.into_bytes().await?.to_vec())?)
+    }
+
+    /// Consumes this body object and parse it as `T`.
+    pub async fn into_json<T: DeserializeOwned>(self) -> Result<T, ParseJsonError> {
+        Ok(serde_json::from_slice(&self.into_vec().await?)?)
     }
 
     /// Consumes this body object to return a reader.
@@ -204,5 +215,8 @@ mod tests {
             ),
         ));
         assert_eq!(body.into_string().await.unwrap(), "abcdefghi");
+
+        let body = Body::from_json("abc").unwrap();
+        assert_eq!(body.into_json::<String>().await.unwrap(), "abc");
     }
 }

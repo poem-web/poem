@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Add `MemoryStore` for session.
+- Add `from_json::from_json` and `Body::into_json` methods.
 
 # [1.0.22]
 
