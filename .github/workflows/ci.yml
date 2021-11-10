@@ -32,6 +32,8 @@ jobs:
           toolchain: 1.56.1
           override: true
           components: rustfmt, clippy
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
       - name: Install cargo-hack
         run: cargo install cargo-hack
       - name: Check with clippy
