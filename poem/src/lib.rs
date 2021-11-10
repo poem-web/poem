@@ -35,18 +35,19 @@
 //!
 //! |Feature           |Description                     |
 //! |------------------|--------------------------------|
-//! |compression | Support decompress request body and compress response body |
+//! |compression  | Support decompress request body and compress response body |
 //! |cookie            | Support for Cookie             |
 //! |multipart         | Support for Multipart          |
+//! |native-tls        | Support for HTTP server over TLS with [`native-tls`](https://crates.io/crates/native-tls)  |
 //! |opentelemetry     | Support for opentelemetry    |
 //! |prometheus        | Support for Prometheus       |
-//! |redis-session     | Support for session     |
-//! |session           | Support for CookieSession    |
+//! |redis-session     | Support for RedisSession     |
+//! |rustls            | Support for HTTP server over TLS with [`rustls`](https://crates.io/crates/rustls)  |
+//! |session           | Support for session    |
 //! |sse               | Support Server-Sent Events (SSE)       |
 //! |staticfiles       | Support for serve static files       |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 //! |template          | Support for [`askama`](https://crates.io/crates/askama)       |
-//! |tls               | Support for HTTP server over TLS   |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |websocket         | Support for WebSocket          |
 

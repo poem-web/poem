@@ -21,7 +21,8 @@ categories = [
 default = []
 websocket = ["tokio-tungstenite"]
 multipart = ["multer"]
-tls = ["tokio-rustls"]
+rustls = ["tokio-rustls"]
+native-tls = ["tokio-native-tls"]
 sse = []
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
@@ -81,6 +82,7 @@ libopentelemetry = { package = "opentelemetry", version = "0.16.0", features = [
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 askama = { version = "0.10.5", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
+tokio-native-tls = { version = "0.3.0", optional = true }
 
 # Feature optional dependencies
 

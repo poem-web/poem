@@ -1,6 +1,6 @@
 use poem::{
     get, handler,
-    listener::{Listener, TcpListener, TlsConfig},
+    listener::{Listener, RustlsConfig, TcpListener},
     Route, Server,
 };
 use tokio::time::Duration;
@@ -19,7 +19,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new().at("/", get(index));
 
-    let listener = TcpListener::bind("127.0.0.1:3000").tls(async_stream::stream! {
+    let listener = TcpListener::bind("127.0.0.1:3000").rustls(async_stream::stream! {
         loop {
             if let Ok(tls_config) = load_tls_config() {
                 yield tls_config;
@@ -30,8 +30,8 @@ async fn main() -> Result<(), std::io::Error> {
     Server::new(listener).await?.run(app).await
 }
 
-fn load_tls_config() -> Result<TlsConfig, std::io::Error> {
-    Ok(TlsConfig::new()
+fn load_tls_config() -> Result<RustlsConfig, std::io::Error> {
+    Ok(RustlsConfig::new()
         .cert(std::fs::read("examples/poem/tls-reload/src/cert.pem")?)
         .key(std::fs::read("examples/poem/tls-reload/src/key.pem")?))
 }

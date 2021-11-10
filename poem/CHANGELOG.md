@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `MemoryStore` for session.
 - Add `from_json::from_json` and `Body::into_json` methods.
+- Add support for [`native-tls`](https://crates.io/crates/native-tls).
 
 # [1.0.22]
 

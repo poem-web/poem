@@ -1,6 +1,6 @@
 use poem::{
     get, handler,
-    listener::{Listener, TcpListener, TlsConfig},
+    listener::{Listener, RustlsConfig, TcpListener},
     Route, Server,
 };
 
@@ -75,6 +75,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new().at("/", get(index));
 
-    let listener = TcpListener::bind("127.0.0.1:3000").tls(TlsConfig::new().key(KEY).cert(CERT));
+    let listener =
+        TcpListener::bind("127.0.0.1:3000").rustls(RustlsConfig::new().key(KEY).cert(CERT));
     Server::new(listener).await?.run(app).await
 }
