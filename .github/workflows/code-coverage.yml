@@ -22,6 +22,8 @@ jobs:
           toolchain: 1.56.1
           override: true
           components: rustfmt
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
