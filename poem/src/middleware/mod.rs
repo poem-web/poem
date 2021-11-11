@@ -11,6 +11,7 @@ mod normalize_path;
 mod opentelemetry_metrics;
 #[cfg(feature = "opentelemetry")]
 mod opentelemetry_tracing;
+mod propagate_header;
 mod set_header;
 mod size_limit;
 #[cfg(feature = "tower-compat")]
@@ -28,6 +29,7 @@ pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
 pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
 #[cfg(feature = "opentelemetry")]
 pub use opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
+pub use propagate_header::{PropagateHeader, PropagateHeaderEndpoint};
 pub use set_header::{SetHeader, SetHeaderEndpoint};
 pub use size_limit::{SizeLimit, SizeLimitEndpoint};
 #[cfg(feature = "tower-compat")]

@@ -1,5 +1,5 @@
 [package]
-name = "example-openapi-auth"
+name = "example-openapi-auth-github"
 version = "0.1.0"
 edition = "2021"
 publish = false
