@@ -75,6 +75,7 @@ mod tests {
     };
 
     #[tokio::test]
+    #[ignore]
     async fn redis_session() {
         let client = Client::open("redis://127.0.0.1/").unwrap();
         let app = Route::new().at("/:action", index).with(ServerSession::new(
