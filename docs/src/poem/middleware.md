@@ -84,3 +84,31 @@ async fn index(Data(token): Data<&Token>) -> String {
 // Use the `TokenMiddleware` middleware to convert the `index` endpoint.
 let ep = index.with(TokenMiddleware);
 ```
+
+## Custom middleware with function
+
+You can also use a function to implement a middleware.
+
+```rust
+async fn extract_token<E: Endpoint>(next: E, mut req: Request) -> Response {
+    if let Some(value) = req
+        .headers()
+        .get(TOKEN_HEADER)
+        .and_then(|value| value.to_str().ok())
+    {
+        // Insert token data to extensions of request.
+        let token = value.to_string();
+        req.extensions_mut().insert(Token(token));
+    }
+
+    // call the next endpoint.
+    next.call(req).await
+}
+
+#[handler]
+async fn index(Data(token): Data<&Token>) -> String {
+  token.0.clone()
+}
+
+let ep = index.around(extract_token);
+```
