@@ -5,6 +5,8 @@
 ```toml
 [dependencies]
 poem = "1.0"
+serde = "1.0"
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
 ```
 
 ## 写一个 endpoint
