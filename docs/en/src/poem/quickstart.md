@@ -5,6 +5,8 @@
 ```toml
 [dependencies]
 poem = "1.0"
+serde = "1.0"
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
 ```
 
 ## Write a endpoint
@@ -47,10 +49,6 @@ The `Server::run` function accepts any type that implements the `Endpoint` trait
 routing object, so any request path will be handled by the `index` function.
 
 ```rust
-#[handler]
-async fn index() -> &'static str {
-    "hello"
-}
 
 #[tokio::main]
 async fn main() {
