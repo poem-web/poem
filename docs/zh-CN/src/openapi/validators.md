@@ -1,11 +1,8 @@
-# Validators
+# 参数校验
 
-The `OpenAPI` specification supports validation based on `Json Schema`, and `Poem-openapi` also supports them. You can 
-apply validators to operation parameters, object members, and `Multipart` fields. The validator can only work on specific 
-data types, otherwise it will fail to compile. For example, `maximum` can only be used for numeric types, and `max_items` 
-can only be used for array types.
+`OpenAPI`引用了`Json Schema`的校验规范，`Poem-openapi`同样支持它们。你可以在请求的参数，对象的成员和`Multipart`的字段三个地方应用校验器。校验器是类型安全的，如果待校验的数据类型和校验器所需要的不匹配，那么将无法编译通过。例如`maximum`只能用于数值类型，`max_items`只能用于数组类型。
 
-For more validators, please refer to [document](https://docs.rs/poem-openapi/0.8.0/poem_openapi/attr.OpenApi.html#operation-argument-parameters).
+更多的校验器请参考[文档](https://docs.rs/poem-openapi/*/poem_openapi/attr.OpenApi.html#operation-argument-parameters)。
 
 ```rust
 use poem_openapi::{Object, OpenApi, Multipart};
@@ -14,11 +11,11 @@ use poem_openapi::{Object, OpenApi, Multipart};
 struct Pet {
     id: u64,
 
-    /// The length of the name must be less than 32
+    /// 名字长度不能超过32
     #[oai(max_length = "32")]
     name: String,
 
-    /// Array length must be less than 3
+    /// 数组长度不能超过3
     #[oai(max_items = "3")]
     photo_urls: Vec<String>,
 

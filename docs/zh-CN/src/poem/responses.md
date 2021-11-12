@@ -1,13 +1,10 @@
-# Responses
+# 响应
 
-All types that can be converted to HTTP response `Response` should implement `IntoResponse`, and they can be used as the 
-return value of the handler function.
+所有可以转换为 HTTP 响应 `Response` 的类型都应该实现 `IntoResponse`，它们可以用作处理函数的返回值。
 
-In the following example, the `string_response` and `status_response` functions return the `String` and `StatusCode` 
-types, because `Poem` has implemented the `IntoResponse` feature for them.
+在下面的例子中，`string_response` 和 `status_response` 函数返回 `String` 和 `StatusCode`类型，因为 `Poem` 已经为它们实现了 `IntoResponse` 功能。
 
-The `no_response` function does not return a value. We can also think that its return type is `()`, and `Poem` also 
-implements `IntoResponse` for `()`, which is always converted to `200 OK`.
+`no_response` 函数不返回值。我们也可以认为它的返回类型是`()`，`Poem`也为 `()` 实现 `IntoResponse`，它总是转换为 `200 OK`。
 
 ```rust
 use poem::handler;
@@ -26,85 +23,72 @@ fn no_response() {}
 
 ```
 
-# Built-in responses
+# 内置响应
 
 - **()**
 
-   Sets the status to `OK` with an empty body.
+    将状态设置为`OK`，body 为空。
 
 - **&'static str**
 
-   Sets the status to `OK` and the `Content-Type` to `text/plain`. The
-string is used as the body of the response.
+    将状态设置为`OK`，将`Content-Type`设置为`text/plain`。字符串用作 body。
 
 - **String**
 
-   Sets the status to `OK` and the `Content-Type` to `text/plain`. The
-string is used as the body of the response.
+    将状态设置为`OK`，将`Content-Type`设置为`text/plain`。字符串用作 body。
 
 - **&'static [u8]**
 
-   Sets the status to `OK` and the `Content-Type` to
-`application/octet-stream`. The slice is used as the body of the response.
+   将状态设置为 `OK`，将 `Content-Type` 设置为 `application/octet-stream`。切片用作响应的 body。
 
 - **Html&lt;T>**
 
-   Sets the status to `OK` and the `Content-Type` to `text/html`. `T` is
-used as the body of the response.
+   将状态设置为 `OK`，将 `Content-Type` 设置为 `text/html`. `T` 用作响应的 body。
 
 - **Json&lt;T>**
 
-   Sets the status to `OK` and the `Content-Type` to `application/json`. Use
-[`serde_json`](https://crates.io/crates/serde_json) to serialize `T` into a json string.
+   将状态设置为 `OK` ，将 `Content-Type` 设置为 `application/json`. 使用 [`serde_json`](https://crates.io/crates/serde_json) 将 `T` 序列化为 json 字符串。
 
 - **Bytes**
 
-   Sets the status to `OK` and the `Content-Type` to
-`application/octet-stream`. The bytes is used as the body of the response.
+   将状态设置为 `OK` ，将 `Content-Type` 设置为 `application/octet-stream`。字节串用作响应的 body。
 
 - **Vec&lt;u8>**
 
-   Sets the status to `OK` and the `Content-Type` to
-`application/octet-stream`. The vector’s data is used as the body of the
-response.
+  将状态设置为 `OK` ，将 `Content-Type` 设置为
+`application/octet-stream`. vector 的数据用作 body。
 
 - **Body**
 
-  Sets the status to `OK` and use the specified body.
+  将状态设置为 `OK` 并使用指定的 body。
 
 - **StatusCode**
 
-   Sets the status to the specified status code `StatusCode` with an empty
-body.
+   将状态设置为指定的状态代码 `StatusCode` ，body 为空。
 
 - **(StatusCode, T)**
 
-   Convert `T` to response and set the specified status code `StatusCode`.
+   将 `T` 转换为响应并设置指定的状态代码 `StatusCode`。
 
 - **(StatusCode, HeaderMap, T)**
 
-   Convert `T` to response and set the specified status code `StatusCode`,
-and then merge the specified `HeaderMap`.
+   将 `T` 转换为响应并设置指定的状态代码 `StatusCode`，然后合并指定的`HeaderMap`。
 
 - **Response**
 
-   The implementation for `Response` always returns itself.
+   `Response` 的实现者总是返回自身。
 
 - **Compress&lt;T>**
 
-   Call `T::into_response` to get the response, then compress the response
-body with the specified algorithm, and set the correct `Content-Encoding`
-header.
+   调用 `T::into_response` 获取响应，然后使用指定的算法压缩响应 body ，并设置正确的 `Content-Encoding`标头。
 
 - **SSE**
 
-    Sets the status to `OK` and the `Content-Type` to `text/event-stream`
-with an event stream body. Use the `SSE::new` function to
-create it.
+    将状态设置为 `OK` ，将 `Content-Type` 设置为 `text/event-stream`，并带有事件流 body。使用 `SSE::new` 函数来创建它。
 
-## Custom response
+## 自定义响应
 
-In the following example, we wrap a response called `PDF`, which adds a `Content-Type: applicationn/pdf` header to the response.
+在下面的示例中，我们包装了一个名为 `PDF` 的响应，它向响应添加了一个 `Content-Type: applicationn/pdf` 标头。
 
 ```rust
 use poem::{IntoResponse, Response};

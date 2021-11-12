@@ -1,9 +1,8 @@
-# Authentication
+# 认证
 
-The OpenApi specification defines `apikey`, `basic`, `bearer`, `oauth2` and `openIdConnect` authentication modes, which
-describe the authentication parameters required for the specified operation.
+OpenApi规范定义了`apikey`，`basic`，`bearer`，`oauth2`，`openIdConnect`五种认证模式，它们描述了指定的`API`接口需要的认证参数。
 
-The following example is to log in with `Github` and provide an operation to get all public repositories.
+下面的例子是用`Github`登录，并提供一个获取所有公共仓库信息的接口。
 
 ```rust
 use poem_openapi::{
@@ -13,16 +12,16 @@ use poem_openapi::{
 
 #[derive(OAuthScopes)]
 enum GithubScope {
-    /// access to public repositories.
+    /// 可访问公共仓库信息。
     #[oai(rename = "public_repo")]
     PublicRepo,
 
-    /// access to read a user's profile data.
+    /// 可访问用户的个人资料数据。
     #[oai(rename = "read:user")]
     ReadUser,
 }
 
-/// Github authorization
+/// Github 认证
 #[derive(SecurityScheme)]
 #[oai(
     type = "oauth2",
@@ -43,25 +42,24 @@ impl Api {
         &self,
         #[oai(auth("GithubScope::PublicRepo"))] auth: GithubAuthorization,
     ) -> Result<PlainText<String>> {
-        // Use the token in GithubAuthorization to obtain all public repositories from Github.
+        // 使用GithubAuthorization得到的token向Github获取所有公共仓库信息。
         todo!()
     }
 }
 ```
 
-For the complete example, please refer to [Example](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-github`).
+完整的代码请参考[例子](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-github)。
 
-## Check authentication information
+## 检查认证信息
 
-You can use the `checker` attribute to specify a checker function to check the original authentication information and 
-convert it to the return type of this function. This function must return `Option<T>`, and return `None` if check fails.
+您可以使用`checker`属性指定一个检查器函数来检查原始认证信息和将其转换为该函数的返回类型。 此函数必须返回`Option<T>`，如果检查失败则返回`None`。 
 
 ```rust
 struct User {
     username: String,
 }
 
-/// ApiKey authorization
+/// ApiKey 认证
 #[derive(SecurityScheme)]
 #[oai(
     type = "api_key",
@@ -74,9 +72,9 @@ struct MyApiKeyAuthorization(User);
 async fn api_checker(req: &Request, api_key: ApiKey) -> Option<User> {
     let connection = req.data::<DbConnection>().unwrap();
     
-    // check in database
+    // 在数据库中检查
     todo!()
 }
 ```
 
-For the complete example, please refer to [Example](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-apikey`).
+完整的代码请参考[例子](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-apikey).

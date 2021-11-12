@@ -1,10 +1,10 @@
-# Routing
+# 路由
 
-The routing object is used to dispatch the request of the specified path and method to the specified endpoint.
+路由对象用于将指定路径和方法的请求分派到指定 Endpoint。
 
-The route object is actually an endpoint, which implements the `Endpoint` trait.
+路由对象实际上是一个 Endpoint，它实现了 Endpoint 特性。
 
-In the following example, we dispatch the requests of `/a` and `/b` to different endpoints.
+在下面的例子中，我们将 `/a` 和 `/b` 的请求分派到不同的 Endpoint。
 
 ```rust
 use poem::{handler, Route};
@@ -20,12 +20,11 @@ let ep = Route::new()
     .at("/b", b);
 ```
 
-## Capture the variables
+## 捕获变量
 
-Use `:NAME` to capture the value of the specified segment in the path, or use `*NAME` to capture all the values after 
-the specified prefix.
+使用`:NAME`捕获路径中指定段的值，或者使用`*NAME`捕获路径中的所有指定前缀的值。
 
-In the following example, the captured values will be stored in the variable `value`, and you can use the path extractor to get them.
+在下面的示例中，捕获的值将存储在变量 `value` 中，你可以使用路径提取器来获取它们。
 
 ```rust
 #[handler]
@@ -36,9 +35,9 @@ let ep = Route::new()
     .at("/prefix/*value", handler);
 ```
 
-## Regular expressions
+## 正则表达式
 
-You can use regular expressions to match, `<REGEX>` or `:NAME<REGEX>`, the second one can capture the matched value into a variable.
+可以使用正则表达式进行匹配，`<REGEX>` 或`:NAME<REGEX>`，第二个可以将匹配的值捕获到一个变量中。
 
 ```rust
 let ep = Route::new()
@@ -46,31 +45,28 @@ let ep = Route::new()
     .at("/b/:value<\\d+>", handler);
 ```
 
-## Nested
+## 嵌套
 
-Sometimes we want to assign a path with a specified prefix to a specified endpoint, so that some functionally independent 
-components can be created.
+有时我们想为指定的 Endpoint 分配一个带有指定前缀的路径，以便创建一些功能独立的组件。
 
-In the following example, the request path of the `hello` endpoint is `/api/hello`.
+在下面的例子中，`hello` Endpoint 的请求路径是 `/api/hello`。
 
 ```rust
 let api = Route::new().at("/hello", hello);
 let ep = api.nest("/api", api);
 ```
 
-Static file service is such an independent component.
+静态文件服务就是这样一个独立的组件。
 
 ```rust
 let ep = Route::new().nest("/files", Files::new("./static_files"));
 ```
 
-## Method routing
+## 方法路由
 
-The routing objects introduced above can only be dispatched by some specified paths, but dispatch by paths and methods 
-is more common. `Poem` provides another route object `RouteMethod`, when it is combined with the `Route` object, it can 
-provide this ability.
+上面介绍的路由对象只能通过一些指定的路径进行调度，但是通过路径和方法进行调度更常见。 `Poem` 提供了另一个路由对象 `RouteMethod`，当它与 `Route` 对象结合时，它可以提供这种能力。
 
-`Poem` provides some convenient functions to create `RouteMethod` objects, they are all named after HTTP standard methods.
+`Poem` 提供了一些方便的函数来创建 `RouteMethod` 对象，它们都以 HTTP 标准方法命名。
 
 ```rust
 use poem::{Route, get, post};

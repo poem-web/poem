@@ -1,146 +1,135 @@
-# Extractors
+# 提取器
 
-The extractor is used to extract something from the HTTP request.
+提取器用于从 HTTP 请求中提取某些内容。
 
-`Poem` provides some commonly used extractors for extracting something from HTTP requests.
+`Poem` 提供了一些常用的提取器来从 HTTP 请求中提取一些东西。
 
-You can use one or more extractors as the parameters of the function, up to 16.
+你可以使用一个或多个提取器作为函数的参数，最多 16 个。
 
-In the following example, the `index` function uses 3 extractors to extract the remote address, HTTP method and URI.
+在下面的例子中，`index` 函数使用 3 个提取器来提取远程地址、HTTP 方法和 URI。
 
 ```rust
 #[handler]
 fn index(remote_addr: SocketAddr, method: Method, uri: &Uri) {}
 ```
 
-# Built-in extractors
+# 内置提取器
 
  - **Option&lt;T>**
 
-    Extracts `T` from the incoming request, returns `None` if it
- fails.
+    从传入的请求中提取 `T`，如果失败就返回 `None`。
 
  - **&Request**
 
-    Extracts the `Request` from the incoming request.
+    从传入的请求中提取 `Request`.
 
  - **RemoteAddr**
 
-   Extracts the remote peer's address [`RemoteAddr`] from request.
+    从请求中提取远端对等地址 [`RemoteAddr`]。
 
  - **LocalAddr**
 
-   Extracts the local server's address [`LocalAddr`] from request.
+    从请求中提取本地服务器的地址 [`LocalAddr`]。
 
  - **Method**
 
-    Extracts the `Method` from the incoming request.
+    从传入的请求中提取 `Method`。
 
  - **Version**
 
-    Extracts the `Version` from the incoming request.
+    从传入的请求中提取 `Version`。
 
  - **&Uri**
 
-    Extracts the `Uri` from the incoming request.
+    从传入的请求中提取 `Uri`。
 
  - **&HeaderMap**
 
-    Extracts the `HeaderMap` from the incoming request.
+    从传入的请求中提取 `HeaderMap`。
 
  - **Data&lt;&T>**
 
-    Extracts the `Data` from the incoming request.
+    从传入的请求中提取 `Data` 。
 
  - **TypedHeader&lt;T>**
 
-    Extracts the `TypedHeader` from the incoming request.
+    从传入的请求中提取 `TypedHeader`。
 
  - **Path&lt;T>**
 
-    Extracts the `Path` from the incoming request.
+    从传入的请求中提取 `Path`。
 
  - **Query&lt;T>**
 
-    Extracts the `Query` from the incoming request.
+    从传入的请求中提取 `Query`。
 
  - **Form&lt;T>**
 
-    Extracts the `Form` from the incoming request.
+    从传入的请求中提取 `Form`。
 
  - **Json&lt;T>**
 
-    Extracts the `Json` from the incoming request.
+    从传入的请求中提取 `Json` 。
 
-    _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+    _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **TempFile**
 
-    Extracts the `TempFile` from the incoming request.
+    从传入的请求中提取 `TempFile`。
 
-    _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+    _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **Multipart**
 
-    Extracts the `Multipart` from the incoming request.
+    从传入的请求中提取 `Multipart`。
 
-    _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+    _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **&CookieJar**
 
-    Extracts the `CookieJar`](cookie::CookieJar) from the incoming request.
+    从传入的请求中提取 `CookieJar`](cookie::CookieJar)。
 
-    _Requires `CookieJarManager` middleware._
+    _需要 `CookieJarManager` 中间件。_
 
  - **&Session**
 
-    Extracts the [`Session`](crate::session::Session) from the incoming request.
+    从传入的请求中提取 [`Session`](crate::session::Session)。
 
-    _Requires `CookieSession` or `RedisSession` middleware._
+    _需要 `CookieSession` 或 `RedisSession` 中间件。_
 
  - **Body**
 
-     Extracts the `Body` from the incoming request.
+     从传入的请求中提取 `Body`。
 
-     _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+     _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **String**
 
-    Extracts the body from the incoming request and parse it into utf8 string.
+    从传入的请求中提取 body 并将其解析为 utf8 字符串。
 
-    _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+    _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **Vec&lt;u8>**
 
-    Extracts the body from the incoming request and collect it into
- `Vec<u8>`.
+    从传入的请求中提取 body 并将其收集到 `Vec<u8>`.
 
-    _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+    _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **Bytes**
 
-    Extracts the body from the incoming request and collect it into
- `Bytes`.
+    从传入的请求中提取 body 并将其收集到 `Bytes`.
 
-    _This extractor will take over the requested body, so you should avoid
- using multiple extractors of this type in one handler._
+    _这个提取器将接管请求的主体，所以你应该避免在一个处理程序中使用多个这种类型的提取器。_
 
  - **WebSocket**
 
-    Ready to accept a websocket connection.
+    准备接受 websocket 连接。
 
-## Handling of extractor errors
+## 处理提取器错误
 
-By default, the extractor will return a `400 Bad Request` when an error occurs, but sometimes you may want to change 
-this behavior, so you can handle the error yourself.
+默认情况下，当发生错误时，提取器会返回`400 Bad Request`，但有时您可能想要更改这种行为，因此您可以自己处理错误。
 
-In the following example, when the `Query` extractor fails, it will return a `500 Internal Server Error` response and the reason for the error.
+在下面的例子中，当 `Query` 提取器失败时，它将返回一个 `500 Internal Server Error` 响应以及错误原因。
 
 ```rust
 use poem::web::Query;
@@ -162,12 +151,11 @@ fn index(res: Result<Query<Params>, ParseQueryError>) -> Response {
 }
 ```
 
-## Custom extractor
+## 自定义提取器
 
-You can also implement your own extractor.
+您还可以实现自己的提取器。
 
- The following is an example of a custom token extractor, which extracts the
- token from the `MyToken` header.
+以下是自定义 token 提取器的示例，它提取来自 `MyToken` 标头的 token。
  
 ```rust
 use poem::{
@@ -177,11 +165,11 @@ use poem::{
 
 struct Token(String);
 
-// Error type for Token extractor
+// Token 提取器的错误类型
 #[derive(Debug)]
 struct MissingToken;
 
-/// custom-error can also be reused
+/// 自定义错误也可以重用
 impl IntoResponse for MissingToken {
     fn into_response(self) -> Response {
         Response::builder()
@@ -190,7 +178,7 @@ impl IntoResponse for MissingToken {
     }
 }
 
-// Implements a token extractor
+// 实现一个 token 提取器
 #[poem::async_trait]
 impl<'a> FromRequest<'a> for Token {
     type Error = MissingToken;

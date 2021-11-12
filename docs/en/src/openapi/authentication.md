@@ -49,7 +49,7 @@ impl Api {
 }
 ```
 
-For the complete example, please refer to [Example](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-github`).
+For the complete example, please refer to [Example](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-github).
 
 ## Check authentication information
 
@@ -79,4 +79,4 @@ async fn api_checker(req: &Request, api_key: ApiKey) -> Option<User> {
 }
 ```
 
-For the complete example, please refer to [Example](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-apikey`).
+For the complete example, please refer to [Example](https://github.com/poem-web/poem/tree/master/examples/openapi/auth-apikey).

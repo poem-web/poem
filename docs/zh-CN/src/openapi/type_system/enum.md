@@ -1,8 +1,8 @@
-# Enum
+# 枚举
 
-Use the procedural macro `Enum` to define an enumerated type.
+使用过程宏 `Enum` 来定义枚举类型。
 
-**Poem-openapi will automatically change the name of each item to `SCREAMING_SNAKE_CASE` convention. You can use `rename_all` attribute to rename all items.**
+**Poem-openapi 会自动将每一项的名称改为`SCREAMING_SNAKE_CASE` 约定。 您可以使用 `rename_all` 属性来重命名所有项目。** 
 
 ```rust
 use poem_api::Enum;

@@ -1,8 +1,6 @@
-# Upload files
+# 文件上传
 
-The `Multipart` macro is usually used for file upload. It can define a form to contain one or more files and some 
-additional fields. The following example provides an operation to create a `Pet` object, which can upload some image 
-files at the same time.
+`Multipart`宏通常用于文件上传，它可以定义一个表单来包含一个或者多个文件以及一些附加字段。下面的例子提供一个创建`Pet`对象的接口，它在创建`Pet`对象的同时上传一些图片文件。
 
 ```rust
 use poem_openapi::{Multipart, OpenApi};
@@ -12,7 +10,7 @@ use poem::Result;
 struct CreatePetPayload {
     name: String,
     status: PetStatus,
-    photos: Vec<Upload>, // some photos
+    photos: Vec<Upload>, // 多个照片文件
 }
 
 struct Api;
@@ -26,4 +24,4 @@ impl Api {
 }
 ```
 
-For the complete example, please refer to [Upload Example](https://github.com/poem-web/poem/tree/master/examples/openapi/upload`).
+完整的代码请参考[文件上传例子](https://github.com/poem-web/poem/tree/master/examples/openapi/upload`)。

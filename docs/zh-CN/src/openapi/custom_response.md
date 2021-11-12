@@ -1,13 +1,10 @@
-# Custom Response
+# 自定义响应
 
-In all the previous examples, all operations return `Result`. When an error occurs, a `poem::Error` is returned, which 
-contains the reason and status code of the error. However, the `OpenAPI` specification supports a more detailed definition
-of the response of the operation, such as which status codes may be returned, and the reason for the status code and the
-content of the response.
+在前面的例子中，我们的所有请求处理函数都返回的`Result`类型，当发生错误时返回一个`poem::Error`，它包含错误的原因以及状态码。但`OpenAPI`规范允许更详细的描述请求的响应，例如该接口可能会返回哪些状态码，以及状态码对应的原因和响应的内容。
 
-In the following example, we change the return type of the `create_post` function to `CreateBlogResponse`.
+在下面的例子中，我们修改`create_post`函数的返回值为`CreateBlogResponse`类型。
 
-`Ok`, `Forbidden` and `InternalError` specify the response content of a specific status code.
+`Ok`，`Forbidden`和`InternalError`描述了特定状态码的响应类型。
 
 ```rust
 use poem_openapi::ApiResponse;
@@ -15,15 +12,15 @@ use poem::http::StatusCode;
 
 #[derive(ApiResponse)]
 enum CreateBlogResponse {
-    /// Created successfully
+    /// 创建完成
     #[oai(status = 200)]
     Ok(Json<u64>),
     
-    /// Permission denied
+    /// 没有权限
     #[oai(status = 403)]
     Forbidden,
   
-    /// Internal error
+    /// 内部错误
     #[oai(status = 500)]
     InternalError,
 }
@@ -49,9 +46,7 @@ impl Api {
 }
 ```
 
-When the parsing request fails, the default `400 Bad Request` error will be returned, but sometimes we want to return a 
-custom error content, we can use the `bad_request_handler` attribute to set an error handling function, this function is
-used to convert `ParseRequestError` to specified response type.
+当请求解析失败时，默认会返回`400 Bad Request`错误，但有时候我们想返回一个自定义的错误内容，可以使用`bad_request_handler`属性设置一个错误处理函数，这个函数用于转换`ParseRequestError`到指定的响应类型。
 
 ```rust
 use poem_openapi::{
@@ -67,25 +62,25 @@ struct ErrorMessage {
 #[derive(ApiResponse)]
 #[oai(bad_request_handler = "bad_request_handler")]
 enum CreateBlogResponse {
-    /// Created successfully
+    /// 创建完成
     #[oai(status = 200)]
     Ok(Json<u64>),
 
-    /// Permission denied
+    /// 没有权限
     #[oai(status = 403)]
     Forbidden,
 
-    /// Internal error
+    /// 内部错误
     #[oai(status = 500)]
     InternalError,
     
-    /// Bad request
+    /// 请求无效
     #[oai(status = 400)]
     BadRequest(Json<ErrorMessage>),
 }
 
 fn bad_request_handler(err: ParseRequestError) -> CreateBlogResponse {
-    // When the parsing request fails, a custom error content is returned, which is a JSON
+    // 当解析请求失败时，返回一个自定义的错误内容，它是一个JSON
     CreateBlogResponse::BadRequest(Json(ErrorMessage {
         code: -1,
         reason: err.to_string(),

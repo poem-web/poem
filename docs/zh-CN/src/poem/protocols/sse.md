@@ -1,10 +1,10 @@
-# Server-Sent Events (SSE)
+# 服务器发送的事件 (SSE)
 
-SSE allows the server to continuously push data to the client.
+SSE 允许服务器不断地向客户端推送数据。
 
-You need to create a `SSE` response with a type that implements `Stream<Item=Event>`.
+你需要使用实现 `Stream<Item=Event>` 的类型创建一个 `SSE` 响应。
 
-The endpoint in the example below will send three events.
+下面示例中的端点将发送三个事件。
 
 ```rust
 use futures_util::stream;

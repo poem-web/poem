@@ -1,5 +1,5 @@
-# Type System
+# 类型系统
 
 
-Poem-openapi implements conversions from OpenAPI types to Rust types, and it's easy to use.
+Poem-openapi 实现了 OpenAPI 类型到 Rust 类型的转换，简单易用。
 

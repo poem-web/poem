@@ -1,13 +1,10 @@
-# Custom Request
+# 自定义请求
 
-The `OpenAPI` specification allows the same operation to support processing different requests of `Content-Type`, 
-for example, an operation can support `application/json` and `text/plain` types of request content.
+`OpenAPI`规范允许同一个接口支持处理不同`Content-Type`的请求，例如一个接口可以同时接受`application/json`和`text/plain`类型的Payload。
 
-In `Poem-openapi`, to support this type of request, you need to use the `ApiRequest` macro to customize a request object 
-that implements the `Payload` trait.
+在`Poem-openapi`中，要支持此类型请求，需要用`ApiRequest`宏自定义一个实现了`Payload trait`的请求对象。
 
-In the following example, the `create_post` function accepts the `CreatePostRequest` request, and when the creation is 
-successful, it returns the `id`.
+在下面的例子中，`create_post`函数接受`CreatePostRequest`请求，当创建成功后，返回`id`。
 
 ```rust
 use poem_open::{
@@ -24,9 +21,9 @@ struct Post {
 
 #[derive(ApiRequest)]
 enum CreatePostRequest {
-    /// Create from json
+    /// 从JSON创建
     Json(Json<Blog>),
-    /// Create from plain text
+    /// 从文本创建
     Text(PlainText<String>),
 }
 

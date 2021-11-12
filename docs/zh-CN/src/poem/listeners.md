@@ -1,29 +1,29 @@
-# Listeners
+# 监听器
 
-`Poem` provides some commonly used listeners.
+`Poem` 提供了一些常用的监听器。
 
 - TcpListener
 
-  Listens for incoming TCP connections.
+  侦听传入的 TCP 连接。
 
 - UnixListener
 
-  Listens for incoming Unix domain socket connections.
+  侦听传入的 Unix 域套接字连接。
 
 ## TLS
 
-You can call the `Listener::tls` function to wrap a listener and make it support TLS connections.
+你可以调用`Listener::tls` 函数来包装一个侦听器并使其支持TLS 连接。
   
 ```rust
 let listener = TcpListener::bind("127.0.0.1:3000")
     .tls(TlsConfig::new().key(KEY).cert(CERT));
 ```
 
-## TLS reload
+## TLS 重载
 
-You can use a stream to pass the latest Tls config to `Poem`.
+你可以使用流将最新的 Tls 配置传递给 `Poem`。
 
-The following example loads the latest TLS config from file every 1 minute:
+以下示例每 1 分钟从文件中加载最新的 TLS 配置：
 
 ```rust
 use async_trait::async_trait;
@@ -45,9 +45,9 @@ let listener = TcpListener::bind("127.0.0.1:3000")
     });
 ```
 
-## Combine multiple listeners.
+## 组合多个监听器。
 
-Call `Listener::combine` to combine two listeners into one, or you can call this function multiple times to combine more listeners.
+调用`Listener::combine`将两个监听器合二为一，也可以多次调用该函数来合并更多的监听器。
 
 ```rust
 let listener = TcpListener::bind("127.0.0.1:3000")

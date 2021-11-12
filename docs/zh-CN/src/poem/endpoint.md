@@ -1,32 +1,31 @@
 # Endpoint
 
-The endpoint can handle HTTP requests. You can implement the `Endpoint` trait to create your own endpoint.
-`Poem` also provides some convenient functions to easily create a custom endpoint type.
+Endpoint 可以处理 HTTP 请求。您可以实现`Endpoint` trait 来创建您自己的Endpoint。  
+`Poem` 还提供了一些方便的功能来轻松创建自定义 Endpoint 类型。
 
-In the previous chapter, we learned how to use the `handler` macro to convert a function to an endpoint.
+在上一章中，我们学习了如何使用 `handler` 宏将函数转换为 Endpoint。
 
-Now let's see how to create your own endpoint by implementing the `Endpoint` trait.
+现在让我们看看如何通过实现 `Endpoint` trait 来创建自己的 Endpoint。
 
-This is the definition of the `Endpoint` trait, you need to specify the type of `Output` and implement the `call` method.
+这是 `Endpoint` trait 的定义，你需要指定 `Output` 的类型并实现 `call` 方法。
 
 ```rust
-/// An HTTP request handler.
+/// 一个 HTTP 请求处理程序。
 #[async_trait]
 pub trait Endpoint: Send + Sync + 'static {
-    /// Represents the response of the endpoint.
+    /// 代表 endpoint 的响应。
     type Output: IntoResponse;
 
-    /// Get the response to the request.
+    /// 获取对请求的响应。
     async fn call(&self, req: Request) -> Self::Output;
 }
 ```
 
-Now we implement an `Endpoint`, which receives HTTP requests and outputs a string containing the request method and path.
+现在我们实现一个 `Endpoint`，它接收 HTTP 请求并输出一个包含请求方法和路径的字符串。
 
-The `Output` associated type must be a type that implements the `IntoResponse` trait. Poem has been implemented by most
-commonly used types.
+`Output` 关联类型必须是实现 `IntoResponse` trait 的类型。Poem 已为大多数常用类型实现了它。
 
-Since `Endpoint` contains an asynchronous method `call`, we need to decorate it with the `async_trait` macro.
+由于 `Endpoint` 包含一个异步方法 `call`，我们需要用 `async_trait` 宏来修饰它。
 
 ```rust
 struct MyEndpoint;
@@ -41,12 +40,11 @@ impl Endpoint for MyEndpoint {
 }
 ```
 
-## Create from functions
+## 从函数创建
 
-You can use `poem::endpoint::make` and `poem::endpoint::make_sync` to create endpoints from asynchronous functions and
-synchronous functions.
+你可以使用 `poem::endpoint::make` 和 `poem::endpoint::make_sync` 从异步函数和同步函数创建 Endpoint。
 
-The following endpoint does the same thing:
+以下 Endpoint 执行相同的操作：
 
 ```rust
 let ep = poem::endpoint::make(|req| async move {
@@ -56,16 +54,15 @@ let ep = poem::endpoint::make(|req| async move {
 
 ## EndpointExt
 
-The `EndpointExt` trait provides some convenience functions for converting the input or output of the endpoint.
+`EndpointExt` trait 提供了一些方便的函数来转换 Endpoint 的输入或输出。
 
-- `EndpointExt::before` is used to convert the request.
-- `EndpointExt::after` is used to convert the output.
-- `EndpointExt::map_ok`, `EndpointExt::map_err`, `EndpointExt::and_then` are used to process the output of type `Result<T>`.
+- `EndpointExt::before` 用于转换请求。
+- `EndpointExt::after` 用于转换输出。
+- `EndpointExt::map_ok`、`EndpointExt::map_err`、`EndpointExt::and_then` 用于处理 `Result<T>` 类型的输出。
 
-## Using Result type
+## 使用 Result 类型
 
-`Poem` also implements `IntoResponse` for the `poem::Result<T>` type, so it can also be used as the output type of the
-endpoint, so you can use `?` in the `call` method.
+`Poem` 还为 `poem::Result<T>` 类型实现了 `IntoResponse`，因此它也可以用作 Endpoint，因此你可以在 `call` 方法中使用 `?`。
 
 ```rust
 struct MyEndpoint;
@@ -80,8 +77,7 @@ impl Endpoint for MyEndpoint {
 }
 ```
 
-You can use the `EndpointExt::map_to_response` method to convert the output of the endpoint to the `Response` type, or 
-use the `EndpointExt::map_to_result` to convert the output to the `poem::Result<Response>` type.
+你可以使用 `EndpointExt::map_to_response` 方法将 Endpoint 的输出转换为 `Response` 类型，或者使用 `EndpointExt::map_to_result` 将输出转换为 `poem::Result<Response>` 类型。
 
 ```rust
 let ep = MyEndpoint.map_to_response() // impl Endpoint<Output = Response>

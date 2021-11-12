@@ -1,27 +1,24 @@
-# Quickstart
+# 快速开始
 
-## Add dependency libraries
+## 添加依赖库
 
 ```toml
 [dependencies]
 poem = "1.0"
 ```
 
-## Write a endpoint
+## 写一个 endpoint
 
-The `handler` macro converts a function into a type that implements `Endpoint`, and the `Endpoint` trait represents
-a type that can handle HTTP requests.
+`handler` 宏将函数转换为实现 `Endpoint` 的类型，`Endpoint` trait 表示
+一种可以处理 HTTP 请求的类型。
 
-This function can receive one or more parameters, and each parameter is an extractor that can extract something from
-the HTTP request.
+这个函数可以接收一个或多个参数，每个参数都是一个提取器，可以从 HTTP 请求中提取一些东西。
 
-The extractor implements the `FromRequest` trait, and you can also implement this trait to create your own extractor.
+提取器实现了 `FromRequest` trait，你也可以实现这个 trait 来创建你自己的提取器。
 
-The return value of the function must be a type that implements the `IntoResponse` trait. It can convert itself into an
-HTTP response through the `IntoResponse::into_response` method.
+函数的返回值必须是实现了 `IntoResponse` Trait 的类型。它可以通过 `IntoResponse::into_response` 方法将自己转化为一个 HTTP 响应。
 
-The following function has an extractor, which extracts the `name` and `value` parameters from the query string of the 
-request uri and return a `String`, the string will be converted into an HTTP response.
+下面的函数有一个提取器，它从 uri 请求的 query 中提取 `name` 和 `value` 参数并返回一个 `String`，该字符串将被转换为 HTTP 响应。
 
 ```rust
 use serde::Deserialize;
@@ -39,18 +36,13 @@ async fn index(Query(Params { name, value }): Query<Params>) -> String {
 }
 ```
 
-## Server HTTP server
+## HTTP 服务器
 
-Let's start a server, it listens to `127.0.0.1:3000`, please ignore these `unwrap` calls, this is just an example.
+让我们启动一个服务器，它监听 `127.0.0.1:3000`，请忽略这些 `unwrap` 调用，这只是一个例子。
 
-The `Server::run` function accepts any type that implements the `Endpoint` trait. In this example we don't have a 
-routing object, so any request path will be handled by the `index` function.
+`Server::run` 函数接受任何实现了 `Endpoint` Trait 的类型。在这个例子中，我们没有路由对象，因此任何请求路径都将由 `index` 函数处理。
 
 ```rust
-#[handler]
-async fn index() -> &'static str {
-    "hello"
-}
 
 #[tokio::main]
 async fn main() {
@@ -60,7 +52,7 @@ async fn main() {
 }
 ```
 
-In this way, a simple example is implemented, we can run it and then use `curl` to do some tests.
+这样，一个简单的例子就实现了，我们可以运行它，然后使用 `curl` 做一些测试。
 
 ```shell
 > curl http://localhost:3000?name=a&value=10
