@@ -13,7 +13,7 @@
   - [协议](poem/protocols.md)
     - [Websocket](poem/protocols/websocket.md)
     - [服务端事件 (SSE)](poem/protocols/sse.md)
-  - [端口监听器](poem/listeners.md)
+  - [监听器](poem/listeners.md)
 - [OpenAPI](openapi.md)
   - [快速开始](openapi/quickstart.md)
   - [类型系统](openapi/type_system.md)
