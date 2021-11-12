@@ -49,13 +49,13 @@ impl Api {
     }
   
     /// Query pet by id
-    #[oai(path = "/pet", method = "delete")]
+    #[oai(path = "/pet", method = "get")]
     async fn find_pet_by_id(&self, #[oai(name = "status", in = "query")] id: u64) -> Result<Json<Pet>> {
         todo!()
     } 
   
     /// Query pets by status
-    #[oai(path = "/pet/findByStatus", method = "delete")]
+    #[oai(path = "/pet/findByStatus", method = "get")]
     async fn find_pets_by_status(&self, #[oai(name = "status", in = "query")] status: Status) -> Result<Json<Vec<Pet>>> {
         todo!()
     }
