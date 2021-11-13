@@ -5,7 +5,7 @@ apply validators to operation parameters, object members, and `Multipart` fields
 data types, otherwise it will fail to compile. For example, `maximum` can only be used for numeric types, and `max_items` 
 can only be used for array types.
 
-For more validators, please refer to [document](https://docs.rs/poem-openapi/0.8.0/poem_openapi/attr.OpenApi.html#operation-argument-parameters).
+For more validators, please refer to [document](https://docs.rs/poem-openapi/*/poem_openapi/attr.OpenApi.html#operation-argument-parameters).
 
 ```rust
 use poem_openapi::{Object, OpenApi, Multipart};
