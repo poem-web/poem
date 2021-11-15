@@ -513,7 +513,7 @@ mod tests {
             resp.headers()
                 .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
                 .unwrap(),
-            "*"
+            "X-Token"
         );
         assert_eq!(
             resp.headers().get(header::ACCESS_CONTROL_MAX_AGE).unwrap(),
