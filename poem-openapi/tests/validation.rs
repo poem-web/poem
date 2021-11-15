@@ -277,7 +277,7 @@ async fn param_validator() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let mut resp = api
         .call(Request::builder().uri(Uri::from_static("/?v=999")).finish())
         .await;

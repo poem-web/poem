@@ -19,9 +19,8 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let api_service = OpenApiService::new(Api)
-        .title("Poem Extractor")
-        .server("http://localhost:3000/api");
+    let api_service =
+        OpenApiService::new(Api, "Poem Extractor", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 
     poem::Server::new(listener)

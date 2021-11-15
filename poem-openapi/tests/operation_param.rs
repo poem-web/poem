@@ -29,7 +29,7 @@ async fn param_name() {
     let meta: MetaApi = Api::meta().remove(0);
     assert_eq!(meta.paths[0].operations[0].params[0].name, "a");
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = ep
         .call(
             Request::builder()
@@ -60,7 +60,7 @@ async fn query() {
     );
     assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/?v=10")).finish())
         .await;
@@ -94,7 +94,7 @@ async fn query_default() {
         }))
     );
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api.call(Request::default()).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
@@ -111,7 +111,7 @@ async fn header() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api.call(Request::builder().header("v", 10).finish()).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
@@ -128,7 +128,7 @@ async fn header_default() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api.call(Request::default()).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
@@ -145,7 +145,7 @@ async fn path() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/k/10")).finish())
         .await;
@@ -172,7 +172,7 @@ async fn cookie() {
     }
 
     let cookie_key = CookieKey::generate();
-    let api = OpenApiService::new(Api)
+    let api = OpenApiService::new(Api, "test", "1.0")
         .cookie_key(cookie_key.clone())
         .into_endpoint();
 
@@ -209,7 +209,7 @@ async fn cookie_default() {
         }
     }
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api.call(Request::builder().finish()).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
@@ -292,7 +292,7 @@ async fn default_opt() {
         Some(json!(88))
     );
 
-    let api = OpenApiService::new(Api).into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/")).finish())
         .await;

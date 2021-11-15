@@ -90,13 +90,16 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let api_service = OpenApiService::new(Api {
-        status: Mutex::new(Status {
-            id: 1,
-            files: Default::default(),
-        }),
-    })
-    .title("Upload Files")
+    let api_service = OpenApiService::new(
+        Api {
+            status: Mutex::new(Status {
+                id: 1,
+                files: Default::default(),
+            }),
+        },
+        "Upload Files",
+        "1.0",
+    )
     .server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 

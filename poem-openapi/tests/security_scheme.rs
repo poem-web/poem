@@ -82,7 +82,7 @@ async fn basic_auth() {
         }
     }
 
-    let service = OpenApiService::new(MyApi).into_endpoint();
+    let service = OpenApiService::new(MyApi, "test", "1.0").into_endpoint();
     let mut resp = service
         .call(
             poem::Request::builder()
@@ -132,7 +132,7 @@ async fn bearer_auth() {
         }
     }
 
-    let service = OpenApiService::new(MyApi).into_endpoint();
+    let service = OpenApiService::new(MyApi, "test", "1.0").into_endpoint();
     let mut resp = service
         .call(
             poem::Request::builder()
@@ -247,7 +247,7 @@ async fn api_key_auth() {
         }
     }
 
-    let service = OpenApiService::new(MyApi).into_endpoint();
+    let service = OpenApiService::new(MyApi, "test", "1.0").into_endpoint();
     let mut resp = service
         .call(
             poem::Request::builder()

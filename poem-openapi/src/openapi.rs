@@ -15,7 +15,7 @@ use crate::{
 /// An OpenAPI service for Poem.
 pub struct OpenApiService<T> {
     api: T,
-    info: Option<MetaInfo>,
+    info: MetaInfo,
     servers: Vec<MetaServer>,
     cookie_key: Option<CookieKey>,
 }
@@ -23,40 +23,23 @@ pub struct OpenApiService<T> {
 impl<T> OpenApiService<T> {
     /// Create an OpenAPI container.
     #[must_use]
-    pub fn new(api: T) -> Self {
+    pub fn new(api: T, title: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
             api,
-            info: None,
+            info: MetaInfo {
+                title: title.into(),
+                description: None,
+                version: version.into(),
+            },
             servers: Vec::new(),
             cookie_key: None,
         }
     }
 
-    /// Sets the title of the API container.
-    ///
-    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#infoObject>
-    #[must_use]
-    pub fn title(mut self, title: impl Into<String>) -> Self {
-        self.info.get_or_insert_with(Default::default).title = Some(title.into());
-        self
-    }
-
     /// Sets the description of the API container.
     #[must_use]
     pub fn description(mut self, description: impl Into<String>) -> Self {
-        self.info.get_or_insert_with(Default::default).description = Some(description.into());
-        self
-    }
-
-    /// Sets the version of the API container.
-    ///
-    /// NOTE: The version of the OpenAPI document (which is distinct from the
-    /// OpenAPI Specification version or the API implementation version).
-    ///
-    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#infoObject>
-    #[must_use]
-    pub fn version(mut self, version: impl Into<String>) -> Self {
-        self.info.get_or_insert_with(Default::default).version = Some(version.into());
+        self.info.description = Some(description.into());
         self
     }
 
@@ -127,7 +110,7 @@ impl<T> OpenApiService<T> {
         T::register(&mut registry);
 
         let doc = Document {
-            info: self.info.as_ref(),
+            info: &self.info,
             servers: &self.servers,
             apis: &metadata,
             registry: &registry,

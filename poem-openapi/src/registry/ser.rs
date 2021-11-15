@@ -65,7 +65,7 @@ impl Serialize for MetaResponses {
 }
 
 pub(crate) struct Document<'a> {
-    pub(crate) info: Option<&'a MetaInfo>,
+    pub(crate) info: &'a MetaInfo,
     pub(crate) servers: &'a [MetaServer],
     pub(crate) apis: &'a [MetaApi],
     pub(crate) registry: &'a Registry,

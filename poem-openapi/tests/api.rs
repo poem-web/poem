@@ -24,7 +24,7 @@ async fn path_and_method() {
     assert_eq!(meta.paths[0].path, "/abc");
     assert_eq!(meta.paths[0].operations[0].method, Method::POST);
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = ep
         .call(
             poem::Request::builder()
@@ -103,7 +103,7 @@ async fn common_attributes() {
         vec!["common_operations", "user_operations"]
     );
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = ep
         .call(
             poem::Request::builder()
@@ -168,7 +168,7 @@ async fn request() {
         }
     );
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = ep
         .call(
             poem::Request::builder()
@@ -222,7 +222,7 @@ async fn payload_request() {
     assert_eq!(meta_request.content[0].content_type, "application/json");
     assert_eq!(meta_request.content[0].schema, i32::schema_ref());
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = ep
         .call(
             poem::Request::builder()
@@ -308,7 +308,7 @@ async fn response() {
         String::schema_ref()
     );
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
 
     let mut resp = ep
         .call(
@@ -373,7 +373,7 @@ async fn bad_request_handler() {
         }
     }
 
-    let ep = OpenApiService::new(Api).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
 
     let mut resp = ep
         .call(
@@ -415,7 +415,9 @@ async fn poem_extract() {
         }
     }
 
-    let ep = OpenApiService::new(Api).data(100i32).into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0")
+        .data(100i32)
+        .into_endpoint();
     let resp = ep
         .call(
             poem::Request::builder()
