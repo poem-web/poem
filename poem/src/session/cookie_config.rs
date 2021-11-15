@@ -100,7 +100,7 @@ impl CookieConfig {
     /// Sets the `HttpOnly` to the session cookie. Default is `true`.
     pub fn http_only(self, value: bool) -> Self {
         Self {
-            secure: value,
+            http_only: value,
             ..self
         }
     }
