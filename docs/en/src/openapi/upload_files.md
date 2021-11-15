@@ -26,4 +26,4 @@ impl Api {
 }
 ```
 
-For the complete example, please refer to [Upload Example](https://github.com/poem-web/poem/tree/master/examples/openapi/upload`).
+For the complete example, please refer to [Upload Example](https://github.com/poem-web/poem/tree/master/examples/openapi/upload).
