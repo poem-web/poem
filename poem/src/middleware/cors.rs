@@ -244,7 +244,11 @@ impl<E> CorsEndpoint<E> {
         )
     }
 
-    fn build_preflight_response(&self, origin: &HeaderValue) -> Response {
+    fn build_preflight_response(
+        &self,
+        origin: &HeaderValue,
+        request_headers: Option<HeaderValue>,
+    ) -> Response {
         let mut builder = Response::builder()
             .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin)
             .typed_header(self.expose_headers_header.clone())
@@ -272,7 +276,11 @@ impl<E> CorsEndpoint<E> {
         }
 
         if self.allow_headers.is_empty() {
-            builder = builder.header(header::ACCESS_CONTROL_ALLOW_HEADERS, "*");
+            if let Some(request_headers) = request_headers {
+                builder = builder.header(header::ACCESS_CONTROL_ALLOW_HEADERS, request_headers);
+            } else {
+                builder = builder.header(header::ACCESS_CONTROL_ALLOW_HEADERS, "*");
+            }
         } else {
             builder = builder.typed_header(self.allow_headers_header.clone());
         }
@@ -320,13 +328,16 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
             }
 
-            let allow_headers = {
+            let (allow_headers, request_headers) = {
                 let mut allow_headers = true;
+                let mut request_headers = None;
+
                 if !self.allow_headers.is_empty() {
                     if let Some(request_header) =
                         req.headers().get(header::ACCESS_CONTROL_REQUEST_HEADERS)
                     {
                         allow_headers = false;
+                        request_headers = Some(request_header.clone());
                         if let Ok(s) = request_header.to_str() {
                             for header in s.split(',') {
                                 if let Ok(header) = HeaderName::from_str(header.trim()) {
@@ -339,14 +350,14 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                         }
                     }
                 }
-                allow_headers
+                (allow_headers, request_headers)
             };
 
             if !allow_headers {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
             }
 
-            return Ok(self.build_preflight_response(&origin));
+            return Ok(self.build_preflight_response(&origin, request_headers));
         }
 
         let mut resp = self.inner.call(req).await.into_response();
