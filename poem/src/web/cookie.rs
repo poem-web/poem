@@ -508,7 +508,7 @@ impl CookieJar {
     pub(crate) fn append_delta_to_headers(&self, headers: &mut HeaderMap) {
         let cookie = self.jar.lock();
         for cookie in cookie.delta() {
-            let value = cookie.to_string();
+            let value = cookie.encoded().to_string();
             if let Ok(value) = HeaderValue::from_str(&value) {
                 headers.append(header::SET_COOKIE, value);
             }
