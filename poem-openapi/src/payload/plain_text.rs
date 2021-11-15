@@ -51,7 +51,7 @@ impl<T: Into<String> + Send> ApiResponse for PlainText<T> {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
-                description: None,
+                description: "",
                 status: Some(200),
                 content: vec![MetaMediaType {
                     content_type: Self::CONTENT_TYPE,

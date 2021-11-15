@@ -113,7 +113,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
-                        description: #item_description,
+                        description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::None,
                         content: ::std::vec![#crate_name::registry::MetaMediaType {
                             content_type: <#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE,
@@ -139,7 +139,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
-                        description: #item_description,
+                        description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
                         content: ::std::vec![#crate_name::registry::MetaMediaType {
                             content_type: <#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE,
@@ -165,7 +165,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
-                        description: #item_description,
+                        description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
                         content: ::std::vec![],
                         headers: ::std::vec![#(#meta_headers),*],
@@ -187,7 +187,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
-                        description: #item_description,
+                        description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
                         content: ::std::vec![],
                         headers: ::std::vec![#(#meta_headers),*],

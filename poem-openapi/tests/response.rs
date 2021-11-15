@@ -39,13 +39,13 @@ fn meta() {
         MetaResponses {
             responses: vec![
                 MetaResponse {
-                    description: Some("Ok"),
+                    description: "Ok",
                     status: Some(200),
                     content: vec![],
                     headers: vec![]
                 },
                 MetaResponse {
-                    description: Some("A\nB\n\nC"),
+                    description: "A\nB\n\nC",
                     status: Some(400),
                     content: vec![MetaMediaType {
                         content_type: "application/json",
@@ -54,7 +54,7 @@ fn meta() {
                     headers: vec![]
                 },
                 MetaResponse {
-                    description: None,
+                    description: "",
                     status: None,
                     content: vec![MetaMediaType {
                         content_type: "text/plain",
@@ -235,7 +235,7 @@ async fn generic() {
         CustomApiResponse::<String>::meta(),
         MetaResponses {
             responses: vec![MetaResponse {
-                description: None,
+                description: "",
                 status: Some(200),
                 content: vec![MetaMediaType {
                     content_type: "application/json",

@@ -279,14 +279,11 @@ async fn response() {
 
     let meta: MetaApi = Api::meta().remove(0);
     let meta_responses = &meta.paths[0].operations[0].responses;
-    assert_eq!(meta_responses.responses[0].description, Some("Ok"));
+    assert_eq!(meta_responses.responses[0].description, "Ok");
     assert_eq!(meta_responses.responses[0].status, Some(200));
     assert!(meta_responses.responses[0].content.is_empty());
 
-    assert_eq!(
-        meta_responses.responses[1].description,
-        Some("Already exists")
-    );
+    assert_eq!(meta_responses.responses[1].description, "Already exists");
     assert_eq!(meta_responses.responses[1].status, Some(409));
     assert_eq!(
         meta_responses.responses[1].content[0].content_type,
@@ -297,7 +294,7 @@ async fn response() {
         u16::schema_ref()
     );
 
-    assert_eq!(meta_responses.responses[2].description, Some("Default"));
+    assert_eq!(meta_responses.responses[2].description, "Default");
     assert_eq!(meta_responses.responses[2].status, None);
     assert_eq!(
         meta_responses.responses[2].content[0].content_type,

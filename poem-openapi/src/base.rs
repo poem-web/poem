@@ -99,7 +99,7 @@ impl ApiResponse for () {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
-                description: None,
+                description: "",
                 status: Some(200),
                 content: vec![],
                 headers: vec![],

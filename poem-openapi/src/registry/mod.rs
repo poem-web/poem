@@ -377,8 +377,7 @@ pub struct MetaHeader {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct MetaResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<&'static str>,
+    pub description: &'static str,
     #[serde(skip)]
     pub status: Option<u16>,
     #[serde(
