@@ -40,7 +40,12 @@ async fn main() -> Result<(), std::io::Error> {
     // 启动服务器，并指定api的根路径为 /api，Swagger UI的路径为 /
     poem::Server::new(listener)
         .await?
-        .run(Route::new().nest("/api", api_service).nest("/", ui))
+        .run(
+            Route::new()
+            .nest("/openapi.json", api_service.spec_endpoint())
+            .nest("/api", api_service)
+            .nest("/", ui)
+        )
         .await
 }
 ```
