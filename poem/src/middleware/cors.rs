@@ -247,7 +247,7 @@ impl<E> CorsEndpoint<E> {
     fn build_preflight_response(
         &self,
         origin: &HeaderValue,
-        request_headers: Option<HeaderValue>,
+        request_headers: Option<&HeaderValue>,
     ) -> Response {
         let mut builder = Response::builder()
             .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin)
@@ -291,6 +291,33 @@ impl<E> CorsEndpoint<E> {
 
         builder.body(())
     }
+
+    fn check_allow_headers<'a>(&self, req: &'a Request) -> (bool, Option<&'a HeaderValue>) {
+        let mut allow_headers = true;
+
+        let request_headers = if let Some(request_header) =
+            req.headers().get(header::ACCESS_CONTROL_REQUEST_HEADERS)
+        {
+            if !self.allow_headers.is_empty() {
+                allow_headers = false;
+                if let Ok(s) = request_header.to_str() {
+                    for header in s.split(',') {
+                        if let Ok(header) = HeaderName::from_str(header.trim()) {
+                            if self.allow_headers.contains(&header) {
+                                allow_headers = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            Some(request_header)
+        } else {
+            None
+        };
+
+        (allow_headers, request_headers)
+    }
 }
 
 #[async_trait::async_trait]
@@ -328,30 +355,7 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
             }
 
-            let (allow_headers, request_headers) = {
-                let mut allow_headers = true;
-                let mut request_headers = None;
-
-                if !self.allow_headers.is_empty() {
-                    if let Some(request_header) =
-                        req.headers().get(header::ACCESS_CONTROL_REQUEST_HEADERS)
-                    {
-                        allow_headers = false;
-                        request_headers = Some(request_header.clone());
-                        if let Ok(s) = request_header.to_str() {
-                            for header in s.split(',') {
-                                if let Ok(header) = HeaderName::from_str(header.trim()) {
-                                    if self.allow_headers.contains(&header) {
-                                        allow_headers = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                (allow_headers, request_headers)
-            };
+            let (allow_headers, request_headers) = self.check_allow_headers(&req);
 
             if !allow_headers {
                 return Err(Error::new(StatusCode::UNAUTHORIZED));
@@ -752,5 +756,32 @@ mod tests {
             .headers()
             .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
             .is_none());
+    }
+
+    #[tokio::test]
+    async fn allow_all_access_control_allow_headers_should_return_with_request_headers() {
+        let ep = make_sync(|_| "hello").with(
+            Cors::new()
+                .allow_origin(ALLOW_ORIGIN)
+                .allow_method(Method::GET),
+        );
+        let resp = ep
+            .map_to_response()
+            .call(
+                Request::builder()
+                    .method(Method::OPTIONS)
+                    .header(header::ORIGIN, ALLOW_ORIGIN)
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "content-type")
+                    .finish(),
+            )
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers()
+                .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
+                .unwrap(),
+            "content-type"
+        )
     }
 }
