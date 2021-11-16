@@ -51,6 +51,26 @@ fn desc() {
 }
 
 #[tokio::test]
+async fn no_auth() {
+    struct MyApi;
+
+    #[OpenApi]
+    impl MyApi {
+        #[oai(path = "/test", method = "get")]
+        async fn test(&self) -> PlainText<String> {
+            PlainText("test".to_string())
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec_string = service.spec();
+    let spec = serde_json::from_str::<serde_json::Value>(&spec_string).unwrap();
+
+    assert_eq!(spec["paths"]["/test"]["get"].get("security"), None);
+    assert_eq!(spec["components"].get("securitySchemes"), None);
+}
+
+#[tokio::test]
 async fn basic_auth() {
     #[derive(SecurityScheme)]
     #[oai(type = "basic")]
