@@ -37,12 +37,16 @@ async fn main() -> Result<(), std::io::Error> {
     // 开启Swagger UI
     let ui = api_service.swagger_ui();
 
+    // TODO: translate the below
+    // Enable the OpenAPI specification
+    let spec = api_service.spec_endpoint();
+
     // 启动服务器，并指定api的根路径为 /api，Swagger UI的路径为 /
     poem::Server::new(listener)
         .await?
         .run(
             Route::new()
-            .nest("/openapi.json", api_service.spec_endpoint())
+            .at("/openapi.json", spec)
             .nest("/api", api_service)
             .nest("/", ui)
         )
