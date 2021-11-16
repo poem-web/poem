@@ -34,6 +34,7 @@ The following are cases of community use:
 |--------------------------------------------------------|---------------------------------|------------------------------------|----------------------------------------------|
 |[delicate](https://github.com/BinChengZhao/delicate)                   | A distributed task scheduling platform written in rust. | [(README)](https://delicate-rs.github.io/Roadmap.html)         | [(CHANGELOG)](https://github.com/BinChengZhao/delicate/blob/main/CHANGELOG.md)             
 |[databend](https://github.com/datafuselabs/databend)                   | A cloud-native data warehouse written in rust. | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746)         | [(WEEKLY)](https://github.com/datafuselabs/weekly)  
+|[muse](https://leihuo.163.com/)                                        | A NetEase Leihuo's internal art resource sharing platform, backend in rust. | |
 
 ### Resources
 
