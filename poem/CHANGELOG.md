@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Use percent-encoding before adding cookies to the header.
+- Fix `CookieJar` does not support parsing from multiple `Cookie` headers.
 
 # [1.0.26] 2021-11-15
 

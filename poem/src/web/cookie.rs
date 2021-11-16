@@ -498,11 +498,22 @@ impl<'a> FromRequest<'a> for &'a CookieJar {
 
 impl CookieJar {
     pub(crate) fn extract_from_headers(headers: &HeaderMap) -> Self {
-        headers
-            .get(header::COOKIE)
-            .and_then(|value| std::str::from_utf8(value.as_bytes()).ok())
-            .and_then(|value| value.parse().ok())
-            .unwrap_or_default()
+        let mut cookie_jar = libcookie::CookieJar::new();
+
+        for value in headers.get_all(header::COOKIE) {
+            if let Ok(value) = value.to_str() {
+                for cookie_str in value.split(';').map(str::trim) {
+                    if let Ok(cookie) = libcookie::Cookie::parse_encoded(cookie_str) {
+                        cookie_jar.add_original(cookie.into_owned());
+                    }
+                }
+            }
+        }
+
+        CookieJar {
+            jar: Arc::new(Mutex::new(cookie_jar)),
+            key: None,
+        }
     }
 
     pub(crate) fn append_delta_to_headers(&self, headers: &mut HeaderMap) {
@@ -674,5 +685,16 @@ mod tests {
         let new_key = CookieKey::generate();
         let signed = cookie_jar.signed_with_key(&new_key);
         assert_eq!(signed.get("a"), None);
+    }
+
+    #[test]
+    fn test_extract_from_multiple_cookie_headers() {
+        let mut headers = HeaderMap::new();
+        headers.append(header::COOKIE, HeaderValue::from_static("a=1"));
+        headers.append(header::COOKIE, HeaderValue::from_static("b=2; c=3"));
+        let cookie_jar = CookieJar::extract_from_headers(&headers);
+        assert_eq!(cookie_jar.get("a").unwrap().value_str(), "1");
+        assert_eq!(cookie_jar.get("b").unwrap().value_str(), "2");
+        assert_eq!(cookie_jar.get("c").unwrap().value_str(), "3");
     }
 }
