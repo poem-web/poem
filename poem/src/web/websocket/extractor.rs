@@ -1,5 +1,6 @@
 use std::{borrow::Cow, future::Future};
 
+use headers::HeaderMapExt;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
 use super::{utils::sign, WebSocketStream};
@@ -26,11 +27,19 @@ impl<'a> FromRequest<'a> for WebSocket {
 
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
         if req.method() != Method::GET
-            || req.headers().get(header::CONNECTION) != Some(&HeaderValue::from_static("Upgrade"))
             || req.headers().get(header::UPGRADE) != Some(&HeaderValue::from_static("websocket"))
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 != Some(&HeaderValue::from_static("13"))
         {
+            return Err(WebSocketError::InvalidProtocol);
+        }
+
+        if !matches!(
+            req.headers()
+                .typed_get::<headers::Connection>()
+                .map(|connection| connection.contains(header::UPGRADE)),
+            Some(true)
+        ) {
             return Err(WebSocketError::InvalidProtocol);
         }
 
