@@ -34,11 +34,10 @@ async fn main() -> Result<(), std::io::Error> {
         .title("Hello World")
         .server("http://localhost:3000/api");
   
-    // 开启Swagger UI
+    // 创建Swagger UI端点
     let ui = api_service.swagger_ui();
-
-    // TODO: translate the below
-    // Enable the OpenAPI specification
+    
+    // 创建OpenApi输出规范的端点
     let spec = api_service.spec_endpoint();
 
     // 启动服务器，并指定api的根路径为 /api，Swagger UI的路径为 /
