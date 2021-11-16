@@ -63,7 +63,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
 
 #[cfg(test)]
 mod tests {
-    use redis::{aio::ConnectionManager, Client};
+    use redis::{aio::ConnectionManager, Client, Commands, ConnectionLike};
 
     use super::*;
     use crate::{
@@ -76,7 +76,14 @@ mod tests {
 
     #[tokio::test]
     async fn redis_session() {
-        let client = Client::open("redis://127.0.0.1/").unwrap();
+        let mut client = match Client::open("redis://127.0.0.1/") {
+            Ok(client) => client,
+            Err(_) => return,
+        };
+        if !client.check_connection() {
+            return;
+        }
+
         let app = Route::new().at("/:action", index).with(ServerSession::new(
             CookieConfig::default(),
             RedisStorage::new(ConnectionManager::new(client).await.unwrap()),
