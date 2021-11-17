@@ -38,6 +38,8 @@ struct APIOperation {
     tags: Vec<Path>,
     #[darling(default)]
     transform: Option<Ident>,
+    #[darling(default)]
+    operation_id: Option<String>,
 }
 
 #[derive(Default)]
@@ -266,6 +268,7 @@ fn generate_operation(
         deprecated,
         tags,
         transform,
+        operation_id,
     } = args;
     let http_method = method.to_http_method();
     let fn_ident = &item_method.sig.ident;
@@ -579,6 +582,7 @@ fn generate_operation(
         ctx.tags.push(quote!(#tag));
         tag_names.push(quote!(#crate_name::Tags::name(&#tag)));
     }
+    let operation_id = optional_literal(&operation_id);
 
     ctx.operations.entry(oai_path).or_default().push(quote! {
         #crate_name::registry::MetaOperation {
@@ -591,6 +595,7 @@ fn generate_operation(
             responses: <#res_ty as #crate_name::ApiResponse>::meta(),
             deprecated: #deprecated,
             security: #security,
+            operation_id: #operation_id,
         }
     });
 

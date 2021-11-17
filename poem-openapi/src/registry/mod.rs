@@ -404,6 +404,7 @@ fn serialize_headers<S: Serializer>(
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaOperation {
     #[serde(skip)]
     pub method: Method,
@@ -422,6 +423,8 @@ pub struct MetaOperation {
     pub deprecated: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub security: Vec<HashMap<&'static str, Vec<&'static str>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<&'static str>,
 }
 
 #[derive(Debug, PartialEq)]
