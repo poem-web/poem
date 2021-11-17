@@ -106,6 +106,7 @@ impl From<CloseCode> for u16 {
 }
 
 /// An enum representing the various forms of a WebSocket message.
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Message {
     /// A text WebSocket message
     Text(String),
@@ -205,5 +206,47 @@ impl Message {
             Message::Pong(data) => data,
             Message::Close(_) => &[],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_message() {
+        assert_eq!(Message::text("abc"), Message::Text("abc".to_string()));
+        assert_eq!(
+            Message::binary(vec![1, 2, 3]),
+            Message::Binary(vec![1, 2, 3])
+        );
+        assert_eq!(Message::ping(vec![1, 2, 3]), Message::Ping(vec![1, 2, 3]));
+        assert_eq!(Message::pong(vec![1, 2, 3]), Message::Pong(vec![1, 2, 3]));
+        assert_eq!(Message::close(), Message::Close(None));
+        assert_eq!(
+            Message::close_with(CloseCode::Again, "again"),
+            Message::Close(Some((CloseCode::Again, "again".to_string())))
+        );
+
+        assert!(Message::text("abc").is_text());
+        assert!(Message::binary("abc").is_binary());
+        assert!(Message::ping(vec![1, 2, 3]).is_ping());
+        assert!(Message::pong(vec![1, 2, 3]).is_pong());
+        assert!(Message::close().is_close());
+
+        assert_eq!(
+            Message::text("abc").into_bytes(),
+            "abc".to_string().into_bytes()
+        );
+        assert_eq!(Message::binary(vec![1, 2, 3]).into_bytes(), vec![1, 2, 3]);
+        assert_eq!(Message::ping(vec![1, 2, 3]).into_bytes(), vec![1, 2, 3]);
+        assert_eq!(Message::pong(vec![1, 2, 3]).into_bytes(), vec![1, 2, 3]);
+        assert_eq!(Message::close().into_bytes(), Vec::<u8>::new());
+
+        assert_eq!(Message::text("abc").as_bytes(), "abc".as_bytes());
+        assert_eq!(Message::binary(vec![1, 2, 3]).as_bytes(), &[1, 2, 3]);
+        assert_eq!(Message::ping(vec![1, 2, 3]).as_bytes(), &[1, 2, 3]);
+        assert_eq!(Message::pong(vec![1, 2, 3]).as_bytes(), &[1, 2, 3]);
+        assert_eq!(Message::close().as_bytes(), &[] as &[u8]);
     }
 }

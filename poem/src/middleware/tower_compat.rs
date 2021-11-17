@@ -87,3 +87,49 @@ where
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use http::StatusCode;
+
+    use super::*;
+    use crate::{endpoint::make_sync, EndpointExt};
+
+    #[tokio::test]
+    async fn test_tower_layer() {
+        struct TestService<S> {
+            inner: S,
+        }
+
+        impl<S, Req> Service<Req> for TestService<S>
+        where
+            S: Service<Req>,
+        {
+            type Response = S::Response;
+            type Error = S::Error;
+            type Future = S::Future;
+
+            fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+                self.inner.poll_ready(cx)
+            }
+
+            fn call(&mut self, req: Req) -> Self::Future {
+                self.inner.call(req)
+            }
+        }
+
+        struct MyServiceLayer;
+
+        impl<S> Layer<S> for MyServiceLayer {
+            type Service = TestService<S>;
+
+            fn layer(&self, inner: S) -> Self::Service {
+                TestService { inner }
+            }
+        }
+
+        let ep = make_sync(|_| ()).with(MyServiceLayer.compat());
+        let resp = ep.call(Request::default()).await.into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+}
