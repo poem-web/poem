@@ -77,6 +77,7 @@ impl<'a> Serialize for Document<'a> {
         struct Components<'a> {
             schemas: &'a HashMap<&'static str, MetaSchema>,
             #[serde(rename = "securitySchemes")]
+            #[serde(skip_serializing_if = "BTreeMap::is_empty")]
             security_schemes: &'a BTreeMap<&'static str, MetaSecurityScheme>,
         }
 

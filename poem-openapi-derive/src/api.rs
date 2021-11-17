@@ -310,7 +310,7 @@ fn generate_operation(
     let mut has_request_payload = false;
     let mut request_meta = quote!(::std::option::Option::None);
     let mut params_meta = Vec::new();
-    let mut security_requirement = quote!(::std::option::Option::None);
+    let mut security = quote!(::std::vec![]);
 
     for i in 1..item_method.sig.inputs.len() {
         let arg = &mut item_method.sig.inputs[i];
@@ -358,7 +358,9 @@ fn generate_operation(
                 use_args.push(pname);
 
                 let scopes = &auth.scopes;
-                security_requirement = quote!(::std::option::Option::Some((<#arg_ty as #crate_name::SecurityScheme>::NAME, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])));
+                security = quote!(::std::vec![::std::collections::HashMap::from([
+                    (<#arg_ty as #crate_name::SecurityScheme>::NAME, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
+                ])]);
                 ctx.security_schemes.push(quote!(#arg_ty));
             }
 
@@ -588,7 +590,7 @@ fn generate_operation(
             request: #request_meta,
             responses: <#res_ty as #crate_name::ApiResponse>::meta(),
             deprecated: #deprecated,
-            security: ::std::vec![::std::iter::FromIterator::from_iter(::std::iter::IntoIterator::into_iter(#security_requirement))],
+            security: #security,
         }
     });
 
