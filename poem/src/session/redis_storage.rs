@@ -63,7 +63,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
 
 #[cfg(test)]
 mod tests {
-    use redis::{aio::ConnectionManager, Client, Commands, ConnectionLike};
+    use redis::{aio::ConnectionManager, Client, ConnectionLike};
 
     use super::*;
     use crate::{

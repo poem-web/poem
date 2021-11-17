@@ -1,4 +1,8 @@
-use std::{error::Error as StdError, future::Future};
+use std::{
+    error::Error as StdError,
+    future::Future,
+    task::{Context, Poll},
+};
 
 use bytes::Bytes;
 use hyper::body::HttpBody;
@@ -69,5 +73,38 @@ where
         Ok(hyper_resp
             .map(|body| hyper::Body::wrap_stream(BodyStream::new(body)))
             .into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::convert::Infallible;
+
+    use futures_util::future::Ready;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_tower_compat() {
+        #[derive(Clone)]
+        struct MyTowerService;
+
+        impl<B> Service<http::Request<B>> for MyTowerService {
+            type Response = http::Response<B>;
+            type Error = Infallible;
+            type Future = Ready<Result<Self::Response, Self::Error>>;
+
+            fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+                Poll::Ready(Ok(()))
+            }
+
+            fn call(&mut self, req: http::Request<B>) -> Self::Future {
+                futures_util::future::ready(Ok(http::Response::new(req.into_body())))
+            }
+        }
+
+        let ep = MyTowerService.compat();
+        let resp = ep.call(Request::builder().body("abc")).await.unwrap();
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
     }
 }

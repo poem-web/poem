@@ -4,7 +4,7 @@ use super::{After, AndThen, Before, MapErr, MapOk, MapToResponse, MapToResult};
 use crate::{
     endpoint::Around,
     middleware::{AddData, AddDataEndpoint},
-    IntoResponse, Middleware, Request, Result,
+    IntoResponse, Middleware, Request, Response, Result,
 };
 
 /// An HTTP request handler.
@@ -45,6 +45,28 @@ where
 
     async fn call(&self, req: Request) -> Self::Output {
         (self.0)(req).await
+    }
+}
+
+/// Combines two different endpoints for [`Endpoint::with_if`].
+pub enum EitherEndpoint<A, B> {
+    A(A),
+    B(B),
+}
+
+#[async_trait::async_trait]
+impl<A, B> Endpoint for EitherEndpoint<A, B>
+where
+    A: Endpoint,
+    B: Endpoint,
+{
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Self::Output {
+        match self {
+            EitherEndpoint::A(a) => a.call(req).await.into_response(),
+            EitherEndpoint::B(b) => b.call(req).await.into_response(),
+        }
     }
 }
 
@@ -166,6 +188,57 @@ pub trait EndpointExt: IntoEndpoint {
         Self: Sized,
     {
         middleware.transform(self.into_endpoint())
+    }
+
+    /// if `enable` is `true` then use middleware to transform this endpoint.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     get, handler,
+    ///     http::{StatusCode, Uri},
+    ///     middleware::AddData,
+    ///     web::Data,
+    ///     Endpoint, EndpointExt, Request, Route,
+    /// };
+    ///
+    /// #[handler]
+    /// async fn index(data: Option<Data<&i32>>) -> String {
+    ///     match data {
+    ///         Some(data) => data.0.to_string(),
+    ///         None => "none".to_string(),
+    ///     }
+    /// }
+    ///
+    /// let app = Route::new()
+    ///     .at("/a", get(index).with_if(true, AddData::new(100i32)))
+    ///     .at("/b", get(index).with_if(false, AddData::new(100i32)));
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/a")).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+    ///
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/b")).finish())
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "none");
+    /// # });
+    /// ```
+    fn with_if<T>(self, enable: bool, middleware: T) -> EitherEndpoint<Self, T::Output>
+    where
+        T: Middleware<Self::Endpoint>,
+        Self: Sized,
+    {
+        if !enable {
+            EitherEndpoint::A(self)
+        } else {
+            EitherEndpoint::B(middleware.transform(self.into_endpoint()))
+        }
     }
 
     /// A helper function, similar to `with(AddData(T))`.
@@ -459,11 +532,31 @@ pub trait EndpointExt: IntoEndpoint {
 
 impl<T: IntoEndpoint> EndpointExt for T {}
 
+/// Represents a type that can convert into endpoint.
+pub trait IntoEndpoint {
+    /// Represents the endpoint type.
+    type Endpoint: Endpoint;
+
+    /// Converts this object into endpoint.
+    fn into_endpoint(self) -> Self::Endpoint;
+}
+
+impl<T: Endpoint> IntoEndpoint for T {
+    type Endpoint = T;
+
+    fn into_endpoint(self) -> Self::Endpoint {
+        self
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use http::{HeaderValue, Uri};
+
     use crate::{
         endpoint::{make, make_sync},
         http::{Method, StatusCode},
+        middleware::SetHeader,
         *,
     };
 
@@ -607,29 +700,39 @@ mod test {
             .unwrap_err();
         assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
     }
-}
 
-/// Represents a type that can convert into endpoint.
-pub trait IntoEndpoint {
-    /// Represents the endpoint type.
-    type Endpoint: Endpoint;
-
-    /// Converts this object into endpoint.
-    fn into_endpoint(self) -> Self::Endpoint;
-}
-
-impl<T: Endpoint> IntoEndpoint for T {
-    type Endpoint = T;
-
-    fn into_endpoint(self) -> Self::Endpoint {
-        self
+    #[tokio::test]
+    async fn test_around() {
+        let ep = make(|req| async move { req.into_body().into_string().await.unwrap() + "b" });
+        assert_eq!(
+            ep.around(|ep, mut req| async move {
+                req.set_body("a");
+                let resp = ep.call(req).await;
+                resp + "c"
+            })
+            .call(Request::default())
+            .await,
+            "abc"
+        );
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{endpoint::make_sync, get, http::Uri, Route};
+    #[tokio::test]
+    async fn test_with_if() {
+        let resp = make_sync(|_| ())
+            .with_if(true, SetHeader::new().appending("a", 1))
+            .call(Request::default())
+            .await;
+        assert_eq!(
+            resp.headers().get("a"),
+            Some(&HeaderValue::from_static("1"))
+        );
+
+        let resp = make_sync(|_| ())
+            .with_if(false, SetHeader::new().appending("a", 1))
+            .call(Request::default())
+            .await;
+        assert_eq!(resp.headers().get("a"), None);
+    }
 
     #[tokio::test]
     async fn test_into_endpoint() {
