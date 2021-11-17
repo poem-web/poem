@@ -8,6 +8,8 @@ Define a OpenAPI.
 | method        | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string   | N        |
 | deprecated    | Operation deprecated      | bool     | Y        |
 | tag           | Operation tag             | Tags     | Y        |
+| operation_id  | Unique string used to identify the operation. | string | Y |
+| transform     | Use a function to transform the API endpoint. | string | Y |
 
 # Operation argument parameters
 
