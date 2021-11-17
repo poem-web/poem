@@ -30,3 +30,118 @@ mod utils;
 pub use extractor::WebSocket;
 pub use message::{CloseCode, Message};
 pub use stream::WebSocketStream;
+
+#[cfg(test)]
+mod tests {
+    use std::net::SocketAddr;
+
+    use futures_util::{SinkExt, StreamExt};
+    use http::{header, HeaderValue};
+
+    use super::*;
+    use crate::{handler, listener::TcpListener, IntoResponse, Server};
+
+    #[tokio::test]
+    async fn test_negotiation() {
+        #[handler(internal)]
+        async fn index(ws: WebSocket) -> impl IntoResponse {
+            ws.protocols(["aaa", "bbb"]).on_upgrade(|_| async move {})
+        }
+
+        let server = Server::new(TcpListener::bind("127.0.0.1:0")).await.unwrap();
+        let addr = server
+            .local_addr()
+            .remove(0)
+            .as_socket_addr()
+            .cloned()
+            .unwrap();
+
+        let handle = tokio::spawn(async move {
+            let _ = server.run(index).await;
+        });
+
+        let (_, resp) = tokio_tungstenite::connect_async(format!("ws://{}", addr))
+            .await
+            .unwrap();
+        assert_eq!(resp.headers().get(header::SEC_WEBSOCKET_PROTOCOL), None);
+
+        async fn check(addr: SocketAddr, protocol: &str, value: Option<&HeaderValue>) {
+            let (_, resp) = tokio_tungstenite::connect_async(
+                http::Request::builder()
+                    .uri(format!("ws://{}", addr))
+                    .header(header::SEC_WEBSOCKET_PROTOCOL, protocol)
+                    .body(())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+            assert_eq!(resp.headers().get(header::SEC_WEBSOCKET_PROTOCOL), value);
+        }
+
+        check(addr, "aaa", Some(&HeaderValue::from_static("aaa"))).await;
+        check(addr, "bbb", Some(&HeaderValue::from_static("bbb"))).await;
+        check(addr, "ccc", None).await;
+
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn test_websocket_echo() {
+        #[handler(internal)]
+        async fn index(ws: WebSocket) -> impl IntoResponse {
+            ws.on_upgrade(|mut stream| async move {
+                while let Some(Ok(msg)) = stream.next().await {
+                    if let Message::Text(text) = msg {
+                        if stream
+                            .send(Message::Text(text.to_uppercase()))
+                            .await
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
+                }
+            })
+        }
+
+        let server = Server::new(TcpListener::bind("127.0.0.1:0")).await.unwrap();
+        let addr = server
+            .local_addr()
+            .remove(0)
+            .as_socket_addr()
+            .cloned()
+            .unwrap();
+
+        let handle = tokio::spawn(async move {
+            let _ = server.run(index).await;
+        });
+
+        let (mut client_stream, _) = tokio_tungstenite::connect_async(format!("ws://{}", addr))
+            .await
+            .unwrap();
+
+        client_stream
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                "aBc".to_string(),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(
+            client_stream.next().await.unwrap().unwrap(),
+            tokio_tungstenite::tungstenite::Message::Text("ABC".to_string())
+        );
+
+        client_stream
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                "def".to_string(),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(
+            client_stream.next().await.unwrap().unwrap(),
+            tokio_tungstenite::tungstenite::Message::Text("DEF".to_string())
+        );
+
+        handle.abort();
+    }
+}
