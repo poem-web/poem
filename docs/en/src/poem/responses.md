@@ -28,6 +28,10 @@ fn no_response() {}
 
 # Built-in responses
 
+- **Result&lt;T: IntoResponse, E: IntoResponse>**
+
+    if the result is `Ok`, use the `Ok` value as the response, otherwise use the `Err` value.
+
 - **()**
 
    Sets the status to `OK` with an empty body.

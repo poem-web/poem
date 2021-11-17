@@ -23,7 +23,11 @@ fn no_response() {}
 
 ```
 
-# 内置响应
+# 内置响应类型
+
+- **Result&lt;T: IntoResponse, E: IntoResponse>**
+
+  如果结果为`Ok`, 则用`Ok`的值作为响应, 否则使用`Err`的值。
 
 - **()**
 

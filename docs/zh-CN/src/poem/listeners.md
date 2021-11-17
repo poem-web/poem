@@ -19,9 +19,9 @@ let listener = TcpListener::bind("127.0.0.1:3000")
     .tls(TlsConfig::new().key(KEY).cert(CERT));
 ```
 
-## TLS 重载
+## TLS配置热加载
 
-你可以使用流将最新的 Tls 配置传递给 `Poem`。
+你可以使用异步流将最新的 Tls 配置传递给 `Poem`。
 
 以下示例每 1 分钟从文件中加载最新的 TLS 配置：
 

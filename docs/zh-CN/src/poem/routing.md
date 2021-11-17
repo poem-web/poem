@@ -2,7 +2,7 @@
 
 路由对象用于将指定路径和方法的请求分派到指定 Endpoint。
 
-路由对象实际上是一个 Endpoint，它实现了 Endpoint 特性。
+路由对象实际上是一个 Endpoint，它实现了 `Endpoint` trait。
 
 在下面的例子中，我们将 `/a` 和 `/b` 的请求分派到不同的 Endpoint。
 
