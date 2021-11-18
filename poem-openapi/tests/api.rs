@@ -396,7 +396,67 @@ async fn bad_request_handler() {
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        r#"!!! failed to parse param `code`: Type "integer(uint16)" expects an input value."#
+        r#"!!! Failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#
+    );
+}
+
+#[tokio::test]
+async fn bad_request_handler_for_validator() {
+    #[derive(ApiResponse)]
+    #[oai(bad_request_handler = "bad_request_handler")]
+    enum MyResponse {
+        /// Ok
+        #[oai(status = 200)]
+        Ok(PlainText<String>),
+        /// Already exists
+        #[oai(status = 400)]
+        BadRequest(PlainText<String>),
+    }
+
+    fn bad_request_handler(err: ParseRequestError) -> MyResponse {
+        MyResponse::BadRequest(PlainText(format!("!!! {}", err.to_string())))
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(
+            &self,
+            #[oai(name = "code", in = "query", maximum(value = "100"))] code: u16,
+        ) -> MyResponse {
+            MyResponse::Ok(PlainText(format!("code: {}", code)))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+
+    let mut resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/?code=50"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.content_type(), Some("text/plain"));
+    assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 50");
+
+    let mut resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/?code=200"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(resp.content_type(), Some("text/plain"));
+    assert_eq!(
+        resp.take_body().into_string().await.unwrap(),
+        r#"!!! Failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#
     );
 }
 

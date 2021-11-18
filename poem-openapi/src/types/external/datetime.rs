@@ -17,7 +17,7 @@ impl Type for DateTime<FixedOffset> {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "date-time")))
     }
 
-    impl_value_type!();
+    impl_raw_value_type!();
 
     fn name() -> Cow<'static, str> {
         "string(date-time)".into()

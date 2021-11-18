@@ -1,7 +1,7 @@
-macro_rules! impl_value_type {
+macro_rules! impl_raw_value_type {
     () => {
-        type ValueType = Self;
-        fn as_value(&self) -> Option<&Self::ValueType> {
+        type RawValueType = Self;
+        fn as_raw_value(&self) -> Option<&Self::RawValueType> {
             Some(self)
         }
     };

@@ -102,12 +102,11 @@ async fn required_fields() {
     )
     .await
     .unwrap_err();
-    assert_eq!(
-        err,
-        ParseRequestError::ParseRequestBody {
-            reason: "field `file` is required".to_string()
-        }
-    );
+
+    if !matches!(err,ParseRequestError::ParseRequestBody { reason } if reason == "field `file` is required")
+    {
+        panic!();
+    }
 }
 
 #[tokio::test]
@@ -268,13 +267,11 @@ async fn validator() {
     )
     .await
     .unwrap_err();
-    assert_eq!(
-        err,
-        ParseRequestError::ParseRequestBody {
-            reason: r#"field `value` verification failed. maximum(32, exclusive: false)"#
-                .to_string()
-        }
-    );
+
+    if !matches!(err, ParseRequestError::ParseRequestBody{reason } if reason == r#"field `value` verification failed. maximum(32, exclusive: false)"#)
+    {
+        panic!();
+    }
 }
 
 #[tokio::test]
@@ -420,13 +417,11 @@ async fn repeated_error() {
     )
     .await
     .unwrap_err();
-    assert_eq!(
-        err,
-        ParseRequestError::ParseRequestBody {
-            reason: "failed to parse field `value`: failed to parse \"string\": repeated field"
-                .to_string()
-        }
-    )
+
+    if !matches!(err, ParseRequestError::ParseRequestBody { reason } if reason == "failed to parse field `value`: failed to parse \"string\": repeated field")
+    {
+        panic!();
+    }
 }
 
 #[test]

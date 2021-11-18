@@ -23,7 +23,7 @@ macro_rules! impl_type_for_integers {
                 MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
             }
 
-            impl_value_type!();
+            impl_raw_value_type!();
         }
 
         impl ParseFromJSON for $ty {
@@ -89,7 +89,7 @@ macro_rules! impl_type_for_unsigneds {
                 MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
             }
 
-            impl_value_type!();
+            impl_raw_value_type!();
         }
 
         impl ParseFromJSON for $ty {

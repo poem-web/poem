@@ -23,7 +23,7 @@ macro_rules! impl_type_for_floats {
                 MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("number", $format)))
             }
 
-            impl_value_type!();
+            impl_raw_value_type!();
         }
 
         impl ParseFromJSON for $ty {

@@ -12,7 +12,7 @@ impl<T: Type> Type for Vec<T> {
         format!("[{}]", T::name()).into()
     }
 
-    impl_value_type!();
+    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {

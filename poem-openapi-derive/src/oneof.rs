@@ -95,7 +95,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         impl #crate_name::types::Type for #ident {
             const IS_REQUIRED: bool = true;
 
-            type ValueType = Self;
+            type RawValueType = Self;
 
             fn name() -> ::std::borrow::Cow<'static, str> {
                 ::std::convert::Into::into("object")
@@ -120,7 +120,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 #(<#types as #crate_name::types::Type>::register(registry);)*
             }
 
-            fn as_value(&self) -> ::std::option::Option<&Self> {
+            fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
                 ::std::option::Option::Some(self)
             }
         }
