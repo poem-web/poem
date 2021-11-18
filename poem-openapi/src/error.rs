@@ -1,9 +1,11 @@
-use poem::{http::StatusCode, Error};
+use poem::{http::StatusCode, IntoResponse, Response};
+use thiserror::Error;
 
 /// This type represents errors that occur when parsing the HTTP request.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Error)]
 pub enum ParseRequestError {
     /// Failed to parse a parameter.
+    #[error("Failed to parse parameter `{name}`: {reason}")]
     ParseParam {
         /// The name of the parameter.
         name: &'static str,
@@ -13,58 +15,50 @@ pub enum ParseRequestError {
     },
 
     /// Failed to parse a request body.
+    #[error("Failed to parse a request body: {reason}")]
     ParseRequestBody {
         /// The reason for the error.
         reason: String,
     },
 
     /// The `Content-Type` requested by the client is not supported.
+    #[error("The `Content-Type` requested by the client is not supported: {content_type}")]
     ContentTypeNotSupported {
         /// The `Content-Type` header requested by the client.
         content_type: String,
     },
 
     /// The client request does not include the `Content-Type` header.
+    #[error("The client request does not include the `Content-Type` header")]
     ExpectContentType,
 
     /// Poem extractor error.
-    Extractor(String),
+    #[error("Poem extractor error")]
+    Extractor(Response),
 
     /// Authorization error.
+    #[error("Authorization error")]
     Authorization,
 }
 
-#[allow(clippy::inherent_to_string)]
-impl ParseRequestError {
-    /// Convert this error to string.
-    pub fn to_string(&self) -> String {
-        Into::<Error>::into(self.clone())
-            .reason()
-            .unwrap_or_default()
-            .to_string()
-    }
-}
-
-impl From<ParseRequestError> for poem::Error {
-    fn from(err: ParseRequestError) -> Self {
-        match err {
-            ParseRequestError::ParseParam { name, reason } => Error::new(StatusCode::BAD_REQUEST)
-                .with_reason(format!("failed to parse param `{}`: {}", name, reason)),
-            ParseRequestError::ParseRequestBody { reason } => Error::new(StatusCode::BAD_REQUEST)
-                .with_reason(format!("failed to parse request body: {}", reason)),
-            ParseRequestError::ContentTypeNotSupported { content_type } => {
-                Error::new(StatusCode::METHOD_NOT_ALLOWED).with_reason(format!(
-                    "the content type `{}` is not supported.",
-                    content_type
-                ))
+impl IntoResponse for ParseRequestError {
+    fn into_response(self) -> Response {
+        match self {
+            ParseRequestError::ParseParam { .. } | ParseRequestError::ParseRequestBody { .. } => {
+                self.to_string()
+                    .with_status(StatusCode::BAD_REQUEST)
+                    .into_response()
             }
-            ParseRequestError::ExpectContentType => Error::new(StatusCode::METHOD_NOT_ALLOWED)
-                .with_reason("expect a `Content-Type` header."),
-            ParseRequestError::Extractor(err) => Error::new(StatusCode::BAD_REQUEST)
-                .with_reason(format!("poem extract error: {}", err)),
-            ParseRequestError::Authorization => {
-                Error::new(StatusCode::UNAUTHORIZED).with_reason("authorization error")
-            }
+            ParseRequestError::ContentTypeNotSupported { .. }
+            | ParseRequestError::ExpectContentType => self
+                .to_string()
+                .with_status(StatusCode::METHOD_NOT_ALLOWED)
+                .into_response(),
+            ParseRequestError::Extractor(resp) => resp,
+            ParseRequestError::Authorization => self
+                .to_string()
+                .with_status(StatusCode::UNAUTHORIZED)
+                .into_response(),
         }
     }
 }

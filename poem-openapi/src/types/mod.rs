@@ -29,8 +29,15 @@ pub trait Type: Send + Sync {
     /// If it is `true`, it means that this value is required.
     const IS_REQUIRED: bool = true;
 
-    /// The value type of this type.
-    type ValueType;
+    /// The raw type used for validator.
+    ///
+    /// Usually it is `Self`, but the wrapper type is its internal type.
+    ///
+    /// For example:
+    ///
+    /// `i32::RawValueType` is `i32`
+    /// `Option<i32>::RawValueType` is `i32`.
+    type RawValueType;
 
     /// Returns the name of this type
     fn name() -> Cow<'static, str>;
@@ -42,8 +49,8 @@ pub trait Type: Send + Sync {
     #[allow(unused_variables)]
     fn register(registry: &mut Registry) {}
 
-    /// Get the value.
-    fn as_value(&self) -> Option<&Self::ValueType>;
+    /// Returns a reference to the raw value.
+    fn as_raw_value(&self) -> Option<&Self::RawValueType>;
 }
 
 /// Represents a type that can parsing from JSON.

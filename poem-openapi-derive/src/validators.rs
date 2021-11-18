@@ -2,7 +2,7 @@ use darling::util::SpannedValue;
 use proc_macro2::TokenStream;
 use quote::quote;
 use regex::Regex;
-use syn::Error;
+use syn::{Error, Type};
 
 use crate::{
     common_args::{MaximumValidator, MinimumValidator},
@@ -103,7 +103,7 @@ impl<'a> Validators<'a> {
             Ok(Some(quote! {
                 #(
                     let validator = #validators;
-                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_value(&value) {
+                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
                         if !#crate_name::validation::Validator::check(&validator, value) {
                             return Err(#crate_name::types::ParseError::<Self>::custom(format!("field `{}` verification failed. {}", #field_name, validator)));
                         }
@@ -118,6 +118,7 @@ impl<'a> Validators<'a> {
     pub(crate) fn create_param_checker(
         &self,
         crate_name: &TokenStream,
+        res_ty: &Type,
         arg_name: &str,
     ) -> GeneratorResult<Option<TokenStream>> {
         let validators = self.create_validators(crate_name)?;
@@ -125,13 +126,18 @@ impl<'a> Validators<'a> {
             Ok(Some(quote! {
                 #(
                     let validator = #validators;
-                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_value(&value) {
+                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
                         if !#crate_name::validation::Validator::check(&validator, value) {
                             let err = #crate_name::ParseRequestError::ParseParam {
                                 name: #arg_name,
                                 reason: ::std::format!("verification failed. {}", validator),
                             };
-                            return Err(::std::convert::Into::into(err));
+                            if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER {
+                                let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                                return #crate_name::poem::IntoResponse::into_response(resp);
+                            } else {
+                                return #crate_name::poem::IntoResponse::into_response(err);
+                            }
                         }
                     }
                 )*
@@ -151,7 +157,7 @@ impl<'a> Validators<'a> {
             Ok(Some(quote! {
                 #(
                     let validator = #validators;
-                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_value(&value) {
+                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
                         if !#crate_name::validation::Validator::check(&validator, value) {
                             return Err(#crate_name::ParseRequestError::ParseRequestBody {
                                 reason: ::std::format!("field `{}` verification failed. {}", #field_name, validator),

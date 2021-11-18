@@ -12,14 +12,18 @@ use crate::{
 pub struct Any<T>(pub T);
 
 impl<T: Send + Sync> Type for Any<T> {
+    type RawValueType = T;
+
     fn name() -> Cow<'static, str> {
         "any".into()
     }
 
-    impl_value_type!();
-
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::ANY))
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(&self.0)
     }
 }
 

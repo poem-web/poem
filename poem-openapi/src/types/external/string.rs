@@ -16,7 +16,7 @@ impl Type for String {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
     }
 
-    impl_value_type!();
+    impl_raw_value_type!();
 
     fn name() -> Cow<'static, str> {
         "string".into()
@@ -63,7 +63,7 @@ impl<'a> Type for &'a str {
         "string".into()
     }
 
-    impl_value_type!();
+    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))

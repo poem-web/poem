@@ -297,7 +297,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
                 const IS_REQUIRED: bool = true;
 
-                type ValueType = Self;
+                type RawValueType = Self;
 
                 fn name() -> ::std::borrow::Cow<'static, str> {
                     ::std::convert::Into::into(#oai_typename)
@@ -311,7 +311,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #fn_register
                 }
 
-                fn as_value(&self) -> ::std::option::Option<&Self> {
+                fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
                     ::std::option::Option::Some(self)
                 }
             }
@@ -386,13 +386,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 impl #crate_name::types::Type for #concrete_type {
                     const IS_REQUIRED: bool = true;
 
-                    type ValueType = Self;
+                    type RawValueType = Self;
 
                     fn name() -> ::std::borrow::Cow<'static, str> {
                         ::std::convert::Into::into(#oai_typename)
                     }
 
-                    fn as_value(&self) -> Option<&Self> {
+                    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
                         ::std::option::Option::Some(self)
                     }
 

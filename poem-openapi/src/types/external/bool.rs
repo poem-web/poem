@@ -16,7 +16,7 @@ impl Type for bool {
         "boolean".into()
     }
 
-    impl_value_type!();
+    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("boolean")))

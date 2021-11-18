@@ -13,7 +13,7 @@ use crate::{
 pub struct JsonField<T>(pub T);
 
 impl<T: Type> Type for JsonField<T> {
-    type ValueType = T::ValueType;
+    type RawValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -29,8 +29,8 @@ impl<T: Type> Type for JsonField<T> {
     }
 
     #[inline]
-    fn as_value(&self) -> Option<&Self::ValueType> {
-        self.0.as_value()
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        self.0.as_raw_value()
     }
 }
 

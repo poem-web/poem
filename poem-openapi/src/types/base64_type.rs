@@ -16,7 +16,7 @@ impl Type for Base64 {
         "string(bytes)".into()
     }
 
-    impl_value_type!();
+    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("bytes", "string")))

@@ -119,11 +119,7 @@ impl_has_validators!(APIOperationParam);
 struct Context {
     add_routes: IndexMap<String, Vec<TokenStream>>,
     operations: IndexMap<String, Vec<TokenStream>>,
-    param_types: Vec<TokenStream>,
-    request_types: Vec<TokenStream>,
-    response_types: Vec<TokenStream>,
-    tags: Vec<TokenStream>,
-    security_schemes: Vec<TokenStream>,
+    register_items: Vec<TokenStream>,
 }
 
 pub(crate) fn generate(
@@ -143,11 +139,7 @@ pub(crate) fn generate(
     let mut ctx = Context {
         add_routes: Default::default(),
         operations: Default::default(),
-        param_types: Default::default(),
-        request_types: Default::default(),
-        response_types: Default::default(),
-        tags: Default::default(),
-        security_schemes: Default::default(),
+        register_items: Default::default(),
     };
 
     for item in &mut item_impl.items {
@@ -175,11 +167,7 @@ pub(crate) fn generate(
     let Context {
         add_routes,
         operations,
-        param_types,
-        request_types,
-        response_types,
-        tags,
-        security_schemes,
+        register_items,
     } = ctx;
 
     let paths = {
@@ -206,28 +194,6 @@ pub(crate) fn generate(
         }
 
         routes
-    };
-
-    let register_items = {
-        let mut register_items = Vec::new();
-
-        for ty in param_types {
-            register_items.push(quote!(<#ty as #crate_name::types::Type>::register(registry);));
-        }
-        for ty in request_types {
-            register_items.push(quote!(<#ty as #crate_name::ApiRequest>::register(registry);));
-        }
-        for ty in response_types {
-            register_items.push(quote!(<#ty as #crate_name::ApiResponse>::register(registry);));
-        }
-        for tag in tags {
-            register_items.push(quote!(#crate_name::Tags::register(&#tag, registry);));
-        }
-        for ty in security_schemes {
-            register_items.push(quote!(<#ty as #crate_name::SecurityScheme>::register(registry);));
-        }
-
-        register_items
     };
 
     let expanded = quote! {
@@ -335,12 +301,14 @@ fn generate_operation(
                 parse_args.push(quote! {
                     let #pname = match <#arg_ty as #crate_name::poem::FromRequest>::from_request(&request, &mut body)
                         .await
-                        .map_err(|err| #crate_name::ParseRequestError::Extractor(::std::convert::Into::<#crate_name::poem::Error>::into(err).reason().unwrap_or_default().to_string())) {
+                        .map_err(|err| #crate_name::ParseRequestError::Extractor(#crate_name::poem::IntoResponse::into_response(err)))
+                    {
                         ::std::result::Result::Ok(value) => value,
                         ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
-                            },
-                        ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
+                            let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                            return #crate_name::poem::IntoResponse::into_response(resp);
+                        },
+                        ::std::result::Result::Err(err) => return #crate_name::poem::IntoResponse::into_response(err),
                     };
                 });
                 use_args.push(pname);
@@ -353,9 +321,10 @@ fn generate_operation(
                     let #pname = match <#arg_ty as #crate_name::SecurityScheme>::from_request(&request, &query.0).await {
                         ::std::result::Result::Ok(value) => value,
                         ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
-                            },
-                        ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
+                            let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                            return #crate_name::poem::IntoResponse::into_response(resp);
+                        },
+                        ::std::result::Result::Err(err) => return #crate_name::poem::IntoResponse::into_response(err),
                     };
                 });
                 use_args.push(pname);
@@ -364,7 +333,8 @@ fn generate_operation(
                 security = quote!(::std::vec![::std::collections::HashMap::from([
                     (<#arg_ty as #crate_name::SecurityScheme>::NAME, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
                 ])]);
-                ctx.security_schemes.push(quote!(#arg_ty));
+                ctx.register_items
+                    .push(quote!(<#arg_ty as #crate_name::SecurityScheme>::register(registry);));
             }
 
             // is parameter
@@ -424,9 +394,11 @@ fn generate_operation(
                     };
                     quote!(#crate_name::registry::MetaParamIn::#meta_ty)
                 };
-                let validators_checker = operation_param
-                    .validators()
-                    .create_param_checker(crate_name, &param_oai_typename)?;
+                let validators_checker = operation_param.validators().create_param_checker(
+                    crate_name,
+                    &res_ty,
+                    &param_oai_typename,
+                )?;
                 let validators_update_meta = operation_param
                     .validators()
                     .create_update_meta(crate_name)?;
@@ -447,19 +419,20 @@ fn generate_operation(
                                 match value {
                                     Some(value) => {
                                         match #crate_name::types::ParseFromParameter::parse_from_parameter(Some(value))
-                                                .map_err(|err| #crate_name::ParseRequestError::ParseParam {
-                                                    name: #param_oai_typename,
-                                                    reason: err.into_message(),
-                                                })
+                                            .map_err(|err| #crate_name::ParseRequestError::ParseParam {
+                                                name: #param_oai_typename,
+                                                reason: err.into_message(),
+                                            })
                                         {
                                             ::std::result::Result::Ok(value) => {
                                                 #validators_checker
                                                 value
                                             },
                                             ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
+                                                let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                                                return #crate_name::poem::IntoResponse::into_response(resp);
                                             },
-                                            ::std::result::Result::Err(err) => return ::std::result::Result::Err(#crate_name::poem::Error::from(err)),
+                                            ::std::result::Result::Err(err) => return #crate_name::poem::IntoResponse::into_response(err),
                                         }
                                     }
                                     None => #default_value,
@@ -482,9 +455,10 @@ fn generate_operation(
                                         value
                                     },
                                     ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                                        return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
+                                        let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                                        return #crate_name::poem::IntoResponse::into_response(resp);
                                     },
-                                    ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
+                                    ::std::result::Result::Err(err) => return #crate_name::poem::IntoResponse::into_response(err),
                                 }
                             };
                         });
@@ -523,7 +497,8 @@ fn generate_operation(
                         deprecated: #deprecated,
                     }
                 });
-                ctx.param_types.push(quote!(#arg_ty));
+                ctx.register_items
+                    .push(quote!(<#arg_ty as #crate_name::types::Type>::register(registry);));
             }
 
             // is request body
@@ -538,21 +513,24 @@ fn generate_operation(
                     let #pname = match <#arg_ty as #crate_name::ApiRequest>::from_request(&request, &mut body).await {
                         ::std::result::Result::Ok(value) => value,
                         ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                                return ::std::result::Result::Ok(<#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err));
-                            },
-                        ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
+                            let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                            return #crate_name::poem::IntoResponse::into_response(resp);
+                        },
+                        ::std::result::Result::Err(err) => return #crate_name::poem::IntoResponse::into_response(err),
                     };
                 });
                 use_args.push(pname);
 
                 has_request_payload = true;
                 request_meta = quote!(::std::option::Option::Some(<#arg_ty as #crate_name::ApiRequest>::meta()));
-                ctx.request_types.push(quote!(#arg_ty));
+                ctx.register_items
+                    .push(quote!(<#arg_ty as #crate_name::ApiRequest>::register(registry);));
             }
         }
     }
 
-    ctx.response_types.push(quote!(#res_ty));
+    ctx.register_items
+        .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
 
     let transform = transform.map(|transform| {
         quote! {
@@ -569,7 +547,8 @@ fn generate_operation(
                     let (request, mut body) = request.split();
                     let query = <#crate_name::poem::web::Query::<::std::collections::HashMap<::std::string::String, ::std::string::String>> as #crate_name::poem::FromRequest>::from_request(&request, &mut body).await.unwrap_or_default();
                     #(#parse_args)*
-                    ::std::result::Result::Ok::<_, #crate_name::poem::Error>(api_obj.#fn_ident(#(#use_args),*).await)
+                    let resp = api_obj.#fn_ident(#(#use_args),*).await;
+                    #crate_name::poem::IntoResponse::into_response(resp)
                 }
             });
             #transform
@@ -579,7 +558,8 @@ fn generate_operation(
 
     let mut tag_names = Vec::new();
     for tag in tags {
-        ctx.tags.push(quote!(#tag));
+        ctx.register_items
+            .push(quote!(#crate_name::Tags::register(&#tag, registry);));
         tag_names.push(quote!(#crate_name::Tags::name(&#tag)));
     }
     let operation_id = optional_literal(&operation_id);

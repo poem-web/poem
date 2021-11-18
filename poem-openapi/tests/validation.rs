@@ -284,7 +284,7 @@ async fn param_validator() {
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        "failed to parse param `v`: verification failed. maximum(100, exclusive: true)"
+        "Failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
     );
 
     let meta: MetaApi = Api::meta().remove(0);
@@ -314,24 +314,44 @@ fn test_option() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
         #[oai(multiple_of = "10")]
-        n: Option<i32>,
+        n1: Option<i32>,
+        #[oai(multiple_of = "10")]
+        n2: Option<Option<i32>>,
     }
 
     assert_eq!(
-        A::parse_from_json(json!({ "n": 20 })).unwrap(),
-        A { n: Some(20) }
+        A::parse_from_json(json!({ "n1": 20 })).unwrap(),
+        A {
+            n1: Some(20),
+            n2: None
+        }
     );
 
     assert_eq!(
-        A::parse_from_json(json!({ "n": null })).unwrap(),
-        A { n: None }
+        A::parse_from_json(json!({ "n2": 20 })).unwrap(),
+        A {
+            n1: None,
+            n2: Some(Some(20)),
+        }
     );
 
     assert_eq!(
-        A::parse_from_json(json!({ "n": 25 }))
+        A::parse_from_json(json!({ "n2": null })).unwrap(),
+        A { n1: None, n2: None }
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({ "n1": 25 }))
             .unwrap_err()
             .into_message(),
-        "failed to parse \"A\": field `n` verification failed. multipleOf(10)"
+        "failed to parse \"A\": field `n1` verification failed. multipleOf(10)"
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({ "n2": 25 }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `n2` verification failed. multipleOf(10)"
     );
 }
 

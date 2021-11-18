@@ -1,8 +1,4 @@
-use std::{
-    error::Error as StdError,
-    future::Future,
-    task::{Context, Poll},
-};
+use std::{error::Error as StdError, future::Future};
 
 use bytes::Bytes;
 use hyper::body::HttpBody;
@@ -78,7 +74,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
+    use std::{
+        convert::Infallible,
+        task::{Context, Poll},
+    };
 
     use futures_util::future::Ready;
 

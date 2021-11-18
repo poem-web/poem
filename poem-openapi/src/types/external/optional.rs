@@ -14,7 +14,7 @@ use crate::{
 impl<T: Type> Type for Option<T> {
     const IS_REQUIRED: bool = false;
 
-    type ValueType = T;
+    type RawValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -28,9 +28,9 @@ impl<T: Type> Type for Option<T> {
         T::register(registry);
     }
 
-    fn as_value(&self) -> Option<&Self::ValueType> {
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
         match self {
-            Some(value) => Some(value),
+            Some(value) => value.as_raw_value(),
             None => None,
         }
     }
