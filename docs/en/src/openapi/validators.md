@@ -15,11 +15,11 @@ struct Pet {
     id: u64,
 
     /// The length of the name must be less than 32
-    #[oai(max_length = "32")]
+    #[oai(validator(max_length = "32"))]
     name: String,
 
     /// Array length must be less than 3
-    #[oai(max_items = "3")]
+    #[oai(validator(max_items = "3"))]
     photo_urls: Vec<String>,
 
     status: PetStatus,

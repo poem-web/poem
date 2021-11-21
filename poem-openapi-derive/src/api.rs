@@ -9,13 +9,13 @@ use syn::{
 };
 
 use crate::{
-    common_args::{APIMethod, DefaultValue, MaximumValidator, MinimumValidator, ParamIn},
+    common_args::{APIMethod, DefaultValue, ParamIn},
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_summary_and_description, optional_literal,
         parse_oai_attrs, remove_oai_attrs,
     },
-    validators::HasValidators,
+    validators::Validators,
 };
 
 #[derive(FromMeta)]
@@ -93,28 +93,9 @@ struct APIOperationParam {
     deprecated: bool,
     #[darling(default)]
     default: Option<DefaultValue>,
-
     #[darling(default)]
-    multiple_of: Option<SpannedValue<f64>>,
-    #[darling(default)]
-    maximum: Option<SpannedValue<MaximumValidator>>,
-    #[darling(default)]
-    minimum: Option<SpannedValue<MinimumValidator>>,
-    #[darling(default)]
-    max_length: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    min_length: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    pattern: Option<SpannedValue<String>>,
-    #[darling(default)]
-    max_items: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    min_items: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    unique_items: bool,
+    validator: Option<Validators>,
 }
-
-impl_has_validators!(APIOperationParam);
 
 struct Context {
     add_routes: IndexMap<String, Vec<TokenStream>>,
@@ -394,14 +375,10 @@ fn generate_operation(
                     };
                     quote!(#crate_name::registry::MetaParamIn::#meta_ty)
                 };
-                let validators_checker = operation_param.validators().create_param_checker(
-                    crate_name,
-                    &res_ty,
-                    &param_oai_typename,
-                )?;
-                let validators_update_meta = operation_param
-                    .validators()
-                    .create_update_meta(crate_name)?;
+                let validators = operation_param.validator.unwrap_or_default();
+                let validators_checker =
+                    validators.create_param_checker(crate_name, &res_ty, &param_oai_typename)?;
+                let validators_update_meta = validators.create_update_meta(crate_name)?;
 
                 match &operation_param.default {
                     Some(default_value) => {

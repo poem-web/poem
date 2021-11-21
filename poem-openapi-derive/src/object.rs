@@ -1,20 +1,13 @@
-use darling::{
-    ast::Data,
-    util::{Ignored, SpannedValue},
-    FromDeriveInput, FromField,
-};
+use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Type};
 
 use crate::{
-    common_args::{
-        ConcreteType, DefaultValue, MaximumValidator, MinimumValidator, RenameRule, RenameRuleExt,
-        RenameTarget,
-    },
+    common_args::{ConcreteType, DefaultValue, RenameRule, RenameRuleExt, RenameTarget},
     error::GeneratorResult,
     utils::{get_crate_name, get_summary_and_description, optional_literal},
-    validators::HasValidators,
+    validators::Validators,
 };
 
 #[derive(FromField)]
@@ -35,28 +28,9 @@ struct ObjectField {
     write_only: bool,
     #[darling(default)]
     read_only: bool,
-
     #[darling(default)]
-    multiple_of: Option<SpannedValue<f64>>,
-    #[darling(default)]
-    maximum: Option<SpannedValue<MaximumValidator>>,
-    #[darling(default)]
-    minimum: Option<SpannedValue<MinimumValidator>>,
-    #[darling(default)]
-    max_length: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    min_length: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    pattern: Option<SpannedValue<String>>,
-    #[darling(default)]
-    max_items: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    min_items: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    unique_items: bool,
+    validator: Option<Validators>,
 }
-
-impl_has_validators!(ObjectField);
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(oai), forward_attrs(doc))]
@@ -146,10 +120,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let (field_title, field_description) = get_summary_and_description(&field.attrs)?;
         let field_title = optional_literal(&field_title);
         let field_description = optional_literal(&field_description);
-        let validators_checker = field
-            .validators()
-            .create_obj_field_checker(&crate_name, &field_name)?;
-        let validators_update_meta = field.validators().create_update_meta(&crate_name)?;
+        let validators = field.validator.clone().unwrap_or_default();
+        let validators_checker = validators.create_obj_field_checker(&crate_name, &field_name)?;
+        let validators_update_meta = validators.create_update_meta(&crate_name)?;
 
         fields.push(field_ident);
 

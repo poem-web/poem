@@ -18,10 +18,10 @@ struct User {
     #[oai(read_only)]
     id: i64,
     /// Name
-    #[oai(max_length = 64)]
+    #[oai(validator(max_length = 64))]
     name: String,
     /// Password
-    #[oai(max_length = 32)]
+    #[oai(validator(max_length = 32))]
     password: Password,
 }
 

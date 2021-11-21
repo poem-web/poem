@@ -1,4 +1,4 @@
-use darling::util::SpannedValue;
+use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::quote;
 use regex::Regex;
@@ -9,32 +9,44 @@ use crate::{
     error::GeneratorResult,
 };
 
-pub(crate) struct Validators<'a> {
-    pub(crate) multiple_of: &'a Option<SpannedValue<f64>>,
-    pub(crate) maximum: &'a Option<SpannedValue<MaximumValidator>>,
-    pub(crate) minimum: &'a Option<SpannedValue<MinimumValidator>>,
-    pub(crate) max_length: &'a Option<SpannedValue<usize>>,
-    pub(crate) min_length: &'a Option<SpannedValue<usize>>,
-    pub(crate) pattern: &'a Option<SpannedValue<String>>,
-    pub(crate) max_items: &'a Option<SpannedValue<usize>>,
-    pub(crate) min_items: &'a Option<SpannedValue<usize>>,
-    pub(crate) unique_items: &'a bool,
+#[derive(FromMeta, Default, Clone)]
+pub(crate) struct Validators {
+    #[darling(default)]
+    multiple_of: Option<SpannedValue<f64>>,
+    #[darling(default)]
+    maximum: Option<SpannedValue<MaximumValidator>>,
+    #[darling(default)]
+    minimum: Option<SpannedValue<MinimumValidator>>,
+    #[darling(default)]
+    max_length: Option<SpannedValue<usize>>,
+    #[darling(default)]
+    min_length: Option<SpannedValue<usize>>,
+    #[darling(default)]
+    pattern: Option<SpannedValue<String>>,
+    #[darling(default)]
+    max_items: Option<SpannedValue<usize>>,
+    #[darling(default)]
+    min_items: Option<SpannedValue<usize>>,
+    #[darling(default)]
+    unique_items: bool,
+    #[darling(default)]
+    list: bool,
 }
 
-impl<'a> Validators<'a> {
+impl Validators {
     fn create_validators(&self, crate_name: &TokenStream) -> GeneratorResult<Vec<TokenStream>> {
         let mut validators = Vec::new();
 
         if let Some(value) = self.multiple_of {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.1
-            if **value <= 0.0 {
+            if *value <= 0.0 {
                 return Err(Error::new(
                     value.span(),
                     "The value of `multipleOf` MUST be a number, strictly greater than 0.",
                 )
                 .into());
             }
-            let value = &**value;
+            let value = &*value;
             validators.push(quote!(#crate_name::validation::MultipleOf::new(#value)));
         }
 
@@ -50,19 +62,19 @@ impl<'a> Validators<'a> {
 
         if let Some(value) = self.max_length {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.6
-            let value = &**value;
+            let value = &*value;
             validators.push(quote!(#crate_name::validation::MaxLength::new(#value)));
         }
 
         if let Some(value) = self.min_length {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.7
-            let value = &**value;
+            let value = &*value;
             validators.push(quote!(#crate_name::validation::MinLength::new(#value)));
         }
 
         if let Some(value) = &self.pattern {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.8
-            if let Err(err) = Regex::new(&**value) {
+            if let Err(err) = Regex::new(&*value) {
                 return Err(Error::new(
                     value.span(),
                     format!("Invalid regular expression. {}", err),
@@ -75,17 +87,17 @@ impl<'a> Validators<'a> {
 
         if let Some(value) = self.max_items {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.10
-            let value = &**value;
+            let value = &*value;
             validators.push(quote!(#crate_name::validation::MaxItems::new(#value)));
         }
 
         if let Some(value) = self.min_items {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.11
-            let value = &**value;
+            let value = &*value;
             validators.push(quote!(#crate_name::validation::MinItems::new(#value)));
         }
 
-        if *self.unique_items {
+        if self.unique_items {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.12
             validators.push(quote!(#crate_name::validation::UniqueItems::new()));
         }
@@ -100,16 +112,33 @@ impl<'a> Validators<'a> {
     ) -> GeneratorResult<Option<TokenStream>> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
-            Ok(Some(quote! {
-                #(
-                    let validator = #validators;
-                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
-                        if !#crate_name::validation::Validator::check(&validator, value) {
-                            return Err(#crate_name::types::ParseError::<Self>::custom(format!("field `{}` verification failed. {}", #field_name, validator)));
+            if !self.list {
+                Ok(Some(quote! {
+                    #(
+                        let validator = #validators;
+                        if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
+                            if !#crate_name::validation::Validator::check(&validator, value) {
+                                return Err(#crate_name::types::ParseError::<Self>::custom(format!("field `{}` verification failed. {}", #field_name, validator)));
+                            }
                         }
-                    }
-                )*
-            }))
+                    )*
+                }))
+            } else {
+                Ok(Some(quote! {
+                    #(
+                        let validator = #validators;
+                        if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
+                            for item in value {
+                                if let ::std::option::Option::Some(item) = #crate_name::types::Type::as_raw_value(item) {
+                                    if !#crate_name::validation::Validator::check(&validator, item) {
+                                        return Err(#crate_name::types::ParseError::<Self>::custom(format!("field `{}` verification failed. {}", #field_name, validator)));
+                                    }
+                                }
+                            }
+                        }
+                    )*
+                }))
+            }
         } else {
             Ok(None)
         }
@@ -154,18 +183,37 @@ impl<'a> Validators<'a> {
     ) -> GeneratorResult<Option<TokenStream>> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
-            Ok(Some(quote! {
-                #(
-                    let validator = #validators;
-                    if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
-                        if !#crate_name::validation::Validator::check(&validator, value) {
-                            return Err(#crate_name::ParseRequestError::ParseRequestBody {
-                                reason: ::std::format!("field `{}` verification failed. {}", #field_name, validator),
-                            });
+            if !self.list {
+                Ok(Some(quote! {
+                    #(
+                        let validator = #validators;
+                        if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
+                            if !#crate_name::validation::Validator::check(&validator, value) {
+                                return Err(#crate_name::ParseRequestError::ParseRequestBody {
+                                    reason: ::std::format!("field `{}` verification failed. {}", #field_name, validator),
+                                });
+                            }
                         }
-                    }
-                )*
-            }))
+                    )*
+                }))
+            } else {
+                Ok(Some(quote! {
+                    #(
+                        let validator = #validators;
+                        if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
+                            for item in value {
+                                if let ::std::option::Option::Some(item) = #crate_name::types::Type::as_raw_value(item) {
+                                    if !#crate_name::validation::Validator::check(&validator, item) {
+                                        return Err(#crate_name::ParseRequestError::ParseRequestBody {
+                                            reason: ::std::format!("field `{}` verification failed. {}", #field_name, validator),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    )*
+                }))
+            }
         } else {
             Ok(None)
         }
@@ -177,38 +225,24 @@ impl<'a> Validators<'a> {
     ) -> GeneratorResult<Option<TokenStream>> {
         let validators = self.create_validators(crate_name)?;
         if !validators.is_empty() {
-            Ok(Some(quote! {
-                #(
-                    let validator = #validators;
-                    #crate_name::validation::ValidatorMeta::update_meta(&validator, &mut schema);
-                )*
-            }))
+            if !self.list {
+                Ok(Some(quote! {
+                    #(
+                        let validator = #validators;
+                        #crate_name::validation::ValidatorMeta::update_meta(&validator, &mut schema);
+                    )*
+                }))
+            } else {
+                Ok(Some(quote! {
+                    #(
+                        let validator = #validators;
+                        let mut items_schema = #crate_name::registry::MetaSchema::ANY;
+                        #crate_name::validation::ValidatorMeta::update_meta(&validator, &mut items_schema);
+                        schema.items = ::std::option::Option::Some(::std::boxed::Box::new(#crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(items_schema))));                    )*
+                }))
+            }
         } else {
             Ok(None)
         }
     }
-}
-
-pub(crate) trait HasValidators {
-    fn validators(&self) -> Validators<'_>;
-}
-
-macro_rules! impl_has_validators {
-    ($ty:ty) => {
-        impl HasValidators for $ty {
-            fn validators(&self) -> crate::validators::Validators<'_> {
-                crate::validators::Validators {
-                    multiple_of: &self.multiple_of,
-                    maximum: &self.maximum,
-                    minimum: &self.minimum,
-                    max_length: &self.max_length,
-                    min_length: &self.min_length,
-                    pattern: &self.pattern,
-                    max_items: &self.max_items,
-                    min_items: &self.min_items,
-                    unique_items: &self.unique_items,
-                }
-            }
-        }
-    };
 }

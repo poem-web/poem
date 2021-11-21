@@ -240,9 +240,9 @@ async fn upload() {
 async fn validator() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(max_length = "10")]
+        #[oai(validator(max_length = "10"))]
         name: String,
-        #[oai(maximum(value = "32"))]
+        #[oai(validator(maximum(value = "32")))]
         value: JsonField<i32>,
     }
 

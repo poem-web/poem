@@ -424,7 +424,7 @@ async fn bad_request_handler_for_validator() {
         #[oai(path = "/", method = "get")]
         async fn test(
             &self,
-            #[oai(name = "code", in = "query", maximum(value = "100"))] code: u16,
+            #[oai(name = "code", in = "query", validator(maximum(value = "100")))] code: u16,
         ) -> MyResponse {
             MyResponse::Ok(PlainText(format!("code: {}", code)))
         }

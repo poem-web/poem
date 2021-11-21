@@ -226,6 +226,7 @@ impl MetaSchema {
             max_items,
             min_items,
             unique_items,
+            items,
             ..
         }: MetaSchema,
     ) -> Self {
@@ -258,6 +259,27 @@ impl MetaSchema {
             min_items,
             unique_items
         );
+
+        if let Some(items) = items {
+            if let Some(self_items) = self.items {
+                let items = *items;
+
+                match items {
+                    MetaSchemaRef::Inline(items) => {
+                        self.items = Some(Box::new(self_items.merge(*items)))
+                    }
+                    MetaSchemaRef::Reference(_) => {
+                        self.items = Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            one_of: vec![*self_items, items],
+                            ..MetaSchema::ANY
+                        }))));
+                    }
+                }
+            } else {
+                self.items = Some(items);
+            }
+        }
+
         self
     }
 }
