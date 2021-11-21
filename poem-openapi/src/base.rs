@@ -1,54 +1,143 @@
-use std::collections::HashMap;
+use std::{
+    collections::BTreeMap,
+    ops::{Deref, DerefMut},
+};
 
 use mime::Mime;
-use poem::{IntoResponse, Request, RequestBody, Result, Route};
+use poem::{FromRequest, IntoResponse, Request, RequestBody, Result, Route};
 
 use crate::{
     payload::{ParsePayload, Payload},
     registry::{
-        MetaApi, MetaMediaType, MetaOAuthScope, MetaRequest, MetaResponse, MetaResponses, Registry,
+        MetaApi, MetaMediaType, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse,
+        MetaResponses, MetaSchemaRef, Registry,
     },
     ParseRequestError,
 };
 
-/// Represents a OpenAPI request object.
-///
-/// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#requestBodyObject>
+/// API extractor types.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ApiExtractorType {
+    /// A request object.
+    RequestObject,
+
+    /// A request parameter.
+    Parameter,
+
+    /// A security scheme.
+    SecurityScheme,
+
+    /// A poem extractor.
+    PoemExtractor,
+}
+
+#[doc(hidden)]
+pub struct UrlQuery(pub BTreeMap<String, String>);
+
+impl Deref for UrlQuery {
+    type Target = BTreeMap<String, String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Options for the parameter extractor.
+pub struct ExtractParamOptions<T> {
+    /// The name of this parameter.
+    pub name: &'static str,
+
+    /// The default value of this parameter.
+    pub default_value: Option<fn() -> T>,
+}
+
+impl<T> Default for ExtractParamOptions<T> {
+    fn default() -> Self {
+        Self {
+            name: "",
+            default_value: None,
+        }
+    }
+}
+
+/// Represents a OpenAPI extractor.
 #[poem::async_trait]
-pub trait ApiRequest: Sized {
-    /// Gets metadata of this request.
-    fn meta() -> MetaRequest;
+#[allow(unused_variables)]
+pub trait ApiExtractor<'a>: Sized {
+    /// The type of API extractor.
+    const TYPE: ApiExtractorType;
 
-    /// Register the schema contained in this request object to the registry.
-    fn register(registry: &mut Registry);
+    /// If it is `true`, it means that this parameter is required.
+    const PARAM_IS_REQUIRED: bool = false;
 
-    /// Parse the request object from the HTTP request.
+    /// The parameter type.
+    type ParamType;
+
+    /// The raw parameter type for validators.
+    type ParamRawType;
+
+    /// Register related types to registry.
+    fn register(registry: &mut Registry) {}
+
+    /// Returns name of security scheme if this extractor is security scheme.
+    fn security_scheme() -> Option<&'static str> {
+        None
+    }
+
+    /// Returns the location of the parameter if this extractor is parameter.
+    fn param_in() -> Option<MetaParamIn> {
+        None
+    }
+
+    /// Returns the schema of the parameter if this extractor is parameter.
+    fn param_schema_ref() -> Option<MetaSchemaRef> {
+        None
+    }
+
+    /// Returns `MetaRequest` if this extractor is request object.
+    fn request_meta() -> Option<MetaRequest> {
+        None
+    }
+
+    /// Returns a reference to the raw type of this parameter.
+    fn param_raw_type(&self) -> Option<&Self::ParamRawType> {
+        None
+    }
+
+    /// Parse from the HTTP request.
     async fn from_request(
-        request: &Request,
+        request: &'a Request,
         body: &mut RequestBody,
+        param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self, ParseRequestError>;
 }
 
 #[poem::async_trait]
-impl<T: Payload + ParsePayload> ApiRequest for T {
-    fn meta() -> MetaRequest {
-        MetaRequest {
+impl<'a, T: Payload + ParsePayload> ApiExtractor<'a> for T {
+    const TYPE: ApiExtractorType = ApiExtractorType::RequestObject;
+
+    type ParamType = ();
+    type ParamRawType = ();
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
+    }
+
+    fn request_meta() -> Option<MetaRequest> {
+        Some(MetaRequest {
             description: None,
             content: vec![MetaMediaType {
                 content_type: T::CONTENT_TYPE,
                 schema: T::schema_ref(),
             }],
             required: true,
-        }
-    }
-
-    fn register(registry: &mut Registry) {
-        T::register(registry);
+        })
     }
 
     async fn from_request(
-        request: &Request,
+        request: &'a Request,
         body: &mut RequestBody,
+        _param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self, ParseRequestError> {
         match request.content_type() {
             Some(content_type) => {
@@ -70,6 +159,85 @@ impl<T: Payload + ParsePayload> ApiRequest for T {
                 <T as ParsePayload>::from_request(request, body).await
             }
             None => Err(ParseRequestError::ExpectContentType),
+        }
+    }
+}
+
+#[poem::async_trait]
+impl<'a, T: ApiExtractor<'a>> ApiExtractor<'a> for Result<T, ParseRequestError> {
+    const TYPE: ApiExtractorType = T::TYPE;
+    const PARAM_IS_REQUIRED: bool = T::PARAM_IS_REQUIRED;
+    type ParamType = T::ParamType;
+    type ParamRawType = T::ParamRawType;
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
+    }
+
+    fn security_scheme() -> Option<&'static str> {
+        T::security_scheme()
+    }
+
+    fn param_in() -> Option<MetaParamIn> {
+        T::param_in()
+    }
+
+    fn param_schema_ref() -> Option<MetaSchemaRef> {
+        T::param_schema_ref()
+    }
+
+    fn request_meta() -> Option<MetaRequest> {
+        T::request_meta()
+    }
+
+    fn param_raw_type(&self) -> Option<&Self::ParamRawType> {
+        match self {
+            Ok(value) => value.param_raw_type(),
+            Err(_) => None,
+        }
+    }
+
+    async fn from_request(
+        request: &'a Request,
+        body: &mut RequestBody,
+        param_opts: ExtractParamOptions<Self::ParamType>,
+    ) -> Result<Self, ParseRequestError> {
+        Ok(T::from_request(request, body, param_opts).await)
+    }
+}
+
+/// Represents a poem extractor.
+pub struct PoemExtractor<T>(pub T);
+
+impl<T> Deref for PoemExtractor<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for PoemExtractor<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[poem::async_trait]
+impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for PoemExtractor<T> {
+    const TYPE: ApiExtractorType = ApiExtractorType::PoemExtractor;
+
+    type ParamType = ();
+    type ParamRawType = ();
+
+    async fn from_request(
+        request: &'a Request,
+        body: &mut RequestBody,
+        _param_opts: ExtractParamOptions<Self::ParamType>,
+    ) -> Result<Self, ParseRequestError> {
+        match T::from_request(request, body).await {
+            Ok(value) => Ok(Self(value)),
+            Err(err) => Err(ParseRequestError::Extractor(err.into_response())),
         }
     }
 }
@@ -129,22 +297,6 @@ pub trait Tags {
     fn name(&self) -> &'static str;
 }
 
-/// Represents a OpenAPI security scheme.
-#[poem::async_trait]
-pub trait SecurityScheme: Sized {
-    /// The name of security scheme.
-    const NAME: &'static str;
-
-    /// Register this security scheme type to registry.
-    fn register(registry: &mut Registry);
-
-    /// Parse authorization information from request.
-    async fn from_request(
-        req: &Request,
-        query: &HashMap<String, String>,
-    ) -> Result<Self, ParseRequestError>;
-}
-
 /// Represents a OAuth scopes.
 pub trait OAuthScopes {
     /// Gets metadata of this object.
@@ -152,22 +304,6 @@ pub trait OAuthScopes {
 
     /// Get the scope name.
     fn name(&self) -> &'static str;
-}
-
-#[poem::async_trait]
-impl<T: SecurityScheme> SecurityScheme for Option<T> {
-    const NAME: &'static str = T::NAME;
-
-    fn register(registry: &mut Registry) {
-        T::register(registry);
-    }
-
-    async fn from_request(
-        req: &Request,
-        query: &HashMap<String, String>,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(T::from_request(req, query).await.ok())
-    }
 }
 
 /// Represents a OpenAPI object.

@@ -1,6 +1,6 @@
 use poem::{listener::TcpListener, Route};
 use poem_openapi::{
-    payload::Json, types::Password, ApiResponse, Object, OpenApi, OpenApiService, Tags,
+    param::Path, payload::Json, types::Password, ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
 use slab::Slab;
 use tokio::sync::Mutex;
@@ -88,12 +88,9 @@ impl Api {
 
     /// Find user by id
     #[oai(path = "/users/:user_id", method = "get", tag = "ApiTags::User")]
-    async fn find_user(
-        &self,
-        #[oai(name = "user_id", in = "path")] user_id: i64,
-    ) -> FindUserResponse {
+    async fn find_user(&self, user_id: Path<i64>) -> FindUserResponse {
         let users = self.users.lock().await;
-        match users.get(user_id as usize) {
+        match users.get(user_id.0 as usize) {
             Some(user) => FindUserResponse::Ok(Json(user.clone())),
             None => FindUserResponse::NotFound,
         }
@@ -101,12 +98,9 @@ impl Api {
 
     /// Delete user by id
     #[oai(path = "/users/:user_id", method = "delete", tag = "ApiTags::User")]
-    async fn delete_user(
-        &self,
-        #[oai(name = "user_id", in = "path")] user_id: i64,
-    ) -> DeleteUserResponse {
+    async fn delete_user(&self, user_id: Path<i64>) -> DeleteUserResponse {
         let mut users = self.users.lock().await;
-        let user_id = user_id as usize;
+        let user_id = user_id.0 as usize;
         if users.contains(user_id) {
             users.remove(user_id);
             DeleteUserResponse::Ok
@@ -117,13 +111,9 @@ impl Api {
 
     /// Update user by id
     #[oai(path = "/users/:user_id", method = "put", tag = "ApiTags::User")]
-    async fn put_user(
-        &self,
-        #[oai(name = "user_id", in = "path")] user_id: i64,
-        update: Json<UpdateUser>,
-    ) -> UpdateUserResponse {
+    async fn put_user(&self, user_id: Path<i64>, update: Json<UpdateUser>) -> UpdateUserResponse {
         let mut users = self.users.lock().await;
-        match users.get_mut(user_id as usize) {
+        match users.get_mut(user_id.0 as usize) {
             Some(user) => {
                 if let Some(name) = update.0.name {
                     user.name = name;

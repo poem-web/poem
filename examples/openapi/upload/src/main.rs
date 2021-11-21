@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use poem::{error::BadRequest, listener::TcpListener, Result, Route};
 use poem_openapi::{
+    param::Path,
     payload::{Binary, Json},
     types::multipart::Upload,
     ApiResponse, Multipart, Object, OpenApi, OpenApiService,
@@ -67,7 +68,7 @@ impl Api {
 
     /// Get file
     #[oai(path = "/files/:id", method = "get")]
-    async fn get(&self, #[oai(name = "id", in = "path")] id: u64) -> GetFileResponse {
+    async fn get(&self, id: Path<u64>) -> GetFileResponse {
         let status = self.status.lock().await;
         match status.files.get(&id) {
             Some(file) => {

@@ -105,7 +105,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let payload_ty = &values[1].ty;
                 into_responses.push(quote! {
                     #ident::#item_ident(status, payload, #(#match_headers),*) => {
-                        let mut resp = #crate_name::poem::IntoResponse::into_response(payload);
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(payload);
                         resp.set_status(status);
                         #(#with_headers)*
                         resp
@@ -131,8 +131,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let status = get_status(variant.ident.span(), variant.status)?;
                 into_responses.push(quote! {
                     #ident::#item_ident(payload, #(#match_headers),*) => {
-                        let mut resp = #crate_name::poem::IntoResponse::into_response(payload);
-                        resp.set_status(#crate_name::poem::http::StatusCode::from_u16(#status).unwrap());
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(payload);
+                        resp.set_status(#crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap());
                         #(#with_headers)*
                         resp
                     }
@@ -156,9 +156,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let status = get_status(variant.ident.span(), variant.status)?;
                 into_responses.push(quote! {
                     #ident::#item_ident => {
-                        let status = #crate_name::poem::http::StatusCode::from_u16(#status).unwrap();
+                        let status = #crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap();
                         #[allow(unused_mut)]
-                        let mut resp = #crate_name::poem::IntoResponse::into_response(status);
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(status);
                         #(#with_headers)*
                         resp
                     }
@@ -178,9 +178,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let status = get_status(variant.ident.span(), variant.status)?;
                 into_responses.push(quote! {
                     #ident::#item_ident(#(#match_headers),*) => {
-                        let status = #crate_name::poem::http::StatusCode::from_u16(#status).unwrap();
+                        let status = #crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap();
                         #[allow(unused_mut)]
-                        let mut resp = #crate_name::poem::IntoResponse::into_response(status);
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(status);
                         #(#with_headers)*
                         resp
                     }
@@ -224,8 +224,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = {
         quote! {
-            impl #impl_generics #crate_name::poem::IntoResponse for #ident #ty_generics #where_clause {
-                fn into_response(self) -> #crate_name::poem::Response {
+            impl #impl_generics #crate_name::__private::poem::IntoResponse for #ident #ty_generics #where_clause {
+                fn into_response(self) -> #crate_name::__private::poem::Response {
                     match self {
                         #(#into_responses)*
                     }

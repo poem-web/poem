@@ -7,7 +7,7 @@ use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
     registry::{MetaOAuthFlow, MetaOAuthFlows, MetaOAuthScope, MetaSecurityScheme, Registry},
-    OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
+    ApiExtractor, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
 use typed_headers::{http::StatusCode, Token68};
 
@@ -17,7 +17,7 @@ fn rename() {
     #[oai(rename = "ABC", type = "basic")]
     struct MySecurityScheme(Basic);
 
-    assert_eq!(MySecurityScheme::NAME, "ABC");
+    assert_eq!(MySecurityScheme::security_scheme().unwrap(), "ABC");
 }
 
 #[test]
@@ -26,7 +26,10 @@ fn default_rename() {
     #[oai(type = "basic")]
     struct MySecurityScheme(Basic);
 
-    assert_eq!(MySecurityScheme::NAME, "my_security_scheme");
+    assert_eq!(
+        MySecurityScheme::security_scheme().unwrap(),
+        "my_security_scheme"
+    );
 }
 
 #[test]
@@ -97,7 +100,7 @@ async fn basic_auth() {
     #[OpenApi]
     impl MyApi {
         #[oai(path = "/test", method = "get")]
-        async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText<String> {
+        async fn test(&self, auth: MySecurityScheme) -> PlainText<String> {
             PlainText(format!("{}/{}", auth.0.username, auth.0.password))
         }
     }
@@ -147,7 +150,7 @@ async fn bearer_auth() {
     #[OpenApi]
     impl MyApi {
         #[oai(path = "/test", method = "get")]
-        async fn test(&self, #[oai(auth)] auth: MySecurityScheme) -> PlainText<String> {
+        async fn test(&self, auth: MySecurityScheme) -> PlainText<String> {
             PlainText(auth.0.token)
         }
     }
@@ -243,26 +246,17 @@ async fn api_key_auth() {
     #[OpenApi]
     impl MyApi {
         #[oai(path = "/header", method = "get")]
-        async fn test_in_header(
-            &self,
-            #[oai(auth)] auth: MySecuritySchemeInHeader,
-        ) -> PlainText<String> {
+        async fn test_in_header(&self, auth: MySecuritySchemeInHeader) -> PlainText<String> {
             PlainText(auth.0.key)
         }
 
         #[oai(path = "/query", method = "get")]
-        async fn test_in_query(
-            &self,
-            #[oai(auth)] auth: MySecuritySchemeInQuery,
-        ) -> PlainText<String> {
+        async fn test_in_query(&self, auth: MySecuritySchemeInQuery) -> PlainText<String> {
             PlainText(auth.0.key)
         }
 
         #[oai(path = "/cookie", method = "get")]
-        async fn test_in_cookie(
-            &self,
-            #[oai(auth)] auth: MySecuritySchemeInCookie,
-        ) -> PlainText<String> {
+        async fn test_in_cookie(&self, auth: MySecuritySchemeInCookie) -> PlainText<String> {
             PlainText(auth.0.key)
         }
     }

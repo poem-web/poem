@@ -2,7 +2,7 @@ mod request;
 
 use poem::{
     http::{HeaderValue, StatusCode},
-    IntoResponse,
+    IntoResponse, Response,
 };
 use poem_openapi::{
     payload::{Json, PlainText},
@@ -216,9 +216,9 @@ async fn bad_request_handler() {
     }
 
     assert_eq!(
-        CustomApiResponse::from_parse_request_error(ParseRequestError::ParseRequestBody {
-            reason: "error".to_string(),
-        }),
+        CustomApiResponse::from_parse_request_error(ParseRequestError::ParseRequestBody(
+            Response::default()
+        )),
         CustomApiResponse::BadRequest
     );
 }

@@ -1,7 +1,5 @@
 use askama::Template;
-use poem::{endpoint::make_sync, web::Html};
-
-use crate::poem::Endpoint;
+use poem::{endpoint::make_sync, web::Html, Endpoint};
 
 const SWAGGER_UI_JS: &str = include_str!("swagger-ui-bundle.js");
 const SWAGGER_UI_CSS: &str = include_str!("swagger-ui.css");

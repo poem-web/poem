@@ -2,18 +2,43 @@
 
 下面定义一组API对宠物表进行增删改查的操作。
 
-`add_pet`和`update_pet`用于添加和更新`Pet`对象，**这是我们在之前定义的基本类型，基本类型不能直接作为请求内容，需要使用一个`Payload`类型来包装它**，这样就可以确定内容的`Content-Type`。在下面的例子中，我们使用`payload::Json`来包装它，表示这两个API请求内容的`Content-Type`为`application/json`。
+一个方法代表一个API操作，必须使用`path`和`method`属性指定操作的路径和方法。
 
-`find_pet_by_id`和`find_pets_by_status`用于查找`Pet`对象，它们的响应也是一个`Pet`对象，同样需要使用`Payload`类型来包装。
+方法的参数可以有多个，可以使用以下类型：
 
-我们可以用`#[oai(name = "...", in = "...")]`来修饰一个函数参数用于指定此参数值的来源，`in`的值可以是`query`, `path`, `header`, `cookie`四种类型。`delete_pet`的`id`参数从路径中提取，`find_pet_by_id`和`find_pets_by_status`的参数从Query中获取。如果参数类型不是`Option<T>`，那么表示这个参数不是一个可选参数，提取失败时会返回`400 Bad Request`错误。
+    - **poem_openapi::param::Query** 表示参数来自查询字符串
 
-你可以定义多个函数参数，但只能有一个`Payload`类型作为请求内容，或者多个基本类型作为请求的参数。
+    - **poem_openapi::param::Header** 表示参数来自请求头
+
+    - **poem_openapi::param::Path** 表示参数来自请求路径
+
+    - **poem_openapi::param::Cookie** 表示参数来自Cookie
+
+    - **poem_openapi::param::CookiePrivate** 表示参数来自加密的Cookie
+
+    - **poem_openapi::param::CookieSigned** 表示参数来自签名后的Cookie
+
+    - **poem_openapi::payload::Binary** 表示请求内容是二进制数据
+
+    - **poem_openapi::payload::Json** 表示请求内容用Json编码
+
+    - **poem_openapi::payload::PlainText** 表示请求内容是UTF8文本
+
+    - **ApiRequest** 使用`ApiRequest`宏生成的请求体
+
+    - **SecurityScheme** 使用`SecurityScheme`宏生成认证方法
+
+    - **Result<T, ParseRequestError>** 用于捕获解析的错误
+
+    - **PoemExtractor** 使用Poem的提取器
+
+返回值可以是任意实现了`poem::IntoResponse`的类型。
 
 ```rust
 use poem_api::{
-  OpenApi,
-  poem_api::payload::Json,
+    OpenApi,
+    poem_api::payload::Json,
+    param::{Path, Query},
 };
 use poem::Result;
 
@@ -34,20 +59,20 @@ impl Api {
     }
 
     /// 删除一个Pet
-    #[oai(path = "/pet/:pet_id", method = "delete")]
-    async fn delete_pet(&self, #[oai(name = "pet_id", in = "path")] id: u64) -> Result<()> {
+    #[oai(path = "/pet/:id", method = "delete")]
+    async fn delete_pet(&self, id: Path<u64>) -> Result<()> {
         todo!()
     }
   
     /// 根据ID查询Pet
     #[oai(path = "/pet", method = "get")]
-    async fn find_pet_by_id(&self, #[oai(name = "status", in = "query")] id: u64) -> Result<Json<Pet>> {
+    async fn find_pet_by_id(&self, id: Query<u64>) -> Result<Json<Pet>> {
         todo!()
     } 
   
     /// 根据状态查询Pet
     #[oai(path = "/pet/findByStatus", method = "get")]
-    async fn find_pets_by_status(&self, #[oai(name = "status", in = "query")] status: Status) -> Result<Json<Vec<Pet>>> {
+    async fn find_pets_by_status(&self, status: Query<Status>) -> Result<Json<Vec<Pet>>> {
         todo!()
     }
 }

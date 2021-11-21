@@ -40,7 +40,7 @@ impl Api {
     #[oai(path = "/repo", method = "get")]
     async fn repo_list(
         &self,
-        #[oai(auth("GithubScope::PublicRepo"))] auth: GithubAuthorization,
+        #[oai(scope("GithubScope::PublicRepo"))] auth: GithubAuthorization,
     ) -> Result<PlainText<String>> {
         // 使用GithubAuthorization得到的token向Github获取所有公共仓库信息。
         todo!()

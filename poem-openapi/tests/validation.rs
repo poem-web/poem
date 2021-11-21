@@ -3,6 +3,7 @@ use poem::{
     Endpoint, IntoEndpoint, Request,
 };
 use poem_openapi::{
+    param::Query,
     payload::Payload,
     registry::{MetaApi, MetaSchema, Registry},
     types::{multipart::JsonField, ParseFromJSON, Type},
@@ -273,7 +274,7 @@ async fn param_validator() {
         #[oai(path = "/", method = "get")]
         async fn test(
             &self,
-            #[oai(name = "v", in = "query", validator(maximum(value = "100", exclusive)))] _v: i32,
+            #[oai(name = "v", validator(maximum(value = "100", exclusive)))] _v: Query<i32>,
         ) {
         }
     }

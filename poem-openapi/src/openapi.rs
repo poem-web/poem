@@ -1,13 +1,16 @@
+use std::collections::BTreeMap;
+
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
+    middleware::CookieJarManager,
     web::cookie::CookieKey,
-    Endpoint, EndpointExt, IntoEndpoint, Response, Route,
+    Endpoint, EndpointExt, FromRequest, IntoEndpoint, IntoResponse, Request, Response, Route,
 };
 
 #[cfg(feature = "swagger-ui")]
 use crate::ui::create_ui_endpoint;
 use crate::{
-    poem::middleware::CookieJarManager,
+    base::UrlQuery,
     registry::{Document, MetaInfo, MetaServer, Registry},
     OpenApi,
 };
@@ -123,16 +126,29 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
     type Endpoint = BoxEndpoint<'static, Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
+        async fn extract_query(next: impl Endpoint, mut req: Request) -> impl IntoResponse {
+            let query: poem::web::Query<BTreeMap<String, String>> =
+                FromRequest::from_request(&req, &mut Default::default())
+                    .await
+                    .unwrap_or_default();
+            req.extensions_mut().insert(UrlQuery(query.0));
+            next.call(req).await
+        }
+
         match self.cookie_key {
             Some(key) => self
                 .api
                 .add_routes(Route::new())
                 .with(CookieJarManager::with_key(key))
+                .around(extract_query)
+                .map_to_response()
                 .boxed(),
             None => self
                 .api
                 .add_routes(Route::new())
                 .with(CookieJarManager::new())
+                .around(extract_query)
+                .map_to_response()
                 .boxed(),
         }
     }

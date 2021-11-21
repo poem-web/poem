@@ -126,7 +126,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ParseFromJSON for #ident {
-            fn parse_from_json(value: #crate_name::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+            fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
                 match value.as_object().and_then(|obj| obj.get(#property_name)) {
                     #(#from_json,)*
                     _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
@@ -135,23 +135,23 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ToJSON for #ident {
-            fn to_json(&self) -> #crate_name::serde_json::Value {
+            fn to_json(&self) -> #crate_name::__private::serde_json::Value {
                 match self {
                     #(#to_json),*
                 }
             }
         }
 
-        impl #crate_name::serde::Serialize for #ident {
-            fn serialize<S: #crate_name::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
+        impl #crate_name::__private::serde::Serialize for #ident {
+            fn serialize<S: #crate_name::__private::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
                 #crate_name::types::ToJSON::to_json(self).serialize(serializer)
             }
         }
 
-        impl<'de> #crate_name::serde::Deserialize<'de> for #ident {
-            fn deserialize<D: #crate_name::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
-                let value: #crate_name::serde_json::Value = #crate_name::serde::de::Deserialize::deserialize(deserializer)?;
-                #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::serde::de::Error::custom(err.into_message()))
+        impl<'de> #crate_name::__private::serde::Deserialize<'de> for #ident {
+            fn deserialize<D: #crate_name::__private::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
+                let value: #crate_name::__private::serde_json::Value = #crate_name::__private::serde::de::Deserialize::deserialize(deserializer)?;
+                #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::__private::serde::de::Error::custom(err.into_message()))
             }
         }
     };

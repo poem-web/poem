@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Add `list` attribute to the validator.
+- Rework `OpenAPI` macro.
 
 # [1.0.28] 2021-11-17
 

@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
+use poem::web::Field as PoemField;
+use serde_json::Value;
+
 use crate::{
-    poem::web::Field as PoemField,
     registry::{MetaSchema, MetaSchemaRef, Registry},
-    serde_json::Value,
     types::{ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type},
 };
 

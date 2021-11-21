@@ -4,10 +4,11 @@ use poem::{
     Endpoint, EndpointExt, IntoEndpoint,
 };
 use poem_openapi::{
+    param::Query,
     payload::{Binary, Json, PlainText},
     registry::{MetaApi, MetaSchema},
     types::Type,
-    ApiRequest, ApiResponse, OpenApi, OpenApiService, ParseRequestError, Tags,
+    ApiRequest, ApiResponse, OpenApi, OpenApiService, ParseRequestError, PoemExtractor, Tags,
 };
 
 #[tokio::test]
@@ -265,13 +266,13 @@ async fn response() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(name = "code", in = "query")] code: u16) -> MyResponse {
-            match code {
+        async fn test(&self, code: Query<u16>) -> MyResponse {
+            match code.0 {
                 200 => MyResponse::Ok,
-                409 => MyResponse::AlreadyExists(Json(code)),
+                409 => MyResponse::AlreadyExists(Json(code.0)),
                 _ => MyResponse::Default(
-                    StatusCode::from_u16(code).unwrap(),
-                    PlainText(format!("code: {}", code)),
+                    StatusCode::from_u16(code.0).unwrap(),
+                    PlainText(format!("code: {}", code.0)),
                 ),
             }
         }
@@ -365,8 +366,8 @@ async fn bad_request_handler() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(name = "code", in = "query")] code: u16) -> MyResponse {
-            MyResponse::Ok(PlainText(format!("code: {}", code)))
+        async fn test(&self, code: Query<u16>) -> MyResponse {
+            MyResponse::Ok(PlainText(format!("code: {}", code.0)))
         }
     }
 
@@ -424,9 +425,9 @@ async fn bad_request_handler_for_validator() {
         #[oai(path = "/", method = "get")]
         async fn test(
             &self,
-            #[oai(name = "code", in = "query", validator(maximum(value = "100")))] code: u16,
+            #[oai(validator(maximum(value = "100")))] code: Query<u16>,
         ) -> MyResponse {
-            MyResponse::Ok(PlainText(format!("code: {}", code)))
+            MyResponse::Ok(PlainText(format!("code: {}", code.0)))
         }
     }
 
@@ -467,8 +468,8 @@ async fn poem_extract() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(extract)] data: Data<&i32>) {
-            assert_eq!(*data.0, 100);
+        async fn test(&self, data: PoemExtractor<Data<&i32>>) {
+            assert_eq!(*data.0 .0, 100);
         }
     }
 

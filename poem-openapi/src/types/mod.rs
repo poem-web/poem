@@ -54,35 +54,26 @@ pub trait Type: Send + Sync {
 }
 
 /// Represents a type that can parsing from JSON.
-pub trait ParseFromJSON: Type {
+pub trait ParseFromJSON: Sized + Type {
     /// Parse from [`serde_json::Value`].
-    fn parse_from_json(value: Value) -> ParseResult<Self>
-    where
-        Self: Sized;
+    fn parse_from_json(value: Value) -> ParseResult<Self>;
 }
 
 /// Represents a type that can parsing from parameter. (header, query, path,
 /// cookie)
-pub trait ParseFromParameter: Type {
+pub trait ParseFromParameter: Sized + Type {
     /// Parse from parameter.
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self>
-    where
-        Self: Sized;
+    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self>;
 }
 
 /// Represents a type that can parsing from multipart.
 #[poem::async_trait]
-pub trait ParseFromMultipartField: Type {
+pub trait ParseFromMultipartField: Sized + Type {
     /// Parse from multipart field.
-    async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self>
-    where
-        Self: Sized;
+    async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self>;
 
     /// Parse from repeated multipart field.
-    async fn parse_from_repeated_field(self, _field: PoemField) -> ParseResult<Self>
-    where
-        Self: Sized,
-    {
+    async fn parse_from_repeated_field(self, _field: PoemField) -> ParseResult<Self> {
         Err(ParseError::<Self>::custom("repeated field"))
     }
 }

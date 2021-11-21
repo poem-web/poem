@@ -1,13 +1,13 @@
 use poem::{listener::TcpListener, web::Data, EndpointExt, Route};
-use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
+use poem_openapi::{payload::PlainText, OpenApi, OpenApiService, PoemExtractor};
 
 struct Api;
 
 #[OpenApi]
 impl Api {
     #[oai(path = "/hello", method = "get")]
-    async fn index(&self, #[oai(extract)] data: Data<&i32>) -> PlainText<String> {
-        PlainText(format!("{}", data.0))
+    async fn index(&self, data: PoemExtractor<Data<&i32>>) -> PlainText<String> {
+        PlainText(format!("{}", data.0 .0))
     }
 }
 

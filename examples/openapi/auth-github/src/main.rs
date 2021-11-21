@@ -36,7 +36,7 @@ impl Api {
     #[oai(path = "/repositories", method = "get")]
     async fn repositories(
         &self,
-        #[oai(auth("GithubScopes::PublicRepo"))] auth: GithubAuthorization,
+        #[oai(scope = "GithubScopes::PublicRepo")] auth: GithubAuthorization,
     ) -> Result<PlainText<String>> {
         let client = reqwest::Client::new();
         let text = client

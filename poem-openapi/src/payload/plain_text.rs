@@ -2,7 +2,6 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
 use crate::{
     payload::{ParsePayload, Payload},
-    poem::Error,
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
     ApiResponse, ParseRequestError,
@@ -27,14 +26,7 @@ impl ParsePayload for PlainText<String> {
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
         Ok(Self(String::from_request(request, body).await.map_err(
-            |err| {
-                ParseRequestError::ParseRequestBody {
-                    reason: Into::<Error>::into(err)
-                        .reason()
-                        .unwrap_or_default()
-                        .to_string(),
-                }
-            },
+            |err| ParseRequestError::ParseRequestBody(err.into_response()),
         )?))
     }
 }

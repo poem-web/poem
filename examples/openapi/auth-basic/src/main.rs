@@ -14,10 +14,7 @@ struct Api;
 #[OpenApi]
 impl Api {
     #[oai(path = "/basic", method = "get")]
-    async fn auth_basic(
-        &self,
-        #[oai(auth)] auth: MyBasicAuthorization,
-    ) -> Result<PlainText<String>> {
+    async fn auth_basic(&self, auth: MyBasicAuthorization) -> Result<PlainText<String>> {
         if auth.0.username != "test" || auth.0.password != "123456" {
             return Err(Error::new(StatusCode::UNAUTHORIZED));
         }
