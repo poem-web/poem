@@ -27,7 +27,7 @@ async fn main() -> Result<(), std::io::Error> {
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
     });
-    Server::new(listener).await?.run(app).await
+    Server::new(listener).run(app).await
 }
 
 fn load_tls_config() -> Result<RustlsConfig, std::io::Error> {

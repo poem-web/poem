@@ -2,7 +2,7 @@ use poem::{
     error::{BadRequest, InternalServerError},
     handler,
     listener::TcpListener,
-    Result, Route,
+    Result, Route, Server,
 };
 use poem_openapi::{
     auth::Bearer, payload::PlainText, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
@@ -87,13 +87,11 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service =
         OpenApiService::new(Api, "Authorization Demo", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 
-    poem::Server::new(listener)
-        .await?
+    Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
             Route::new()
                 .at("/proxy", oauth_token_url_proxy)

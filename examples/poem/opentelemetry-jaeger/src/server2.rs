@@ -39,7 +39,8 @@ async fn main() -> Result<(), std::io::Error> {
         .data(tracer.clone())
         .with(OpenTelemetryMetrics::new())
         .with(OpenTelemetryTracing::new(tracer));
-    let listener = TcpListener::bind("127.0.0.1:3002");
-    let server = Server::new(listener).await?;
-    server.run(app).await
+
+    Server::new(TcpListener::bind("127.0.0.1:3002"))
+        .run(app)
+        .await
 }

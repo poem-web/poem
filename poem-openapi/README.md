@@ -78,14 +78,13 @@ impl Api {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service =
         OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
+    let app = Route::new().nest("/api", api_service).nest("/", ui);
 
-    poem::Server::new(listener)
-        .await?
-        .run(Route::new().nest("/api", api_service).nest("/", ui))
+    poem::Server::new(TcpListener::bind("127.0.0.1:3000"))
+        .run(app)
         .await
 }
 ```

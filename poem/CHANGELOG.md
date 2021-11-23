@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.0.30] 2021-11-23
+
+- `Server::new` is no longer an asynchronous method and has no return value.
+- Remove `Server::local_addr` method.
+- Add the `Server::name` method to specify the name of the server, it is only used for logs.
+
 # [1.0.28] 2021-11-17
 
 - Add `EndpointExt::with_if` method.

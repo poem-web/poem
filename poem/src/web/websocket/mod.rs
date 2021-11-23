@@ -39,7 +39,11 @@ mod tests {
     use http::{header, HeaderValue};
 
     use super::*;
-    use crate::{handler, listener::TcpListener, IntoResponse, Server};
+    use crate::{
+        handler,
+        listener::{Acceptor, Listener, TcpListener},
+        IntoResponse, Server,
+    };
 
     #[tokio::test]
     async fn test_negotiation() {
@@ -48,8 +52,11 @@ mod tests {
             ws.protocols(["aaa", "bbb"]).on_upgrade(|_| async move {})
         }
 
-        let server = Server::new(TcpListener::bind("127.0.0.1:0")).await.unwrap();
-        let addr = server
+        let acceptor = TcpListener::bind("127.0.0.1:0")
+            .into_acceptor()
+            .await
+            .unwrap();
+        let addr = acceptor
             .local_addr()
             .remove(0)
             .as_socket_addr()
@@ -57,7 +64,7 @@ mod tests {
             .unwrap();
 
         let handle = tokio::spawn(async move {
-            let _ = server.run(index).await;
+            let _ = Server::new_with_acceptor(acceptor).run(index).await;
         });
 
         let (_, resp) = tokio_tungstenite::connect_async(format!("ws://{}", addr))
@@ -104,13 +111,17 @@ mod tests {
             })
         }
 
-        let server = Server::new(TcpListener::bind("127.0.0.1:0")).await.unwrap();
-        let addr = server
+        let acceptor = TcpListener::bind("127.0.0.1:0")
+            .into_acceptor()
+            .await
+            .unwrap();
+        let addr = acceptor
             .local_addr()
             .remove(0)
             .as_socket_addr()
             .cloned()
             .unwrap();
+        let server = Server::new_with_acceptor(acceptor);
 
         let handle = tokio::spawn(async move {
             let _ = server.run(index).await;
