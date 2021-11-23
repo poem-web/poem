@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use poem::{error::BadRequest, listener::TcpListener, Result, Route};
+use poem::{error::BadRequest, listener::TcpListener, Result, Route, Server};
 use poem_openapi::{
+    param::Path,
     payload::{Binary, Json},
     types::multipart::Upload,
     ApiResponse, Multipart, Object, OpenApi, OpenApiService,
@@ -67,7 +68,7 @@ impl Api {
 
     /// Get file
     #[oai(path = "/files/:id", method = "get")]
-    async fn get(&self, #[oai(name = "id", in = "path")] id: u64) -> GetFileResponse {
+    async fn get(&self, id: Path<u64>) -> GetFileResponse {
         let status = self.status.lock().await;
         match status.files.get(&id) {
             Some(file) => {
@@ -89,7 +90,6 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service = OpenApiService::new(
         Api {
             status: Mutex::new(Status {
@@ -103,8 +103,7 @@ async fn main() -> Result<(), std::io::Error> {
     .server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 
-    poem::Server::new(listener)
-        .await?
+    Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(Route::new().nest("/api", api_service).nest("/", ui))
         .await
 }

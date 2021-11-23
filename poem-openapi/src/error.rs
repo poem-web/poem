@@ -15,11 +15,8 @@ pub enum ParseRequestError {
     },
 
     /// Failed to parse a request body.
-    #[error("Failed to parse a request body: {reason}")]
-    ParseRequestBody {
-        /// The reason for the error.
-        reason: String,
-    },
+    #[error("Failed to parse a request body")]
+    ParseRequestBody(Response),
 
     /// The `Content-Type` requested by the client is not supported.
     #[error("The `Content-Type` requested by the client is not supported: {content_type}")]
@@ -44,17 +41,16 @@ pub enum ParseRequestError {
 impl IntoResponse for ParseRequestError {
     fn into_response(self) -> Response {
         match self {
-            ParseRequestError::ParseParam { .. } | ParseRequestError::ParseRequestBody { .. } => {
-                self.to_string()
-                    .with_status(StatusCode::BAD_REQUEST)
-                    .into_response()
-            }
+            ParseRequestError::ParseParam { .. } => self
+                .to_string()
+                .with_status(StatusCode::BAD_REQUEST)
+                .into_response(),
             ParseRequestError::ContentTypeNotSupported { .. }
             | ParseRequestError::ExpectContentType => self
                 .to_string()
                 .with_status(StatusCode::METHOD_NOT_ALLOWED)
                 .into_response(),
-            ParseRequestError::Extractor(resp) => resp,
+            ParseRequestError::ParseRequestBody(resp) | ParseRequestError::Extractor(resp) => resp,
             ParseRequestError::Authorization => self
                 .to_string()
                 .with_status(StatusCode::UNAUTHORIZED)

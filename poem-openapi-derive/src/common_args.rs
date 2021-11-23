@@ -148,14 +148,14 @@ impl FromMeta for DefaultValue {
     }
 }
 
-#[derive(FromMeta)]
+#[derive(FromMeta, Clone)]
 pub(crate) struct MaximumValidator {
     pub(crate) value: f64,
     #[darling(default)]
     pub(crate) exclusive: bool,
 }
 
-#[derive(FromMeta)]
+#[derive(FromMeta, Clone)]
 pub(crate) struct MinimumValidator {
     pub(crate) value: f64,
     #[darling(default)]

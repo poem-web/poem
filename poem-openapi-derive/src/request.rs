@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use darling::{
     ast::{Data, Fields},
     util::Ignored,
@@ -49,6 +51,17 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut content = Vec::new();
     let mut schemas = Vec::new();
 
+    let impl_generics = {
+        let mut s = quote!(#impl_generics).to_string();
+        match s.find('<') {
+            Some(pos) => {
+                s.insert_str(pos + 1, "'__request,");
+                TokenStream::from_str(&s).unwrap()
+            }
+            _ => quote!(<'__request>),
+        }
+    };
+
     for variant in e {
         let item_ident = &variant.ident;
 
@@ -81,21 +94,30 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = {
         quote! {
-            #[#crate_name::poem::async_trait]
-            impl #impl_generics #crate_name::ApiRequest for #ident #ty_generics #where_clause {
-                fn meta() -> #crate_name::registry::MetaRequest {
-                    #crate_name::registry::MetaRequest {
-                        description: #description,
-                        content: ::std::vec![#(#content),*],
-                        required: true,
-                    }
-                }
+            #[#crate_name::__private::poem::async_trait]
+            impl #impl_generics #crate_name::ApiExtractor<'__request> for #ident #ty_generics #where_clause {
+                const TYPE: #crate_name::ApiExtractorType = #crate_name::ApiExtractorType::RequestObject;
+
+                type ParamType = ();
+                type ParamRawType = ();
 
                 fn register(registry: &mut #crate_name::registry::Registry) {
                     #(<#schemas as #crate_name::payload::Payload>::register(registry);)*
                 }
 
-                async fn from_request(request: &#crate_name::poem::Request, body: &mut #crate_name::poem::RequestBody) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
+                fn request_meta() -> ::std::option::Option<#crate_name::registry::MetaRequest> {
+                    ::std::option::Option::Some(#crate_name::registry::MetaRequest {
+                        description: #description,
+                        content: ::std::vec![#(#content),*],
+                        required: true,
+                    })
+                }
+
+                async fn from_request(
+                    request: &'__request #crate_name::__private::poem::Request,
+                    body: &mut #crate_name::__private::poem::RequestBody,
+                    _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
+                ) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
                     let content_type = request.content_type();
                     match content_type {
                         #(#from_requests)*

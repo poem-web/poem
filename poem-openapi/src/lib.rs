@@ -34,18 +34,15 @@
 //!
 //! ```no_run
 //! use poem::{listener::TcpListener, Route};
-//! use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
+//! use poem_openapi::{param::Query, payload::PlainText, OpenApi, OpenApiService};
 //!
 //! struct Api;
 //!
 //! #[OpenApi]
 //! impl Api {
 //!     #[oai(path = "/hello", method = "get")]
-//!     async fn index(
-//!         &self,
-//!         #[oai(name = "name", in = "query")] name: Option<String>,
-//!     ) -> PlainText<String> {
-//!         match name {
+//!     async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
+//!         match name.0 {
 //!             Some(name) => PlainText(format!("hello, {}!", name)),
 //!             None => PlainText("hello!".to_string()),
 //!         }
@@ -54,14 +51,13 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), std::io::Error> {
-//!     let listener = TcpListener::bind("127.0.0.1:3000");
 //!     let api_service =
 //!         OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000/api");
 //!     let ui = api_service.swagger_ui();
+//!     let app = Route::new().nest("/api", api_service).nest("/", ui);
 //!
-//!     poem::Server::new(listener)
-//!         .await?
-//!         .run(Route::new().nest("/api", api_service).nest("/", ui))
+//!     poem::Server::new(TcpListener::bind("127.0.0.1:3000"))
+//!         .run(app)
 //!         .await
 //! }
 //! ```
@@ -88,26 +84,26 @@
 #![warn(missing_docs)]
 
 pub mod auth;
-mod base;
-mod error;
-mod openapi;
-#[doc(hidden)]
 pub mod param;
 pub mod payload;
 #[doc(hidden)]
 pub mod registry;
 pub mod types;
 #[doc(hidden)]
-#[cfg(feature = "swagger-ui")]
-pub mod ui;
-#[doc(hidden)]
 pub mod validation;
 
-pub use base::{ApiRequest, ApiResponse, CombinedAPI, OAuthScopes, OpenApi, SecurityScheme, Tags};
+mod base;
+mod error;
+mod openapi;
+#[cfg(feature = "swagger-ui")]
+mod ui;
+
+pub use base::{
+    ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
+    OpenApi, PoemExtractor, Tags,
+};
 pub use error::ParseRequestError;
 pub use openapi::OpenApiService;
-#[doc(hidden)]
-pub use poem;
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;
 #[doc = include_str!("docs/response.md")]
@@ -128,7 +124,12 @@ pub use poem_openapi_derive::OpenApi;
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]
 pub use poem_openapi_derive::Tags;
+
 #[doc(hidden)]
-pub use serde;
-#[doc(hidden)]
-pub use serde_json;
+pub mod __private {
+    pub use poem;
+    pub use serde;
+    pub use serde_json;
+
+    pub use crate::base::UrlQuery;
+}

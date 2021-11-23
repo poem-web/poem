@@ -4,14 +4,10 @@ mod api_key;
 mod basic;
 mod bearer;
 
-use std::collections::HashMap;
-
-pub use api_key::ApiKey;
-pub use basic::Basic;
-pub use bearer::Bearer;
 use poem::Request;
 
-use crate::{registry::MetaParamIn, ParseRequestError};
+pub use self::{api_key::ApiKey, basic::Basic, bearer::Bearer};
+use crate::{base::UrlQuery, registry::MetaParamIn, ParseRequestError};
 
 /// Represents a basic authorization extractor.
 pub trait BasicAuthorization: Sized {
@@ -30,7 +26,7 @@ pub trait ApiKeyAuthorization: Sized {
     /// Extract from the HTTP request.
     fn from_request(
         req: &Request,
-        query: &HashMap<String, String>,
+        query: &UrlQuery,
         name: &str,
         in_type: MetaParamIn,
     ) -> Result<Self, ParseRequestError>;

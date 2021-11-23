@@ -66,15 +66,11 @@ async fn main() -> io::Result<()> {
         .database("test");
     let collection = mongodb.collection::<Document>("user");
 
-    let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await?;
-    server
+    Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
             Route::new()
                 .at("/user", get(get_users).post(create_user))
                 .with(AddData::new(collection)),
         )
-        .await?;
-
-    Ok(())
+        .await
 }

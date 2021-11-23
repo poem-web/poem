@@ -15,8 +15,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new().at("/", get(hello));
     let listener = UnixListener::bind("./unix-socket");
-    let server = Server::new(listener).await?;
-    server.run(app).await
+    Server::new(listener).run(app).await
 }
 
 #[cfg(not(unix))]

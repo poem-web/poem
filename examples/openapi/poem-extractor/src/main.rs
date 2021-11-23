@@ -1,13 +1,13 @@
-use poem::{listener::TcpListener, web::Data, EndpointExt, Route};
-use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
+use poem::{listener::TcpListener, web::Data, EndpointExt, Route, Server};
+use poem_openapi::{payload::PlainText, OpenApi, OpenApiService, PoemExtractor};
 
 struct Api;
 
 #[OpenApi]
 impl Api {
     #[oai(path = "/hello", method = "get")]
-    async fn index(&self, #[oai(extract)] data: Data<&i32>) -> PlainText<String> {
-        PlainText(format!("{}", data.0))
+    async fn index(&self, data: PoemExtractor<Data<&i32>>) -> PlainText<String> {
+        PlainText(format!("{}", data.0 .0))
     }
 }
 
@@ -18,13 +18,11 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let listener = TcpListener::bind("127.0.0.1:3000");
     let api_service =
         OpenApiService::new(Api, "Poem Extractor", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 
-    poem::Server::new(listener)
-        .await?
+    Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
             Route::new()
                 .nest("/api", api_service.data(100i32))

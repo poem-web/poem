@@ -105,9 +105,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ParseFromJSON for #ident {
-            fn parse_from_json(value: #crate_name::serde_json::Value) -> #crate_name::types::ParseResult<Self> {
+            fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> #crate_name::types::ParseResult<Self> {
                 match &value {
-                    #crate_name::serde_json::Value::String(item) => match item.as_str() {
+                    #crate_name::__private::serde_json::Value::String(item) => match item.as_str() {
                         #(#item_to_ident,)*
                         _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
                     }
@@ -129,17 +129,17 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ToJSON for #ident {
-            fn to_json(&self) -> #crate_name::serde_json::Value {
+            fn to_json(&self) -> #crate_name::__private::serde_json::Value {
                 let name = match self {
                     #(#ident_to_item),*
                 };
-                #crate_name::serde_json::Value::String(::std::string::ToString::to_string(name))
+                #crate_name::__private::serde_json::Value::String(::std::string::ToString::to_string(name))
             }
         }
 
-        #[#crate_name::poem::async_trait]
+        #[#crate_name::__private::poem::async_trait]
         impl #crate_name::types::ParseFromMultipartField for #ident {
-            async fn parse_from_multipart(field: ::std::option::Option<#crate_name::poem::web::Field>) -> #crate_name::types::ParseResult<Self> {
+            async fn parse_from_multipart(field: ::std::option::Option<#crate_name::__private::poem::web::Field>) -> #crate_name::types::ParseResult<Self> {
                 use poem_openapi::types::ParseFromParameter;
                 match field {
                     ::std::option::Option::Some(field) => {

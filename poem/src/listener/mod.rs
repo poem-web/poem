@@ -12,6 +12,7 @@ mod tls;
 mod unix;
 
 use std::{
+    convert::Infallible,
     io::Error,
     pin::Pin,
     task::{Context, Poll},
@@ -154,6 +155,15 @@ pub trait Listener: Send {
 }
 
 #[async_trait::async_trait]
+impl Listener for Infallible {
+    type Acceptor = Infallible;
+
+    async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
+        unreachable!()
+    }
+}
+
+#[async_trait::async_trait]
 impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
     type Io = T::Io;
 
@@ -163,6 +173,19 @@ impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
 
     async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
         self.as_mut().accept().await
+    }
+}
+
+#[async_trait::async_trait]
+impl Acceptor for Infallible {
+    type Io = BoxIo;
+
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        vec![]
+    }
+
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+        unreachable!()
     }
 }
 

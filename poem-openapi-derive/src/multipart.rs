@@ -1,19 +1,13 @@
-use darling::{
-    ast::Data,
-    util::{Ignored, SpannedValue},
-    FromDeriveInput, FromField,
-};
+use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
-    common_args::{
-        DefaultValue, MaximumValidator, MinimumValidator, RenameRule, RenameRuleExt, RenameTarget,
-    },
+    common_args::{DefaultValue, RenameRule, RenameRuleExt, RenameTarget},
     error::GeneratorResult,
     utils::{get_crate_name, get_summary_and_description, optional_literal},
-    validators::HasValidators,
+    validators::Validators,
 };
 
 #[derive(FromField)]
@@ -29,28 +23,9 @@ struct MultipartField {
     rename: Option<String>,
     #[darling(default)]
     default: Option<DefaultValue>,
-
     #[darling(default)]
-    multiple_of: Option<SpannedValue<f64>>,
-    #[darling(default)]
-    maximum: Option<SpannedValue<MaximumValidator>>,
-    #[darling(default)]
-    minimum: Option<SpannedValue<MinimumValidator>>,
-    #[darling(default)]
-    max_length: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    min_length: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    pattern: Option<SpannedValue<String>>,
-    #[darling(default)]
-    max_items: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    min_items: Option<SpannedValue<usize>>,
-    #[darling(default)]
-    unique_items: bool,
+    validator: Option<Validators>,
 }
-
-impl_has_validators!(MultipartField);
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(oai))]
@@ -108,25 +83,28 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let (field_title, field_description) = get_summary_and_description(&field.attrs)?;
         let field_title = optional_literal(&field_title);
         let field_description = optional_literal(&field_description);
-        let validators_checker = field
-            .validators()
-            .create_multipart_field_checker(&crate_name, &field_name)?;
-        let validators_update_meta = field.validators().create_update_meta(&crate_name)?;
+        let validators = field.validator.clone().unwrap_or_default();
+        let validators_checker =
+            validators.create_multipart_field_checker(&crate_name, &field_name)?;
+        let validators_update_meta = validators.create_update_meta(&crate_name)?;
 
         fields.push(field_ident);
+
+        let parse_err = quote! {{
+            let resp = #crate_name::__private::poem::Response::builder()
+                .status(#crate_name::__private::poem::http::StatusCode::BAD_REQUEST)
+                .body(::std::format!("failed to parse field `{}`: {}", #field_name, err.into_message()));
+            #crate_name::ParseRequestError::ParseRequestBody(resp)
+        }};
 
         deserialize_fields.push(quote! {
             if field.name() == ::std::option::Option::Some(#field_name) {
                 #field_ident = match #field_ident {
                     ::std::option::Option::Some(value) => {
-                        ::std::option::Option::Some(<#field_ty as #crate_name::types::ParseFromMultipartField>::parse_from_repeated_field(value, field).await.map_err(|err|
-                            #crate_name::ParseRequestError::ParseRequestBody { reason: ::std::format!("failed to parse field `{}`: {}", #field_name, err.into_message()) }
-                        )?)
+                        ::std::option::Option::Some(<#field_ty as #crate_name::types::ParseFromMultipartField>::parse_from_repeated_field(value, field).await.map_err(|err| #parse_err )?)
                     }
                     ::std::option::Option::None => {
-                        ::std::option::Option::Some(<#field_ty as #crate_name::types::ParseFromMultipartField>::parse_from_multipart(::std::option::Option::Some(field)).await.map_err(|err|
-                            #crate_name::ParseRequestError::ParseRequestBody { reason: ::std::format!("failed to parse field `{}`: {}", #field_name, err.into_message()) }
-                        )?)
+                        ::std::option::Option::Some(<#field_ty as #crate_name::types::ParseFromMultipartField>::parse_from_multipart(::std::option::Option::Some(field)).await.map_err(|err| #parse_err )?)
                     }
                 };
                 continue;
@@ -161,7 +139,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         },
                         ::std::option::Option::None => {
                             <#field_ty as #crate_name::types::ParseFromMultipartField>::parse_from_multipart(::std::option::Option::None).await.map_err(|_|
-                                #crate_name::ParseRequestError::ParseRequestBody { reason: ::std::format!("field `{}` is required", #field_name) }
+                                #crate_name::ParseRequestError::ParseRequestBody(
+                                    #crate_name::__private::poem::Response::builder()
+                                        .status(#crate_name::__private::poem::http::StatusCode::BAD_REQUEST)
+                                        .body(::std::format!("field `{}` is required", #field_name))
+                                )
                             )?
                         }
                     };
@@ -233,27 +215,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
         }
 
-        #[#crate_name::poem::async_trait]
+        #[#crate_name::__private::poem::async_trait]
         impl #impl_generics #crate_name::payload::ParsePayload for #ident #ty_generics #where_clause {
-            async fn from_request(request: &#crate_name::poem::Request, body: &mut #crate_name::poem::RequestBody) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
-                if body.is_some() {
-                    let mut multipart = <#crate_name::poem::web::Multipart as #crate_name::poem::FromRequest>::from_request(request, body).await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody {
-                        reason: ::std::string::ToString::to_string(::std::convert::Into::<#crate_name::poem::Error>::into(err).reason().unwrap_or_default()),
-                    })?;
-                    #(#skip_fields)*
-                    #(let mut #fields = ::std::option::Option::None;)*
-                    while let ::std::option::Option::Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody {
-                        reason: ::std::string::ToString::to_string(::std::convert::Into::<#crate_name::poem::Error>::into(err).reason().unwrap_or_default()),
-                    })? {
-                        #(#deserialize_fields)*
-                    }
-                    #(#deserialize_none)*
-                    ::std::result::Result::Ok(Self { #(#fields,)* #(#skip_idents),* })
-                } else {
-                    ::std::result::Result::Err(#crate_name::ParseRequestError::ParseRequestBody {
-                        reason: ::std::convert::Into::into("expect request body"),
-                    })
+            async fn from_request(request: &#crate_name::__private::poem::Request, body: &mut #crate_name::__private::poem::RequestBody) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
+                let mut multipart = <#crate_name::__private::poem::web::Multipart as #crate_name::__private::poem::FromRequest>::from_request(request, body).await
+                    .map_err(|err| #crate_name::ParseRequestError::ParseRequestBody(#crate_name::__private::poem::IntoResponse::into_response(err)))?;
+                #(#skip_fields)*
+                #(let mut #fields = ::std::option::Option::None;)*
+                while let ::std::option::Option::Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody(#crate_name::__private::poem::IntoResponse::into_response(err)))? {
+                    #(#deserialize_fields)*
                 }
+                #(#deserialize_none)*
+                ::std::result::Result::Ok(Self { #(#fields,)* #(#skip_idents),* })
             }
         }
     };

@@ -2,7 +2,7 @@ use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaRequest, MetaSchema, MetaSchemaRef},
     types::ParseFromJSON,
-    ApiRequest, Object,
+    ApiExtractor, ApiRequest, Object,
 };
 
 #[derive(Debug, Object, Eq, PartialEq)]
@@ -23,7 +23,7 @@ enum MyRequest {
 #[test]
 fn meta() {
     assert_eq!(
-        MyRequest::meta(),
+        MyRequest::request_meta().unwrap(),
         MetaRequest {
             description: Some("MyRequest\n\nABC"),
             content: vec![
@@ -54,7 +54,9 @@ async fn from_request() {
         );
     let (request, mut body) = request.split();
     assert_eq!(
-        MyRequest::from_request(&request, &mut body).await.unwrap(),
+        MyRequest::from_request(&request, &mut body, Default::default())
+            .await
+            .unwrap(),
         MyRequest::CreateByJson(Json(CreateUser {
             user: "sunli".to_string(),
             password: "123456".to_string()
@@ -66,7 +68,9 @@ async fn from_request() {
         .body("abcdef".to_string());
     let (request, mut body) = request.split();
     assert_eq!(
-        MyRequest::from_request(&request, &mut body).await.unwrap(),
+        MyRequest::from_request(&request, &mut body, Default::default())
+            .await
+            .unwrap(),
         MyRequest::CreateByPlainText(PlainText("abcdef".to_string()))
     );
 }
@@ -83,7 +87,7 @@ async fn generic() {
         .body(serde_json::to_vec(&serde_json::json!("hello")).unwrap());
 
     assert_eq!(
-        MyRequest::<String>::meta(),
+        MyRequest::<String>::request_meta().unwrap(),
         MetaRequest {
             description: None,
             content: vec![MetaMediaType {
@@ -96,7 +100,7 @@ async fn generic() {
 
     let (request, mut body) = request.split();
     assert_eq!(
-        MyRequest::<String>::from_request(&request, &mut body)
+        MyRequest::<String>::from_request(&request, &mut body, Default::default())
             .await
             .unwrap(),
         MyRequest::CreateByJson(Json("hello".to_string()))

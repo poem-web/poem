@@ -3,11 +3,13 @@ use poem::{
     Endpoint, IntoEndpoint, Request,
 };
 use poem_openapi::{
-    registry::{MetaApi, MetaSchema},
-    types::ParseFromJSON,
+    param::Query,
+    payload::Payload,
+    registry::{MetaApi, MetaSchema, Registry},
+    types::{multipart::JsonField, ParseFromJSON, Type},
     validation,
     validation::ValidatorMeta,
-    Object, OpenApi, OpenApiService,
+    Multipart, Object, OpenApi, OpenApiService,
 };
 use serde_json::json;
 
@@ -25,7 +27,7 @@ fn test_u64() {
 fn test_multiple_of() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(multiple_of = "10")]
+        #[oai(validator(multiple_of = "10"))]
         n: i32,
     }
 
@@ -46,7 +48,7 @@ fn test_multiple_of() {
 fn test_maximum() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(maximum(value = "500"))]
+        #[oai(validator(maximum(value = "500")))]
         n: i32,
     }
 
@@ -75,7 +77,7 @@ fn test_maximum() {
 fn test_maximum_exclusive() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(maximum(value = "500", exclusive))]
+        #[oai(validator(maximum(value = "500", exclusive)))]
         n: i32,
     }
 
@@ -106,7 +108,7 @@ fn test_maximum_exclusive() {
 fn test_max_length() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(max_length = "5")]
+        #[oai(validator(max_length = "5"))]
         value: String,
     }
 
@@ -132,7 +134,7 @@ fn test_max_length() {
 fn test_min_length() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(min_length = "5")]
+        #[oai(validator(min_length = "5"))]
         value: String,
     }
 
@@ -158,7 +160,7 @@ fn test_min_length() {
 fn test_pattern() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(pattern = r#"\[.*\]"#)]
+        #[oai(validator(pattern = r#"\[.*\]"#))]
         value: String,
     }
 
@@ -184,7 +186,7 @@ fn test_pattern() {
 fn test_max_items() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(max_items = "3")]
+        #[oai(validator(max_items = "3"))]
         values: Vec<String>,
     }
 
@@ -210,7 +212,7 @@ fn test_max_items() {
 fn test_min_items() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(min_items = "4")]
+        #[oai(validator(min_items = "4"))]
         values: Vec<String>,
     }
 
@@ -241,7 +243,7 @@ fn test_min_items() {
 fn test_unique_items() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(unique_items)]
+        #[oai(validator(unique_items))]
         values: Vec<String>,
     }
 
@@ -272,7 +274,7 @@ async fn param_validator() {
         #[oai(path = "/", method = "get")]
         async fn test(
             &self,
-            #[oai(name = "v", in = "query", maximum(value = "100", exclusive))] _v: i32,
+            #[oai(name = "v", validator(maximum(value = "100", exclusive)))] _v: Query<i32>,
         ) {
         }
     }
@@ -313,9 +315,9 @@ async fn param_validator() {
 fn test_option() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(multiple_of = "10")]
+        #[oai(validator(multiple_of = "10"))]
         n1: Option<i32>,
-        #[oai(multiple_of = "10")]
+        #[oai(validator(multiple_of = "10"))]
         n2: Option<Option<i32>>,
     }
 
@@ -359,7 +361,7 @@ fn test_option() {
 fn test_multiple_validators() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(multiple_of = "10", maximum(value = "500"))]
+        #[oai(validator(multiple_of = "10", maximum(value = "500")))]
         n: i32,
     }
 
@@ -414,4 +416,57 @@ fn test_unsigned_integers() {
             .into_message(),
         "failed to parse \"integer(uint8)\": Only integers from 0 to 255 are accepted. (occurred while parsing \"A\")"
     );
+}
+
+#[test]
+fn test_list_on_object() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(list, maximum(value = "10")))]
+        n: Vec<i32>,
+    }
+
+    assert_eq!(
+        A::parse_from_json(json!({ "n": [1, 2, 3] })).unwrap(),
+        A { n: vec![1, 2, 3] }
+    );
+    assert_eq!(
+        A::parse_from_json(json!({ "n": [1, 2, 3, 25] }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `n` verification failed. maximum(10, exclusive: false)"
+    );
+
+    let mut registry = Registry::default();
+    A::register(&mut registry);
+    let schema = registry.schemas.get_mut("A").unwrap();
+    let (name, field_n) = schema.properties.remove(0);
+    assert_eq!(name, "n");
+
+    let schema_n = field_n.unwrap_inline();
+    let schema_items = schema_n.items.as_ref().unwrap();
+    let schema_items = schema_items.unwrap_inline();
+    assert_eq!(schema_items.maximum, Some(10.0));
+}
+
+#[test]
+fn test_list_on_multipart() {
+    #[derive(Multipart, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(list, maximum(value = "32")))]
+        values: Vec<JsonField<i32>>,
+    }
+
+    let schema_ref = A::schema_ref();
+    let schema: &MetaSchema = schema_ref.unwrap_inline();
+    assert_eq!(schema.ty, "object");
+    assert_eq!(schema.properties.len(), 1);
+
+    assert_eq!(schema.properties[0].0, "values");
+    let schema_values = schema.properties[0].1.unwrap_inline();
+    assert_eq!(schema_values.ty, "array");
+
+    let schema_items = schema_values.items.as_ref().unwrap();
+    let schema_items = schema_items.unwrap_inline();
+    assert_eq!(schema_items.maximum, Some(32.0));
 }

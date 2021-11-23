@@ -103,9 +103,14 @@ async fn required_fields() {
     .await
     .unwrap_err();
 
-    if !matches!(err,ParseRequestError::ParseRequestBody { reason } if reason == "field `file` is required")
-    {
-        panic!();
+    match err {
+        ParseRequestError::ParseRequestBody(resp) => {
+            assert_eq!(
+                resp.into_body().into_string().await.unwrap(),
+                "field `file` is required"
+            );
+        }
+        _ => panic!(),
     }
 }
 
@@ -240,9 +245,9 @@ async fn upload() {
 async fn validator() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(max_length = "10")]
+        #[oai(validator(max_length = "10"))]
         name: String,
-        #[oai(maximum(value = "32"))]
+        #[oai(validator(maximum(value = "32")))]
         value: JsonField<i32>,
     }
 
@@ -268,9 +273,14 @@ async fn validator() {
     .await
     .unwrap_err();
 
-    if !matches!(err, ParseRequestError::ParseRequestBody{reason } if reason == r#"field `value` verification failed. maximum(32, exclusive: false)"#)
-    {
-        panic!();
+    match err {
+        ParseRequestError::ParseRequestBody(resp) => {
+            assert_eq!(
+                resp.into_body().into_string().await.unwrap(),
+                r#"field `value` verification failed. maximum(32, exclusive: false)"#
+            );
+        }
+        _ => panic!(),
     }
 }
 
@@ -418,9 +428,14 @@ async fn repeated_error() {
     .await
     .unwrap_err();
 
-    if !matches!(err, ParseRequestError::ParseRequestBody { reason } if reason == "failed to parse field `value`: failed to parse \"string\": repeated field")
-    {
-        panic!();
+    match err {
+        ParseRequestError::ParseRequestBody(resp) => {
+            assert_eq!(
+                resp.into_body().into_string().await.unwrap(),
+                "failed to parse field `value`: failed to parse \"string\": repeated field"
+            );
+        }
+        _ => panic!(),
     }
 }
 

@@ -77,5 +77,5 @@ async fn main() -> Result<(), std::io::Error> {
 
     let listener =
         TcpListener::bind("127.0.0.1:3000").rustls(RustlsConfig::new().key(KEY).cert(CERT));
-    Server::new(listener).await?.run(app).await
+    Server::new(listener).run(app).await
 }

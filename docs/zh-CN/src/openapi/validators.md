@@ -12,11 +12,11 @@ struct Pet {
     id: u64,
 
     /// 名字长度不能超过32
-    #[oai(max_length = "32")]
+    #[oai(validator(max_length = "32"))]
     name: String,
 
     /// 数组长度不能超过3
-    #[oai(max_items = "3")]
+    #[oai(validator(max_items = "3"))]
     photo_urls: Vec<String>,
 
     status: PetStatus,

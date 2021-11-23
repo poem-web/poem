@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.0.28"
+version = "1.0.29"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -59,7 +59,7 @@ regex = "1.5.4"
 mime_guess = "2.0.3"
 smallvec = "1.6.1"
 nom = "7.0.0"
-tracing = "0.1.28"
+tracing = "0.1.29"
 headers = "0.3.4"
 
 # Non-feature optional dependencies

@@ -11,6 +11,7 @@ async fn main() -> Result<(), std::io::Error> {
         "/",
         Files::new("./examples/poem/static-files/files").show_files_listing(),
     );
-    let server = Server::new(TcpListener::bind("127.0.0.1:3000")).await?;
-    server.run(app).await
+    Server::new(TcpListener::bind("127.0.0.1:3000"))
+        .run(app)
+        .await
 }

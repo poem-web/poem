@@ -15,32 +15,54 @@ use tokio::{
 };
 
 use crate::{
-    listener::{Acceptor, Listener},
+    listener::{Acceptor, AcceptorExt, Listener},
     web::{LocalAddr, RemoteAddr},
     Endpoint, EndpointExt, IntoEndpoint, Response,
 };
 
-/// An HTTP Server.
-pub struct Server<T> {
-    acceptor: T,
+enum Either<L, A> {
+    Listener(L),
+    Acceptor(A),
 }
 
-impl<T: Acceptor> Server<T> {
+/// An HTTP Server.
+pub struct Server<L, A> {
+    listener: Either<L, A>,
+    name: Option<String>,
+}
+
+impl<L: Listener> Server<L, Infallible> {
     /// Use the specified listener to create an HTTP server.
-    pub async fn new<K: Listener<Acceptor = T>>(listener: K) -> IoResult<Server<T>> {
-        Ok(Self {
-            acceptor: listener.into_acceptor().await?,
-        })
+    pub fn new(listener: L) -> Self {
+        Self {
+            listener: Either::Listener(listener),
+            name: None,
+        }
     }
+}
 
+impl<A: Acceptor> Server<Infallible, A> {
     /// Use the specified acceptor to create an HTTP server.
-    pub fn new_with_acceptor(acceptor: T) -> Self {
-        Self { acceptor }
+    pub fn new_with_acceptor(acceptor: A) -> Self {
+        Self {
+            listener: Either::Acceptor(acceptor),
+            name: None,
+        }
     }
+}
 
-    /// Returns the local address that this server is bound to.
-    pub fn local_addr(&self) -> Vec<LocalAddr> {
-        self.acceptor.local_addr()
+impl<L, A> Server<L, A>
+where
+    L: Listener,
+    L::Acceptor: 'static,
+    A: Acceptor + 'static,
+{
+    /// Specify the name of the server, it is only used for logs.
+    pub fn name(self, name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..self
+        }
     }
 
     /// Run this server.
@@ -64,25 +86,31 @@ impl<T: Acceptor> Server<T> {
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        let ep = ep.into_endpoint();
-        let ep = Arc::new(ep.map_to_response());
-        let Server { mut acceptor } = self;
+        let ep = Arc::new(ep.into_endpoint().map_to_response());
+        let Server { listener, name } = self;
+        let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());
         let timeout_notify = Arc::new(Notify::new());
 
+        let mut acceptor = match listener {
+            Either::Listener(listener) => listener.into_acceptor().await?.boxed(),
+            Either::Acceptor(acceptor) => acceptor.boxed(),
+        };
+
         tokio::pin!(signal);
 
         for addr in acceptor.local_addr() {
-            tracing::info!(addr = %addr, "listening");
+            tracing::info!(name = name, addr = %addr, "listening");
         }
-        tracing::info!("server started");
+        tracing::info!(name = name, "server started");
 
         loop {
             tokio::select! {
                 _ = &mut signal => {
                     if let Some(timeout) = timeout {
                         tracing::info!(
+                            name = name,
                             timeout_in_seconds = timeout.as_secs_f32(),
                             "initiate graceful shutdown",
                         );
@@ -93,7 +121,7 @@ impl<T: Acceptor> Server<T> {
                             timeout_notify.notify_waiters();
                         });
                     } else {
-                        tracing::info!("initiate graceful shutdown");
+                        tracing::info!(name = name, "initiate graceful shutdown");
                     }
                     break;
                 },
@@ -127,11 +155,11 @@ impl<T: Acceptor> Server<T> {
 
         drop(acceptor);
         if alive_connections.load(Ordering::SeqCst) > 0 {
-            tracing::info!("wait for all connections to close.");
+            tracing::info!(name = name, "wait for all connections to close.");
             notify.notified().await;
         }
 
-        tracing::info!("server stopped");
+        tracing::info!(name = name, "server stopped");
         Ok(())
     }
 }

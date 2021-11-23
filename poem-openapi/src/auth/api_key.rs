@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use poem::Request;
 
-use crate::{auth::ApiKeyAuthorization, registry::MetaParamIn, ParseRequestError};
+use crate::{auth::ApiKeyAuthorization, base::UrlQuery, registry::MetaParamIn, ParseRequestError};
 
 /// Used to extract the Api Key from the request.
 pub struct ApiKey {
@@ -13,7 +11,7 @@ pub struct ApiKey {
 impl ApiKeyAuthorization for ApiKey {
     fn from_request(
         req: &Request,
-        query: &HashMap<String, String>,
+        query: &UrlQuery,
         name: &str,
         in_type: MetaParamIn,
     ) -> Result<Self, ParseRequestError> {
