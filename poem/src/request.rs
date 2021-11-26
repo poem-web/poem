@@ -215,6 +215,15 @@ impl Request {
         &mut self.headers
     }
 
+    /// Returns the string value of the specified header.
+    ///
+    /// NOTE: Returns `None` if the header value is not a valid UTF8 string.
+    pub fn header(&self, name: impl AsRef<str>) -> Option<&str> {
+        self.headers
+            .get(name.as_ref())
+            .and_then(|value| value.to_str().ok())
+    }
+
     /// Returns the path parameter with the specified `name`.
     pub fn path_param(&self, name: &str) -> Option<&str> {
         self.state
