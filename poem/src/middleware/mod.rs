@@ -6,6 +6,8 @@ mod compression;
 #[cfg(feature = "cookie")]
 mod cookie_jar_manager;
 mod cors;
+#[cfg(feature = "csrf")]
+mod csrf;
 mod normalize_path;
 #[cfg(feature = "opentelemetry")]
 mod opentelemetry_metrics;
@@ -24,6 +26,8 @@ pub use compression::{Compression, CompressionEndpoint};
 #[cfg(feature = "cookie")]
 pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
 pub use cors::{Cors, CorsEndpoint};
+#[cfg(feature = "csrf")]
+pub use csrf::{Csrf, CsrfEndpoint};
 pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
 #[cfg(feature = "opentelemetry")]
 pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};

@@ -54,10 +54,9 @@ impl<E: Endpoint> Endpoint for CookieJarManagerEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Self::Output {
-        let mut cookie_jar = CookieJar::extract_from_headers(req.headers());
-        cookie_jar.key = self.key.clone();
-
         if req.state().cookie_jar.is_none() {
+            let mut cookie_jar = CookieJar::extract_from_headers(req.headers());
+            cookie_jar.key = self.key.clone();
             req.state_mut().cookie_jar = Some(cookie_jar.clone());
             let mut resp = self.inner.call(req).await.into_response();
             cookie_jar.append_delta_to_headers(resp.headers_mut());

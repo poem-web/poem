@@ -19,7 +19,7 @@ categories = [
 
 [features]
 default = []
-websocket = ["tokio-tungstenite"]
+websocket = ["tokio-tungstenite", "sha1", "base64"]
 multipart = ["multer"]
 rustls = ["tokio-rustls"]
 native-tls = ["tokio-native-tls"]
@@ -34,6 +34,7 @@ prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile"]
 template = ["askama"]
 staticfiles = ["askama"]
+csrf = ["cookie", "base64", "libcsrf"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.0.0" }
@@ -49,8 +50,6 @@ tokio-util = { version = "0.6.8", features = ["io"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
 serde_urlencoded = "0.7.0"
-sha1 = "0.6.0"
-base64 = "0.13.0"
 tokio-stream = "0.1.7"
 parking_lot = "0.11.2"
 pin-project-lite = "0.2.7"
@@ -83,6 +82,9 @@ libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 askama = { version = "0.10.5", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
+sha1 = { version = "0.6.0", optional = true }
+base64 = { version = "0.13.0", optional = true }
+libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 
 # Feature optional dependencies
 

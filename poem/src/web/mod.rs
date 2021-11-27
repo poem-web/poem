@@ -23,6 +23,8 @@ mod tempfile;
 mod template;
 #[doc(inline)]
 pub use headers;
+#[cfg(feature = "csrf")]
+mod csrf;
 mod typed_header;
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
@@ -34,6 +36,8 @@ pub use addr::{LocalAddr, RemoteAddr};
 use bytes::Bytes;
 #[cfg(feature = "compression")]
 pub use compress::{Compress, CompressionAlgo};
+#[cfg(feature = "csrf")]
+pub use csrf::{CsrfToken, CsrfVerifier};
 pub use data::Data;
 pub use form::Form;
 pub use json::Json;

@@ -232,8 +232,8 @@ impl Cookie {
     }
 
     /// Sets the value of `HttpOnly` in `self` to `value`.
-    pub fn set_http_only(&mut self, value: bool) {
-        self.0.set_http_only(Some(value));
+    pub fn set_http_only(&mut self, value: impl Into<Option<bool>>) {
+        self.0.set_http_only(value);
     }
 
     /// Sets the value of `MaxAge` in `self` to `value`.
@@ -255,12 +255,12 @@ impl Cookie {
     }
 
     /// Sets the value of `SameSite` in `self` to `value`.
-    pub fn set_same_site(&mut self, value: SameSite) {
+    pub fn set_same_site(&mut self, value: impl Into<Option<SameSite>>) {
         self.0.set_same_site(value);
     }
 
     /// Sets the value of `Secure` in `self` to `value`.
-    pub fn set_secure(&mut self, value: bool) {
+    pub fn set_secure(&mut self, value: impl Into<Option<bool>>) {
         self.0.set_secure(value);
     }
 

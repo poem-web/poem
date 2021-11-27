@@ -106,17 +106,17 @@ impl CookieConfig {
     }
 
     /// Sets the `SameSite` to the session cookie.
-    pub fn same_site(self, value: SameSite) -> Self {
+    pub fn same_site(self, value: impl Into<Option<SameSite>>) -> Self {
         Self {
-            same_site: Some(value),
+            same_site: value.into(),
             ..self
         }
     }
 
     /// Sets the `MaxAge` to the session cookie.
-    pub fn max_age(self, value: Duration) -> Self {
+    pub fn max_age(self, value: impl Into<Option<Duration>>) -> Self {
         Self {
-            max_age: Some(value),
+            max_age: value.into(),
             ..self
         }
     }
@@ -144,9 +144,7 @@ impl CookieConfig {
             cookie.set_max_age(*max_age);
         }
 
-        if let Some(same_site) = &self.same_site {
-            cookie.set_same_site(*same_site);
-        }
+        cookie.set_same_site(self.same_site);
 
         match &self.security {
             CookieSecurity::Plain => cookie_jar.add(cookie),
