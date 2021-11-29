@@ -5,6 +5,8 @@ use libcsrf::{AesGcmCsrfProtection, CsrfProtection, UnencryptedCsrfCookie};
 use crate::{FromRequest, Request, RequestBody, Result};
 
 /// A CSRF Token for the next request.
+///
+/// See also [`Csrf`](crate::middleware::Csrf)
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct CsrfToken(pub String);
@@ -30,6 +32,8 @@ impl<'a> FromRequest<'a> for &'a CsrfToken {
 }
 
 /// A verifier for CSRF Token.
+///
+/// See also [`Csrf`](crate::middleware::Csrf)
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]
 pub struct CsrfVerifier {
     cookie: Option<UnencryptedCsrfCookie>,

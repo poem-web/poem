@@ -15,6 +15,68 @@ use crate::{
 };
 
 /// Middleware for Cross-Site Request Forgery (CSRF) protection.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     get, handler,
+///     http::{header, Method, StatusCode},
+///     middleware::Csrf,
+///     post,
+///     web::{cookie::Cookie, CsrfToken, CsrfVerifier},
+///     Endpoint, EndpointExt, Error, Request, Result, Route,
+/// };
+/// use serde::Deserialize;
+///
+/// #[handler]
+/// async fn login_ui(token: &CsrfToken) -> String {
+///     token.0.clone()
+/// }
+///
+/// #[handler]
+/// async fn login(verifier: &CsrfVerifier, req: &Request) -> Result<String> {
+///     let csrf_token = req
+///         .header("X-CSRF-Token")
+///         .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED))?;
+///
+///     if !verifier.is_valid(&csrf_token) {
+///         return Err(Error::new(StatusCode::UNAUTHORIZED));
+///     }
+///
+///     Ok(format!("login success"))
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let app = Route::new()
+///     .at("/", get(login_ui).post(login))
+///     .with(Csrf::new());
+///
+/// let resp = app.call(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// let cookie = resp.headers().get(header::SET_COOKIE).unwrap();
+/// let cookie = Cookie::parse(cookie.to_str().unwrap()).unwrap();
+/// let csrf_token = resp.into_body().into_string().await.unwrap();
+///
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .method(Method::POST)
+///             .header("X-CSRF-Token", csrf_token)
+///             .header(
+///                 header::COOKIE,
+///                 format!("{}={}", cookie.name(), cookie.value_str()),
+///             )
+///             .finish(),
+///     )
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(
+///     resp.into_body().into_string().await.unwrap(),
+///     "login success"
+/// );
+/// # });
+/// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]
 pub struct Csrf {
     cookie_name: String,
@@ -65,7 +127,8 @@ impl Csrf {
         }
     }
 
-    /// Sets the `SameSite` to the csrf cookie. Default is [`SameSite::Strict`].
+    /// Sets the `SameSite` to the csrf cookie. Default is
+    /// [`SameSite::Strict`](libcookie::SameSite::Strict).
     pub fn same_site(self, value: impl Into<Option<SameSite>>) -> Self {
         Self {
             same_site: value.into(),
