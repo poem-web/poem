@@ -470,3 +470,33 @@ fn test_list_on_multipart() {
     let schema_items = schema_items.unwrap_inline();
     assert_eq!(schema_items.maximum, Some(32.0));
 }
+
+#[test]
+fn test_both_max_items_and_max_length() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(list, max_items = 2, max_length = 3))]
+        values: Vec<String>,
+    }
+
+    assert_eq!(
+        A::parse_from_json(json!({ "values": ["a", "b"] })).unwrap(),
+        A {
+            values: vec!["a".to_string(), "b".to_string()]
+        }
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({ "values": ["a", "b", "c"] }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `values` verification failed. maxItems(2)"
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({ "values": ["a", "bcde"] }))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `values` verification failed. maxLength(3)"
+    );
+}
