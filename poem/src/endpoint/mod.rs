@@ -6,7 +6,6 @@ mod around;
 mod before;
 #[allow(clippy::module_inception)]
 mod endpoint;
-#[cfg(feature = "staticfiles")]
 mod files;
 mod map_err;
 mod map_ok;
@@ -22,7 +21,6 @@ pub use and_then::AndThen;
 pub use around::Around;
 pub use before::Before;
 pub use endpoint::{make, make_sync, BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint};
-#[cfg(feature = "staticfiles")]
 pub use files::Files;
 pub use map_err::MapErr;
 pub use map_ok::MapOk;

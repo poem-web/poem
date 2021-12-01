@@ -19,8 +19,6 @@ mod redirect;
 pub mod sse;
 #[cfg(feature = "tempfile")]
 mod tempfile;
-#[cfg(feature = "template")]
-mod template;
 #[doc(inline)]
 pub use headers;
 #[cfg(feature = "csrf")]

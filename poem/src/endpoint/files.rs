@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use askama::Template;
 use mime::Mime;
 use tokio::fs::File;
 
@@ -12,34 +11,72 @@ use crate::{
     Body, Endpoint, Request, Response,
 };
 
-#[derive(Template)]
-#[template(
-    ext = "html",
-    source = r#"
-<html>
-    <head>
-        <title>Index of {{ path }}</title>
-    </head>
-    <body>
-        <h1>Index of /{{ path }}</h1>
-        <ul>
-            {% for file in files %}
-            <li>
-                {% if file.is_dir %} 
-                <a href="{{ file.url }}">{{ file.filename | e }}/</a>
-                {% else %}
-                <a href="{{ file.url }}">{{ file.filename | e }}</a>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-    </body>
-    </html>
-"#
-)]
+// #[derive(Template)]
+// #[template(
+//     ext = "html",
+//     source = r#"
+// <html>
+//     <head>
+//         <title>Index of {{ path }}</title>
+//     </head>
+//     <body>
+//         <h1>Index of /{{ path }}</h1>
+//         <ul>
+//             {% for file in files %}
+//             <li>
+//                 {% if file.is_dir %}
+//                 <a href="{{ file.url }}">{{ file.filename | e }}/</a>
+//                 {% else %}
+//                 <a href="{{ file.url }}">{{ file.filename | e }}</a>
+//                 {% endif %}
+//             </li>
+//             {% endfor %}
+//         </ul>
+//     </body>
+// </html>
+// "#
+// )]
 struct DirectoryTemplate<'a> {
     path: &'a str,
     files: Vec<FileRef>,
+}
+
+impl<'a> DirectoryTemplate<'a> {
+    fn render(&self) -> String {
+        let mut s = format!(
+            r#"
+        <html>
+            <head>
+            <title>Index of {}</title>
+        </head>
+        <body>
+        <h1>Index of /{}</h1>
+        <ul>"#,
+            self.path, self.path
+        );
+
+        for file in &self.files {
+            if file.is_dir {
+                s.push_str(&format!(
+                    r#"<li><a href="{}">{}/</a></li>"#,
+                    file.url, file.filename
+                ));
+            } else {
+                s.push_str(&format!(
+                    r#"<li><a href="{}">{}</a></li>"#,
+                    file.url, file.filename
+                ));
+            }
+        }
+
+        s.push_str(
+            r#"</ul>
+        </body>
+        </html>"#,
+        );
+
+        s
+    }
 }
 
 struct FileRef {
@@ -49,7 +86,6 @@ struct FileRef {
 }
 
 /// Static files handling service.
-#[cfg_attr(docsrs, doc(cfg(feature = "staticfiles")))]
 pub struct Files {
     path: PathBuf,
     show_files_listing: bool,
@@ -196,10 +232,7 @@ impl Endpoint for Files {
                     }
                 }
 
-                let html = match template.render() {
-                    Ok(html) => html,
-                    Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
-                };
+                let html = template.render();
                 Response::builder()
                     .header(header::CONTENT_TYPE, mime::TEXT_HTML_UTF_8.as_ref())
                     .body(Body::from_string(html))
