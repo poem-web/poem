@@ -23,11 +23,11 @@ fn index(remote_addr: SocketAddr, method: Method, uri: &Uri) {}
 
     从传入的请求中提取 `Request`.
 
- - **RemoteAddr**
+ - **&RemoteAddr**
 
     从请求中提取远端对等地址 [`RemoteAddr`]。
 
- - **LocalAddr**
+ - **&LocalAddr**
 
     从请求中提取本地服务器的地址 [`LocalAddr`]。
 

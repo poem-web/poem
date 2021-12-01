@@ -103,11 +103,11 @@ impl RequestBody {
 ///
 ///    Extracts the [`Request`] from the incoming request.
 ///
-/// - **RemoteAddr**
+/// - **&RemoteAddr**
 ///
 ///    Extracts the remote peer's address [`RemoteAddr`] from request.
 ///
-/// - **LocalAddr**
+/// - **&LocalAddr**
 ///
 ///    Extracts the local server's address [`LocalAddr`] from request.
 ///
@@ -746,6 +746,15 @@ impl<'a> FromRequest<'a> for &'a RemoteAddr {
 }
 
 #[async_trait::async_trait]
+impl<'a> FromRequest<'a> for &'a LocalAddr {
+    type Error = Infallible;
+
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+        Ok(&req.state().local_addr)
+    }
+}
+
+#[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
     type Error = T::Error;
 
@@ -940,6 +949,7 @@ mod tests {
                 .uri(Uri::from_static("http://example.com/a/b"))
                 .body("abc");
             req.state_mut().remote_addr = RemoteAddr(Addr::custom("test", "example"));
+            req.state_mut().local_addr = LocalAddr(Addr::custom("test", "example-local"));
             req
         }
 
@@ -973,6 +983,12 @@ mod tests {
         assert_eq!(
             <&RemoteAddr>::from_request(&req, &mut body).await.unwrap(),
             &RemoteAddr(Addr::custom("test", "example"))
+        );
+
+        // &LocalAddr
+        assert_eq!(
+            <&LocalAddr>::from_request(&req, &mut body).await.unwrap(),
+            &LocalAddr(Addr::custom("test", "example-local"))
         );
 
         // &Method
