@@ -41,7 +41,7 @@ async fn index(Query(Params { name, value }): Query<Params>) -> String {
 }
 ```
 
-## Server HTTP server
+## HTTP server
 
 Let's start a server, it listens to `127.0.0.1:3000`, please ignore these `unwrap` calls, this is just an example.
 
@@ -53,8 +53,7 @@ routing object, so any request path will be handled by the `index` function.
 #[tokio::main]
 async fn main() {
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(index).await.unwrap();
+    Server::new(listener).run(index).await.unwrap();
 }
 ```
 

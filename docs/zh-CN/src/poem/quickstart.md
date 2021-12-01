@@ -48,8 +48,7 @@ async fn index(Query(Params { name, value }): Query<Params>) -> String {
 #[tokio::main]
 async fn main() {
     let listener = TcpListener::bind("127.0.0.1:3000");
-    let server = Server::new(listener).await.unwrap();
-    server.run(index).await.unwrap();
+    Server::new(listener).run(index).await.unwrap();
 }
 ```
 
