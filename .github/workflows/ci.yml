@@ -7,15 +7,19 @@ on:
   pull_request: {}
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         package:
+          - name: poem-derive
+            path: poem-derive
           - name: poem
             path: poem
             options: --all-features
+          - name: poem-openapi-derive
+            path: poem-openapi-derive
           - name: poem-openapi
             path: poem-openapi
             options: --all-features
@@ -61,21 +65,41 @@ jobs:
           toolchain: 1.56.1
           override: true
           components: rustfmt, clippy
-      # Configure environment
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
-      - name: Install cargo-hack
-        run: cargo install cargo-hack
 
       # Do tests
       - name: Check with clippy
         run: cargo clippy ${{ matrix.package.options }}
         working-directory: ${{ matrix.package.path }}
 
-      - name: Check with cargo-hack
-        run: cargo hack check --each-feature --no-dev-deps
-        working-directory: ${{ matrix.package.path }}
-
       - name: Run tests
         run: cargo test ${{ matrix.package.options }}
         working-directory: ${{ matrix.package.path }}
+
+  check-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      # Use nightly Rust to check the format
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+      - name: Check format
+        run: cargo fmt --all -- --check
+        working-directory: examples
+      # Switch to stable Rust
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.56.1
+          override: true
+          components: rustfmt, clippy
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
+      - name: Check with clippy
+        run: cargo clippy
+        working-directory: examples
+

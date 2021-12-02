@@ -6,7 +6,4 @@ members = [
     "poem-openapi",
     "poem-lambda",
     "poem-dbsession",
-
-    "examples/poem/*",
-    "examples/openapi/*",
 ]
