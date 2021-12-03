@@ -49,7 +49,7 @@ pub struct PgSessionStorage {
 
 impl PgSessionStorage {
     /// Create an [`PgSessionStorage`].
-    pub async fn new(config: DatabaseConfig, pool: PgPool) -> Result<Self> {
+    pub async fn try_new(config: DatabaseConfig, pool: PgPool) -> Result<Self> {
         let mut conn = pool.acquire().await?;
 
         let load_stmt = Statement::to_owned(

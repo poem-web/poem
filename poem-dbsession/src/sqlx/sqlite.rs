@@ -47,7 +47,7 @@ pub struct SqliteSessionStorage {
 
 impl SqliteSessionStorage {
     /// Create an [`SqliteSessionStorage`].
-    pub async fn new(config: DatabaseConfig, pool: SqlitePool) -> Result<Self> {
+    pub async fn try_new(config: DatabaseConfig, pool: SqlitePool) -> Result<Self> {
         let mut conn = pool.acquire().await?;
 
         let load_stmt = Statement::to_owned(
