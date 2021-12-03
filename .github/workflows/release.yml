@@ -30,6 +30,9 @@ jobs:
           - name: poem-openapi
             registryName: poem-openapi
             path: poem-openapi
+          - name: poem-dbsession
+            registryName: poem-dbsession
+            path: poem-dbsession
     steps:
       - uses: actions-rs/toolchain@v1
         with:
