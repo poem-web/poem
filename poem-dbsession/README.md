@@ -28,9 +28,6 @@ fn index(session: &Session) {
 let pool = MySqlPool::connect("mysql://root:123456@localhost/my_database")
     .await
     .unwrap();
-
-let route = Route::new().at("/", index).with(ServerSession::new(
-    CookieConfig::new(),
-    MysqlSessionStorage::new(DatabaseConfig::new(), pool),
-));
+let storage = MysqlSessionStorage::try_new(DatabaseConfig::new(), pool).await.unwrap();
+let route = Route::new().at("/", index).with(ServerSession::new(CookieConfig::new(),storage));
 ```
