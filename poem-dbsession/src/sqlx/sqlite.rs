@@ -47,7 +47,7 @@ pub struct SqliteSessionStorage {
 
 impl SqliteSessionStorage {
     /// Create an [`SqliteSessionStorage`].
-    pub async fn try_new(config: DatabaseConfig, pool: SqlitePool) -> Result<Self> {
+    pub async fn try_new(config: DatabaseConfig, pool: SqlitePool) -> sqlx::Result<Self> {
         let mut conn = pool.acquire().await?;
 
         let load_stmt = Statement::to_owned(
@@ -174,7 +174,7 @@ mod tests {
         .await
         .unwrap();
 
-        let storage = SqliteSessionStorage::new(
+        let storage = SqliteSessionStorage::try_new(
             DatabaseConfig::new().cleanup_period(Duration::from_secs(1)),
             pool,
         )

@@ -51,7 +51,7 @@ pub struct MysqlSessionStorage {
 
 impl MysqlSessionStorage {
     /// Create an [`MysqlSessionStorage`].
-    pub async fn try_new(config: DatabaseConfig, pool: MySqlPool) -> Result<Self> {
+    pub async fn try_new(config: DatabaseConfig, pool: MySqlPool) -> sqlx::Result<Self> {
         let mut conn = pool.acquire().await?;
 
         let load_stmt = Statement::to_owned(
@@ -184,7 +184,7 @@ mod tests {
         .await
         .unwrap();
 
-        let storage = MysqlSessionStorage::new(
+        let storage = MysqlSessionStorage::try_new(
             DatabaseConfig::new().cleanup_period(Duration::from_secs(1)),
             pool,
         )
