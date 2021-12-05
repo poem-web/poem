@@ -21,7 +21,7 @@ default = ["swagger-ui"]
 swagger-ui = []
 
 [dependencies]
-poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.19" }
+poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.35" }
 poem = { path = "../poem", version = "1.0.14", features = ["multipart", "tempfile", "cookie"] }
 
 tokio = { version = "1.12.0", features = ["fs"] }

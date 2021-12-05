@@ -4,7 +4,7 @@ use chrono::Utc;
 use poem::{session::SessionStorage, Result};
 use sqlx::{postgres::PgStatement, types::Json, Executor, PgPool, Statement};
 
-use crate::{cleanup_task::CleanupTask, DatabaseConfig};
+use crate::DatabaseConfig;
 
 const LOAD_SESSION_SQL: &str = r#"
     select session from {table_name}
@@ -39,12 +39,13 @@ const CLEANUP_SQL: &str = r#"
 ///
 /// create index if not exists poem_sessions_expires_idx on poem_sessions (expires);
 /// ```
+#[derive(Clone)]
 pub struct PgSessionStorage {
     pool: PgPool,
-    _cleanup_task: CleanupTask,
     load_stmt: PgStatement<'static>,
     update_stmt: PgStatement<'static>,
     remove_stmt: PgStatement<'static>,
+    cleanup_stmt: PgStatement<'static>,
 }
 
 impl PgSessionStorage {
@@ -76,26 +77,24 @@ impl PgSessionStorage {
                 .await?,
         );
 
-        let cleanup_task = CleanupTask::new(config.cleanup_period, {
-            let pool = pool.clone();
-            move || {
-                let pool = pool.clone();
-                let stmt = cleanup_stmt.clone();
-                async move {
-                    if let Err(err) = do_cleanup(&pool, &stmt).await {
-                        tracing::error!(error = %err, "failed to cleanup session storage");
-                    }
-                }
-            }
-        });
-
         Ok(Self {
             pool,
-            _cleanup_task: cleanup_task,
             load_stmt,
             update_stmt,
             remove_stmt,
+            cleanup_stmt,
         })
+    }
+
+    /// Cleanup expired sessions.
+    pub async fn cleanup(&self) -> sqlx::Result<()> {
+        let mut conn = self.pool.acquire().await?;
+        self.cleanup_stmt
+            .query()
+            .bind(Utc::now())
+            .execute(&mut conn)
+            .await?;
+        Ok(())
     }
 }
 
@@ -147,12 +146,6 @@ impl SessionStorage for PgSessionStorage {
     }
 }
 
-async fn do_cleanup(pool: &PgPool, stmt: &PgStatement<'static>) -> sqlx::Result<()> {
-    let mut conn = pool.acquire().await?;
-    stmt.query().bind(Utc::now()).execute(&mut conn).await?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,12 +180,20 @@ mod tests {
         .await
         .unwrap();
 
-        let storage = PgSessionStorage::try_new(
-            DatabaseConfig::new().cleanup_period(Duration::from_secs(1)),
-            pool,
-        )
-        .await
-        .unwrap();
+        let storage = PgSessionStorage::try_new(DatabaseConfig::new(), pool)
+            .await
+            .unwrap();
+
+        let join_handle = tokio::spawn({
+            let storage = storage.clone();
+            async move {
+                loop {
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    storage.cleanup().await.unwrap();
+                }
+            }
+        });
         test_harness::test_storage(storage).await;
+        join_handle.abort();
     }
 }

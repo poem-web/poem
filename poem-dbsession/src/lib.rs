@@ -49,7 +49,6 @@
 ))]
 pub mod sqlx;
 
-mod cleanup_task;
 mod config;
 #[cfg(test)]
 mod test_harness;
