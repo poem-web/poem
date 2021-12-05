@@ -42,6 +42,9 @@ fn serialize_mapping<S: Serializer>(
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaSchema {
+    #[serde(skip)]
+    pub rust_typename: Option<&'static str>,
+
     #[serde(rename = "type", skip_serializing_if = "str::is_empty")]
     pub ty: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -113,6 +116,7 @@ fn serialize_properties<S: Serializer>(
 
 impl MetaSchema {
     pub const ANY: Self = MetaSchema {
+        rust_typename: None,
         ty: "",
         format: None,
         title: None,
@@ -143,6 +147,7 @@ impl MetaSchema {
 
     pub const fn new(ty: &'static str) -> Self {
         Self {
+            rust_typename: None,
             ty,
             format: None,
             title: None,
@@ -174,6 +179,7 @@ impl MetaSchema {
 
     pub const fn new_with_format(ty: &'static str, format: &'static str) -> Self {
         MetaSchema {
+            rust_typename: None,
             ty,
             format: Some(format),
             title: None,
@@ -587,16 +593,31 @@ impl Registry {
         Default::default()
     }
 
-    pub fn create_schema<F>(&mut self, name: &'static str, mut f: F)
+    pub fn create_schema<T, F>(&mut self, name: &'static str, mut f: F)
     where
         F: FnMut(&mut Registry) -> MetaSchema,
     {
-        if !self.schemas.contains_key(name) {
-            // Inserting a fake type before calling the function allows recursive types to
-            // exist.
-            self.schemas.insert(name, MetaSchema::new("fake"));
-            let meta_schema = f(self);
-            *self.schemas.get_mut(name).unwrap() = meta_schema;
+        match self.schemas.get(name) {
+            Some(schema) => {
+                if let Some(prev_typename) = schema.rust_typename {
+                    if prev_typename != std::any::type_name::<T>() {
+                        panic!(
+                            "`{}` and `{}` have the same OpenAPI name `{}`",
+                            prev_typename,
+                            std::any::type_name::<T>(),
+                            name,
+                        );
+                    }
+                }
+            }
+            None => {
+                // Inserting a fake type before calling the function allows recursive types to
+                // exist.
+                self.schemas.insert(name, MetaSchema::new("fake"));
+                let mut meta_schema = f(self);
+                meta_schema.rust_typename = Some(std::any::type_name::<T>());
+                *self.schemas.get_mut(name).unwrap() = meta_schema;
+            }
         }
     }
 
