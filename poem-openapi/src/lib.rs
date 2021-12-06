@@ -29,6 +29,7 @@
 //! | ---------- | -------------------------------- | --------------- |
 //! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x: |
 //! | swagger-ui | Add swagger UI support  | :heavy_check_mark: |
+//! | rapidoc    | Add RapiDoc support   | :heavy_check_mark: |
 //!
 //! ## Example
 //!
@@ -95,7 +96,7 @@ pub mod validation;
 mod base;
 mod error;
 mod openapi;
-#[cfg(feature = "swagger-ui")]
+#[cfg(any(feature = "swagger-ui", feature = "rapidoc"))]
 mod ui;
 
 pub use base::{

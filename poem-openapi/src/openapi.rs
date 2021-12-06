@@ -7,8 +7,6 @@ use poem::{
     Endpoint, EndpointExt, FromRequest, IntoEndpoint, IntoResponse, Request, Response, Route,
 };
 
-#[cfg(feature = "swagger-ui")]
-use crate::ui::create_ui_endpoint;
 use crate::{
     base::UrlQuery,
     registry::{Document, MetaInfo, MetaServer, Registry},
@@ -87,7 +85,17 @@ impl<T> OpenApiService<T> {
     where
         T: OpenApi,
     {
-        create_ui_endpoint(&self.spec())
+        crate::ui::swagger_ui::create_endpoint(&self.spec())
+    }
+
+    /// Create the RapiDoc endpoint.
+    #[must_use]
+    #[cfg(feature = "rapidoc")]
+    pub fn rapidoc(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+    {
+        crate::ui::rapidoc::create_endpoint(&self.spec())
     }
 
     /// Create an endpoint to serve the open api specification.

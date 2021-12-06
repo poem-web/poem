@@ -16,9 +16,8 @@ categories = [
 ]
 
 [features]
-default = ["swagger-ui"]
-
 swagger-ui = []
+rapidoc = []
 
 [dependencies]
 poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.35" }
