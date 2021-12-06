@@ -244,7 +244,7 @@ impl Request {
 
     /// Deserialize query parameters.
     ///
-    /// See also [`Path`](crate::web::Query)
+    /// See also [`Query`](crate::web::Query)
     pub fn deserialize_query<T: DeserializeOwned>(&self) -> Result<T, ParseQueryError> {
         Ok(serde_urlencoded::from_str(
             self.uri().query().unwrap_or_default(),
