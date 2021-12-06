@@ -196,7 +196,7 @@ macro_rules! define_simple_errors {
 
 define_simple_errors!(
     /// Only the endpoints under the router can get the path parameters, otherwise this error will occur.
-    (ErrorInvalidPathParams, BAD_REQUEST, "invalid path params");
+    (ParsePathError, BAD_REQUEST, "invalid path params");
 );
 
 /// A possible error value when reading the body.

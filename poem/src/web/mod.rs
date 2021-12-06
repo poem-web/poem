@@ -42,6 +42,7 @@ pub use json::Json;
 #[cfg(feature = "multipart")]
 pub use multipart::{Field, Multipart};
 pub use path::Path;
+pub(crate) use path::PathDeserializer;
 pub use query::Query;
 pub use redirect::Redirect;
 #[cfg(feature = "template")]

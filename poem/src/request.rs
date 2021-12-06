@@ -8,13 +8,14 @@ use std::{
 };
 
 use parking_lot::Mutex;
+use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
 use crate::{
     body::Body,
-    error::UpgradeError,
+    error::{ParsePathError, ParseQueryError, UpgradeError},
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
@@ -22,7 +23,7 @@ use crate::{
     route::PathParams,
     web::{
         headers::{Header, HeaderMapExt},
-        LocalAddr, RemoteAddr,
+        LocalAddr, PathDeserializer, RemoteAddr,
     },
     RequestBody,
 };
@@ -231,6 +232,23 @@ impl Request {
             .iter()
             .find(|(key, _)| key == name)
             .map(|(_, value)| value.as_str())
+    }
+
+    /// Deserialize path parameters.
+    ///
+    /// See also [`Path`](crate::web::Path)
+    pub fn deserialize_path<T: DeserializeOwned>(&self) -> Result<T, ParsePathError> {
+        T::deserialize(PathDeserializer::new(&self.state().match_params))
+            .map_err(|_| ParsePathError)
+    }
+
+    /// Deserialize query parameters.
+    ///
+    /// See also [`Path`](crate::web::Query)
+    pub fn deserialize_query<T: DeserializeOwned>(&self) -> Result<T, ParseQueryError> {
+        Ok(serde_urlencoded::from_str(
+            self.uri().query().unwrap_or_default(),
+        )?)
     }
 
     /// Returns the content type of this request.
