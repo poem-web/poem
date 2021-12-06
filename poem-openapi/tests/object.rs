@@ -518,3 +518,25 @@ fn inline() {
     assert_eq!(meta.properties[0].0, "a");
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "string");
 }
+
+#[test]
+#[should_panic]
+fn duplicate_name() {
+    #[derive(Object)]
+    struct ObjA {
+        value1: i32,
+    }
+
+    mod t {
+        use super::*;
+
+        #[derive(Object)]
+        pub struct ObjA {
+            value2: i32,
+        }
+    }
+
+    let mut registry = Registry::new();
+    ObjA::register(&mut registry);
+    t::ObjA::register(&mut registry);
+}

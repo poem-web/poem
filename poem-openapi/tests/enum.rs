@@ -95,3 +95,25 @@ fn rename_item() {
         Value::String("delete_user".to_string())
     );
 }
+
+#[test]
+#[should_panic]
+fn duplicate_name() {
+    #[derive(Enum)]
+    enum EnumA {
+        A,
+    }
+
+    mod t {
+        use super::*;
+
+        #[derive(Enum)]
+        pub enum EnumA {
+            B,
+        }
+    }
+
+    let mut registry = Registry::new();
+    EnumA::register(&mut registry);
+    t::EnumA::register(&mut registry);
+}

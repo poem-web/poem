@@ -261,7 +261,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 quote!(#crate_name::registry::MetaSchemaRef::Reference(#oai_typename)),
                 quote! {
                     #(#register_types)*
-                    registry.create_schema(#oai_typename, |registry| #meta)
+                    registry.create_schema::<Self, _>(#oai_typename, |registry| #meta)
                 },
             )
         };
@@ -329,7 +329,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             impl #impl_generics #ident #ty_generics #where_clause {
                 fn __internal_register(name: &'static str, registry: &mut #crate_name::registry::Registry) where Self: #crate_name::types::Type {
                     #(#register_types)*
-                    registry.create_schema(name, |registry| #meta);
+                    registry.create_schema::<Self, _>(name, |registry| #meta);
                 }
 
                 fn __internal_parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {

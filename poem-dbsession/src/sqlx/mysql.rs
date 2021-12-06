@@ -4,7 +4,7 @@ use chrono::Utc;
 use poem::{session::SessionStorage, Result};
 use sqlx::{mysql::MySqlStatement, types::Json, Executor, MySqlPool, Statement};
 
-use crate::{cleanup_task::CleanupTask, DatabaseConfig};
+use crate::DatabaseConfig;
 
 const LOAD_SESSION_SQL: &str = r#"
     select session from {table_name}
@@ -41,12 +41,13 @@ const CLEANUP_SQL: &str = r#"
 /// engine=innodb
 /// default charset=utf8
 /// ```
+#[derive(Clone)]
 pub struct MysqlSessionStorage {
     pool: MySqlPool,
-    _cleanup_task: CleanupTask,
     load_stmt: MySqlStatement<'static>,
     update_stmt: MySqlStatement<'static>,
     remove_stmt: MySqlStatement<'static>,
+    cleanup_stmt: MySqlStatement<'static>,
 }
 
 impl MysqlSessionStorage {
@@ -78,26 +79,24 @@ impl MysqlSessionStorage {
                 .await?,
         );
 
-        let cleanup_task = CleanupTask::new(config.cleanup_period, {
-            let pool = pool.clone();
-            move || {
-                let pool = pool.clone();
-                let stmt = cleanup_stmt.clone();
-                async move {
-                    if let Err(err) = do_cleanup(&pool, &stmt).await {
-                        tracing::error!(error = %err, "failed to cleanup session storage");
-                    }
-                }
-            }
-        });
-
         Ok(Self {
             pool,
-            _cleanup_task: cleanup_task,
             load_stmt,
             update_stmt,
             remove_stmt,
+            cleanup_stmt,
         })
+    }
+
+    /// Cleanup expired sessions.
+    pub async fn cleanup(&self) -> sqlx::Result<()> {
+        let mut conn = self.pool.acquire().await?;
+        self.cleanup_stmt
+            .query()
+            .bind(Utc::now())
+            .execute(&mut conn)
+            .await?;
+        Ok(())
     }
 }
 
@@ -149,12 +148,6 @@ impl SessionStorage for MysqlSessionStorage {
     }
 }
 
-async fn do_cleanup(pool: &MySqlPool, stmt: &MySqlStatement<'static>) -> sqlx::Result<()> {
-    let mut conn = pool.acquire().await?;
-    stmt.query().bind(Utc::now()).execute(&mut conn).await?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,12 +177,20 @@ mod tests {
         .await
         .unwrap();
 
-        let storage = MysqlSessionStorage::try_new(
-            DatabaseConfig::new().cleanup_period(Duration::from_secs(1)),
-            pool,
-        )
-        .await
-        .unwrap();
+        let storage = MysqlSessionStorage::try_new(DatabaseConfig::new(), pool)
+            .await
+            .unwrap();
+
+        let join_handle = tokio::spawn({
+            let storage = storage.clone();
+            async move {
+                loop {
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    storage.cleanup().await.unwrap();
+                }
+            }
+        });
         test_harness::test_storage(storage).await;
+        join_handle.abort();
     }
 }
