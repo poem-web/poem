@@ -45,6 +45,13 @@ pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
     })
 }
 
+pub(crate) fn remove_description(attrs: &mut Vec<Attribute>) {
+    attrs.retain(|attr| match attr.parse_meta() {
+        Ok(Meta::NameValue(nv)) if nv.path.is_ident("doc") => false,
+        _ => true,
+    });
+}
+
 pub(crate) fn get_summary_and_description(
     attrs: &[Attribute],
 ) -> Result<(Option<String>, Option<String>)> {

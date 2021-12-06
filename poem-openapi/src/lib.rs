@@ -33,7 +33,7 @@
 //!
 //! ## Example
 //!
-//! ```no_run
+//! ```ignore
 //! use poem::{listener::TcpListener, Route};
 //! use poem_openapi::{param::Query, payload::PlainText, OpenApi, OpenApiService};
 //!

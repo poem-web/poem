@@ -11,8 +11,8 @@ use crate::{
     common_args::{APIMethod, DefaultValue},
     error::GeneratorResult,
     utils::{
-        convert_oai_path, get_crate_name, get_summary_and_description, optional_literal,
-        parse_oai_attrs, remove_oai_attrs,
+        convert_oai_path, get_crate_name, get_description, get_summary_and_description,
+        optional_literal, parse_oai_attrs, remove_description, remove_oai_attrs,
     },
     validators::Validators,
 };
@@ -46,8 +46,6 @@ struct APIOperationParam {
     // for parameter
     #[darling(default)]
     name: Option<String>,
-    #[darling(default)]
-    desc: Option<String>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default)]
@@ -214,14 +212,16 @@ fn generate_operation(
 
     for i in 1..item_method.sig.inputs.len() {
         let arg = &mut item_method.sig.inputs[i];
-        let (arg_ident, arg_ty, operation_param) = match arg {
+        let (arg_ident, arg_ty, operation_param, param_description) = match arg {
             FnArg::Typed(pat) => {
                 if let Pat::Ident(ident) = &*pat.pat {
                     let ident = ident.ident.clone();
                     let operation_param =
                         parse_oai_attrs::<APIOperationParam>(&pat.attrs)?.unwrap_or_default();
+                    let description = get_description(&pat.attrs)?;
                     remove_oai_attrs(&mut pat.attrs);
-                    (ident, pat.ty.clone(), operation_param)
+                    remove_description(&mut pat.attrs);
+                    (ident, pat.ty.clone(), operation_param, description)
                 } else {
                     return Err(Error::new_spanned(pat, "Invalid param definition.").into());
                 }
@@ -296,7 +296,7 @@ fn generate_operation(
         });
 
         // param meta
-        let param_desc = optional_literal(&operation_param.desc);
+        let param_desc = optional_literal(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {

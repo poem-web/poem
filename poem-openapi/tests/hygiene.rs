@@ -65,7 +65,8 @@ impl Api {
     #[allow(unused_variables)]
     async fn create_user(
         &self,
-        #[oai(desc = "api key")] key: poem_openapi::param::Query<::std::string::String>,
+        /// api key
+        key: poem_openapi::param::Query<::std::string::String>,
         #[oai(name = "X-API-TOKEN", deprecated)] api_token: poem_openapi::param::Header<
             ::std::option::Option<::std::string::String>,
         >,

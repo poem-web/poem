@@ -246,7 +246,11 @@ async fn desc() {
     #[allow(unused_variables)]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(desc = "ABC")] v: Query<i32>) {
+        async fn test(
+            &self,
+            /// ABC
+            v: Query<i32>,
+        ) {
             todo!()
         }
     }
