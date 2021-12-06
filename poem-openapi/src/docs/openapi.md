@@ -1,5 +1,12 @@
 Define a OpenAPI.
 
+# Macro parameters
+
+| Attribute     | description               | Type     | Optional |
+|---------------|---------------------------|----------|----------|
+| prefix_path   | Define the prefix for all operation paths  | string | Y |
+| tag           | Define a tag for all operations. | string   | Y        |
+
 # Operation parameters
 
 | Attribute     | description               | Type     | Optional |
