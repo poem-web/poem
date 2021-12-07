@@ -490,15 +490,26 @@ async fn poem_extract() {
 #[tokio::test]
 async fn returning_borrowed_value() {
     struct Api {
-        value: i32,
+        value1: i32,
+        value2: String,
         values: Vec<i32>,
     }
 
     #[OpenApi]
     impl Api {
-        #[oai(path = "/value", method = "get")]
-        async fn value(&self) -> Json<&i32> {
-            Json(&self.value)
+        #[oai(path = "/value1", method = "get")]
+        async fn value1(&self) -> Json<&i32> {
+            Json(&self.value1)
+        }
+
+        #[oai(path = "/value2", method = "get")]
+        async fn value2(&self) -> Json<&String> {
+            Json(&self.value2)
+        }
+
+        #[oai(path = "/value3", method = "get")]
+        async fn value3<'a>(&self, data: PoemExtractor<Data<&'a i32>>) -> Json<&'a i32> {
+            Json(&data)
         }
 
         #[oai(path = "/values", method = "get")]
@@ -509,24 +520,48 @@ async fn returning_borrowed_value() {
 
     let ep = OpenApiService::new(
         Api {
-            value: 999,
+            value1: 999,
+            value2: "abc".to_string(),
             values: vec![1, 2, 3, 4, 5],
         },
         "test",
         "1.0",
     )
-    .into_endpoint();
+    .into_endpoint()
+    .data(888i32);
 
     let resp = ep
         .call(
             poem::Request::builder()
                 .method(Method::GET)
-                .uri(Uri::from_static("/value"))
+                .uri(Uri::from_static("/value1"))
                 .finish(),
         )
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.into_body().into_string().await.unwrap(), "999");
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/value2"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "\"abc\"");
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/value3"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "888");
 
     let resp = ep
         .call(

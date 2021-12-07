@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Implement `Type` for `&[T]`, `&T` and `[T; const N: usize]`.
+- Add support for returning references from API operation functions.
 
 # [1.0.41] 2021-12-07
 

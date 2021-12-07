@@ -3,8 +3,8 @@ use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod, ItemImpl, Pat, Path,
-    ReturnType,
+    ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
+    ItemImpl, Pat, Path, ReturnType,
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
-        optional_literal, parse_oai_attrs, remove_description, remove_oai_attrs,
+        optional_literal, parse_oai_attrs, remove_description, remove_oai_attrs, RemoveLifetime,
     },
     validators::Validators,
 };
@@ -199,10 +199,11 @@ fn generate_operation(
         .into());
     }
 
-    let res_ty = match &item_method.sig.output {
+    let mut res_ty = match &item_method.sig.output {
         ReturnType::Default => Box::new(syn::parse2(quote!(())).unwrap()),
         ReturnType::Type(_, ty) => ty.clone(),
     };
+    RemoveLifetime.visit_type_mut(&mut *res_ty);
 
     let mut parse_args = Vec::new();
     let mut use_args = Vec::new();
@@ -212,7 +213,7 @@ fn generate_operation(
 
     for i in 1..item_method.sig.inputs.len() {
         let arg = &mut item_method.sig.inputs[i];
-        let (arg_ident, arg_ty, operation_param, param_description) = match arg {
+        let (arg_ident, mut arg_ty, operation_param, param_description) = match arg {
             FnArg::Typed(pat) => {
                 if let Pat::Ident(ident) = &*pat.pat {
                     let ident = ident.ident.clone();
@@ -230,6 +231,9 @@ fn generate_operation(
                 return Err(Error::new_spanned(item_method, "Invalid method definition.").into());
             }
         };
+
+        RemoveLifetime.visit_type_mut(&mut *arg_ty);
+
         let pname = format_ident!("p{}", i);
         let param_name = operation_param
             .name
