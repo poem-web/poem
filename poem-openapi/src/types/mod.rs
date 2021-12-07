@@ -85,6 +85,7 @@ pub trait ToJSON: Type {
 }
 
 impl<T: Type> Type for Arc<T> {
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
     type RawValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
@@ -93,6 +94,10 @@ impl<T: Type> Type for Arc<T> {
 
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
@@ -123,6 +128,7 @@ impl<T: ToJSON> ToJSON for Arc<T> {
 }
 
 impl<T: Type> Type for Box<T> {
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
     type RawValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
@@ -131,6 +137,10 @@ impl<T: Type> Type for Box<T> {
 
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {

@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::HashMap, fmt::Display, hash::Hash, str::From
 use serde_json::Value;
 
 use crate::{
-    registry::{MetaSchema, MetaSchemaRef},
+    registry::{MetaSchema, MetaSchemaRef, Registry},
     types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type},
 };
 
@@ -23,6 +23,10 @@ where
             additional_properties: Some(Box::new(V::schema_ref())),
             ..MetaSchema::new("object")
         }))
+    }
+
+    fn register(registry: &mut Registry) {
+        V::register(registry);
     }
 }
 
