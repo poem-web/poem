@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Unreleased
+
+- Rename `Request::deserialize_path` to `Request::path_params`, `Request::deserialize_query` to `Request::params`.
+- Rename `Request::path_param` to `Request::raw_path_param`.
+
 # [1.0.36] 2021-12-01
 
 - Add helper methods `Request::deserialize_path` and `Request::deserialize_query`.

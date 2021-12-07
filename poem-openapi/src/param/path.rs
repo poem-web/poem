@@ -55,7 +55,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Path<T> {
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self, ParseRequestError> {
         let value = match (
-            request.path_param(param_opts.name),
+            request.raw_path_param(param_opts.name),
             &param_opts.default_value,
         ) {
             (Some(value), _) => Some(value),

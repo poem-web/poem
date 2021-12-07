@@ -225,8 +225,8 @@ impl Request {
             .and_then(|value| value.to_str().ok())
     }
 
-    /// Returns the path parameter with the specified `name`.
-    pub fn path_param(&self, name: &str) -> Option<&str> {
+    /// Returns the raw path parameter with the specified `name`.
+    pub fn raw_path_param(&self, name: &str) -> Option<&str> {
         self.state
             .match_params
             .iter()
@@ -237,7 +237,37 @@ impl Request {
     /// Deserialize path parameters.
     ///
     /// See also [`Path`](crate::web::Path)
-    pub fn deserialize_path<T: DeserializeOwned>(&self) -> Result<T, ParsePathError> {
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     Endpoint, Request, Result, Route,
+    /// };
+    ///
+    /// #[handler]
+    /// fn index(req: &Request) -> Result<String> {
+    ///     let (a, b) = req.path_params::<(i32, String)>()?;
+    ///     Ok(format!("{}:{}", a, b))
+    /// }
+    ///
+    /// let app = Route::new().at("/:a/:b", index);
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/100/abc"))
+    ///             .finish(),
+    ///     )
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
+    /// # });
+    /// ```
+    pub fn path_params<T: DeserializeOwned>(&self) -> Result<T, ParsePathError> {
         T::deserialize(PathDeserializer::new(&self.state().match_params))
             .map_err(|_| ParsePathError)
     }
@@ -245,7 +275,44 @@ impl Request {
     /// Deserialize query parameters.
     ///
     /// See also [`Query`](crate::web::Query)
-    pub fn deserialize_query<T: DeserializeOwned>(&self) -> Result<T, ParseQueryError> {
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     Endpoint, Request, Result, Route,
+    /// };
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// struct Params {
+    ///     a: i32,
+    ///     b: String,
+    /// }
+    ///
+    /// #[handler]
+    /// fn index(req: &Request) -> Result<String> {
+    ///     let params = req.params::<Params>()?;
+    ///     Ok(format!("{}:{}", params.a, params.b))
+    /// }
+    ///
+    /// let app = Route::new().at("/", index);
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/?a=100&b=abc"))
+    ///             .finish(),
+    ///     )
+    ///     .await;
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
+    /// # });
+    /// ```
+    pub fn params<T: DeserializeOwned>(&self) -> Result<T, ParseQueryError> {
         Ok(serde_urlencoded::from_str(
             self.uri().query().unwrap_or_default(),
         )?)
