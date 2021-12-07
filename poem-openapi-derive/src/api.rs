@@ -177,7 +177,7 @@ fn generate_operation(
 
     if item_method.sig.inputs.is_empty() {
         return Err(Error::new_spanned(
-            &item_method.sig.inputs,
+            &item_method.sig.ident,
             "At least one `&self` receiver is required.",
         )
         .into());
