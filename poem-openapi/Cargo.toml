@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "1.0.42"
+version = "1.0.43"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "OpenAPI support for Poem."
@@ -20,7 +20,7 @@ swagger-ui = []
 rapidoc = []
 
 [dependencies]
-poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.42" }
+poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.43" }
 poem = { path = "../poem", version = "1.0.14", features = ["multipart", "tempfile", "cookie"] }
 
 tokio = { version = "1.12.0", features = ["fs"] }
