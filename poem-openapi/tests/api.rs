@@ -486,3 +486,56 @@ async fn poem_extract() {
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn returning_borrowed_value() {
+    struct Api {
+        value: i32,
+        values: Vec<i32>,
+    }
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/value", method = "get")]
+        async fn value(&self) -> Json<&i32> {
+            Json(&self.value)
+        }
+
+        #[oai(path = "/values", method = "get")]
+        async fn values(&self) -> Json<&[i32]> {
+            Json(&self.values)
+        }
+    }
+
+    let ep = OpenApiService::new(
+        Api {
+            value: 999,
+            values: vec![1, 2, 3, 4, 5],
+        },
+        "test",
+        "1.0",
+    )
+    .into_endpoint();
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/value"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "999");
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/values"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "[1,2,3,4,5]");
+}

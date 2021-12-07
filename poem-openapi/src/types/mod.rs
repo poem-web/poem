@@ -84,6 +84,33 @@ pub trait ToJSON: Type {
     fn to_json(&self) -> Value;
 }
 
+impl<T: Type> Type for &T {
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
+    type RawValueType = T::RawValueType;
+
+    fn name() -> Cow<'static, str> {
+        T::name()
+    }
+
+    fn schema_ref() -> MetaSchemaRef {
+        T::schema_ref()
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        (*self).as_raw_value()
+    }
+}
+
+impl<T: ToJSON> ToJSON for &T {
+    fn to_json(&self) -> Value {
+        T::to_json(self)
+    }
+}
+
 impl<T: Type> Type for Arc<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
     type RawValueType = T::RawValueType;
