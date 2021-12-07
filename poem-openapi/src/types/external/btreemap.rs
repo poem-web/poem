@@ -1,6 +1,5 @@
 use std::{borrow::Cow, collections::BTreeMap, fmt::Display, str::FromStr};
 
-use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
 use crate::{
@@ -11,7 +10,7 @@ use crate::{
 impl<K, V> Type for BTreeMap<K, V>
 where
     K: ToString + FromStr + Ord + Sync + Send,
-    V: Serialize + DeserializeOwned + Send + Sync,
+    V: Type,
 {
     fn name() -> Cow<'static, str> {
         "object".into()
@@ -20,7 +19,10 @@ where
     impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new("object")))
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            additional_properties: Some(Box::new(V::schema_ref())),
+            ..MetaSchema::new("object")
+        }))
     }
 }
 
@@ -28,7 +30,7 @@ impl<K, V> ParseFromJSON for BTreeMap<K, V>
 where
     K: ToString + FromStr + Ord + Sync + Send,
     K::Err: Display,
-    V: Serialize + DeserializeOwned + Send + Sync,
+    V: ParseFromJSON,
 {
     fn parse_from_json(value: Value) -> ParseResult<Self> {
         if let Value::Object(value) = value {
@@ -37,8 +39,7 @@ where
                 let key = key
                     .parse()
                     .map_err(|err| ParseError::custom(format!("object key: {}", err)))?;
-                let value = serde_json::from_value(value)
-                    .map_err(|err| ParseError::custom(format!("object value: {}", err)))?;
+                let value = V::parse_from_json(value).map_err(ParseError::propagate)?;
                 obj.insert(key, value);
             }
             Ok(obj)
@@ -51,16 +52,31 @@ where
 impl<K, V> ToJSON for BTreeMap<K, V>
 where
     K: ToString + FromStr + Ord + Sync + Send,
-    V: Serialize + DeserializeOwned + Send + Sync,
+    V: ToJSON,
 {
     fn to_json(&self) -> Value {
         let mut map = serde_json::Map::new();
         for (name, value) in self {
-            map.insert(
-                name.to_string(),
-                serde_json::to_value(value).unwrap_or_default(),
-            );
+            map.insert(name.to_string(), value.to_json());
         }
         Value::Object(map)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hashmap() {
+        type MyObj = BTreeMap<String, i32>;
+
+        assert_eq!(
+            MyObj::schema_ref().unwrap_inline(),
+            &MetaSchema {
+                additional_properties: Some(Box::new(i32::schema_ref())),
+                ..MetaSchema::new("object")
+            }
+        );
     }
 }

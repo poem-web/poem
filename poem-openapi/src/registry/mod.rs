@@ -64,6 +64,8 @@ pub struct MetaSchema {
     pub properties: Vec<(&'static str, MetaSchemaRef)>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Box<MetaSchemaRef>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_properties: Option<Box<MetaSchemaRef>>,
     #[serde(rename = "enum", skip_serializing_if = "Vec::is_empty")]
     pub enum_items: Vec<Value>,
     #[serde(skip_serializing_if = "is_false")]
@@ -125,6 +127,7 @@ impl MetaSchema {
         required: vec![],
         properties: vec![],
         items: None,
+        additional_properties: None,
         enum_items: vec![],
         deprecated: false,
         one_of: vec![],
@@ -156,6 +159,7 @@ impl MetaSchema {
             required: vec![],
             properties: vec![],
             items: None,
+            additional_properties: None,
             enum_items: vec![],
             deprecated: false,
             one_of: vec![],
@@ -188,6 +192,7 @@ impl MetaSchema {
             required: vec![],
             properties: vec![],
             items: None,
+            additional_properties: None,
             enum_items: vec![],
             deprecated: false,
             one_of: vec![],
