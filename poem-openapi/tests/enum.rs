@@ -34,7 +34,7 @@ fn rename() {
     let mut registry = Registry::new();
     MyEnum::register(&mut registry);
     let meta = registry.schemas.remove("AAA").unwrap();
-    assert_eq!(meta.ty, "AAA");
+    assert_eq!(meta.ty, "string");
     assert_eq!(MyEnum::schema_ref(), MetaSchemaRef::Reference("AAA"));
 }
 
