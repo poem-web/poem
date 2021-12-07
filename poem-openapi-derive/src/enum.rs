@@ -99,7 +99,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn register(registry: &mut #crate_name::registry::Registry) {
                 registry.create_schema::<Self, _>(#oai_typename, |registry| #crate_name::registry::MetaSchema {
                     enum_items: ::std::vec![#(#enum_items),*],
-                    ..#crate_name::registry::MetaSchema::new(#oai_typename)
+                    ..#crate_name::registry::MetaSchema::new("string")
                 });
             }
         }
