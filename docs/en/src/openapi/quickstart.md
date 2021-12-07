@@ -32,7 +32,7 @@ async fn main() -> Result<(), std::io::Error> {
     let listener = TcpListener::bind("127.0.0.1:3000");
   
     // Create API service
-    let api_service = OpenApiService::new(Api)
+    let api_service = OpenApiService::new(Api, "Demo", "0.1.0")
         .title("Hello World")
         .server("http://localhost:3000/api");
   
