@@ -82,4 +82,4 @@ macro_rules! impl_type_for_floats {
     };
 }
 
-impl_type_for_floats!((f32, "float32"), (f64, "float64"));
+impl_type_for_floats!((f32, "float"), (f64, "double"));

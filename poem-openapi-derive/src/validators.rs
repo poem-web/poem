@@ -138,10 +138,10 @@ impl Validators {
         self.max_items
             .as_ref()
             .map(SpannedValue::span)
-            .or(self.min_items.as_ref().map(SpannedValue::span))
-            .or(self.unique_items.as_ref().map(SpannedValue::span))
-            .or(self.max_properties.as_ref().map(SpannedValue::span))
-            .or(self.min_properties.as_ref().map(SpannedValue::span))
+            .or_else(|| self.min_items.as_ref().map(SpannedValue::span))
+            .or_else(|| self.unique_items.as_ref().map(SpannedValue::span))
+            .or_else(|| self.max_properties.as_ref().map(SpannedValue::span))
+            .or_else(|| self.min_properties.as_ref().map(SpannedValue::span))
     }
 
     pub(crate) fn create_obj_field_checker(

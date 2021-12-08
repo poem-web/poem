@@ -15,8 +15,6 @@ use crate::{
 impl Type for DateTime<FixedOffset> {
     const IS_REQUIRED: bool = true;
 
-    const IS_CONTAINER: bool = false;
-
     type RawValueType = Self;
 
     type RawElementValueType = Self;

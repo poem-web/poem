@@ -210,7 +210,7 @@ async fn payload_request() {
 
     #[OpenApi]
     impl Api {
-        #[oai(path = "/", method = "get")]
+        #[oai(path = "/", method = "post")]
         async fn test(&self, req: Json<i32>) {
             assert_eq!(req.0, 100);
         }
@@ -227,7 +227,7 @@ async fn payload_request() {
     let resp = ep
         .call(
             poem::Request::builder()
-                .method(Method::GET)
+                .method(Method::POST)
                 .uri(Uri::from_static("/"))
                 .content_type("application/json")
                 .body("100"),
@@ -238,13 +238,59 @@ async fn payload_request() {
     let resp = ep
         .call(
             poem::Request::builder()
-                .method(Method::GET)
+                .method(Method::POST)
                 .uri(Uri::from_static("/"))
                 .content_type("text/plain")
                 .body("100"),
         )
         .await;
     assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+}
+
+#[tokio::test]
+async fn optional_payload_request() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "post")]
+        async fn test(&self, req: Option<Json<i32>>) -> PlainText<String> {
+            PlainText(req.map(|value| value.0).unwrap_or_default().to_string())
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    let meta_request = meta.paths[0].operations[0].request.as_ref().unwrap();
+    assert!(!meta_request.required);
+
+    assert_eq!(meta_request.content[0].content_type, "application/json");
+    assert_eq!(meta_request.content[0].schema, i32::schema_ref());
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::POST)
+                .uri(Uri::from_static("/"))
+                .content_type("application/json")
+                .body("100"),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::POST)
+                .uri(Uri::from_static("/"))
+                .content_type("application/json")
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "0");
 }
 
 #[tokio::test]

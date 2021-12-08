@@ -130,7 +130,7 @@ impl<'a, T: Payload + ParsePayload> ApiExtractor<'a> for T {
                 content_type: T::CONTENT_TYPE,
                 schema: T::schema_ref(),
             }],
-            required: true,
+            required: T::IS_REQUIRED,
         })
     }
 

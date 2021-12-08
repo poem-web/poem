@@ -4,10 +4,13 @@ mod binary;
 mod json;
 mod plain_text;
 
+use std::io::{Cursor, ErrorKind};
+
 pub use binary::Binary;
 pub use json::Json;
 pub use plain_text::PlainText;
-use poem::{Request, RequestBody, Result};
+use poem::{error::ReadBodyError, Body, IntoResponse, Request, RequestBody, Result};
+use tokio::io::AsyncReadExt;
 
 use crate::{
     registry::{MetaSchemaRef, Registry},
@@ -18,6 +21,9 @@ use crate::{
 pub trait Payload: Send {
     /// The content type of this payload.
     const CONTENT_TYPE: &'static str;
+
+    /// If it is `true`, it means that this payload is required.
+    const IS_REQUIRED: bool = true;
 
     /// Gets schema reference of this payload.
     fn schema_ref() -> MetaSchemaRef;
@@ -46,6 +52,50 @@ impl<T: ParsePayload> ParsePayload for Result<T> {
         match T::from_request(request, body).await {
             Ok(payload) => Ok(Ok(payload)),
             Err(err) => Ok(Err(err.into())),
+        }
+    }
+}
+
+impl<T: Payload> Payload for Option<T> {
+    const CONTENT_TYPE: &'static str = T::CONTENT_TYPE;
+
+    const IS_REQUIRED: bool = false;
+
+    fn schema_ref() -> MetaSchemaRef {
+        T::schema_ref()
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
+    }
+}
+
+#[poem::async_trait]
+impl<T: ParsePayload> ParsePayload for Option<T> {
+    async fn from_request(
+        request: &Request,
+        body: &mut RequestBody,
+    ) -> Result<Self, ParseRequestError> {
+        let taked_body = body
+            .take()
+            .map_err(|err| ParseRequestError::ParseRequestBody(err.into_response()))?;
+        let mut body_reader = taked_body.into_async_read();
+
+        match body_reader.read_u8().await {
+            Ok(ch) => {
+                *body =
+                    RequestBody::new(Body::from_async_read(Cursor::new([ch]).chain(body_reader)));
+                T::from_request(request, body).await.map(Some)
+            }
+            Err(err) => {
+                if err.kind() == ErrorKind::UnexpectedEof {
+                    Ok(None)
+                } else {
+                    Err(ParseRequestError::ParseRequestBody(
+                        ReadBodyError::Io(err).into_response(),
+                    ))
+                }
+            }
         }
     }
 }
