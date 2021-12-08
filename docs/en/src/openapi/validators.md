@@ -18,8 +18,8 @@ struct Pet {
     #[oai(validator(max_length = "32"))]
     name: String,
 
-    /// Array length must be less than 3
-    #[oai(validator(max_items = "3"))]
+    /// Array length must be less than 3 and the url length must be less than 256
+    #[oai(validator(max_items = "3", max_length = "256"))]
     photo_urls: Vec<String>,
 
     status: PetStatus,
