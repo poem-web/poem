@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use poem::{
     http::{StatusCode, Uri},
     Endpoint, IntoEndpoint, Request,
@@ -422,7 +424,7 @@ fn test_unsigned_integers() {
 fn test_list_on_object() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(validator(list, maximum(value = "10")))]
+        #[oai(validator(maximum(value = "10")))]
         n: Vec<i32>,
     }
 
@@ -453,12 +455,13 @@ fn test_list_on_object() {
 fn test_list_on_multipart() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(validator(list, maximum(value = "32")))]
+        #[oai(validator(maximum(value = "32")))]
         values: Vec<JsonField<i32>>,
     }
 
     let schema_ref = A::schema_ref();
     let schema: &MetaSchema = schema_ref.unwrap_inline();
+
     assert_eq!(schema.ty, "object");
     assert_eq!(schema.properties.len(), 1);
 
@@ -475,7 +478,7 @@ fn test_list_on_multipart() {
 fn test_both_max_items_and_max_length() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct A {
-        #[oai(validator(list, max_items = 2, max_length = 3))]
+        #[oai(validator(max_items = 2, max_length = 3))]
         values: Vec<String>,
     }
 
@@ -499,4 +502,147 @@ fn test_both_max_items_and_max_length() {
             .into_message(),
         "failed to parse \"A\": field `values` verification failed. maxLength(3)"
     );
+}
+
+#[test]
+fn test_max_properties() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(max_properties = 3))]
+        values: HashMap<String, u32>,
+    }
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "values": {
+                "a": 1,
+                "b": 2,
+                "c": 3,
+            },
+        }))
+        .unwrap(),
+        A {
+            values: {
+                let mut map = HashMap::new();
+                map.insert("a".to_string(), 1);
+                map.insert("b".to_string(), 2);
+                map.insert("c".to_string(), 3);
+                map
+            },
+        }
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "values": {
+                "a": 1,
+                "b": 2,
+                "c": 3,
+                "d": 4,
+            },
+        }))
+        .unwrap_err()
+        .into_message(),
+        "failed to parse \"A\": field `values` verification failed. maxProperties(3)"
+    );
+
+    let mut schema = MetaSchema::new("string");
+    validation::MaxProperties::new(3).update_meta(&mut schema);
+    assert_eq!(schema.max_properties, Some(3));
+}
+
+#[test]
+fn test_min_properties() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(min_properties = 2))]
+        values: HashMap<String, u32>,
+    }
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "values": {
+                "a": 1,
+                "b": 2,
+                "c": 3,
+            },
+        }))
+        .unwrap(),
+        A {
+            values: {
+                let mut map = HashMap::new();
+                map.insert("a".to_string(), 1);
+                map.insert("b".to_string(), 2);
+                map.insert("c".to_string(), 3);
+                map
+            },
+        }
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "values": {
+                "a": 1,
+            },
+        }))
+        .unwrap_err()
+        .into_message(),
+        "failed to parse \"A\": field `values` verification failed. minProperties(2)"
+    );
+
+    let mut schema = MetaSchema::new("string");
+    validation::MinProperties::new(3).update_meta(&mut schema);
+    assert_eq!(schema.min_properties, Some(3));
+}
+
+#[test]
+fn test_map_on_object() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(maximum(value = "100")))]
+        values: HashMap<String, u32>,
+    }
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "values": {
+                "a": 1,
+                "b": 2,
+                "c": 3,
+            },
+        }))
+        .unwrap(),
+        A {
+            values: {
+                let mut map = HashMap::new();
+                map.insert("a".to_string(), 1);
+                map.insert("b".to_string(), 2);
+                map.insert("c".to_string(), 3);
+                map
+            },
+        }
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "values": {
+                "a": 1,
+                "b": 101,
+            },
+        }))
+        .unwrap_err()
+        .into_message(),
+        "failed to parse \"A\": field `values` verification failed. maximum(100, exclusive: false)"
+    );
+
+    let mut registry = Registry::default();
+    A::register(&mut registry);
+    let schema = registry.schemas.get_mut("A").unwrap();
+    let (name, field_values) = schema.properties.remove(0);
+    assert_eq!(name, "values");
+
+    let schema_values = field_values.unwrap_inline();
+    let schema_properties = schema_values.additional_properties.as_ref().unwrap();
+    let schema_properties = schema_properties.unwrap_inline();
+    assert_eq!(schema_properties.maximum, Some(100.0));
 }

@@ -16,6 +16,8 @@ impl<T: Type> Type for Option<T> {
 
     type RawValueType = T::RawValueType;
 
+    type RawElementValueType = T::RawElementValueType;
+
     fn name() -> Cow<'static, str> {
         T::name()
     }
@@ -32,6 +34,15 @@ impl<T: Type> Type for Option<T> {
         match self {
             Some(value) => value.as_raw_value(),
             None => None,
+        }
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        match self {
+            Some(value) => value.raw_element_iter(),
+            None => Box::new(std::iter::empty()),
         }
     }
 }

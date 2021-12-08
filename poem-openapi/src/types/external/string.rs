@@ -12,14 +12,28 @@ use crate::{
 };
 
 impl Type for String {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = Self;
+
+    fn name() -> Cow<'static, str> {
+        "string".into()
+    }
+
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
     }
 
-    impl_raw_value_type!();
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
 
-    fn name() -> Cow<'static, str> {
-        "string".into()
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 
@@ -59,14 +73,28 @@ impl ToJSON for String {
 }
 
 impl<'a> Type for &'a str {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = Self;
+
     fn name() -> Cow<'static, str> {
         "string".into()
     }
 
-    impl_raw_value_type!();
-
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
+
+    fn raw_element_iter<'b>(
+        &'b self,
+    ) -> Box<dyn Iterator<Item = &'b Self::RawElementValueType> + 'b> {
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 

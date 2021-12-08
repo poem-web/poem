@@ -9,11 +9,15 @@ use crate::{
 };
 
 impl<T: Type> Type for Vec<T> {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = T::RawValueType;
+
     fn name() -> Cow<'static, str> {
         format!("[{}]", T::name()).into()
     }
-
-    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
@@ -24,6 +28,16 @@ impl<T: Type> Type for Vec<T> {
 
     fn register(registry: &mut Registry) {
         T::register(registry);
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.iter().map(|item| item.as_raw_value()).flatten())
     }
 }
 

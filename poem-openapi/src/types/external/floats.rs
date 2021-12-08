@@ -15,6 +15,12 @@ macro_rules! impl_type_for_floats {
     ($(($ty:ty, $format:literal)),*) => {
         $(
         impl Type for $ty {
+            const IS_REQUIRED: bool = true;
+
+            type RawValueType = Self;
+
+            type RawElementValueType = Self;
+
             fn name() -> Cow<'static, str> {
                 format!("number({})", $format).into()
             }
@@ -23,7 +29,15 @@ macro_rules! impl_type_for_floats {
                 MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("number", $format)))
             }
 
-            impl_raw_value_type!();
+            fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+                Some(self)
+            }
+
+            fn raw_element_iter<'a>(
+                &'a self
+            ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                Box::new(self.as_raw_value().into_iter())
+            }
         }
 
         impl ParseFromJSON for $ty {

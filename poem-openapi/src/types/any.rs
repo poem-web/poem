@@ -12,7 +12,11 @@ use crate::{
 pub struct Any<T>(pub T);
 
 impl<T: Send + Sync> Type for Any<T> {
+    const IS_REQUIRED: bool = true;
+
     type RawValueType = T;
+
+    type RawElementValueType = T;
 
     fn name() -> Cow<'static, str> {
         "any".into()
@@ -24,6 +28,12 @@ impl<T: Send + Sync> Type for Any<T> {
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
         Some(&self.0)
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 

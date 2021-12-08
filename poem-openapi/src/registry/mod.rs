@@ -103,6 +103,10 @@ pub struct MetaSchema {
     pub min_items: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_items: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_properties: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_properties: Option<usize>,
 }
 
 fn serialize_properties<S: Serializer>(
@@ -146,71 +150,19 @@ impl MetaSchema {
         max_items: None,
         min_items: None,
         unique_items: None,
+        max_properties: None,
+        min_properties: None,
     };
 
-    pub const fn new(ty: &'static str) -> Self {
-        Self {
-            rust_typename: None,
-            ty,
-            format: None,
-            title: None,
-            description: None,
-            default: None,
-            required: vec![],
-            properties: vec![],
-            items: None,
-            additional_properties: None,
-            enum_items: vec![],
-            deprecated: false,
-            one_of: vec![],
-            all_of: vec![],
-            discriminator: None,
-            read_only: false,
-            write_only: false,
-            multiple_of: None,
-            maximum: None,
-            exclusive_maximum: None,
-            minimum: None,
-            exclusive_minimum: None,
-            max_length: None,
-            min_length: None,
-            pattern: None,
-            max_items: None,
-            min_items: None,
-            unique_items: None,
-        }
+    pub fn new(ty: &'static str) -> Self {
+        Self { ty, ..Self::ANY }
     }
 
-    pub const fn new_with_format(ty: &'static str, format: &'static str) -> Self {
+    pub fn new_with_format(ty: &'static str, format: &'static str) -> Self {
         MetaSchema {
-            rust_typename: None,
             ty,
             format: Some(format),
-            title: None,
-            description: None,
-            default: None,
-            required: vec![],
-            properties: vec![],
-            items: None,
-            additional_properties: None,
-            enum_items: vec![],
-            deprecated: false,
-            one_of: vec![],
-            all_of: vec![],
-            discriminator: None,
-            read_only: false,
-            write_only: false,
-            multiple_of: None,
-            maximum: None,
-            exclusive_maximum: None,
-            minimum: None,
-            exclusive_minimum: None,
-            max_length: None,
-            min_length: None,
-            pattern: None,
-            max_items: None,
-            min_items: None,
-            unique_items: None,
+            ..Self::ANY
         }
     }
 
@@ -226,6 +178,8 @@ impl MetaSchema {
             write_only,
             title,
             description,
+            items,
+            additional_properties,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -237,7 +191,8 @@ impl MetaSchema {
             max_items,
             min_items,
             unique_items,
-            items,
+            max_properties,
+            min_properties,
             ..
         }: MetaSchema,
     ) -> Self {
@@ -268,7 +223,9 @@ impl MetaSchema {
             pattern,
             max_items,
             min_items,
-            unique_items
+            unique_items,
+            max_properties,
+            min_properties
         );
 
         if let Some(items) = items {
@@ -291,6 +248,29 @@ impl MetaSchema {
             }
         }
 
+        if let Some(additional_properties) = additional_properties {
+            if let Some(self_additional_properties) = self.additional_properties {
+                let additional_properties = *additional_properties;
+
+                match additional_properties {
+                    MetaSchemaRef::Inline(additional_properties) => {
+                        self.additional_properties = Some(Box::new(
+                            self_additional_properties.merge(*additional_properties),
+                        ))
+                    }
+                    MetaSchemaRef::Reference(_) => {
+                        self.additional_properties =
+                            Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
+                                one_of: vec![*self_additional_properties, additional_properties],
+                                ..MetaSchema::ANY
+                            }))));
+                    }
+                }
+            } else {
+                self.additional_properties = Some(additional_properties);
+            }
+        }
+
         self
     }
 }
@@ -302,6 +282,14 @@ pub enum MetaSchemaRef {
 }
 
 impl MetaSchemaRef {
+    pub fn is_array(&self) -> bool {
+        matches!(self, MetaSchemaRef::Inline(schema) if schema.ty == "array")
+    }
+
+    pub fn is_object(&self) -> bool {
+        matches!(self, MetaSchemaRef::Inline(schema) if schema.ty == "object")
+    }
+
     pub fn unwrap_inline(&self) -> &MetaSchema {
         match &self {
             MetaSchemaRef::Inline(schema) => schema,

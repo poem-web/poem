@@ -12,11 +12,15 @@ where
     K: ToString + FromStr + Ord + Sync + Send,
     V: Type,
 {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = V::RawValueType;
+
     fn name() -> Cow<'static, str> {
         "object".into()
     }
-
-    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
@@ -27,6 +31,16 @@ where
 
     fn register(registry: &mut Registry) {
         V::register(registry);
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.values().map(|item| item.as_raw_value()).flatten())
     }
 }
 

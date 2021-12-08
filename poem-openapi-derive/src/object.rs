@@ -196,6 +196,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         register_types.push(quote!(<#field_ty>::register(registry);));
 
         meta_fields.push(quote! {{
+            let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
             let patch_schema = {
                 let mut schema = #crate_name::registry::MetaSchema::ANY;
                 schema.default = #field_meta_default;
@@ -213,7 +214,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 schema
             };
 
-            (#field_name, <#field_ty as #crate_name::types::Type>::schema_ref().merge(patch_schema))
+            (#field_name, original_schema.merge(patch_schema))
         }});
 
         required_fields.push(quote! {
@@ -272,6 +273,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 type RawValueType = Self;
 
+                type RawElementValueType = Self;
+
                 fn name() -> ::std::borrow::Cow<'static, str> {
                     ::std::convert::Into::into(#oai_typename)
                 }
@@ -286,6 +289,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
                     ::std::option::Option::Some(self)
+                }
+
+                fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                    ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
                 }
             }
 
@@ -361,6 +368,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                     type RawValueType = Self;
 
+                    type RawElementValueType = Self;
+
                     fn name() -> ::std::borrow::Cow<'static, str> {
                         ::std::convert::Into::into(#oai_typename)
                     }
@@ -375,6 +384,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                     fn register(registry: &mut #crate_name::registry::Registry) {
                         Self::__internal_register(#oai_typename, registry);
+                    }
+
+                    fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                        ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
                     }
                 }
 

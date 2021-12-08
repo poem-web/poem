@@ -13,14 +13,30 @@ use crate::{
 };
 
 impl Type for DateTime<FixedOffset> {
+    const IS_REQUIRED: bool = true;
+
+    const IS_CONTAINER: bool = false;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = Self;
+
+    fn name() -> Cow<'static, str> {
+        "string(date-time)".into()
+    }
+
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "date-time")))
     }
 
-    impl_raw_value_type!();
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
 
-    fn name() -> Cow<'static, str> {
-        "string(date-time)".into()
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 

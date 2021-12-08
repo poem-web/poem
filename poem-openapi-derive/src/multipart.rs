@@ -162,6 +162,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         };
 
         meta_fields.push(quote! {{
+            let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
             let mut patch_schema = {
                 let mut schema = #crate_name::registry::MetaSchema::ANY;
                 schema.default = #field_meta_default;
@@ -178,7 +179,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 schema
             };
 
-            (#field_name, <#field_ty as #crate_name::types::Type>::schema_ref().merge(patch_schema))
+            (#field_name, original_schema.merge(patch_schema))
         }});
 
         register_fields.push(quote! {

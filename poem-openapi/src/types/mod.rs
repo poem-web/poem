@@ -1,8 +1,5 @@
 //! Commonly used data types.
 
-#[macro_use]
-mod macros;
-
 mod any;
 mod base64_type;
 mod binary;
@@ -26,8 +23,8 @@ use crate::registry::{MetaSchemaRef, Registry};
 
 /// Represents a OpenAPI type.
 pub trait Type: Send + Sync {
-    /// If it is `true`, it means that this value is required.
-    const IS_REQUIRED: bool = true;
+    /// If it is `true`, it means that this type is required.
+    const IS_REQUIRED: bool;
 
     /// The raw type used for validator.
     ///
@@ -38,6 +35,9 @@ pub trait Type: Send + Sync {
     /// `i32::RawValueType` is `i32`
     /// `Option<i32>::RawValueType` is `i32`.
     type RawValueType;
+
+    /// The raw element type used for validator.
+    type RawElementValueType;
 
     /// Returns the name of this type
     fn name() -> Cow<'static, str>;
@@ -51,6 +51,11 @@ pub trait Type: Send + Sync {
 
     /// Returns a reference to the raw value.
     fn as_raw_value(&self) -> Option<&Self::RawValueType>;
+
+    /// Returns an iterator for traversing the elements.
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a>;
 }
 
 /// Represents a type that can parsing from JSON.
@@ -86,7 +91,10 @@ pub trait ToJSON: Type {
 
 impl<T: Type> Type for &T {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
+
     type RawValueType = T::RawValueType;
+
+    type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -103,6 +111,12 @@ impl<T: Type> Type for &T {
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
         (*self).as_raw_value()
     }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        (*self).raw_element_iter()
+    }
 }
 
 impl<T: ToJSON> ToJSON for &T {
@@ -113,7 +127,10 @@ impl<T: ToJSON> ToJSON for &T {
 
 impl<T: Type> Type for Arc<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
+
     type RawValueType = T::RawValueType;
+
+    type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -129,6 +146,12 @@ impl<T: Type> Type for Arc<T> {
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
         self.as_ref().as_raw_value()
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        self.as_ref().raw_element_iter()
     }
 }
 
@@ -156,7 +179,10 @@ impl<T: ToJSON> ToJSON for Arc<T> {
 
 impl<T: Type> Type for Box<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
+
     type RawValueType = T::RawValueType;
+
+    type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -172,6 +198,12 @@ impl<T: Type> Type for Box<T> {
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
         self.as_ref().as_raw_value()
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        self.as_ref().raw_element_iter()
     }
 }
 

@@ -84,6 +84,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             type RawValueType = Self;
 
+            type RawElementValueType = Self;
+
             fn name() -> ::std::borrow::Cow<'static, str> {
                 ::std::convert::Into::into(#oai_typename)
             }
@@ -101,6 +103,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     enum_items: ::std::vec![#(#enum_items),*],
                     ..#crate_name::registry::MetaSchema::new("string")
                 });
+            }
+
+            fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
             }
         }
 

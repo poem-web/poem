@@ -277,9 +277,7 @@ fn generate_operation(
                 }
             }
         }).unwrap_or_default();
-        let validators_update_meta = validator
-            .create_update_meta(crate_name)?
-            .unwrap_or_default();
+        let validators_update_meta = validator.create_update_meta(crate_name)?;
 
         // do extract
         parse_args.push(quote! {
@@ -304,7 +302,7 @@ fn generate_operation(
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
-                let mut schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
+                let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
 
                 let mut patch_schema = {
                     let mut schema = #crate_name::registry::MetaSchema::ANY;
@@ -315,7 +313,7 @@ fn generate_operation(
 
                 let meta_param = #crate_name::registry::MetaOperationParam {
                     name: #param_name,
-                    schema: schema.merge(patch_schema),
+                    schema: original_schema.merge(patch_schema),
                     in_type: <#arg_ty as #crate_name::ApiExtractor>::param_in().unwrap(),
                     description: #param_desc,
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED,
