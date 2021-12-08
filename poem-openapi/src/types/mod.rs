@@ -16,7 +16,7 @@ pub use base64_type::Base64;
 pub use binary::Binary;
 pub use error::{ParseError, ParseResult};
 pub use password::Password;
-use poem::web::Field as PoemField;
+use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
 
 use crate::registry::{MetaSchemaRef, Registry};
@@ -83,10 +83,16 @@ pub trait ParseFromMultipartField: Sized + Type {
     }
 }
 
-/// Represents a type that can converted to JSON.
+/// Represents a type that can converted to JSON value.
 pub trait ToJSON: Type {
-    /// Convert this value to [`serde_json::Value`].
+    /// Convert this value to [`Value`].
     fn to_json(&self) -> Value;
+}
+
+/// Represents a type that can converted to HTTP header.
+pub trait ToHeader: Type {
+    /// Convert this value to [`HeaderValue`].
+    fn to_header(&self) -> Option<HeaderValue>;
 }
 
 impl<T: Type> Type for &T {
@@ -122,6 +128,12 @@ impl<T: Type> Type for &T {
 impl<T: ToJSON> ToJSON for &T {
     fn to_json(&self) -> Value {
         T::to_json(self)
+    }
+}
+
+impl<T: ToHeader> ToHeader for &T {
+    fn to_header(&self) -> Option<HeaderValue> {
+        T::to_header(self)
     }
 }
 
@@ -174,6 +186,12 @@ impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
 impl<T: ToJSON> ToJSON for Arc<T> {
     fn to_json(&self) -> Value {
         self.as_ref().to_json()
+    }
+}
+
+impl<T: ToHeader> ToHeader for Arc<T> {
+    fn to_header(&self) -> Option<HeaderValue> {
+        self.as_ref().to_header()
     }
 }
 
@@ -243,6 +261,12 @@ impl<T: ParseFromMultipartField> ParseFromMultipartField for Box<T> {
 impl<T: ToJSON> ToJSON for Box<T> {
     fn to_json(&self) -> Value {
         self.as_ref().to_json()
+    }
+}
+
+impl<T: ToHeader> ToHeader for Box<T> {
+    fn to_header(&self) -> Option<HeaderValue> {
+        self.as_ref().to_header()
     }
 }
 

@@ -6,7 +6,7 @@ use poem::{
 };
 use poem_openapi::{
     payload::{Json, PlainText},
-    registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
+    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
     types::ToJSON,
     ApiResponse, Object, ParseRequestError,
 };
@@ -101,7 +101,7 @@ async fn headers() {
         #[oai(status = 200)]
         B(
             #[oai(header = "MY-HEADER1", desc = "header1")] i32,
-            #[oai(header = "MY-HEADER2")] String,
+            #[oai(header = "MY-HEADER2")] Option<String>,
         ),
         #[oai(status = 400)]
         C(
@@ -119,31 +119,30 @@ async fn headers() {
 
     let meta: MetaResponses = MyResponse::meta();
     assert_eq!(meta.responses[0].headers, &[]);
+
+    let header1 = &meta.responses[1].headers[0];
+    let header2 = &meta.responses[1].headers[1];
+
+    assert_eq!(header1.name, "MY-HEADER1");
+    assert_eq!(header1.description, Some("header1"));
+    assert_eq!(header1.required, true);
     assert_eq!(
-        meta.responses[1].headers,
-        vec![
-            MetaHeader {
-                name: "MY-HEADER1",
-                description: Some("header1"),
-                required: true,
-                schema: MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    format: Some("int32"),
-                    ..MetaSchema::new("integer")
-                }))
-            },
-            MetaHeader {
-                name: "MY-HEADER2",
-                description: None,
-                required: true,
-                schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
-            }
-        ]
+        header1.schema,
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", "int32")))
+    );
+
+    assert_eq!(header2.name, "MY-HEADER2");
+    assert_eq!(header2.description, None);
+    assert_eq!(header2.required, false);
+    assert_eq!(
+        header2.schema,
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
     );
 
     let resp = MyResponse::A.into_response();
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let resp = MyResponse::B(88, "abc".to_string()).into_response();
+    let resp = MyResponse::B(88, Some("abc".to_string())).into_response();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(
         resp.headers().get("MY-HEADER1"),
@@ -153,6 +152,14 @@ async fn headers() {
         resp.headers().get("MY-HEADER2"),
         Some(&HeaderValue::from_static("abc"))
     );
+
+    let resp = MyResponse::B(88, None).into_response();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(
+        resp.headers().get("MY-HEADER1"),
+        Some(&HeaderValue::from_static("88"))
+    );
+    assert!(!resp.headers().contains_key("MY-HEADER2"));
 
     let mut resp = MyResponse::C(
         Json(BadRequestResult {

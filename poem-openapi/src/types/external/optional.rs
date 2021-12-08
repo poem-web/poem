@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use poem::web::Field as PoemField;
+use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchemaRef, Registry},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToHeader, ToJSON, Type,
     },
 };
 
@@ -87,6 +87,15 @@ impl<T: ToJSON> ToJSON for Option<T> {
         match self {
             Some(value) => value.to_json(),
             None => Value::Null,
+        }
+    }
+}
+
+impl<T: ToHeader> ToHeader for Option<T> {
+    fn to_header(&self) -> Option<HeaderValue> {
+        match self {
+            Some(value) => value.to_header(),
+            None => None,
         }
     }
 }

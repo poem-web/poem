@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove the `list` attribute of the validator, it is no longer needed.
 - Add `maxProperties` and `minProperties` validators.
 - Add support to API operation with optional payload.
+- Add support to API responses with optional header.
 
 # [1.0.43] 2021-12-07
 

@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use poem::web::Field;
+use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToHeader, ToJSON, Type,
     },
 };
 
@@ -84,6 +84,15 @@ macro_rules! impl_type_for_integers {
         impl ToJSON for $ty {
             fn to_json(&self) -> Value {
                 Value::Number((*self).into())
+            }
+        }
+
+        impl ToHeader for $ty {
+            fn to_header(&self) -> Option<HeaderValue> {
+                match HeaderValue::from_str(&format!("{}", self)) {
+                    Ok(value) => Some(value),
+                    Err(_) => None,
+                }
             }
         }
 
@@ -164,6 +173,15 @@ macro_rules! impl_type_for_unsigneds {
         impl ToJSON for $ty {
             fn to_json(&self) -> Value {
                 Value::Number((*self).into())
+            }
+        }
+
+        impl ToHeader for $ty {
+            fn to_header(&self) -> Option<HeaderValue> {
+                match HeaderValue::from_str(&format!("{}", self)) {
+                    Ok(value) => Some(value),
+                    Err(_) => None,
+                }
             }
         }
 

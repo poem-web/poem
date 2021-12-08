@@ -57,10 +57,10 @@ fn concretes() {
     assert_eq!(<Obj<f32, f64>>::name(), "Obj_f32_f64");
     let meta = get_meta::<Obj<f32, f64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "number");
-    assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("float32"));
+    assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("float"));
 
     assert_eq!(meta.properties[1].1.unwrap_inline().ty, "number");
-    assert_eq!(meta.properties[1].1.unwrap_inline().format, Some("float64"));
+    assert_eq!(meta.properties[1].1.unwrap_inline().format, Some("double"));
 }
 
 #[test]

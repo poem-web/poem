@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use poem::web::Field;
+use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToHeader, ToJSON, Type,
     },
 };
 
@@ -69,6 +69,15 @@ impl ParseFromMultipartField for String {
 impl ToJSON for String {
     fn to_json(&self) -> Value {
         Value::String(self.clone())
+    }
+}
+
+impl ToHeader for String {
+    fn to_header(&self) -> Option<HeaderValue> {
+        match HeaderValue::from_str(self) {
+            Ok(value) => Some(value),
+            Err(_) => None,
+        }
     }
 }
 

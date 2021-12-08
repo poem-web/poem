@@ -82,9 +82,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let header_desc = optional_literal(&header.desc);
 
             with_headers.push(quote! {{
-                let value = ::std::string::ToString::to_string(&#ident);
-                if let ::std::result::Result::Ok(value) = ::std::convert::TryInto::try_into(value) {
-                    resp.headers_mut().insert(#header_name, value);
+                if let Some(header) = #crate_name::types::ToHeader::to_header(&#ident) {
+                    resp.headers_mut().insert(#header_name, header);
                 }
             }});
             match_headers.push(ident);
