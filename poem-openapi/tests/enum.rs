@@ -18,7 +18,7 @@ fn meta_enum_items() {
     let meta = registry.schemas.remove("MyEnum").unwrap();
     assert_eq!(
         meta.enum_items,
-        vec![json!("CREATE_USER"), json!("DELETE_USER")]
+        vec![json!("CreateUser"), json!("DeleteUser")]
     );
 }
 
@@ -77,7 +77,7 @@ fn rename_item() {
     }
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("CREATE_USER".to_string())).unwrap(),
+        MyEnum::parse_from_json(Value::String("CreateUser".to_string())).unwrap(),
         MyEnum::CreateUser
     );
 
@@ -88,7 +88,7 @@ fn rename_item() {
 
     assert_eq!(
         MyEnum::CreateUser.to_json(),
-        Value::String("CREATE_USER".to_string())
+        Value::String("CreateUser".to_string())
     );
     assert_eq!(
         MyEnum::DeleteUser.to_json(),

@@ -46,7 +46,7 @@ impl RenameTarget {
     pub(crate) fn rule(self) -> RenameRule {
         match self {
             RenameTarget::Type => RenameRule::Pascal,
-            RenameTarget::EnumItem => RenameRule::ScreamingSnake,
+            RenameTarget::EnumItem => RenameRule::Pascal,
             RenameTarget::Field => RenameRule::Camel,
             RenameTarget::Tag => RenameRule::Snake,
             RenameTarget::SecurityScheme => RenameRule::Snake,
