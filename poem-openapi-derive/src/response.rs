@@ -13,14 +13,13 @@ use crate::{
 };
 
 #[derive(FromField)]
-#[darling(attributes(oai))]
+#[darling(attributes(oai), forward_attrs(doc))]
 struct ResponseField {
     ty: Type,
+    attrs: Vec<Attribute>,
 
     #[darling(default)]
     header: Option<String>,
-    #[darling(default)]
-    desc: Option<String>,
 }
 
 #[derive(FromVariant)]
@@ -79,7 +78,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let ident = quote::format_ident!("__p{}", idx);
             let header_name = header.header.as_ref().unwrap().to_uppercase();
             let header_ty = &header.ty;
-            let header_desc = optional_literal(&header.desc);
+            let header_desc = optional_literal(&get_description(&header.attrs)?);
 
             with_headers.push(quote! {{
                 if let Some(header) = #crate_name::types::ToHeader::to_header(&#ident) {

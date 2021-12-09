@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- Remove the `desc` attribute of the response header in `ApiResponse` macro, and use rustdoc to add the header description.
+
+# [1.0.44] 2021-12-08
+
 - Remove the `list` attribute of the validator, it is no longer needed.
 - Add `maxProperties` and `minProperties` validators.
 - Add support to API operation with optional payload.

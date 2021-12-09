@@ -100,7 +100,9 @@ async fn headers() {
         A,
         #[oai(status = 200)]
         B(
-            #[oai(header = "MY-HEADER1", desc = "header1")] i32,
+            /// header1
+            #[oai(header = "MY-HEADER1")]
+            i32,
             #[oai(header = "MY-HEADER2")] Option<String>,
         ),
         #[oai(status = 400)]
