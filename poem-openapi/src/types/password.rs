@@ -57,11 +57,8 @@ impl ParseFromJSON for Password {
 }
 
 impl ParseFromParameter for Password {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => Ok(Self(value.to_string())),
-            None => Err(ParseError::expected_input()),
-        }
+    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+        Ok(Self(value.to_string()))
     }
 }
 

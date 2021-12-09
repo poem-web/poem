@@ -70,6 +70,43 @@ async fn query() {
 }
 
 #[tokio::test]
+async fn query_multiple_values() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, v: Query<Vec<i32>>) {
+            assert_eq!(v.0, vec![10, 20, 30]);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0]
+            .schema
+            .unwrap_inline()
+            .ty,
+        "array"
+    );
+
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = api
+        .call(
+            Request::builder()
+                .uri(Uri::from_static("/?v=10&v=20&v=30"))
+                .finish(),
+        )
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
 async fn query_default() {
     struct Api;
 
@@ -115,6 +152,31 @@ async fn header() {
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api.call(Request::builder().header("v", 10).finish()).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn header_multiple_values() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, v: Header<Vec<i32>>) {
+            assert_eq!(v.0, vec![10, 20, 30]);
+        }
+    }
+
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = api
+        .call(
+            Request::builder()
+                .header("v", 10)
+                .header("v", 20)
+                .header("v", 30)
+                .finish(),
+        )
+        .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 

@@ -48,11 +48,8 @@ impl ParseFromJSON for Base64 {
 }
 
 impl ParseFromParameter for Base64 {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => Ok(Self(base64::decode(value)?)),
-            None => Err(ParseError::expected_input()),
-        }
+    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+        Ok(Self(base64::decode(value)?))
     }
 }
 

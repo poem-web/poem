@@ -59,13 +59,22 @@ impl<T: ParseFromJSON> ParseFromJSON for Option<T> {
 }
 
 impl<T: ParseFromParameter> ParseFromParameter for Option<T> {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => T::parse_from_parameter(Some(value))
-                .map_err(ParseError::propagate)
-                .map(Some),
-            None => Ok(None),
+    fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
+        unreachable!()
+    }
+
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        let mut iter = iter.into_iter().peekable();
+
+        if iter.peek().is_none() {
+            return Ok(None);
         }
+
+        T::parse_from_parameters(iter)
+            .map_err(ParseError::propagate)
+            .map(Some)
     }
 }
 

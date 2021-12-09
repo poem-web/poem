@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
     middleware::CookieJarManager,
@@ -135,7 +133,7 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
 
     fn into_endpoint(self) -> Self::Endpoint {
         async fn extract_query(next: impl Endpoint, mut req: Request) -> impl IntoResponse {
-            let query: poem::web::Query<BTreeMap<String, String>> =
+            let query: poem::web::Query<Vec<(String, String)>> =
                 FromRequest::from_request(&req, &mut Default::default())
                     .await
                     .unwrap_or_default();

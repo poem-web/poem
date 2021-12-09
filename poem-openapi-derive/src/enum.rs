@@ -123,13 +123,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ParseFromParameter for #ident {
-            fn parse_from_parameter(value: ::std::option::Option<&str>) -> #crate_name::types::ParseResult<Self> {
+            fn parse_from_parameter(value: &str) -> #crate_name::types::ParseResult<Self> {
                 match value {
-                    ::std::option::Option::Some(value) => match value {
-                        #(#item_to_ident,)*
-                        _ => ::std::result::Result::Err(#crate_name::types::ParseError::custom("Expect a valid enumeration value.")),
-                    },
-                    _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_input()),
+                    #(#item_to_ident,)*
+                    _ => ::std::result::Result::Err(#crate_name::types::ParseError::custom("Expect a valid enumeration value.")),
                 }
             }
         }
@@ -150,7 +147,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 match field {
                     ::std::option::Option::Some(field) => {
                         let s = field.text().await?;
-                        Self::parse_from_parameter(::std::option::Option::Some(&s))
+                        Self::parse_from_parameter(&s)
                     },
                     ::std::option::Option::None => ::std::result::Result::Err(#crate_name::types::ParseError::expected_input()),
                 }

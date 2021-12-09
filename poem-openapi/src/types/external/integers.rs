@@ -63,11 +63,8 @@ macro_rules! impl_type_for_integers {
         }
 
         impl ParseFromParameter for $ty {
-            fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-                match value {
-                    Some(value) => value.parse().map_err(ParseError::custom),
-                    None => Err(ParseError::expected_input()),
-                }
+            fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+                value.parse().map_err(ParseError::custom)
             }
         }
 
@@ -152,11 +149,8 @@ macro_rules! impl_type_for_unsigneds {
         }
 
         impl ParseFromParameter for $ty {
-            fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-                match value {
-                    Some(value) => value.parse().map_err(ParseError::custom),
-                    None => Err(ParseError::expected_input()),
-                }
+            fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+                value.parse().map_err(ParseError::custom)
             }
         }
 

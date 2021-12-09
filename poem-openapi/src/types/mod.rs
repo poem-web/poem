@@ -68,7 +68,18 @@ pub trait ParseFromJSON: Sized + Type {
 /// cookie)
 pub trait ParseFromParameter: Sized + Type {
     /// Parse from parameter.
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self>;
+    fn parse_from_parameter(value: &str) -> ParseResult<Self>;
+
+    /// Parse from multiple parameters.
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        let mut iter = iter.into_iter();
+        match iter.next().as_ref().map(|item| item.as_ref()) {
+            Some(value) => Self::parse_from_parameter(value),
+            None => Err(ParseError::expected_input()),
+        }
+    }
 }
 
 /// Represents a type that can parsing from multipart.
@@ -176,8 +187,14 @@ impl<T: ParseFromJSON> ParseFromJSON for Arc<T> {
 }
 
 impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        T::parse_from_parameter(value)
+    fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
+        unreachable!()
+    }
+
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        T::parse_from_parameters(iter)
             .map_err(ParseError::propagate)
             .map(Arc::new)
     }
@@ -234,8 +251,14 @@ impl<T: ParseFromJSON> ParseFromJSON for Box<T> {
 }
 
 impl<T: ParseFromParameter> ParseFromParameter for Box<T> {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        T::parse_from_parameter(value)
+    fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
+        unreachable!()
+    }
+
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        T::parse_from_parameters(iter)
             .map_err(ParseError::propagate)
             .map(Box::new)
     }
@@ -283,7 +306,8 @@ mod tests {
         let value: Arc<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
         assert_eq!(value, Arc::new(100));
 
-        let value: Arc<i32> = ParseFromParameter::parse_from_parameter(Some("100")).unwrap();
+        let value: Arc<i32> =
+            ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Arc::new(100));
 
         assert_eq!(ToJSON::to_json(&Arc::new(100)), Value::Number(100.into()));
@@ -301,7 +325,8 @@ mod tests {
         let value: Box<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
         assert_eq!(value, Box::new(100));
 
-        let value: Box<i32> = ParseFromParameter::parse_from_parameter(Some("100")).unwrap();
+        let value: Box<i32> =
+            ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Box::new(100));
 
         assert_eq!(ToJSON::to_json(&Box::new(100)), Value::Number(100.into()));

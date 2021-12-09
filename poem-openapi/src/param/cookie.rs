@@ -65,7 +65,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Cookie<T> {
             (None, _) => None,
         };
 
-        ParseFromParameter::parse_from_parameter(value.as_deref())
+        ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
             .map_err(|err| ParseRequestError::ParseParam {
                 name: param_opts.name,
@@ -132,7 +132,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookiePrivate<T> {
             (None, _) => None,
         };
 
-        ParseFromParameter::parse_from_parameter(value.as_deref())
+        ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
             .map_err(|err| ParseRequestError::ParseParam {
                 name: param_opts.name,
@@ -199,7 +199,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookieSigned<T> {
             (None, _) => None,
         };
 
-        ParseFromParameter::parse_from_parameter(value.as_deref())
+        ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
             .map_err(|err| ParseRequestError::ParseParam {
                 name: param_opts.name,

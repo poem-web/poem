@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use mime::Mime;
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Result, Route};
@@ -32,13 +29,26 @@ pub enum ApiExtractorType {
 }
 
 #[doc(hidden)]
-pub struct UrlQuery(pub BTreeMap<String, String>);
+pub struct UrlQuery(pub Vec<(String, String)>);
 
 impl Deref for UrlQuery {
-    type Target = BTreeMap<String, String>;
+    type Target = Vec<(String, String)>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl UrlQuery {
+    pub fn get_all<'a, 'b: 'a>(&'b self, name: &'a str) -> impl Iterator<Item = &'b String> + 'a {
+        self.0
+            .iter()
+            .filter(move |(n, _)| n == name)
+            .map(|(_, value)| value)
+    }
+
+    pub fn get(&self, name: &str) -> Option<&String> {
+        self.get_all(name).next()
     }
 }
 

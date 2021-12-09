@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Remove the `desc` attribute of the response header in `ApiResponse` macro, and use rustdoc to add the header description.
+- Implement `ParseFromParameter` for `Vec<T>`.
 
 # [1.0.44] 2021-12-08
 

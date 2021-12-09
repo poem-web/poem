@@ -50,12 +50,6 @@ impl<T: Type> ParseError<T> {
         Self::custom("not support parsing from parameter")
     }
 
-    /// This type does not support parsing from multipart.
-    #[must_use]
-    pub fn not_support_parsing_from_multipart() -> Self {
-        Self::custom("not support parsing from multipart")
-    }
-
     /// A custom error message.
     ///
     /// Any type that implements `Display` is automatically converted to this if

@@ -49,11 +49,8 @@ impl ParseFromJSON for DateTime<FixedOffset> {
 }
 
 impl ParseFromParameter for DateTime<FixedOffset> {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => Ok(value.parse()?),
-            None => Err(ParseError::expected_input()),
-        }
+    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+        Ok(value.parse()?)
     }
 }
 

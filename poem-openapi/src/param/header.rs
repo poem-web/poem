@@ -54,17 +54,21 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Header<T> {
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self, ParseRequestError> {
-        let value = request
+        let mut values = request
             .headers()
-            .get(param_opts.name)
-            .and_then(|value| value.to_str().ok());
-        let value = match (value, &param_opts.default_value) {
-            (Some(value), _) => Some(value),
-            (None, Some(default_value)) => return Ok(Self(default_value())),
-            (None, _) => None,
-        };
+            .get_all(param_opts.name)
+            .iter()
+            .filter_map(|value| value.to_str().ok())
+            .peekable();
 
-        ParseFromParameter::parse_from_parameter(value)
+        match &param_opts.default_value {
+            Some(default_value) if values.peek().is_none() => {
+                return Ok(Self(default_value()));
+            }
+            _ => {}
+        }
+
+        ParseFromParameter::parse_from_parameters(values)
             .map(Self)
             .map_err(|err| ParseRequestError::ParseParam {
                 name: param_opts.name,

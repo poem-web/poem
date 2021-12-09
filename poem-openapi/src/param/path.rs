@@ -63,7 +63,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Path<T> {
             (None, _) => None,
         };
 
-        ParseFromParameter::parse_from_parameter(value)
+        ParseFromParameter::parse_from_parameters(value)
             .map(Self)
             .map_err(|err| ParseRequestError::ParseParam {
                 name: param_opts.name,

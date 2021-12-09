@@ -48,11 +48,8 @@ impl ParseFromJSON for bool {
 }
 
 impl ParseFromParameter for bool {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => value.parse().map_err(ParseError::custom),
-            None => Err(ParseError::expected_input()),
-        }
+    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+        value.parse().map_err(ParseError::custom)
     }
 }
 
