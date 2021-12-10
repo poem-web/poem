@@ -1,8 +1,5 @@
 //! Commonly used payload types.
 
-#[macro_use]
-mod macros;
-
 mod attachment;
 mod binary;
 mod json;

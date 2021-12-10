@@ -41,7 +41,7 @@ impl<T: Send + Sync> Type for Base64<T> {
     }
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("bytes", "string")))
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "bytes")))
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {

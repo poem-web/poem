@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef, Registry},
-    types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type},
+    types::{ParseError, ParseFromJSON, ParseFromParameter, ParseResult, ToJSON, Type},
 };
 
 impl<T: Type, const LEN: usize> Type for [T; LEN] {
@@ -62,6 +62,34 @@ impl<T: ParseFromJSON, const LEN: usize> ParseFromJSON for [T; LEN] {
             }
             _ => Err(ParseError::expected_type(value)),
         }
+    }
+}
+
+impl<T: ParseFromParameter, const LEN: usize> ParseFromParameter for [T; LEN] {
+    fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
+        unreachable!()
+    }
+
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        let mut values = Vec::new();
+
+        for s in iter {
+            values.push(
+                T::parse_from_parameters(std::iter::once(s.as_ref()))
+                    .map_err(ParseError::propagate)?,
+            );
+        }
+
+        if values.len() != LEN {
+            return Err(ParseError::custom(format!(
+                "the length of the list must be `{}`.",
+                LEN
+            )));
+        }
+
+        Ok(values.try_into().ok().unwrap())
     }
 }
 
