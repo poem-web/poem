@@ -8,7 +8,7 @@ use poem_openapi::{
     payload::{Binary, Json, PlainText},
     registry::{MetaApi, MetaSchema},
     types::Type,
-    ApiRequest, ApiResponse, OpenApi, OpenApiService, ParseRequestError, PoemExtractor, Tags,
+    ApiRequest, ApiResponse, OpenApi, OpenApiService, ParseRequestError, Tags,
 };
 
 #[tokio::test]
@@ -254,8 +254,8 @@ async fn optional_payload_request() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "post")]
-        async fn test(&self, req: Option<Json<i32>>) -> PlainText<String> {
-            PlainText(req.map(|value| value.0).unwrap_or_default().to_string())
+        async fn test(&self, req: Json<Option<i32>>) -> PlainText<String> {
+            PlainText(req.0.unwrap_or(999).to_string())
         }
     }
 
@@ -290,7 +290,7 @@ async fn optional_payload_request() {
         )
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.into_body().into_string().await.unwrap(), "0");
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "999");
 }
 
 #[tokio::test]
@@ -514,8 +514,8 @@ async fn poem_extract() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, data: PoemExtractor<Data<&i32>>) {
-            assert_eq!(***data, 100);
+        async fn test(&self, data: Data<&i32>) {
+            assert_eq!(*data.0, 100);
         }
     }
 
@@ -554,7 +554,7 @@ async fn returning_borrowed_value() {
         }
 
         #[oai(path = "/value3", method = "get")]
-        async fn value3<'a>(&self, data: PoemExtractor<Data<&'a i32>>) -> Json<&'a i32> {
+        async fn value3<'a>(&self, data: Data<&'a i32>) -> Json<&'a i32> {
             Json(&data)
         }
 

@@ -123,6 +123,8 @@ impl<T: Send> Payload for Binary<T> {
 
 #[poem::async_trait]
 impl ParsePayload for Binary<Vec<u8>> {
+    const IS_REQUIRED: bool = true;
+
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
@@ -135,6 +137,8 @@ impl ParsePayload for Binary<Vec<u8>> {
 
 #[poem::async_trait]
 impl ParsePayload for Binary<Bytes> {
+    const IS_REQUIRED: bool = true;
+
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
@@ -147,6 +151,8 @@ impl ParsePayload for Binary<Bytes> {
 
 #[poem::async_trait]
 impl ParsePayload for Binary<BinaryStream> {
+    const IS_REQUIRED: bool = true;
+
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
@@ -185,3 +191,7 @@ impl<T: Into<Body> + Send> ApiResponse for Binary<T> {
 
     fn register(_registry: &mut Registry) {}
 }
+
+impl_apirequest_for_payload!(Binary<Vec<u8>>);
+impl_apirequest_for_payload!(Binary<Bytes>);
+impl_apirequest_for_payload!(Binary<BinaryStream>);

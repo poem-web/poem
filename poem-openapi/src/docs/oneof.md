@@ -2,15 +2,15 @@ Define a OpenAPI discriminator object.
 
 # Macro parameters
 
-| Attribute     | description               | Type     | Optional |
-|---------------|---------------------------|----------|----------|
-| property_name | The name of the property in the payload that will hold the discriminator value.         | string   | Y        |
+| Attribute     | description                                                                     | Type   | Optional |
+|---------------|---------------------------------------------------------------------------------|--------|----------|
+| property_name | The name of the property in the payload that will hold the discriminator value. | string | Y        |
 
 # Item parameters
 
-| Attribute   | description               | Type     | Optional |
-|-------------|---------------------------|----------|----------|
-| mapping     | Rename the payload value. (Default is the object name)          | string   | Y        |
+| Attribute | description                                            | Type   | Optional |
+|-----------|--------------------------------------------------------|--------|----------|
+| mapping   | Rename the payload value. (Default is the object name) | string | Y        |
 
 # Examples
 

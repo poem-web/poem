@@ -193,7 +193,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             None => quote!(::std::option::Option::None),
         };
 
-        register_types.push(quote!(<#field_ty>::register(registry);));
+        register_types.push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
 
         meta_fields.push(quote! {{
             let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();

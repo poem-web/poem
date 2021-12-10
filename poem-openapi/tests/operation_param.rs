@@ -5,10 +5,9 @@ use poem::{
 };
 use poem_openapi::{
     param::{Cookie as ParamCookie, CookiePrivate, CookieSigned, Header, Path, Query},
-    payload::Json,
     registry::{MetaApi, MetaParamIn, MetaSchema, MetaSchemaRef},
     types::Type,
-    OpenApi, OpenApiService, ParseRequestError,
+    OpenApi, OpenApiService,
 };
 use serde_json::json;
 
@@ -359,34 +358,4 @@ async fn default_opt() {
         .call(Request::builder().uri(Uri::from_static("/")).finish())
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
-}
-
-#[tokio::test]
-async fn extract_result() {
-    struct Api;
-
-    #[OpenApi]
-    impl Api {
-        #[oai(path = "/", method = "get")]
-        async fn test(&self, v: Result<Query<i32>, ParseRequestError>) -> Json<i32> {
-            match v {
-                Ok(Query(v)) => Json(v),
-                Err(_) => Json(0),
-            }
-        }
-    }
-
-    let meta: MetaApi = Api::meta().remove(0);
-    assert_eq!(
-        meta.paths[0].operations[0].params[0].in_type,
-        MetaParamIn::Query
-    );
-    assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
-
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(Request::builder().uri(Uri::from_static("/?v=a")).finish())
-        .await;
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.into_body().into_string().await.unwrap(), "0");
 }

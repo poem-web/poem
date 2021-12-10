@@ -28,11 +28,9 @@
 
     - **SecurityScheme** 使用`SecurityScheme`宏生成认证方法
 
-    - **Result<T, ParseRequestError>** 用于捕获解析的错误
+    - **T: FromRequest** 使用Poem的提取器
 
-    - **PoemExtractor** 使用Poem的提取器
-
-返回值可以是任意实现了`poem::IntoResponse`的类型。
+返回值可以是任意实现了`ApiResponse`的类型。
 
 ```rust
 use poem_api::{

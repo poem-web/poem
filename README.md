@@ -21,23 +21,23 @@
 
 This repo contains the following main components:
 
-| Crate                                                  | Description                     | Documentation                      | ChangeLog                                    |
-|--------------------------------------------------------|---------------------------------|------------------------------------|----------------------------------------------|
-|[poem](https://crates.io/crates/poem)                   | Poem Web                        | [(README)](poem/README.md)         | [(CHANGELOG)](poem/CHANGELOG.md)             |
-|[poem-lambda](https://crates.io/crates/poem-lambda)     | Poem for AWS Lambda             | [(README)](poem-lambda/README.md)  | [(CHANGELOG)](poem-lambda/CHANGELOG.md)      |
-|[poem-openapi](https://crates.io/crates/poem-openapi)   | OpenAPI for Poem Web            | [(README)](poem-openapi/README.md) | [(CHANGELOG)](poem-openapi/CHANGELOG.md)     |
-|[poem-dbsession](https://crates.io/crates/poem-dbsession) | Session storage using database  | [(README)](poem-dbsession/README.md) | [(CHANGELOG)](poem-dbsession/CHANGELOG.md)     |
+| Crate                                                     | Description                    | Documentation                        | ChangeLog                                  |
+|-----------------------------------------------------------|--------------------------------|--------------------------------------|--------------------------------------------|
+| [poem](https://crates.io/crates/poem)                     | Poem Web                       | [(README)](poem/README.md)           | [(CHANGELOG)](poem/CHANGELOG.md)           |
+| [poem-lambda](https://crates.io/crates/poem-lambda)       | Poem for AWS Lambda            | [(README)](poem-lambda/README.md)    | [(CHANGELOG)](poem-lambda/CHANGELOG.md)    |
+| [poem-openapi](https://crates.io/crates/poem-openapi)     | OpenAPI for Poem Web           | [(README)](poem-openapi/README.md)   | [(CHANGELOG)](poem-openapi/CHANGELOG.md)   |
+| [poem-dbsession](https://crates.io/crates/poem-dbsession) | Session storage using database | [(README)](poem-dbsession/README.md) | [(CHANGELOG)](poem-dbsession/CHANGELOG.md) |
 
 ***
 
 The following are cases of community use:
 
-| Repo                                                  | Description                     | Documentation                      | ChangeLog                                    |
-|--------------------------------------------------------|---------------------------------|------------------------------------|----------------------------------------------|
-|[delicate](https://github.com/BinChengZhao/delicate) | A distributed task scheduling platform written in rust. | [(README)](https://delicate-rs.github.io/Roadmap.html) | [(CHANGELOG)](https://github.com/BinChengZhao/delicate/blob/main/CHANGELOG.md) |         
-|[databend](https://github.com/datafuselabs/databend) | A cloud-native data warehouse written in rust. | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746) | [(WEEKLY)](https://github.com/datafuselabs/weekly)   |
-|[muse](https://leihuo.163.com/) | A NetEase Leihuo's internal art resource sharing platform, backend in rust. | | |
-|[hik-proconnect](https://www.hikvision.com/en/products/software/hik-proconnect/) | A front-end automated deployment platform based on continuous integration of aws. Hik-ProConnect project for Hikvision | | |
+| Repo                                                                             | Description                                                                                                            | Documentation                                                    | ChangeLog                                                                      |
+|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [delicate](https://github.com/BinChengZhao/delicate)                             | A distributed task scheduling platform written in rust.                                                                | [(README)](https://delicate-rs.github.io/Roadmap.html)           | [(CHANGELOG)](https://github.com/BinChengZhao/delicate/blob/main/CHANGELOG.md) |         
+| [databend](https://github.com/datafuselabs/databend)                             | A cloud-native data warehouse written in rust.                                                                         | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746) | [(WEEKLY)](https://github.com/datafuselabs/weekly)                             |
+| [muse](https://leihuo.163.com/)                                                  | A NetEase Leihuo's internal art resource sharing platform, backend in rust.                                            |                                                                  |                                                                                |
+| [hik-proconnect](https://www.hikvision.com/en/products/software/hik-proconnect/) | A front-end automated deployment platform based on continuous integration of aws. Hik-ProConnect project for Hikvision |                                                                  |                                                                                |
 
 ### Resources
 

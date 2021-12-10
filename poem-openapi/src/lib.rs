@@ -101,7 +101,7 @@ mod ui;
 
 pub use base::{
     ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
-    OpenApi, PoemExtractor, Tags,
+    OpenApi, Tags,
 };
 pub use error::ParseRequestError;
 pub use openapi::OpenApiService;
@@ -128,6 +128,7 @@ pub use poem_openapi_derive::Tags;
 
 #[doc(hidden)]
 pub mod __private {
+    pub use mime;
     pub use poem;
     pub use serde;
     pub use serde_json;

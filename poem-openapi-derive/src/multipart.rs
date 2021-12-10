@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
@@ -193,6 +195,17 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         });
     }
 
+    let extractor_impl_generics = {
+        let mut s = quote!(#impl_generics).to_string();
+        match s.find('<') {
+            Some(pos) => {
+                s.insert_str(pos + 1, "'__request,");
+                TokenStream::from_str(&s).unwrap()
+            }
+            _ => quote!(<'__request>),
+        }
+    };
+
     let expanded = quote! {
         impl #impl_generics #crate_name::payload::Payload for #ident #ty_generics #where_clause {
             const CONTENT_TYPE: &'static str = "multipart/form-data";
@@ -218,6 +231,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         #[#crate_name::__private::poem::async_trait]
         impl #impl_generics #crate_name::payload::ParsePayload for #ident #ty_generics #where_clause {
+            const IS_REQUIRED: bool = true;
+
             async fn from_request(request: &#crate_name::__private::poem::Request, body: &mut #crate_name::__private::poem::RequestBody) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
                 let mut multipart = <#crate_name::__private::poem::web::Multipart as #crate_name::__private::poem::FromRequest>::from_request(request, body).await
                     .map_err(|err| #crate_name::ParseRequestError::ParseRequestBody(#crate_name::__private::poem::IntoResponse::into_response(err)))?;
@@ -228,6 +243,57 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
                 #(#deserialize_none)*
                 ::std::result::Result::Ok(Self { #(#fields,)* #(#skip_idents),* })
+            }
+        }
+
+        #[#crate_name::__private::poem::async_trait]
+        impl #extractor_impl_generics #crate_name::ApiExtractor<'__request> for #ident #ty_generics #where_clause {
+            const TYPE: #crate_name::ApiExtractorType = #crate_name::ApiExtractorType::RequestObject;
+
+            type ParamType = ();
+            type ParamRawType = ();
+
+            fn register(registry: &mut #crate_name::registry::Registry) {
+                <Self as #crate_name::payload::Payload>::register(registry);
+            }
+
+            fn request_meta() -> ::std::option::Option<#crate_name::registry::MetaRequest> {
+                ::std::option::Option::Some(#crate_name::registry::MetaRequest {
+                    description: ::std::option::Option::None,
+                    content: ::std::vec![#crate_name::registry::MetaMediaType {
+                        content_type: <Self as #crate_name::payload::Payload>::CONTENT_TYPE,
+                        schema: <Self as #crate_name::payload::Payload>::schema_ref(),
+                    }],
+                    required: <Self as #crate_name::payload::ParsePayload>::IS_REQUIRED,
+                })
+            }
+
+            async fn from_request(
+                request: &'__request #crate_name::__private::poem::Request,
+                body: &mut #crate_name::__private::poem::RequestBody,
+                _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
+            ) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
+                match request.content_type() {
+                    ::std::option::Option::Some(content_type) => {
+                        let mime: #crate_name::__private::mime::Mime = match content_type.parse() {
+                            ::std::result::Result::Ok(mime) => mime,
+                            ::std::result::Result::Err(_) => {
+                                return ::std::result::Result::Err(#crate_name::ParseRequestError::ContentTypeNotSupported {
+                                    content_type: ::std::string::ToString::to_string(&content_type),
+                                });
+                            }
+                        };
+
+                        if mime.essence_str() != <Self as #crate_name::payload::Payload>::CONTENT_TYPE {
+                            return ::std::result::Result::Err(#crate_name::ParseRequestError::ContentTypeNotSupported {
+                                content_type: ::std::string::ToString::to_string(&content_type),
+                            });
+                        }
+
+                        <Self as #crate_name::payload::ParsePayload>::from_request(request, body).await
+                    }
+                    ::std::option::Option::None => ::std::result::Result::Err(#crate_name::ParseRequestError::ExpectContentType),
+                }
             }
         }
     };

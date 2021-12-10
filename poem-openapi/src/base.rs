@@ -1,13 +1,11 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
-use mime::Mime;
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Result, Route};
 
 use crate::{
-    payload::{ParsePayload, Payload},
     registry::{
-        MetaApi, MetaMediaType, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse,
-        MetaResponses, MetaSchemaRef, Registry,
+        MetaApi, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse, MetaResponses,
+        MetaSchemaRef, Registry,
     },
     ParseRequestError,
 };
@@ -123,118 +121,7 @@ pub trait ApiExtractor<'a>: Sized {
 }
 
 #[poem::async_trait]
-impl<'a, T: Payload + ParsePayload> ApiExtractor<'a> for T {
-    const TYPE: ApiExtractorType = ApiExtractorType::RequestObject;
-
-    type ParamType = ();
-    type ParamRawType = ();
-
-    fn register(registry: &mut Registry) {
-        T::register(registry);
-    }
-
-    fn request_meta() -> Option<MetaRequest> {
-        Some(MetaRequest {
-            description: None,
-            content: vec![MetaMediaType {
-                content_type: T::CONTENT_TYPE,
-                schema: T::schema_ref(),
-            }],
-            required: T::IS_REQUIRED,
-        })
-    }
-
-    async fn from_request(
-        request: &'a Request,
-        body: &mut RequestBody,
-        _param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
-        match request.content_type() {
-            Some(content_type) => {
-                let mime: Mime = match content_type.parse() {
-                    Ok(mime) => mime,
-                    Err(_) => {
-                        return Err(ParseRequestError::ContentTypeNotSupported {
-                            content_type: content_type.to_string(),
-                        });
-                    }
-                };
-
-                if mime.essence_str() != T::CONTENT_TYPE {
-                    return Err(ParseRequestError::ContentTypeNotSupported {
-                        content_type: content_type.to_string(),
-                    });
-                }
-
-                <T as ParsePayload>::from_request(request, body).await
-            }
-            None => Err(ParseRequestError::ExpectContentType),
-        }
-    }
-}
-
-#[poem::async_trait]
-impl<'a, T: ApiExtractor<'a>> ApiExtractor<'a> for Result<T, ParseRequestError> {
-    const TYPE: ApiExtractorType = T::TYPE;
-    const PARAM_IS_REQUIRED: bool = T::PARAM_IS_REQUIRED;
-    type ParamType = T::ParamType;
-    type ParamRawType = T::ParamRawType;
-
-    fn register(registry: &mut Registry) {
-        T::register(registry);
-    }
-
-    fn security_scheme() -> Option<&'static str> {
-        T::security_scheme()
-    }
-
-    fn param_in() -> Option<MetaParamIn> {
-        T::param_in()
-    }
-
-    fn param_schema_ref() -> Option<MetaSchemaRef> {
-        T::param_schema_ref()
-    }
-
-    fn request_meta() -> Option<MetaRequest> {
-        T::request_meta()
-    }
-
-    fn param_raw_type(&self) -> Option<&Self::ParamRawType> {
-        match self {
-            Ok(value) => value.param_raw_type(),
-            Err(_) => None,
-        }
-    }
-
-    async fn from_request(
-        request: &'a Request,
-        body: &mut RequestBody,
-        param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(T::from_request(request, body, param_opts).await)
-    }
-}
-
-/// Represents a poem extractor.
-pub struct PoemExtractor<T>(pub T);
-
-impl<T> Deref for PoemExtractor<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for PoemExtractor<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-#[poem::async_trait]
-impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for PoemExtractor<T> {
+impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
     const TYPE: ApiExtractorType = ApiExtractorType::PoemExtractor;
 
     type ParamType = ();
@@ -246,7 +133,7 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for PoemExtractor<T> {
         _param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self, ParseRequestError> {
         match T::from_request(request, body).await {
-            Ok(value) => Ok(Self(value)),
+            Ok(value) => Ok(value),
             Err(err) => Err(ParseRequestError::Extractor(err.into_response())),
         }
     }

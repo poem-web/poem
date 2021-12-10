@@ -1,6 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{http::StatusCode, FromRequest, IntoResponse, Request, RequestBody, Response};
+use poem::{
+    error::{ParseJsonError, ReadBodyError},
+    http::StatusCode,
+    FromRequest, IntoResponse, Request, RequestBody, Response,
+};
 use serde_json::Value;
 
 use crate::{
@@ -43,14 +47,27 @@ impl<T: Type> Payload for Json<T> {
 
 #[poem::async_trait]
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
+
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
-        let value = poem::web::Json::<Value>::from_request(request, body)
-            .await
-            .map_err(|err| ParseRequestError::ParseRequestBody(err.into_response()))?;
-        let value = T::parse_from_json(value.0).map_err(|err| {
+        let data: Vec<u8> =
+            FromRequest::from_request(request, body)
+                .await
+                .map_err(|err: ReadBodyError| {
+                    ParseRequestError::ParseRequestBody(err.into_response())
+                })?;
+        let value = if data.is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_slice(&data)
+                .map_err(ParseJsonError::Json)
+                .map_err(|err| ParseRequestError::ParseRequestBody(err.into_response()))?
+        };
+
+        let value = T::parse_from_json(value).map_err(|err| {
             ParseRequestError::ParseRequestBody(
                 Response::builder()
                     .status(StatusCode::BAD_REQUEST)
@@ -86,3 +103,5 @@ impl<T: ToJSON> ApiResponse for Json<T> {
         T::register(registry);
     }
 }
+
+impl_apirequest_for_payload!(Json<T>, T: ParseFromJSON);

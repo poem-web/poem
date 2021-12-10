@@ -2,15 +2,15 @@ Define a OpenAPI response.
 
 # Macro parameters
 
-| Attribute     | description               | Type     | Optional |
-|---------------|---------------------------|----------|----------|
-| bad_request_handler | Sets a custom bad request handler, it can convert error to the value of the this response type. | string   | Y
+| Attribute           | description                                                                                     | Type   | Optional |
+|---------------------|-------------------------------------------------------------------------------------------------|--------|----------|
+| bad_request_handler | Sets a custom bad request handler, it can convert error to the value of the this response type. | string | Y        |
 
 # Item parameters
 
-| Attribute   | description               | Type     | Optional |
-|-------------|---------------------------|----------|----------|
-| status      | HTTP status code. If omitted, it is a default response type. | u16   | Y        |
+| Attribute | description                                                  | Type | Optional |
+|-----------|--------------------------------------------------------------|------|----------|
+| status    | HTTP status code. If omitted, it is a default response type. | u16  | Y        |
 
 # Header parameters
 

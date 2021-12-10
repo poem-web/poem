@@ -37,6 +37,8 @@ impl<T: Send> Payload for PlainText<T> {
 
 #[poem::async_trait]
 impl ParsePayload for PlainText<String> {
+    const IS_REQUIRED: bool = false;
+
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
@@ -72,3 +74,5 @@ impl<T: Into<String> + Send> ApiResponse for PlainText<T> {
 
     fn register(_registry: &mut Registry) {}
 }
+
+impl_apirequest_for_payload!(PlainText<String>);
