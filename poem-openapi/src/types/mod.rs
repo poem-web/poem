@@ -5,7 +5,7 @@ mod base64_type;
 mod binary;
 mod error;
 mod external;
-mod password;
+mod string_types;
 
 pub mod multipart;
 
@@ -15,9 +15,13 @@ pub use any::Any;
 pub use base64_type::Base64;
 pub use binary::Binary;
 pub use error::{ParseError, ParseResult};
-pub use password::Password;
 use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
+#[cfg(feature = "email")]
+pub use string_types::Email;
+#[cfg(feature = "hostname")]
+pub use string_types::Hostname;
+pub use string_types::Password;
 
 use crate::registry::{MetaSchemaRef, Registry};
 

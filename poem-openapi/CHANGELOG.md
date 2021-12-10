@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Unreleased
+
+- Add `Email`/`Hostname` types.
+- Integrate with the `regex`, `uuid`.
+- Implement `Type` for `Uri`.
+- Implement `Type` for `DateTime<Utc>` and `DateTime<Local>`.
+
 # [1.0.48] 2021-12-10
 
 - Remove the `PoemExtractor` type because it is no longer needed.

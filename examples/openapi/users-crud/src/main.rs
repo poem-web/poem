@@ -1,6 +1,9 @@
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{
-    param::Path, payload::Json, types::Password, ApiResponse, Object, OpenApi, OpenApiService, Tags,
+    param::Path,
+    payload::Json,
+    types::{Email, Password},
+    ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
 use slab::Slab;
 use tokio::sync::Mutex;
@@ -23,6 +26,7 @@ struct User {
     /// Password
     #[oai(validator(max_length = 32))]
     password: Password,
+    email: Email,
 }
 
 /// Update user schema
@@ -137,7 +141,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let api_service =
         OpenApiService::new(Api::default(), "Users", "1.0").server("http://localhost:3000/api");
-    let ui = api_service.swagger_ui();
+    let ui = api_service.rapidoc();
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(Route::new().nest("/api", api_service).nest("/", ui))

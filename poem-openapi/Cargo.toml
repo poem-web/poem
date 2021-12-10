@@ -18,6 +18,8 @@ categories = [
 [features]
 swagger-ui = []
 rapidoc = []
+email = ["email_address"]
+hostname = ["hostname-validator"]
 
 [dependencies]
 poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.48" }
@@ -32,11 +34,16 @@ num-traits = "0.2.14"
 regex = "1.5.4"
 typed-headers = "0.2.0"
 mime = "0.3.16"
+thiserror = "1.0.30"
+bytes = "1.1.0"
+
+# Non-feature optional dependencies
+email_address = { version = "0.2.1", optional = true }
+hostname-validator = { version = "1.1.0", optional = true }
 
 # Feature optional dependencies
 chrono = { version = "0.4.19", optional = true }
-thiserror = "1.0.30"
-bytes = "1.1.0"
+uuid = { version = "0.8.2", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.12.0", features = ["macros", "rt-multi-thread"] }

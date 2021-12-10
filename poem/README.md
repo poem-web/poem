@@ -47,22 +47,22 @@
 To avoid compiling unused dependencies, Poem gates certain features, all of
 which are disabled by default:
 
-|Feature           |Description                     |
-|------------------|--------------------------------|
-|compression       | Support decompress request body and compress response body |
-|cookie            | Support for Cookie             |
-|csrf              | Support for Cross-Site Request Forgery (CSRF) protection |
-|multipart         | Support for Multipart          |
-|native-tls        | Support for HTTP server over TLS with [`native-tls`](https://crates.io/crates/native-tls)  |
-|opentelemetry     | Support for opentelemetry    |
-|prometheus        | Support for Prometheus       |
-|redis-session     | Support for RedisSession     |
-|rustls            | Support for HTTP server over TLS with [`rustls`](https://crates.io/crates/rustls)  |
-|session           | Support for session    |
-|sse               | Support Server-Sent Events (SSE)       |
-|tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
-|tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
-|websocket         | Support for WebSocket          |
+| Feature       | Description                                                                               |
+|---------------|-------------------------------------------------------------------------------------------|
+| compression   | Support decompress request body and compress response body                                |
+| cookie        | Support for Cookie                                                                        |
+| csrf          | Support for Cross-Site Request Forgery (CSRF) protection                                  |
+| multipart     | Support for Multipart                                                                     |
+| native-tls    | Support for HTTP server over TLS with [`native-tls`](https://crates.io/crates/native-tls) |
+| opentelemetry | Support for opentelemetry                                                                 |
+| prometheus    | Support for Prometheus                                                                    |
+| redis-session | Support for RedisSession                                                                  |
+| rustls        | Support for HTTP server over TLS with [`rustls`](https://crates.io/crates/rustls)         |
+| session       | Support for session                                                                       |
+| sse           | Support Server-Sent Events (SSE)                                                          |
+| tempfile      | Support for [`tempfile`](https://crates.io/crates/tempfile)                               |
+| tower-compat  | Adapters for `tower::Layer` and `tower::Service`.                                         |
+| websocket     | Support for WebSocket                                                                     |
 
 ## Safety
 
