@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi-derive"
-version = "1.0.48"
+version = "1.0.49"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Macros for poem-openapi"
