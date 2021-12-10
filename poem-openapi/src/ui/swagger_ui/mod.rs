@@ -4,7 +4,7 @@ const SWAGGER_UI_JS: &str = include_str!("swagger-ui-bundle.js");
 const SWAGGER_UI_CSS: &str = include_str!("swagger-ui.css");
 const OAUTH_RECEIVER_HTML: &str = include_str!("oauth-receiver.html");
 
-const SWAGGER_UI_TEMMPLATE: &str = r#"
+const SWAGGER_UI_TEMPLATE: &str = r#"
 <html charset="UTF-8">
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
@@ -44,7 +44,7 @@ const SWAGGER_UI_TEMMPLATE: &str = r#"
 "#;
 
 pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = SWAGGER_UI_TEMMPLATE
+    let ui_html = SWAGGER_UI_TEMPLATE
         .replace("{:style}", SWAGGER_UI_CSS)
         .replace("{:script}", SWAGGER_UI_JS)
         .replace("{:spec}", document);

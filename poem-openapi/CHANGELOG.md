@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrate with the `regex`, `uuid`.
 - Implement `Type` for `Uri`.
 - Implement `Type` for `DateTime<Utc>` and `DateTime<Local>`.
+- Add support for [Redoc](https://github.com/Redocly/redoc).
 
 # [1.0.48] 2021-12-10
 

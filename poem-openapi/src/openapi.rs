@@ -86,7 +86,7 @@ impl<T> OpenApiService<T> {
         crate::ui::swagger_ui::create_endpoint(&self.spec())
     }
 
-    /// Create the RapiDoc endpoint.
+    /// Create the Rapidoc endpoint.
     #[must_use]
     #[cfg(feature = "rapidoc")]
     pub fn rapidoc(&self) -> impl Endpoint
@@ -94,6 +94,16 @@ impl<T> OpenApiService<T> {
         T: OpenApi,
     {
         crate::ui::rapidoc::create_endpoint(&self.spec())
+    }
+
+    /// Create the Redoc endpoint.
+    #[must_use]
+    #[cfg(feature = "redoc")]
+    pub fn redoc(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+    {
+        crate::ui::redoc::create_endpoint(&self.spec())
     }
 
     /// Create an endpoint to serve the open api specification.

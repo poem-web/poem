@@ -18,6 +18,7 @@ categories = [
 [features]
 swagger-ui = []
 rapidoc = []
+redoc = []
 email = ["email_address"]
 hostname = ["hostname-validator"]
 

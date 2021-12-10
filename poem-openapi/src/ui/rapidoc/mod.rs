@@ -3,7 +3,7 @@ use poem::{endpoint::make_sync, web::Html, Endpoint};
 const RAPIDOC_JS: &str = include_str!("rapidoc-min.js");
 const OAUTH_RECEIVER_HTML: &str = include_str!("oauth-receiver.html");
 
-const RAPIDOC_TEMMPLATE: &str = r#"
+const RAPIDOC_TEMPLATE: &str = r#"
 <html charset="UTF-8">
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
@@ -39,7 +39,7 @@ const RAPIDOC_TEMMPLATE: &str = r#"
 "#;
 
 pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = RAPIDOC_TEMMPLATE
+    let ui_html = RAPIDOC_TEMPLATE
         .replace("{:script}", RAPIDOC_JS)
         .replace("{:spec}", document);
     let oauth_receiver_html = OAUTH_RECEIVER_HTML.replace("{:script}", RAPIDOC_JS);

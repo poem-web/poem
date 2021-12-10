@@ -96,7 +96,7 @@ pub mod validation;
 mod base;
 mod error;
 mod openapi;
-#[cfg(any(feature = "swagger-ui", feature = "rapidoc"))]
+#[cfg(any(feature = "swagger-ui", feature = "rapidoc", feature = "redoc"))]
 mod ui;
 
 pub use base::{

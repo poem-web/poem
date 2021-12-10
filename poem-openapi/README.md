@@ -52,7 +52,8 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 |------------|-----------------------------------------------------------------------|
 | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). |
 | swagger-ui | Add swagger UI support                                                |
-| rapidoc    | Add RapiDoc support                                                   |
+| rapidoc    | Add RapiDoc UI support                                                |
+| redoc      | Add Redoc UI support                                                  |
 | email      | Support for email address string                                      |
 | hostname   | Support for hostname string                                           |
 | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)      |                                                        |
