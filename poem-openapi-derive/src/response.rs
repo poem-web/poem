@@ -4,8 +4,8 @@ use darling::{
     FromDeriveInput, FromField, FromVariant,
 };
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{format_ident, quote};
-use syn::{Attribute, DeriveInput, Error, Generics, Type};
+use quote::quote;
+use syn::{Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
     error::GeneratorResult,
@@ -43,7 +43,7 @@ struct ResponseArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    bad_request_handler: Option<String>,
+    bad_request_handler: Option<Path>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -208,17 +208,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             const BAD_REQUEST_HANDLER: bool = false;
         ),
     };
-    let bad_request_handler = match &args.bad_request_handler {
-        Some(name) => {
-            let name = format_ident!("{}", name);
-            Some(quote! {
-                fn from_parse_request_error(err: #crate_name::ParseRequestError) -> Self {
-                    #name(err)
-                }
-            })
+    let bad_request_handler = args.bad_request_handler.as_ref().map(|path| {
+        quote! {
+            fn from_parse_request_error(err: #crate_name::ParseRequestError) -> Self {
+                #path(err)
+            }
         }
-        None => None,
-    };
+    });
 
     let expanded = {
         quote! {

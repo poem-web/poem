@@ -210,7 +210,7 @@ struct SecuritySchemeArgs {
     #[darling(default)]
     openid_connect_url: Option<String>,
     #[darling(default)]
-    checker: Option<SpannedValue<String>>,
+    checker: Option<Path>,
 }
 
 impl SecuritySchemeArgs {
@@ -445,17 +445,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let register_security_scheme =
         args.generate_register_security_scheme(&crate_name, &oai_typename)?;
     let from_request = args.generate_from_request(&crate_name);
-    let checker = match &args.checker {
-        Some(name) => match syn::parse_str::<Path>(name) {
-            Ok(path) => quote! {
-                let output = ::std::option::Option::ok_or(#path(&req, output).await, #crate_name::ParseRequestError::Authorization)?;
-            },
-            Err(err) => {
-                return Err(Error::new(name.span(), err.to_string()).into());
-            }
-        },
-        None => quote! {},
-    };
+    let checker = args.checker.as_ref().map(|path| quote! {
+        let output = ::std::option::Option::ok_or(#path(&req, output).await, #crate_name::ParseRequestError::Authorization)?;
+    });
 
     let expanded = quote! {
         #[#crate_name::__private::poem::async_trait]

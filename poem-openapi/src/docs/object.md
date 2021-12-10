@@ -11,6 +11,7 @@ Define a OpenAPI object
 | deprecated     | Schema deprecated                                                                                                                                                                | bool         | Y        |
 | read_only_all  | set all fields openapi readOnly property                                                                                                                                         | bool         | Y        |
 | write_only_all | set all fields openapi writeOnly property                                                                                                                                        | bool         | Y        |
+| example        | Specify a function to create an example object.                                                                                                                                  | string       | Y        |
 
 # Field parameters
 

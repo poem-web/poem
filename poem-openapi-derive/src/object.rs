@@ -1,7 +1,11 @@
-use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
+use darling::{
+    ast::Data,
+    util::{Ignored, SpannedValue},
+    FromDeriveInput, FromField,
+};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Type};
+use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Path, Type};
 
 use crate::{
     common_args::{ConcreteType, DefaultValue, RenameRule, RenameRuleExt, RenameTarget},
@@ -43,7 +47,7 @@ struct ObjectArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    inline: bool,
+    inline: SpannedValue<bool>,
     #[darling(default)]
     rename: Option<String>,
     #[darling(default)]
@@ -56,6 +60,8 @@ struct ObjectArgs {
     read_only_all: bool,
     #[darling(default)]
     write_only_all: bool,
+    #[darling(default)]
+    example: Option<SpannedValue<Path>>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -83,10 +89,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut meta_fields = Vec::new();
     let mut required_fields = Vec::new();
 
-    if args.inline && !args.concretes.is_empty() {
-        return Err(Error::new_spanned(
-            ident,
+    if *args.inline && !args.concretes.is_empty() {
+        return Err(Error::new(
+            args.inline.span(),
             "Inline objects cannot have the `concretes` attribute.",
+        )
+        .into());
+    }
+
+    if args.example.is_some() && !args.concretes.is_empty() {
+        return Err(Error::new(
+            args.example.as_ref().unwrap().span(),
+            "The example should be specified with the `concretes.example` attribute.",
         )
         .into());
     }
@@ -249,10 +263,23 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .params
             .insert(0, GenericParam::Lifetime(syn::parse_str("'de").unwrap()));
         let (de_impl_generics, _, _) = de_impl_generics.split_for_impl();
+        let example = match &args.example {
+            Some(path) => {
+                let path = &**path;
+                quote! {
+                    ::std::option::Option::Some(<Self as #impl_generics #crate_name::types::ToJSON>::to_json(&#path()))
+                }
+            }
+            None => quote!(::std::option::Option::None),
+        };
 
-        let (fn_schema_ref, fn_register) = if args.inline {
+        let (fn_schema_ref, fn_register) = if *args.inline {
             (
-                quote!(#crate_name::registry::MetaSchemaRef::Inline(Box::new(#meta))),
+                quote!(#crate_name::registry::MetaSchemaRef::Inline(Box::new({
+                    let mut meta = #meta;
+                    meta.example = #example;
+                    meta
+                }))),
                 quote! {
                     #(#register_types)*
                 },
@@ -262,7 +289,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 quote!(#crate_name::registry::MetaSchemaRef::Reference(#oai_typename)),
                 quote! {
                     #(#register_types)*
-                    registry.create_schema::<Self, _>(#oai_typename, |registry| #meta)
+                    registry.create_schema::<Self, _>(#oai_typename, |registry| {
+                        let mut meta = #meta;
+                        meta.example = #example;
+                        meta
+                    })
                 },
             )
         };
@@ -334,9 +365,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         code.push(quote! {
             impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_register(name: &'static str, registry: &mut #crate_name::registry::Registry) where Self: #crate_name::types::Type {
+                fn __internal_create_schema(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaSchema
+                where
+                    Self: #crate_name::types::Type
+                {
                     #(#register_types)*
-                    registry.create_schema::<Self, _>(name, |registry| #meta);
+                    #meta
                 }
 
                 fn __internal_parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
@@ -361,6 +395,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let oai_typename = &concrete.name;
             let params = &concrete.params.0;
             let concrete_type = quote! { #ident<#(#params),*> };
+            let example = match &concrete.example {
+                Some(path) => {
+                    quote! {
+                        ::std::option::Option::Some(<Self as #crate_name::types::ToJSON>::to_json(&#path()))
+                    }
+                }
+                None => quote!(::std::option::Option::None),
+            };
 
             let expanded = quote! {
                 impl #crate_name::types::Type for #concrete_type {
@@ -383,7 +425,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     }
 
                     fn register(registry: &mut #crate_name::registry::Registry) {
-                        Self::__internal_register(#oai_typename, registry);
+                        let mut meta = Self::__internal_create_schema(registry);
+                        meta.example = #example;
+                        registry.create_schema::<Self, _>(#oai_typename, move |registry| meta);
                     }
 
                     fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {

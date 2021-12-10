@@ -1,8 +1,8 @@
 use darling::FromMeta;
 use inflector::Inflector;
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Meta, NestedMeta, Path};
+use syn::{Lit, Meta, NestedMeta, Path};
 
 #[derive(Debug, Copy, Clone, FromMeta)]
 pub(crate) enum RenameRule {
@@ -72,6 +72,8 @@ impl RenameRuleExt for Option<RenameRule> {
 pub(crate) struct ConcreteType {
     pub(crate) name: String,
     pub(crate) params: PathList,
+    #[darling(default)]
+    pub(crate) example: Option<Path>,
 }
 
 pub(crate) struct PathList(pub(crate) Vec<Path>);
@@ -135,7 +137,7 @@ pub(crate) enum ParamIn {
 #[derive(Debug)]
 pub(crate) enum DefaultValue {
     Default,
-    Function(Ident),
+    Function(Path),
 }
 
 impl FromMeta for DefaultValue {
@@ -143,8 +145,11 @@ impl FromMeta for DefaultValue {
         Ok(DefaultValue::Default)
     }
 
-    fn from_string(value: &str) -> darling::Result<Self> {
-        Ok(DefaultValue::Function(Ident::new(value, Span::call_site())))
+    fn from_value(value: &Lit) -> darling::Result<Self> {
+        match value {
+            Lit::Str(str) => Ok(DefaultValue::Function(syn::parse_str(&str.value())?)),
+            _ => Err(darling::Error::unexpected_lit_type(value).with_span(value)),
+        }
     }
 }
 

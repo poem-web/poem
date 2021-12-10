@@ -80,6 +80,8 @@ pub struct MetaSchema {
     pub read_only: bool,
     #[serde(skip_serializing_if = "is_false")]
     pub write_only: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub example: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiple_of: Option<f64>,
@@ -139,6 +141,7 @@ impl MetaSchema {
         discriminator: None,
         read_only: false,
         write_only: false,
+        example: None,
         multiple_of: None,
         maximum: None,
         exclusive_maximum: None,
@@ -586,9 +589,9 @@ impl Registry {
         Default::default()
     }
 
-    pub fn create_schema<T, F>(&mut self, name: &'static str, mut f: F)
+    pub fn create_schema<T, F>(&mut self, name: &'static str, f: F)
     where
-        F: FnMut(&mut Registry) -> MetaSchema,
+        F: FnOnce(&mut Registry) -> MetaSchema,
     {
         match self.schemas.get(name) {
             Some(schema) => {

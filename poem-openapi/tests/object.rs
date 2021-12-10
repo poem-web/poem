@@ -34,6 +34,7 @@ fn rename_all() {
     assert_eq!(meta.properties[0].0, "createUser");
     assert_eq!(meta.properties[1].0, "deleteUser");
 }
+
 #[test]
 fn concretes() {
     #[derive(Object)]
@@ -539,4 +540,77 @@ fn duplicate_name() {
     let mut registry = Registry::new();
     ObjA::register(&mut registry);
     t::ObjA::register(&mut registry);
+}
+
+#[test]
+fn example() {
+    #[derive(Object)]
+    #[oai(example = "obj_example")]
+    struct Obj {
+        a: i32,
+        b: String,
+    }
+
+    fn obj_example() -> Obj {
+        Obj {
+            a: 100,
+            b: "abc".to_string(),
+        }
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(
+        meta.example,
+        Some(json!({
+            "a": 100,
+            "b": "abc",
+        }))
+    );
+}
+
+#[test]
+fn concretes_example() {
+    #[derive(Object)]
+    #[oai(
+        concrete(
+            name = "Obj_i32_i64",
+            params(i32, i64),
+            example = "obj_i32_i64_example"
+        ),
+        concrete(
+            name = "Obj_f32_f64",
+            params(f32, f64),
+            example = "obj_f32_f64_example"
+        )
+    )]
+    struct Obj<T1: ParseFromJSON + ToJSON, T2: ParseFromJSON + ToJSON> {
+        a: T1,
+        b: T2,
+    }
+
+    fn obj_i32_i64_example() -> Obj<i32, i64> {
+        Obj { a: 100, b: 200 }
+    }
+
+    fn obj_f32_f64_example() -> Obj<f32, f64> {
+        Obj { a: 32.5, b: 72.5 }
+    }
+
+    let meta = get_meta::<Obj<i32, i64>>();
+    assert_eq!(
+        meta.example,
+        Some(json!({
+            "a": 100,
+            "b": 200,
+        }))
+    );
+
+    let meta = get_meta::<Obj<f32, f64>>();
+    assert_eq!(
+        meta.example,
+        Some(json!({
+            "a": 32.5,
+            "b": 72.5,
+        }))
+    );
 }
