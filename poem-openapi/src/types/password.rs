@@ -1,4 +1,7 @@
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    ops::{Deref, DerefMut},
+};
 
 use serde_json::Value;
 
@@ -13,6 +16,20 @@ use crate::{
 /// protect the data in the memory.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Password(pub String);
+
+impl Deref for Password {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Password {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl AsRef<str> for Password {
     fn as_ref(&self) -> &str {

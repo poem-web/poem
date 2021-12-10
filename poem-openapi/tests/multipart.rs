@@ -51,7 +51,7 @@ async fn rename_all() {
     #[oai(rename_all = "UPPERCASE")]
     struct A {
         name: String,
-        file: Binary,
+        file: Binary<Vec<u8>>,
     }
 
     let data = create_multipart_payload(&[("NAME", None, b"abc"), ("FILE", None, &[1, 2, 3])]);
@@ -77,7 +77,7 @@ async fn required_fields() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
         name: String,
-        file: Binary,
+        file: Binary<Vec<u8>>,
     }
 
     let schema_ref = A::schema_ref();
@@ -119,7 +119,7 @@ async fn optional_fields() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
         name: Option<String>,
-        file: Binary,
+        file: Binary<Vec<u8>>,
     }
 
     let schema_ref = A::schema_ref();
@@ -163,7 +163,7 @@ async fn rename_field() {
     struct A {
         #[oai(rename = "Name")]
         name: String,
-        file: Binary,
+        file: Binary<Vec<u8>>,
     }
 
     let data = create_multipart_payload(&[("Name", None, b"abc"), ("file", None, &[1, 2, 3])]);
@@ -189,7 +189,7 @@ async fn skip() {
     #[derive(Multipart, Debug, Eq, PartialEq)]
     struct A {
         name: String,
-        file: Binary,
+        file: Binary<Vec<u8>>,
         #[oai(skip)]
         value1: i32,
         #[oai(skip)]

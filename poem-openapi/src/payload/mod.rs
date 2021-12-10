@@ -1,17 +1,21 @@
 //! Commonly used payload types.
 
+mod attachment;
 mod binary;
 mod json;
 mod plain_text;
 
 use std::io::{Cursor, ErrorKind};
 
-pub use binary::Binary;
-pub use json::Json;
-pub use plain_text::PlainText;
 use poem::{error::ReadBodyError, Body, IntoResponse, Request, RequestBody, Result};
 use tokio::io::AsyncReadExt;
 
+pub use self::{
+    attachment::Attachment,
+    binary::{Binary, BinaryStream},
+    json::Json,
+    plain_text::PlainText,
+};
 use crate::{
     registry::{MetaSchemaRef, Registry},
     ParseRequestError,
@@ -41,19 +45,6 @@ pub trait ParsePayload: Sized {
         request: &Request,
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError>;
-}
-
-#[poem::async_trait]
-impl<T: ParsePayload> ParsePayload for Result<T> {
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        match T::from_request(request, body).await {
-            Ok(payload) => Ok(Ok(payload)),
-            Err(err) => Ok(Err(err.into())),
-        }
-    }
 }
 
 impl<T: Payload> Payload for Option<T> {

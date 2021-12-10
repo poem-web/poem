@@ -107,7 +107,7 @@ impl Api {
 #[oai(rename_all = "UPPERCASE")]
 struct A {
     name: ::std::string::String,
-    file: ::poem_openapi::types::Binary,
+    file: ::poem_openapi::types::Binary<::std::vec::Vec<u8>>,
 }
 
 #[derive(::poem_openapi::Object, Debug, PartialEq)]

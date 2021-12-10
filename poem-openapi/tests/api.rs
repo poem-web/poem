@@ -515,7 +515,7 @@ async fn poem_extract() {
     impl Api {
         #[oai(path = "/", method = "get")]
         async fn test(&self, data: PoemExtractor<Data<&i32>>) {
-            assert_eq!(*data.0 .0, 100);
+            assert_eq!(***data, 100);
         }
     }
 

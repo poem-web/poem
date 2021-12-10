@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
 
 use crate::{
@@ -10,6 +12,20 @@ use crate::{
 /// A UTF8 string payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PlainText<T>(pub T);
+
+impl<T> Deref for PlainText<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for PlainText<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl<T: Send> Payload for PlainText<T> {
     const CONTENT_TYPE: &'static str = "text/plain";

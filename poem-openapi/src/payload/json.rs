@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use poem::{http::StatusCode, FromRequest, IntoResponse, Request, RequestBody, Response};
 use serde_json::Value;
 
@@ -11,6 +13,20 @@ use crate::{
 /// A JSON payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Json<T>(pub T);
+
+impl<T> Deref for Json<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Json<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl<T: Type> Payload for Json<T> {
     const CONTENT_TYPE: &'static str = "application/json";
