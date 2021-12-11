@@ -107,7 +107,7 @@ pub use base::{
     OpenApi, Tags,
 };
 pub use error::ParseRequestError;
-pub use openapi::OpenApiService;
+pub use openapi::{LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;
 #[doc = include_str!("docs/response.md")]
