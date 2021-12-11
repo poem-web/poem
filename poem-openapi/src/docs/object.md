@@ -2,16 +2,17 @@ Define a OpenAPI object
 
 # Macro parameters
 
-| Attribute      | description                                                                                                                                                                      | Type         | Optional |
-|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|----------|
-| rename         | Rename the object                                                                                                                                                                | string       | Y        |
-| rename_all     | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string       | Y        |
-| inline         | Generate inline object.                                                                                                                                                          | bool         | Y        |
-| concretes      | Specify how the concrete type of the generic Schema should be implemented.                                                                                                       | ConcreteType | Y        |
-| deprecated     | Schema deprecated                                                                                                                                                                | bool         | Y        |
-| read_only_all  | set all fields openapi readOnly property                                                                                                                                         | bool         | Y        |
-| write_only_all | set all fields openapi writeOnly property                                                                                                                                        | bool         | Y        |
-| example        | Specify a function to create an example object.                                                                                                                                  | string       | Y        |
+| Attribute           | description                                                                                                                                                                      | Type         | Optional |
+|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|----------|
+| rename              | Rename the object                                                                                                                                                                | string       | Y        |
+| rename_all          | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string       | Y        |
+| inline              | Generate inline object.                                                                                                                                                          | bool         | Y        |
+| concretes           | Specify how the concrete type of the generic Schema should be implemented.                                                                                                       | ConcreteType | Y        |
+| deprecated          | Schema deprecated                                                                                                                                                                | bool         | Y        |
+| read_only_all       | set all fields openapi readOnly property                                                                                                                                         | bool         | Y        |
+| write_only_all      | set all fields openapi writeOnly property                                                                                                                                        | bool         | Y        |
+| deny_unknown_fields | Always error during parsing when encountering unknown fields.                                                                                                                    | bool Y       |
+| example             | Specify a function to create an example object.                                                                                                                                  | string       | Y        |
 
 # Field parameters
 

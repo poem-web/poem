@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - impl `ParseFromParameter` for [T; const LEN: usize].
 - Add `example` attribute for `Object` macro.
+- Add `deny_unknown_fields` attribute for `Object` and `Multipart` macros.
 
 # [1.0.49] 2021-12-10
 

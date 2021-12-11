@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use poem::{Request, RequestBody};
+use poem::{IntoResponse, Request, RequestBody};
 use poem_openapi::{
     payload::{ParsePayload, Payload},
     registry::{MetaSchema, MetaSchemaRef},
@@ -506,5 +506,33 @@ fn inline_field() {
             default: Some(serde_json::json!("B")),
             ..MetaSchema::ANY
         }))
+    );
+}
+
+#[tokio::test]
+async fn deny_unknown_fields() {
+    #[derive(Multipart, Debug, Eq, PartialEq)]
+    #[oai(deny_unknown_fields)]
+    struct A {
+        a: String,
+        b: String,
+    }
+
+    let data = create_multipart_payload(&[
+        ("a", None, b"abc"),
+        ("b", None, b"def"),
+        ("c", None, b"ghi"),
+    ]);
+    let err = A::from_request(
+        &Request::builder()
+            .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
+            .finish(),
+        &mut RequestBody::new(data.into()),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(
+        err.into_response().into_body().into_string().await.unwrap(),
+        "unknown field `c`"
     );
 }

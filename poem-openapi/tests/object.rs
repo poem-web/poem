@@ -614,3 +614,33 @@ fn concretes_example() {
         }))
     );
 }
+
+#[test]
+fn deny_unknown_fields() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    #[oai(deny_unknown_fields)]
+    struct Obj {
+        a: i32,
+        b: i32,
+    }
+
+    assert_eq!(
+        Obj::parse_from_json(json!({
+            "a": 1,
+            "b": 2,
+        }))
+        .unwrap(),
+        Obj { a: 1, b: 2 }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(json!({
+            "a": 1,
+            "b": 2,
+            "c": 3,
+        }))
+        .unwrap_err()
+        .into_message(),
+        "failed to parse \"Obj\": unknown field `c`."
+    );
+}

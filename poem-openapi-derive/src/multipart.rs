@@ -40,6 +40,8 @@ struct MultipartArgs {
     internal: bool,
     #[darling(default)]
     rename_all: Option<RenameRule>,
+    #[darling(default)]
+    deny_unknown_fields: bool,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -206,6 +208,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
 
+    let deny_unknown_fields = if args.deny_unknown_fields {
+        Some(quote! {
+            if let ::std::option::Option::Some(name) = field.name() {
+                let resp = #crate_name::__private::poem::Response::builder()
+                    .status(#crate_name::__private::poem::http::StatusCode::BAD_REQUEST)
+                    .body(::std::format!("unknown field `{}`", name));
+                return ::std::result::Result::Err(#crate_name::ParseRequestError::ParseRequestBody(resp));
+            }
+        })
+    } else {
+        None
+    };
+
     let expanded = quote! {
         impl #impl_generics #crate_name::payload::Payload for #ident #ty_generics #where_clause {
             const CONTENT_TYPE: &'static str = "multipart/form-data";
@@ -240,6 +255,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 #(let mut #fields = ::std::option::Option::None;)*
                 while let ::std::option::Option::Some(field) = multipart.next_field().await.map_err(|err| #crate_name::ParseRequestError::ParseRequestBody(#crate_name::__private::poem::IntoResponse::into_response(err)))? {
                     #(#deserialize_fields)*
+                    #deny_unknown_fields
                 }
                 #(#deserialize_none)*
                 ::std::result::Result::Ok(Self { #(#fields,)* #(#skip_idents),* })
