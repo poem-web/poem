@@ -4,6 +4,7 @@ mod attachment;
 mod binary;
 mod json;
 mod plain_text;
+mod response;
 
 use poem::{Request, RequestBody, Result};
 
@@ -12,6 +13,7 @@ pub use self::{
     binary::{Binary, BinaryStream},
     json::Json,
     plain_text::PlainText,
+    response::Response,
 };
 use crate::{
     registry::{MetaSchemaRef, Registry},

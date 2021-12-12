@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Add some methods to specify more API metadata.
+- Add `Response` type, use it to modify the status code and HTTP headers.
 
 # [1.0.50] 2021-12-11
 
