@@ -11,31 +11,6 @@ use crate::{
     Body, Endpoint, Request, Response,
 };
 
-// #[derive(Template)]
-// #[template(
-//     ext = "html",
-//     source = r#"
-// <html>
-//     <head>
-//         <title>Index of {{ path }}</title>
-//     </head>
-//     <body>
-//         <h1>Index of /{{ path }}</h1>
-//         <ul>
-//             {% for file in files %}
-//             <li>
-//                 {% if file.is_dir %}
-//                 <a href="{{ file.url }}">{{ file.filename | e }}/</a>
-//                 {% else %}
-//                 <a href="{{ file.url }}">{{ file.filename | e }}</a>
-//                 {% endif %}
-//             </li>
-//             {% endfor %}
-//         </ul>
-//     </body>
-// </html>
-// "#
-// )]
 struct DirectoryTemplate<'a> {
     path: &'a str,
     files: Vec<FileRef>,

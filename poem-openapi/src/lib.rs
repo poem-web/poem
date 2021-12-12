@@ -25,11 +25,15 @@
 //! To avoid compiling unused dependencies, Poem gates certain features, some of
 //! which are disabled by default:
 //!
-//! | Feature    | Description                      | Default enabled |
-//! | ---------- | -------------------------------- | --------------- |
-//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x: |
-//! | swagger-ui | Add swagger UI support  | :heavy_check_mark: |
-//! | rapidoc    | Add RapiDoc support   | :heavy_check_mark: |
+//! | Feature    | Description |
+//! |------------|-----------------------------------------------------------------------|
+//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). |
+//! | swagger-ui | Add swagger UI support |
+//! | rapidoc    | Add RapiDoc UI support |
+//! | redoc      | Add Redoc UI support |
+//! | email      | Support for email address string |
+//! | hostname   | Support for hostname string |
+//! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
 //!
 //! ## Example
 //!
@@ -78,7 +82,7 @@
 //! ```
 
 #![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
-#![doc(html_logo_url = "https://poem.rs/assets/logo.png")]
+#![doc(html_logo_url = "https://poem.rs/en/assets/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
