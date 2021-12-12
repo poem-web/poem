@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "1.0.50"
+version = "1.0.51"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "OpenAPI support for Poem."
@@ -23,7 +23,7 @@ email = ["email_address"]
 hostname = ["hostname-validator"]
 
 [dependencies]
-poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.50" }
+poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.0.51" }
 poem = { path = "../poem", version = "1.0.38", features = ["multipart", "tempfile", "cookie"] }
 
 tokio = { version = "1.12.0", features = ["fs"] }
