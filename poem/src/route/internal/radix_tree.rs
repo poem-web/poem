@@ -1,13 +1,5 @@
 use std::fmt::{self, Debug, Formatter};
 
-use nom::{
-    branch::alt,
-    bytes::complete::{is_not, tag, take_while1},
-    combinator::{eof, map, opt},
-    multi::many1,
-    sequence::{delimited, preceded, terminated, tuple},
-    IResult,
-};
 use regex::bytes::Regex;
 use smallvec::SmallVec;
 
@@ -19,14 +11,14 @@ fn longest_common_prefix(a: &[u8], b: &[u8]) -> usize {
 enum RawSegment<'a> {
     Static(&'a [u8]),
     Param(&'a [u8]),
-    CatchAll(&'a [u8]),
+    CatchAll(Option<&'a [u8]>),
     Regex(Option<&'a [u8]>, &'a [u8]),
 }
 
 enum Segment<'a> {
     Static(&'a [u8]),
     Param(&'a [u8]),
-    CatchAll(&'a [u8]),
+    CatchAll(Option<&'a [u8]>),
     Regex(Option<&'a [u8]>, PathRegex),
 }
 
@@ -39,30 +31,94 @@ fn find_slash(path: &[u8]) -> Option<usize> {
     None
 }
 
-fn parse_path_segments(path: &[u8]) -> Option<Vec<RawSegment<'_>>> {
-    let static_path = map(is_not(":*<"), RawSegment::Static);
-    let catch_all = map(
-        preceded(tag(b"*"), take_while1(|_| true)),
-        RawSegment::CatchAll,
-    );
-    let param = map(
-        tuple((
-            tag(b":"),
-            is_not(":*</"),
-            opt(delimited(tag(b"<"), is_not(">"), tag(b">"))),
-        )),
-        |(_, name, regex)| match regex {
-            Some(regex) => RawSegment::Regex(Some(name), regex),
-            None => RawSegment::Param(name),
-        },
-    );
-    let regex = map(delimited(tag(b"<"), is_not(">"), tag(b">")), |re| {
-        RawSegment::Regex(None, re)
-    });
+fn parse_path_segments(path: &[u8]) -> Result<Vec<RawSegment<'_>>, ()> {
+    fn parse_static<'a>(path: &'a [u8], i: &mut usize) -> &'a [u8] {
+        let s = *i;
+        while *i < path.len() {
+            match path[*i] {
+                b':' | b'*' | b'<' => break,
+                _ => *i += 1,
+            }
+        }
+        &path[s..*i]
+    }
 
-    let res: IResult<&[u8], Vec<RawSegment>> =
-        terminated(many1(alt((static_path, catch_all, param, regex))), eof)(path);
-    res.map(|(_, segments)| segments).ok()
+    fn parse_name<'a>(path: &'a [u8], i: &mut usize) -> Result<&'a [u8], ()> {
+        let s = *i;
+        while *i < path.len() {
+            match path[*i] {
+                b'/' | b'<' | b'*' => break,
+                _ => *i += 1,
+            }
+        }
+
+        if !path[s..*i].is_empty() {
+            Ok(&path[s..*i])
+        } else {
+            Err(())
+        }
+    }
+
+    fn parse_re<'a>(path: &'a [u8], i: &mut usize) -> Result<&'a [u8], ()> {
+        let s = *i;
+        while *i < path.len() {
+            match path[*i] {
+                b'>' => {
+                    let re = &path[s..*i];
+                    *i += 1;
+                    if re.is_empty() {
+                        return Err(());
+                    }
+                    return Ok(re);
+                }
+                _ => *i += 1,
+            }
+        }
+        Err(())
+    }
+
+    let mut i = 0;
+    let mut segments = Vec::new();
+
+    while i < path.len() {
+        match path[i] {
+            b':' => {
+                i += 1;
+                let name = parse_name(path, &mut i)?;
+                if i < path.len() && path[i] == b'<' {
+                    i += 1;
+                    let re = parse_re(path, &mut i)?;
+                    segments.push(RawSegment::Regex(Some(name), re));
+                } else {
+                    segments.push(RawSegment::Param(name));
+                }
+            }
+            b'*' => {
+                i += 1;
+                let name = &path[i..];
+                if name.is_empty() {
+                    segments.push(RawSegment::CatchAll(None));
+                } else {
+                    segments.push(RawSegment::CatchAll(Some(name)));
+                }
+                break;
+            }
+            b'<' => {
+                i += 1;
+                let re = parse_re(path, &mut i)?;
+                segments.push(RawSegment::Regex(None, re));
+            }
+            _ => {
+                let s = parse_static(path, &mut i);
+                segments.push(RawSegment::Static(s));
+            }
+        }
+    }
+
+    if segments.is_empty() {
+        return Err(());
+    }
+    Ok(segments)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -236,11 +292,11 @@ impl<T> Node<T> {
         child.insert_child(segments, data)
     }
 
-    fn insert_catch_all_child(&mut self, name: &[u8], data: T) -> bool {
+    fn insert_catch_all_child(&mut self, name: Option<&[u8]>, data: T) -> bool {
         self.catch_all_child
             .replace(Box::new(Node {
                 node_type: NodeType::CatchAll,
-                name: name.to_vec(),
+                name: name.unwrap_or_default().to_vec(),
                 children: vec![],
                 indices: vec![],
                 re: None,
@@ -290,7 +346,9 @@ impl<T> Node<T> {
     ) -> Option<&'a T> {
         if path.is_empty() {
             return if let Some(catch_all_child) = &self.catch_all_child {
-                params.push((&catch_all_child.name, path));
+                if !catch_all_child.name.is_empty() {
+                    params.push((&catch_all_child.name, path));
+                }
                 catch_all_child.data.as_ref()
             } else {
                 self.data.as_ref()
@@ -377,8 +435,8 @@ impl<T> Default for RadixTree<T> {
 impl<T> RadixTree<T> {
     pub(crate) fn add(&mut self, path: &str, data: T) -> bool {
         let raw_segments = match parse_path_segments(path.as_bytes()) {
-            Some(raw_segments) => raw_segments,
-            None => return false,
+            Ok(raw_segments) => raw_segments,
+            Err(_) => return false,
         };
 
         let mut segments = Vec::with_capacity(raw_segments.len());
@@ -439,8 +497,49 @@ mod tests {
     #[test]
     fn test_parse_path_segments() {
         assert_eq!(
+            parse_path_segments(b"/a/b"),
+            Ok(vec![RawSegment::Static(b"/a/b")])
+        );
+
+        assert_eq!(parse_path_segments(b""), Err(()));
+
+        assert_eq!(
+            parse_path_segments(b"/a/:v/b"),
+            Ok(vec![
+                RawSegment::Static(b"/a/"),
+                RawSegment::Param(b"v"),
+                RawSegment::Static(b"/b"),
+            ])
+        );
+
+        assert_eq!(
+            parse_path_segments(b"/a/*"),
+            Ok(vec![RawSegment::Static(b"/a/"), RawSegment::CatchAll(None)])
+        );
+
+        assert_eq!(
+            parse_path_segments(b"/a/:v"),
+            Ok(vec![RawSegment::Static(b"/a/"), RawSegment::Param(b"v")])
+        );
+
+        assert_eq!(
+            parse_path_segments(b"/a/:v<\\d+>"),
+            Ok(vec![
+                RawSegment::Static(b"/a/"),
+                RawSegment::Regex(Some(b"v"), b"\\d+")
+            ])
+        );
+
+        assert_eq!(parse_path_segments(b"/a/:v<\\d+"), Err(()));
+
+        assert_eq!(
+            parse_path_segments(b"*p"),
+            Ok(vec![RawSegment::CatchAll(Some(b"p"))])
+        );
+
+        assert_eq!(
             parse_path_segments(b"/a/:b/:re<\\d+>/:ui/ef/<\\d+>/*jkl"),
-            Some(vec![
+            Ok(vec![
                 RawSegment::Static(b"/a/"),
                 RawSegment::Param(b"b"),
                 RawSegment::Static(b"/"),
@@ -450,11 +549,11 @@ mod tests {
                 RawSegment::Static(b"/ef/"),
                 RawSegment::Regex(None, b"\\d+"),
                 RawSegment::Static(b"/"),
-                RawSegment::CatchAll(b"jkl")
+                RawSegment::CatchAll(Some(b"jkl"))
             ])
         );
 
-        assert_eq!(parse_path_segments(b"/a/:"), None);
+        assert_eq!(parse_path_segments(b"/a/:"), Err(()));
     }
 
     #[test]
