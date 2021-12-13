@@ -117,3 +117,40 @@ fn duplicate_name() {
     EnumA::register(&mut registry);
     t::EnumA::register(&mut registry);
 }
+
+#[test]
+fn remote() {
+    #[derive(Debug, Eq, PartialEq)]
+    enum EnumA {
+        A,
+        B,
+        C,
+    }
+
+    #[derive(Debug, Enum, Eq, PartialEq)]
+    #[oai(remote = "EnumA")]
+    enum EnumB {
+        A,
+        B,
+        C,
+    }
+
+    let mut registry = Registry::new();
+    EnumB::register(&mut registry);
+    let meta = registry.schemas.remove("EnumB").unwrap();
+    assert_eq!(meta.enum_items, vec![json!("A"), json!("B"), json!("C")]);
+
+    let b: EnumB = EnumA::A.into();
+    assert_eq!(b, EnumB::A);
+    let b: EnumB = EnumA::B.into();
+    assert_eq!(b, EnumB::B);
+    let b: EnumB = EnumA::C.into();
+    assert_eq!(b, EnumB::C);
+
+    let a: EnumA = EnumB::A.into();
+    assert_eq!(a, EnumA::A);
+    let a: EnumA = EnumB::B.into();
+    assert_eq!(a, EnumA::B);
+    let a: EnumA = EnumB::C.into();
+    assert_eq!(a, EnumA::C);
+}

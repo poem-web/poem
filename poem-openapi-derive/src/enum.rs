@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, DeriveInput, Error};
+use syn::{ext::IdentExt, DeriveInput, Error, Path};
 
 use crate::{
     common_args::{RenameRule, RenameRuleExt, RenameTarget},
@@ -35,6 +35,8 @@ struct EnumArgs {
     rename_all: Option<RenameRule>,
     #[darling(default)]
     rename: Option<String>,
+    #[darling(default)]
+    remote: Option<Path>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -77,6 +79,41 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         item_to_ident
             .push(quote!(#oai_item_name => ::std::result::Result::Ok(#ident::#item_ident)));
     }
+
+    let remote_conversion = if let Some(remote_ty) = &args.remote {
+        let local_to_remote_items = e.iter().map(|item| {
+            let item = &item.ident;
+            quote! {
+                #ident::#item => #remote_ty::#item,
+            }
+        });
+        let remote_to_local_items = e.iter().map(|item| {
+            let item = &item.ident;
+            quote! {
+                #remote_ty::#item => #ident::#item,
+            }
+        });
+
+        Some(quote! {
+            impl ::std::convert::From<#ident> for #remote_ty {
+                fn from(value: #ident) -> Self {
+                    match value {
+                        #(#local_to_remote_items)*
+                    }
+                }
+            }
+
+            impl ::std::convert::From<#remote_ty> for #ident {
+                fn from(value: #remote_ty) -> Self {
+                    match value {
+                        #(#remote_to_local_items)*
+                    }
+                }
+            }
+        })
+    } else {
+        None
+    };
 
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
@@ -153,6 +190,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
         }
+
+        #remote_conversion
     };
 
     Ok(expanded)
