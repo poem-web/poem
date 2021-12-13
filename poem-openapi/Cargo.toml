@@ -37,6 +37,7 @@ typed-headers = "0.2.0"
 mime = "0.3.16"
 thiserror = "1.0.30"
 bytes = "1.1.0"
+futures-util = "0.3.17"
 
 # Non-feature optional dependencies
 email_address = { version = "0.2.1", optional = true }

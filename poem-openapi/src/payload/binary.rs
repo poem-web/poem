@@ -1,6 +1,10 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    io::Error as IoError,
+    ops::{Deref, DerefMut},
+};
 
 use bytes::Bytes;
+use futures_util::Stream;
 use poem::{Body, FromRequest, IntoResponse, Request, RequestBody, Response};
 use tokio::io::AsyncRead;
 
@@ -19,9 +23,24 @@ impl BinaryStream {
         Self(Body::from_async_read(reader))
     }
 
+    /// Create a body object from bytes stream.
+    pub fn from_bytes_stream<S, O, E>(stream: S) -> Self
+    where
+        S: Stream<Item = Result<O, E>> + Send + 'static,
+        O: Into<Bytes> + 'static,
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        Self(Body::from_bytes_stream(stream))
+    }
+
     /// Consumes this object to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
         self.0.into_async_read()
+    }
+
+    /// Consumes this object to return a bytes stream.
+    pub fn into_bytes_stream(self) -> impl Stream<Item = Result<Bytes, IoError>> + Send + 'static {
+        self.0.into_bytes_stream()
     }
 }
 
