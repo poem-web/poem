@@ -81,8 +81,8 @@
 //! hello, sunli!
 //! ```
 
-#![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
-#![doc(html_logo_url = "https://poem.rs/en/assets/logo.png")]
+#![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -92,6 +92,7 @@
 mod macros;
 
 pub mod auth;
+pub mod error;
 pub mod param;
 pub mod payload;
 #[doc(hidden)]
@@ -101,7 +102,6 @@ pub mod types;
 pub mod validation;
 
 mod base;
-mod error;
 mod openapi;
 #[cfg(any(feature = "swagger-ui", feature = "rapidoc", feature = "redoc"))]
 mod ui;
@@ -110,7 +110,6 @@ pub use base::{
     ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
     OpenApi, Tags,
 };
-pub use error::ParseRequestError;
 pub use openapi::{LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;

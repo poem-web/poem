@@ -1,4 +1,4 @@
-use crate::{Endpoint, IntoResponse, Request, Response};
+use crate::{Endpoint, IntoResponse, Request, Response, Result};
 
 /// Endpoint for the [`map_to_response`](super::EndpointExt::map_to_response)
 /// method.
@@ -17,7 +17,7 @@ impl<E> MapToResponse<E> {
 impl<E: Endpoint> Endpoint for MapToResponse<E> {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
-        self.inner.call(req).await.into_response()
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        self.inner.call(req).await.map(IntoResponse::into_response)
     }
 }

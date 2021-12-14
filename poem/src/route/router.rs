@@ -1,16 +1,157 @@
 use std::{str::FromStr, sync::Arc};
 
-use http::StatusCode;
 use regex::Regex;
 
 use crate::{
     endpoint::BoxEndpoint,
+    error::NotFoundError,
     http::{uri::PathAndQuery, Uri},
     route::internal::radix_tree::RadixTree,
-    Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response,
+    Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
 /// Routing object
+///
+/// You can match the full path or wildcard path, and use the
+/// [`Path`](crate::web::Path) extractor to get the path parameters.
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     get, handler,
+///     http::{StatusCode, Uri},
+///     web::Path,
+///     Endpoint, Request, Route,
+/// };
+///
+/// #[handler]
+/// async fn a() {}
+///
+/// #[handler]
+/// async fn b(Path((group, name)): Path<(String, String)>) {
+///     assert_eq!(group, "foo");
+///     assert_eq!(name, "bar");
+/// }
+///
+/// #[handler]
+/// async fn c(Path(path): Path<String>) {
+///     assert_eq!(path, "d/e");
+/// }
+///
+/// let app = Route::new()
+///     // full path
+///     .at("/a/b", get(a))
+///     // capture parameters
+///     .at("/b/:group/:name", get(b))
+///     // capture tail path
+///     .at("/c/*path", get(c))
+///     // match regex
+///     .at("/d/<\\d+>", get(a))
+///     // capture with regex
+///     .at("/e/:name<\\d+>", get(a));
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// // /a/b
+/// let resp = app
+///     .call(Request::builder().uri(Uri::from_static("/a/b")).finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+///
+/// // /b/:group/:name
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/b/foo/bar"))
+///             .finish(),
+///     )
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+///
+/// // /c/*path
+/// let resp = app
+///     .call(Request::builder().uri(Uri::from_static("/c/d/e")).finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+///
+/// // /d/<\\d>
+/// let resp = app
+///     .call(Request::builder().uri(Uri::from_static("/d/123")).finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+///
+/// // /e/:name<\\d>
+/// let resp = app
+///     .call(Request::builder().uri(Uri::from_static("/e/123")).finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// # });
+/// ```
+///
+/// # Nested
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{StatusCode, Uri},
+///     Endpoint, Request, Route,
+/// };
+///
+/// #[handler]
+/// fn index() -> &'static str {
+///     "hello"
+/// }
+///
+/// let app = Route::new().nest("/foo", Route::new().at("/bar", index));
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/foo/bar"))
+///             .finish(),
+///     )
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+/// # });
+/// ```
+///
+/// # Nested no strip
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{StatusCode, Uri},
+///     Endpoint, Request, Route,
+/// };
+///
+/// #[handler]
+/// fn index() -> &'static str {
+///     "hello"
+/// }
+///
+/// let app = Route::new().nest_no_strip("/foo", Route::new().at("/foo/bar", index));
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = app
+///     .call(
+///         Request::builder()
+///             .uri(Uri::from_static("/foo/bar"))
+///             .finish(),
+///     )
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+/// # });
+/// ```
 #[derive(Default)]
 pub struct Route {
     tree: RadixTree<BoxEndpoint<'static, Response>>,
@@ -23,125 +164,18 @@ impl Route {
     }
 
     /// Add an [Endpoint] to the specified path.
-    ///
-    /// You can match the full path or wildcard path, and use the
-    /// [`Path`](crate::web::Path) extractor to get the path parameters.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::{
-    ///     get, handler,
-    ///     http::{StatusCode, Uri},
-    ///     web::Path,
-    ///     Endpoint, Request, Route,
-    /// };
-    ///
-    /// #[handler]
-    /// async fn a() {}
-    ///
-    /// #[handler]
-    /// async fn b(Path((group, name)): Path<(String, String)>) {
-    ///     assert_eq!(group, "foo");
-    ///     assert_eq!(name, "bar");
-    /// }
-    ///
-    /// #[handler]
-    /// async fn c(Path(path): Path<String>) {
-    ///     assert_eq!(path, "d/e");
-    /// }
-    ///
-    /// let app = Route::new()
-    ///     // full path
-    ///     .at("/a/b", get(a))
-    ///     // capture parameters
-    ///     .at("/b/:group/:name", get(b))
-    ///     // capture tail path
-    ///     .at("/c/*path", get(c))
-    ///     // match regex
-    ///     .at("/d/<\\d+>", get(a))
-    ///     // capture with regex
-    ///     .at("/e/:name<\\d+>", get(a));
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// // /a/b
-    /// let resp = app
-    ///     .call(Request::builder().uri(Uri::from_static("/a/b")).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    ///
-    /// // /b/:group/:name
-    /// let resp = app
-    ///     .call(
-    ///         Request::builder()
-    ///             .uri(Uri::from_static("/b/foo/bar"))
-    ///             .finish(),
-    ///     )
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    ///
-    /// // /c/*path
-    /// let resp = app
-    ///     .call(Request::builder().uri(Uri::from_static("/c/d/e")).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    ///
-    /// // /d/<\\d>
-    /// let resp = app
-    ///     .call(Request::builder().uri(Uri::from_static("/d/123")).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    ///
-    /// // /e/:name<\\d>
-    /// let resp = app
-    ///     .call(Request::builder().uri(Uri::from_static("/e/123")).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// # });
-    /// ```
     #[must_use]
     pub fn at<E>(mut self, path: impl AsRef<str>, ep: E) -> Self
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        self.tree.add(
-            &normalize_path(path.as_ref()),
-            Box::new(ep.into_endpoint().map_to_response()),
-        );
+        self.tree
+            .add(&normalize_path(path.as_ref()), ep.map_to_response().boxed());
         self
     }
 
     /// Nest a `Endpoint` to the specified path and strip the prefix.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::{
-    ///     handler,
-    ///     http::{StatusCode, Uri},
-    ///     Endpoint, Request, Route,
-    /// };
-    ///
-    /// #[handler]
-    /// fn index() -> &'static str {
-    ///     "hello"
-    /// }
-    ///
-    /// let app = Route::new().nest("/foo", Route::new().at("/bar", index));
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = app
-    ///     .call(
-    ///         Request::builder()
-    ///             .uri(Uri::from_static("/foo/bar"))
-    ///             .finish(),
-    ///     )
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
-    /// # });
-    /// ```
     #[must_use]
     pub fn nest<E>(self, path: impl AsRef<str>, ep: E) -> Self
     where
@@ -152,35 +186,6 @@ impl Route {
     }
 
     /// Nest a `Endpoint` to the specified path, but do not strip the prefix.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::{
-    ///     handler,
-    ///     http::{StatusCode, Uri},
-    ///     Endpoint, Request, Route,
-    /// };
-    ///
-    /// #[handler]
-    /// fn index() -> &'static str {
-    ///     "hello"
-    /// }
-    ///
-    /// let app = Route::new().nest_no_strip("/foo", Route::new().at("/foo/bar", index));
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = app
-    ///     .call(
-    ///         Request::builder()
-    ///             .uri(Uri::from_static("/foo/bar"))
-    ///             .finish(),
-    ///     )
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
-    /// # });
-    /// ```
     #[must_use]
     pub fn nest_no_strip<E>(self, path: impl AsRef<str>, ep: E) -> Self
     where
@@ -211,7 +216,7 @@ impl Route {
         impl<E: Endpoint> Endpoint for Nest<E> {
             type Output = Response;
 
-            async fn call(&self, mut req: Request) -> Self::Output {
+            async fn call(&self, mut req: Request) -> Result<Self::Output> {
                 if !self.root {
                     let idx = req.state().match_params.len() - 1;
                     let (name, _) = req.state_mut().match_params.remove(idx);
@@ -231,7 +236,8 @@ impl Route {
                     Uri::from_parts(uri_parts).unwrap()
                 };
                 *req.uri_mut() = new_uri;
-                self.inner.call(req).await.into_response()
+
+                Ok(self.inner.call(req).await?.into_response())
             }
         }
 
@@ -269,13 +275,13 @@ impl Route {
 impl Endpoint for Route {
     type Output = Response;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         match self.tree.matches(req.uri().path()) {
             Some(matches) => {
                 req.state_mut().match_params.extend(matches.params);
                 matches.data.call(req).await
             }
-            None => StatusCode::NOT_FOUND.into(),
+            None => Err(NotFoundError.into()),
         }
     }
 }
@@ -313,6 +319,7 @@ mod tests {
         route
             .call(Request::builder().uri(Uri::from_static(path)).finish())
             .await
+            .unwrap()
             .take_body()
             .into_string()
             .await

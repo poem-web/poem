@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use crate::{
     middleware::{CookieJarManager, CookieJarManagerEndpoint},
     session::{CookieConfig, Session, SessionStatus},
-    Endpoint, Middleware, Request,
+    Endpoint, Middleware, Request, Result,
 };
 
 /// Middleware for client-side(cookie) session.
@@ -44,7 +44,7 @@ pub struct CookieSessionEndpoint<E> {
 impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
     type Output = E::Output;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         let cookie_jar = req.cookie().clone();
         let session = self
             .config
@@ -54,7 +54,7 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
             .unwrap_or_else(Session::default);
 
         req.extensions_mut().insert(session.clone());
-        let resp = self.inner.call(req).await;
+        let resp = self.inner.call(req).await?;
 
         match session.status() {
             SessionStatus::Changed | SessionStatus::Renewed => {
@@ -69,7 +69,7 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
             SessionStatus::Unchanged => {}
         };
 
-        resp
+        Ok(resp)
     }
 }
 

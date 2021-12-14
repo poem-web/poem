@@ -82,6 +82,11 @@ impl Field {
 /// An extractor that parses `multipart/form-data` requests commonly used with
 /// file uploads.
 ///
+/// # Errors
+///
+/// - [`ReadBodyError`]
+/// - [`ParseMultipartError`]
+///
 /// # Example
 ///
 /// ```
@@ -106,9 +111,7 @@ pub struct Multipart {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Multipart {
-    type Error = ParseMultipartError;
-
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let content_type = req
             .headers()
             .get(header::CONTENT_TYPE)
@@ -119,10 +122,12 @@ impl<'a> FromRequest<'a> for Multipart {
         if content_type.essence_str() != mime::MULTIPART_FORM_DATA {
             return Err(ParseMultipartError::InvalidContentType(
                 content_type.essence_str().to_string(),
-            ));
+            )
+            .into());
         }
 
-        let boundary = multer::parse_boundary(content_type.as_ref())?;
+        let boundary = multer::parse_boundary(content_type.as_ref())
+            .map_err(ParseMultipartError::Multipart)?;
         Ok(Self {
             inner: multer::Multipart::new(
                 tokio_util::io::ReaderStream::new(body.take()?.into_async_read()),
@@ -154,18 +159,18 @@ mod tests {
             todo!()
         }
 
-        let mut resp = index
+        let err = index
             .call(
                 Request::builder()
                     .header("content-type", "multipart/json; boundary=X-BOUNDARY")
                     .body(()),
             )
-            .await;
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-        assert_eq!(
-            resp.take_body().into_string().await.unwrap(),
-            "invalid content type `multipart/json`, expect: `multipart/form-data`"
-        );
+            .await
+            .unwrap_err();
+        match err.downcast_ref::<ParseMultipartError>().unwrap() {
+            ParseMultipartError::InvalidContentType(ct) if ct == "multipart/json" => {}
+            _ => panic!(),
+        }
     }
 
     #[tokio::test]
@@ -193,7 +198,8 @@ mod tests {
                     .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
                     .body(data),
             )
-            .await;
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }

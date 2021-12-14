@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use chrono::Utc;
-use poem::{session::SessionStorage, Result};
+use poem::{error::InternalServerError, session::SessionStorage, Result};
 use sqlx::{mysql::MySqlStatement, types::Json, Executor, MySqlPool, Statement};
 
 use crate::DatabaseConfig;
@@ -27,6 +27,10 @@ const CLEANUP_SQL: &str = r#"
 "#;
 
 /// Session storage using Mysql.
+///
+/// # Errors
+///
+/// - [`sqlx::Error`]
 ///
 /// # Create the table for session storage
 ///
@@ -103,14 +107,15 @@ impl MysqlSessionStorage {
 #[poem::async_trait]
 impl SessionStorage for MysqlSessionStorage {
     async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, String>>> {
-        let mut conn = self.pool.acquire().await?;
+        let mut conn = self.pool.acquire().await.map_err(InternalServerError)?;
         let res: Option<(Json<BTreeMap<String, String>>,)> = self
             .load_stmt
             .query_as()
             .bind(session_id)
             .bind(Utc::now())
             .fetch_optional(&mut conn)
-            .await?;
+            .await
+            .map_err(InternalServerError)?;
         Ok(res.map(|(value,)| value.0))
     }
 
@@ -120,10 +125,12 @@ impl SessionStorage for MysqlSessionStorage {
         entries: &BTreeMap<String, String>,
         expires: Option<Duration>,
     ) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
+        let mut conn = self.pool.acquire().await.map_err(InternalServerError)?;
 
         let expires = match expires {
-            Some(expires) => Some(chrono::Duration::from_std(expires)?),
+            Some(expires) => {
+                Some(chrono::Duration::from_std(expires).map_err(InternalServerError)?)
+            }
             None => None,
         };
 
@@ -133,17 +140,19 @@ impl SessionStorage for MysqlSessionStorage {
             .bind(Json(entries))
             .bind(expires.map(|expires| Utc::now() + expires))
             .execute(&mut conn)
-            .await?;
+            .await
+            .map_err(InternalServerError)?;
         Ok(())
     }
 
     async fn remove_session(&self, session_id: &str) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
+        let mut conn = self.pool.acquire().await.map_err(InternalServerError)?;
         self.remove_stmt
             .query()
             .bind(session_id)
             .execute(&mut conn)
-            .await?;
+            .await
+            .map_err(InternalServerError)?;
         Ok(())
     }
 }

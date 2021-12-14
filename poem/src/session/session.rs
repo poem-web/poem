@@ -1,6 +1,5 @@
 use std::{
     collections::BTreeMap,
-    convert::Infallible,
     fmt::{self, Debug, Formatter},
     sync::Arc,
 };
@@ -8,7 +7,7 @@ use std::{
 use parking_lot::RwLock;
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{FromRequest, Request, RequestBody};
+use crate::{FromRequest, Request, RequestBody, Result};
 
 /// Status of the Session.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -142,9 +141,7 @@ impl Session {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Session {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req
             .extensions()
             .get::<Session>()

@@ -1,11 +1,15 @@
 use crate::{
-    http::StatusCode, web::headers::HeaderMapExt, Endpoint, Error, Middleware, Request, Result,
+    error::SizedLimitError, web::headers::HeaderMapExt, Endpoint, Middleware, Request, Result,
 };
 
 /// Middleware for limit the request payload size.
 ///
 /// If the incoming request does not contain the `Content-Length` header, it
 /// will return `BAD_REQUEST` status code.
+///
+/// # Errors
+///
+/// - [`SizedLimitError`]
 pub struct SizeLimit {
     max_size: usize,
 }
@@ -36,24 +40,26 @@ pub struct SizeLimitEndpoint<E> {
 
 #[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for SizeLimitEndpoint<E> {
-    type Output = Result<E::Output>;
+    type Output = E::Output;
 
-    async fn call(&self, req: Request) -> Self::Output {
-        let content_length = match req.headers().typed_get::<headers::ContentLength>() {
-            Some(content_length) => content_length.0 as usize,
-            None => return Err(Error::new(StatusCode::BAD_REQUEST)),
-        };
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        let content_length = req
+            .headers()
+            .typed_get::<headers::ContentLength>()
+            .ok_or(SizedLimitError::MissingContentLength)?;
 
-        if content_length > self.max_size {
-            return Err(Error::new(StatusCode::PAYLOAD_TOO_LARGE));
+        if content_length.0 as usize > self.max_size {
+            return Err(SizedLimitError::PayloadTooLarge.into());
         }
 
-        Ok(self.inner.call(req).await)
+        self.inner.call(req).await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use http::StatusCode;
+
     use super::*;
     use crate::{
         endpoint::{make_sync, EndpointExt},
@@ -65,15 +71,23 @@ mod tests {
         let ep = make_sync(|_| ()).with(SizeLimit::new(5));
 
         assert_eq!(
+            ep.call(Request::builder().body(&b"123456"[..]))
+                .await
+                .unwrap_err()
+                .downcast_ref::<SizedLimitError>(),
+            Some(&SizedLimitError::MissingContentLength)
+        );
+
+        assert_eq!(
             ep.call(
                 Request::builder()
                     .header("content-length", 6)
                     .body(&b"123456"[..])
             )
             .await
-            .into_response()
-            .status(),
-            StatusCode::PAYLOAD_TOO_LARGE
+            .unwrap_err()
+            .downcast_ref::<SizedLimitError>(),
+            Some(&SizedLimitError::PayloadTooLarge)
         );
 
         assert_eq!(
@@ -83,6 +97,7 @@ mod tests {
                     .body(&b"1234"[..])
             )
             .await
+            .unwrap()
             .into_response()
             .status(),
             StatusCode::OK
@@ -95,6 +110,7 @@ mod tests {
                     .body(&b"12345"[..])
             )
             .await
+            .unwrap()
             .into_response()
             .status(),
             StatusCode::OK

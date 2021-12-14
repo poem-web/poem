@@ -57,9 +57,9 @@ where
     T: SessionStorage,
     E: Endpoint,
 {
-    type Output = Result<E::Output>;
+    type Output = E::Output;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         let cookie_jar = req.cookie().clone();
         let mut session_id = self.config.get_cookie_value(&cookie_jar);
         let session = match &session_id {
@@ -74,7 +74,7 @@ where
         };
 
         req.extensions_mut().insert(session.clone());
-        let resp = self.inner.call(req).await;
+        let resp = self.inner.call(req).await?;
 
         match session.status() {
             SessionStatus::Changed => match session_id {

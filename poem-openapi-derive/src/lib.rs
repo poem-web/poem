@@ -1,7 +1,7 @@
 //! Macros for poem-openapi
 
-#![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
-#![doc(html_logo_url = "https://poem.rs/en/assets/logo.png")]
+#![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 

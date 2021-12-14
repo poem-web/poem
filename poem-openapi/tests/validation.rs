@@ -282,13 +282,14 @@ async fn param_validator() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let mut resp = api
+    let err = api
         .call(Request::builder().uri(Uri::from_static("/?v=999")).finish())
-        .await;
-    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        .await
+        .unwrap_err();
+    assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
-        resp.take_body().into_string().await.unwrap(),
-        "Failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
+        err.to_string(),
+        "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
     );
 
     let meta: MetaApi = Api::meta().remove(0);
@@ -309,7 +310,8 @@ async fn param_validator() {
 
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/?v=50")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 

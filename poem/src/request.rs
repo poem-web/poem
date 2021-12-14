@@ -262,7 +262,8 @@ impl Request {
     ///             .uri(Uri::from_static("/100/abc"))
     ///             .finish(),
     ///     )
-    ///     .await;
+    ///     .await
+    ///     .unwrap();
     /// assert_eq!(resp.status(), StatusCode::OK);
     /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
     /// # });
@@ -307,7 +308,8 @@ impl Request {
     ///             .uri(Uri::from_static("/?a=100&b=abc"))
     ///             .finish(),
     ///     )
-    ///     .await;
+    ///     .await
+    ///     .unwrap();
     /// assert_eq!(resp.status(), StatusCode::OK);
     /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
     /// # });

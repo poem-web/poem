@@ -1,11 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{Request, RequestBody};
+use poem::{Request, RequestBody, Result};
 
 use crate::{
+    error::ParseParamError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions, ParseRequestError,
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the cookie.
@@ -53,7 +54,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Cookie<T> {
         request: &'a Request,
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         let value = request
             .cookie()
             .get(param_opts.name)
@@ -67,9 +68,12 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Cookie<T> {
 
         ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
-            .map_err(|err| ParseRequestError::ParseParam {
-                name: param_opts.name,
-                reason: err.into_message(),
+            .map_err(|err| {
+                ParseParamError {
+                    name: param_opts.name,
+                    reason: err.into_message(),
+                }
+                .into()
             })
     }
 }
@@ -119,7 +123,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookiePrivate<T> {
         request: &'a Request,
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         let value = request
             .cookie()
             .private()
@@ -134,9 +138,12 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookiePrivate<T> {
 
         ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
-            .map_err(|err| ParseRequestError::ParseParam {
-                name: param_opts.name,
-                reason: err.into_message(),
+            .map_err(|err| {
+                ParseParamError {
+                    name: param_opts.name,
+                    reason: err.into_message(),
+                }
+                .into()
             })
     }
 }
@@ -186,7 +193,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookieSigned<T> {
         request: &'a Request,
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         let value = request
             .cookie()
             .signed()
@@ -201,9 +208,12 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookieSigned<T> {
 
         ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
-            .map_err(|err| ParseRequestError::ParseParam {
-                name: param_opts.name,
-                reason: err.into_message(),
+            .map_err(|err| {
+                ParseParamError {
+                    name: param_opts.name,
+                    reason: err.into_message(),
+                }
+                .into()
             })
     }
 }

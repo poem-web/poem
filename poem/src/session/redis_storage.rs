@@ -5,6 +5,10 @@ use redis::{aio::ConnectionLike, AsyncCommands, Cmd};
 use crate::{error::InternalServerError, session::session_storage::SessionStorage, Result};
 
 /// A session storage using redis.
+///
+/// # Errors
+///
+/// - [`redis::RedisError`]
 #[cfg_attr(docsrs, doc(cfg(feature = "redis-session")))]
 pub struct RedisStorage<T> {
     connection: T,

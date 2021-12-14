@@ -1,11 +1,11 @@
 use poem::{
     http::{header::HeaderName, HeaderMap, HeaderValue, StatusCode},
-    IntoResponse,
+    Error, IntoResponse,
 };
 
 use crate::{
     registry::{MetaResponses, Registry},
-    ApiResponse, ParseRequestError,
+    ApiResponse,
 };
 
 /// A response type wrapper.
@@ -53,7 +53,7 @@ impl<T> Response<T> {
     }
 }
 
-impl<T: ApiResponse> IntoResponse for Response<T> {
+impl<T: IntoResponse> IntoResponse for Response<T> {
     fn into_response(self) -> poem::Response {
         let mut resp = self.inner.into_response();
         if let Some(status) = self.status {
@@ -75,7 +75,7 @@ impl<T: ApiResponse> ApiResponse for Response<T> {
         T::register(registry);
     }
 
-    fn from_parse_request_error(err: ParseRequestError) -> Self {
+    fn from_parse_request_error(err: Error) -> Self {
         Self::new(T::from_parse_request_error(err))
     }
 }

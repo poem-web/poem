@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use http::{header::HeaderName, HeaderMap};
 
-use crate::{Endpoint, IntoResponse, Middleware, Request, Response};
+use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
 /// Middleware for propagate a header from the request to the response.
 #[derive(Default)]
@@ -51,7 +51,7 @@ pub struct PropagateHeaderEndpoint<E> {
 impl<E: Endpoint> Endpoint for PropagateHeaderEndpoint<E> {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         let mut headers = HeaderMap::new();
 
         for header in &self.headers {
@@ -60,10 +60,9 @@ impl<E: Endpoint> Endpoint for PropagateHeaderEndpoint<E> {
             }
         }
 
-        let mut resp = self.inner.call(req).await.into_response();
+        let mut resp = self.inner.call(req).await?.into_response();
         resp.headers_mut().extend(headers);
-
-        resp
+        Ok(resp)
     }
 }
 
@@ -80,7 +79,8 @@ mod tests {
         let resp = index
             .with(PropagateHeader::new().header("x-request-id"))
             .call(Request::builder().header("x-request-id", "100").finish())
-            .await;
+            .await
+            .unwrap();
 
         assert_eq!(
             resp.headers()

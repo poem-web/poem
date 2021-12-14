@@ -3,7 +3,7 @@ use libprometheus::{Encoder, TextEncoder};
 
 use crate::{
     http::{Method, StatusCode},
-    Endpoint, IntoEndpoint, Request, Response,
+    Endpoint, IntoEndpoint, Request, Response, Result,
 };
 
 /// An endpoint that exports metrics for Prometheus.
@@ -47,17 +47,17 @@ pub struct PrometheusExporterEndpoint {
 impl Endpoint for PrometheusExporterEndpoint {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         if req.method() != Method::GET {
-            return StatusCode::METHOD_NOT_ALLOWED.into();
+            return Ok(StatusCode::METHOD_NOT_ALLOWED.into());
         }
 
         let encoder = TextEncoder::new();
         let metric_families = self.exporter.registry().gather();
         let mut result = Vec::new();
         match encoder.encode(&metric_families, &mut result) {
-            Ok(()) => Response::builder().content_type("text/plain").body(result),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into(),
+            Ok(()) => Ok(Response::builder().content_type("text/plain").body(result)),
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR.into()),
         }
     }
 }

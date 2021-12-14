@@ -1,11 +1,11 @@
 use poem::{
     http::{StatusCode, Uri},
-    Endpoint, IntoEndpoint, Request,
+    Endpoint, Error, IntoEndpoint, Request,
 };
 use poem_openapi::{
     param::Query,
     payload::{Json, Response},
-    ApiResponse, OpenApi, OpenApiService, ParseRequestError,
+    ApiResponse, OpenApi, OpenApiService,
 };
 
 #[tokio::test]
@@ -20,7 +20,7 @@ async fn response_wrapper() {
         BadRequest(#[oai(header = "MY-HEADER1")] String),
     }
 
-    fn bad_request_handler(_: ParseRequestError) -> CustomApiResponse {
+    fn bad_request_handler(_: Error) -> CustomApiResponse {
         CustomApiResponse::BadRequest("def".to_string())
     }
 
@@ -43,7 +43,8 @@ async fn response_wrapper() {
 
     let resp = ep
         .call(Request::builder().uri(Uri::from_static("/a")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.header("myheader"), Some("abc"));
 
@@ -53,13 +54,15 @@ async fn response_wrapper() {
                 .uri(Uri::from_static("/b?p1=qwe"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.header("myheader"), Some("qwe"));
 
     let resp = ep
         .call(Request::builder().uri(Uri::from_static("/b")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     assert_eq!(resp.header("MY-HEADER1"), Some("def"));
 }

@@ -158,9 +158,10 @@ mod tests {
         }
 
         let mut resp = index
-            .after(move |resp| async move { Compress::new(resp, algo) })
+            .and_then(move |resp| async move { Ok(Compress::new(resp, algo)) })
             .call(Request::default())
             .await
+            .unwrap()
             .into_response();
         assert_eq!(
             resp.headers().get(header::CONTENT_ENCODING),

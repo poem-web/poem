@@ -1,7 +1,7 @@
 //! Macros for poem
 
-#![doc(html_favicon_url = "https://poem.rs/assets/favicon.ico")]
-#![doc(html_logo_url = "https://poem.rs/en/assets/logo.png")]
+#![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -64,10 +64,7 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
             let id = quote::format_ident!("p{}", idx);
             args.push(id.clone());
             extractors.push(quote! {
-                let #id = match <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await {
-                    Ok(value) => value,
-                    Err(err) => return #crate_name::IntoResponse::into_response(err),
-                };
+                let #id = <#ty as #crate_name::FromRequest>::from_request(&req, &mut body).await?;
             });
         }
     }
@@ -82,11 +79,13 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
             type Output = #crate_name::Response;
 
             #[allow(unused_mut)]
-            async fn call(&self, mut req: #crate_name::Request) -> Self::Output {
+            async fn call(&self, mut req: #crate_name::Request) -> #crate_name::Result<Self::Output> {
                 let (req, mut body) = req.split();
                 #(#extractors)*
                 #item_fn
-                #crate_name::IntoResponse::into_response(#ident(#(#args),*)#call_await)
+                let res = #ident(#(#args),*)#call_await;
+                let res = #crate_name::error::IntoResult::into_result(res);
+                std::result::Result::map(res, #crate_name::IntoResponse::into_response)
             }
         }
     };

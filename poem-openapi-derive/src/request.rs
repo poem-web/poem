@@ -117,14 +117,15 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     request: &'__request #crate_name::__private::poem::Request,
                     body: &mut #crate_name::__private::poem::RequestBody,
                     _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
-                ) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
+                ) -> #crate_name::__private::poem::Result<Self> {
                     let content_type = request.content_type();
                     match content_type {
                         #(#from_requests)*
-                        ::std::option::Option::Some(content_type) => ::std::result::Result::Err(#crate_name::ParseRequestError::ContentTypeNotSupported {
-                            content_type: ::std::string::ToString::to_string(content_type),
-                        }),
-                        ::std::option::Option::None => ::std::result::Result::Err(#crate_name::ParseRequestError::ExpectContentType),
+                        ::std::option::Option::Some(content_type) => ::std::result::Result::Err(
+                            ::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
+                                content_type: ::std::string::ToString::to_string(content_type),
+                            })),
+                        ::std::option::Option::None => ::std::result::Result::Err(::std::convert::Into::into(#crate_name::error::ContentTypeError::ExpectContentType)),
                     }
                 }
             }

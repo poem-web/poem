@@ -1,7 +1,7 @@
-use poem::Request;
+use poem::{Request, Result};
 use typed_headers::{AuthScheme, Authorization, HeaderMapExt};
 
-use crate::{auth::BasicAuthorization, ParseRequestError};
+use crate::{auth::BasicAuthorization, error::AuthorizationError};
 
 /// Used to extract the username/password from the request.
 pub struct Basic {
@@ -13,7 +13,7 @@ pub struct Basic {
 }
 
 impl BasicAuthorization for Basic {
-    fn from_request(req: &Request) -> Result<Self, ParseRequestError> {
+    fn from_request(req: &Request) -> Result<Self> {
         if let Some(auth) = req.headers().typed_get::<Authorization>().ok().flatten() {
             if auth.0.scheme() == &AuthScheme::BASIC {
                 if let Some(token68) = auth.token68() {
@@ -34,6 +34,6 @@ impl BasicAuthorization for Basic {
             }
         }
 
-        Err(ParseRequestError::Authorization)
+        Err(AuthorizationError.into())
     }
 }

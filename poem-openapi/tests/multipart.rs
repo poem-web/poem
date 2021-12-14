@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use poem::{IntoResponse, Request, RequestBody};
+use poem::{Request, RequestBody};
 use poem_openapi::{
     payload::{ParsePayload, Payload},
     registry::{MetaSchema, MetaSchemaRef},
@@ -8,7 +8,7 @@ use poem_openapi::{
         multipart::{JsonField, Upload},
         Binary,
     },
-    Enum, Multipart, Object, ParseRequestError,
+    Enum, Multipart, Object,
 };
 
 fn create_multipart_payload(parts: &[(&str, Option<&str>, &[u8])]) -> Vec<u8> {
@@ -103,15 +103,10 @@ async fn required_fields() {
     .await
     .unwrap_err();
 
-    match err {
-        ParseRequestError::ParseRequestBody(resp) => {
-            assert_eq!(
-                resp.into_body().into_string().await.unwrap(),
-                "field `file` is required"
-            );
-        }
-        _ => panic!(),
-    }
+    assert_eq!(
+        err.to_string(),
+        "parse multipart error: field `file` is required"
+    );
 }
 
 #[tokio::test]
@@ -273,15 +268,10 @@ async fn validator() {
     .await
     .unwrap_err();
 
-    match err {
-        ParseRequestError::ParseRequestBody(resp) => {
-            assert_eq!(
-                resp.into_body().into_string().await.unwrap(),
-                r#"field `value` verification failed. maximum(32, exclusive: false)"#
-            );
-        }
-        _ => panic!(),
-    }
+    assert_eq!(
+        err.to_string(),
+        "parse multipart error: field `value` verification failed. maximum(32, exclusive: false)"
+    );
 }
 
 #[tokio::test]
@@ -427,16 +417,10 @@ async fn repeated_error() {
     )
     .await
     .unwrap_err();
-
-    match err {
-        ParseRequestError::ParseRequestBody(resp) => {
-            assert_eq!(
-                resp.into_body().into_string().await.unwrap(),
-                "failed to parse field `value`: failed to parse \"string\": repeated field"
-            );
-        }
-        _ => panic!(),
-    }
+    assert_eq!(
+        err.to_string(),
+        "parse multipart error: failed to parse field `value`: failed to parse \"string\": repeated field"
+    );
 }
 
 #[test]
@@ -531,8 +515,5 @@ async fn deny_unknown_fields() {
     )
     .await
     .unwrap_err();
-    assert_eq!(
-        err.into_response().into_body().into_string().await.unwrap(),
-        "unknown field `c`"
-    );
+    assert_eq!(err.to_string(), "parse multipart error: unknown field `c`");
 }

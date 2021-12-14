@@ -210,7 +210,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     };
     let bad_request_handler = args.bad_request_handler.as_ref().map(|path| {
         quote! {
-            fn from_parse_request_error(err: #crate_name::ParseRequestError) -> Self {
+            fn from_parse_request_error(err: #crate_name::__private::poem::Error) -> Self {
                 #path(err)
             }
         }

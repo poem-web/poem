@@ -1,17 +1,14 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{
-    error::{ParseJsonError, ReadBodyError},
-    http::StatusCode,
-    FromRequest, IntoResponse, Request, RequestBody, Response,
-};
+use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
 use crate::{
+    error::ParseJsonError,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    ApiResponse, ParseRequestError,
+    ApiResponse,
 };
 
 /// A JSON payload.
@@ -49,30 +46,18 @@ impl<T: Type> Payload for Json<T> {
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
 
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        let data: Vec<u8> =
-            FromRequest::from_request(request, body)
-                .await
-                .map_err(|err: ReadBodyError| {
-                    ParseRequestError::ParseRequestBody(err.into_response())
-                })?;
+    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
+        let data: Vec<u8> = FromRequest::from_request(request, body).await?;
         let value = if data.is_empty() {
             Value::Null
         } else {
-            serde_json::from_slice(&data)
-                .map_err(ParseJsonError::Json)
-                .map_err(|err| ParseRequestError::ParseRequestBody(err.into_response()))?
+            serde_json::from_slice(&data).map_err(|err| ParseJsonError {
+                reason: err.to_string(),
+            })?
         };
 
-        let value = T::parse_from_json(value).map_err(|err| {
-            ParseRequestError::ParseRequestBody(
-                Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body(err.into_message()),
-            )
+        let value = T::parse_from_json(value).map_err(|err| ParseJsonError {
+            reason: err.into_message(),
         })?;
         Ok(Self(value))
     }

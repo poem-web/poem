@@ -1,10 +1,47 @@
 use crate::{
-    endpoint::BoxEndpoint,
-    http::{Method, StatusCode},
-    Endpoint, EndpointExt, IntoEndpoint, Request, Response,
+    endpoint::BoxEndpoint, error::NotFoundError, http::Method, Endpoint, EndpointExt, IntoEndpoint,
+    Request, Response, Result,
 };
 
 /// Routing object for HTTP methods
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{Method, StatusCode},
+///     Endpoint, Request, RouteMethod,
+/// };
+///
+/// #[handler]
+/// fn handle_get() -> &'static str {
+///     "get"
+/// }
+///
+/// #[handler]
+/// fn handle_post() -> &'static str {
+///     "post"
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let route_method = RouteMethod::new().get(handle_get).post(handle_post);
+///
+/// let resp = route_method
+///     .call(Request::builder().method(Method::GET).finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "get");
+///
+/// let resp = route_method
+///     .call(Request::builder().method(Method::POST).finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "post");
+/// # });
+/// ```
 #[derive(Default)]
 pub struct RouteMethod {
     methods: Vec<(Method, BoxEndpoint<'static, Response>)>,
@@ -12,42 +49,6 @@ pub struct RouteMethod {
 
 impl RouteMethod {
     /// Create a `RouteMethod` object.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::{
-    ///     handler,
-    ///     http::{Method, StatusCode},
-    ///     Endpoint, Request, RouteMethod,
-    /// };
-    ///
-    /// #[handler]
-    /// fn handle_get() -> &'static str {
-    ///     "get"
-    /// }
-    ///
-    /// #[handler]
-    /// fn handle_post() -> &'static str {
-    ///     "post"
-    /// }
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let route_method = RouteMethod::new().get(handle_get).post(handle_post);
-    ///
-    /// let resp = route_method
-    ///     .call(Request::builder().method(Method::GET).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "get");
-    ///
-    /// let resp = route_method
-    ///     .call(Request::builder().method(Method::POST).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "post");
-    /// # });
-    /// ```
     pub fn new() -> Self {
         Default::default()
     }
@@ -59,7 +60,7 @@ impl RouteMethod {
         E::Endpoint: 'static,
     {
         self.methods
-            .push((method, Box::new(ep.into_endpoint().map_to_response())));
+            .push((method, ep.into_endpoint().map_to_response().boxed()));
         self
     }
 
@@ -149,7 +150,7 @@ impl RouteMethod {
 impl Endpoint for RouteMethod {
     type Output = Response;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         match self
             .methods
             .iter()
@@ -160,11 +161,11 @@ impl Endpoint for RouteMethod {
             None => {
                 if req.method() == Method::HEAD {
                     req.set_method(Method::GET);
-                    let mut resp = self.call(req).await;
+                    let mut resp = self.call(req).await?;
                     resp.set_body(());
-                    return resp;
+                    return Ok(resp);
                 }
-                StatusCode::NOT_FOUND.into()
+                Err(NotFoundError.into())
             }
         }
     }
@@ -281,7 +282,8 @@ mod tests {
             let route = RouteMethod::new().method(method.clone(), index).post(index);
             let resp = route
                 .call(Request::builder().method(method.clone()).finish())
-                .await;
+                .await
+                .unwrap();
             assert_eq!(resp.status(), StatusCode::OK);
             assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
         }
@@ -292,7 +294,8 @@ mod tests {
                 let route = RouteMethod::new().$id(index).post(index);
                 let resp = route
                     .call(Request::builder().method(Method::$method).finish())
-                    .await;
+                    .await
+                    .unwrap();
                 assert_eq!(resp.status(), StatusCode::OK);
                 assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
                 )*
@@ -322,7 +325,8 @@ mod tests {
         let route = RouteMethod::new().get(index);
         let resp = route
             .call(Request::builder().method(Method::HEAD).finish())
-            .await;
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert!(resp.into_body().into_vec().await.unwrap().is_empty());
     }

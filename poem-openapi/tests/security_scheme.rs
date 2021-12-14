@@ -118,7 +118,8 @@ async fn basic_auth() {
                 )
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abc/123456");
 }
@@ -166,7 +167,8 @@ async fn bearer_auth() {
                 )
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 }
@@ -269,7 +271,8 @@ async fn api_key_auth() {
                 .header("X-API-Key", "abcdef")
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 
@@ -279,7 +282,8 @@ async fn api_key_auth() {
                 .uri(Uri::from_static("/query?key=abcdef"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 
@@ -293,7 +297,8 @@ async fn api_key_auth() {
                 )
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 }

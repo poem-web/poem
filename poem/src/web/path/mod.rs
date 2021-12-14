@@ -10,6 +10,10 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// An extractor that will get captures from the URL and parse them using
 /// `serde`.
 ///
+/// # Errors
+///
+/// - [`ParsePathError`]
+///
 /// # Example
 ///
 /// ```
@@ -33,7 +37,8 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 ///             .uri(Uri::from_static("/users/100/team/300"))
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:300");
 /// # });
@@ -62,7 +67,8 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 ///             .uri(Uri::from_static("/users/100"))
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
 /// # });
@@ -99,7 +105,8 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 ///             .uri(Uri::from_static("/users/foo/team/100"))
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:100");
 /// # });
@@ -121,13 +128,18 @@ impl<T> DerefMut for Path<T> {
     }
 }
 
+impl<T: DeserializeOwned> Path<T> {
+    async fn internal_from_request(req: &Request) -> Result<Self, ParsePathError> {
+        Ok(Path(
+            T::deserialize(de::PathDeserializer::new(&req.state().match_params))
+                .map_err(|_| ParsePathError)?,
+        ))
+    }
+}
+
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
-    type Error = ParsePathError;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
-        T::deserialize(de::PathDeserializer::new(&req.state().match_params))
-            .map_err(|_| ParsePathError)
-            .map(Path)
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Self::internal_from_request(req).await.map_err(Into::into)
     }
 }

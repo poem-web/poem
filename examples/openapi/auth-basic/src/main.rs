@@ -16,7 +16,7 @@ impl Api {
     #[oai(path = "/basic", method = "get")]
     async fn auth_basic(&self, auth: MyBasicAuthorization) -> Result<PlainText<String>> {
         if auth.0.username != "test" || auth.0.password != "123456" {
-            return Err(Error::new(StatusCode::UNAUTHORIZED));
+            return Err(Error::new_with_status(StatusCode::UNAUTHORIZED));
         }
         Ok(PlainText(format!("hello: {}", auth.0.username)))
     }

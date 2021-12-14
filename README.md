@@ -41,7 +41,6 @@ The following are cases of community use:
 
 ### Resources
 
-- [Book](https://poem.rs)
 - [Examples](https://github.com/poem-web/poem/tree/master/examples)
 
 ## Contributing

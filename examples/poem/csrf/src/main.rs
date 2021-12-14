@@ -44,7 +44,7 @@ struct LoginRequest {
 #[handler]
 async fn login(verifier: &CsrfVerifier, Form(req): Form<LoginRequest>) -> Result<String> {
     if !verifier.is_valid(&req.csrf_token) {
-        return Err(Error::new(StatusCode::UNAUTHORIZED).with_reason("unauthorized"));
+        return Err(Error::new_with_status(StatusCode::UNAUTHORIZED));
     }
 
     Ok(format!("login success: {}", req.username))

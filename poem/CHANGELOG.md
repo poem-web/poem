@@ -4,9 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.0] 2021-12-16
+
+## Breaking changes
+
+- Refactor error handling.
+- The return value type of the `Endpoint::call` function is changed from `Self::Output` to `Result<Self::Output>`.
+- Remove the associated type `Error` from `FromRequest`. 
+- The return value of the `FromRequest::from_request` function is changed from `Result<Self, Self::Error>` to `Result<Self>`.
+- Add some helper methods to `EndpointExt`.
+
 # [1.1.1] 2021-12-13
 
 - Add `Body::from_bytes_stream` and `Body::to_bytes_stream` methods.
+- Remove the `BinaryStream` type, use `poem::Body` instead.
 
 # [1.1.0] 2021-12-13
 

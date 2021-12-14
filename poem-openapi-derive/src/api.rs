@@ -289,10 +289,11 @@ fn generate_operation(
             let #pname = match <#arg_ty as #crate_name::ApiExtractor>::from_request(&request, &mut body, param_opts).await {
                 ::std::result::Result::Ok(value) => value,
                 ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                    let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
-                    return #crate_name::__private::poem::IntoResponse::into_response(resp);
+                    let res = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                    let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                    return ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response);
                 }
-                ::std::result::Result::Err(err) => return #crate_name::__private::poem::IntoResponse::into_response(err),
+                ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
             };
             #param_checker
         });
@@ -358,8 +359,9 @@ fn generate_operation(
                 async move {
                     let (request, mut body) = request.split();
                     #(#parse_args)*
-                    let resp = api_obj.#fn_ident(#(#use_args),*).await;
-                    #crate_name::__private::poem::IntoResponse::into_response(resp)
+                    let res = api_obj.#fn_ident(#(#use_args),*).await;
+                    let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                    ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
                 }
             });
             #transform

@@ -20,6 +20,11 @@ use crate::{
 /// If the `Content-Type` is not `application/x-www-form-urlencoded`, then a
 /// `Bad Request` response will be returned.
 ///
+/// # Errors
+///
+/// - [`ReadBodyError`]
+/// - [`ParseFormError`]
+///
 /// # Example
 ///
 /// ```
@@ -51,7 +56,8 @@ use crate::{
 ///             .uri(Uri::from_static("/?title=foo&content=bar"))
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
 ///
@@ -63,7 +69,8 @@ use crate::{
 ///             .content_type("application/x-www-form-urlencoded")
 ///             .body("title=foo&content=bar"),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
 /// # });
@@ -86,11 +93,13 @@ impl<T> DerefMut for Form<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
-    type Error = ParseFormError;
-
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         if req.method() == Method::GET {
-            Ok(serde_urlencoded::from_str(req.uri().query().unwrap_or_default()).map(Self)?)
+            Ok(
+                serde_urlencoded::from_str(req.uri().query().unwrap_or_default())
+                    .map_err(ParseFormError::UrlDecode)
+                    .map(Self)?,
+            )
         } else {
             let content_type = req.headers().get(header::CONTENT_TYPE);
             if content_type
@@ -99,14 +108,15 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
                 ))
             {
                 return match content_type.and_then(|value| value.to_str().ok()) {
-                    Some(ty) => Err(ParseFormError::InvalidContentType(ty.to_string())),
-                    None => Err(ParseFormError::ContentTypeRequired),
+                    Some(ty) => Err(ParseFormError::InvalidContentType(ty.to_string()).into()),
+                    None => Err(ParseFormError::ContentTypeRequired.into()),
                 };
             }
 
-            Ok(Self(serde_urlencoded::from_bytes(
-                &body.take()?.into_bytes().await?,
-            )?))
+            Ok(Self(
+                serde_urlencoded::from_bytes(&body.take()?.into_vec().await?)
+                    .map_err(ParseFormError::UrlDecode)?,
+            ))
         }
     }
 }
@@ -116,11 +126,7 @@ mod tests {
     use serde::Deserialize;
 
     use super::*;
-    use crate::{
-        handler,
-        http::{StatusCode, Uri},
-        Endpoint,
-    };
+    use crate::{handler, http::Uri, Endpoint};
 
     #[tokio::test]
     async fn test_form_extractor() {
@@ -142,7 +148,8 @@ mod tests {
                     .uri(Uri::from_static("/?name=abc&value=100"))
                     .finish(),
             )
-            .await;
+            .await
+            .unwrap();
 
         index
             .call(
@@ -151,16 +158,18 @@ mod tests {
                     .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
                     .body("name=abc&value=100"),
             )
-            .await;
+            .await
+            .unwrap();
 
-        let resp = index
+        assert!(index
             .call(
                 Request::builder()
                     .method(Method::POST)
                     .header(header::CONTENT_TYPE, "application/json")
                     .body("name=abc&value=100"),
             )
-            .await;
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+            .await
+            .unwrap_err()
+            .is::<ParseFormError>());
     }
 }

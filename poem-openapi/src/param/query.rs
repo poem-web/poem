@@ -1,12 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{Request, RequestBody};
+use poem::{Request, RequestBody, Result};
 
 use crate::{
     base::UrlQuery,
+    error::ParseParamError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions, ParseRequestError,
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the query string.
@@ -54,7 +55,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
         request: &'a Request,
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         let mut values = request
             .extensions()
             .get::<UrlQuery>()
@@ -71,9 +72,12 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
 
         ParseFromParameter::parse_from_parameters(values)
             .map(Self)
-            .map_err(|err| ParseRequestError::ParseParam {
-                name: param_opts.name,
-                reason: err.into_message(),
+            .map_err(|err| {
+                ParseParamError {
+                    name: param_opts.name,
+                    reason: err.into_message(),
+                }
+                .into()
             })
     }
 }

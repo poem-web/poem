@@ -40,16 +40,14 @@ pub use size_limit::{SizeLimit, SizeLimitEndpoint};
 pub use tower_compat::TowerLayerCompatExt;
 pub use tracing_mw::{Tracing, TracingEndpoint};
 
-#[cfg(feature = "tracing")]
-pub use self::tracing_mw::{Tracing, TracingEndpoint};
 use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
 ///
-/// # Example
+/// # Create you own middleware
 ///
 /// ```
-/// use poem::{handler, web::Data, Endpoint, EndpointExt, Middleware, Request};
+/// use poem::{handler, web::Data, Endpoint, EndpointExt, Middleware, Request, Result};
 ///
 /// /// A middleware that extract token from HTTP headers.
 /// struct TokenMiddleware;
@@ -76,7 +74,7 @@ use crate::endpoint::Endpoint;
 /// impl<E: Endpoint> Endpoint for TokenMiddlewareImpl<E> {
 ///     type Output = E::Output;
 ///
-///     async fn call(&self, mut req: Request) -> Self::Output {
+///     async fn call(&self, mut req: Request) -> Result<Self::Output> {
 ///         if let Some(value) = req
 ///             .headers()
 ///             .get(TOKEN_HEADER)
@@ -103,7 +101,8 @@ use crate::endpoint::Endpoint;
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let mut resp = ep
 ///     .call(Request::builder().header(TOKEN_HEADER, "abc").finish())
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
 /// # });
 /// ```
@@ -149,7 +148,7 @@ mod tests {
         handler,
         http::{header::HeaderName, HeaderValue, StatusCode},
         web::Data,
-        EndpointExt, IntoResponse, Request, Response,
+        EndpointExt, IntoResponse, Request, Response, Result,
     };
 
     #[tokio::test]
@@ -169,11 +168,11 @@ mod tests {
         impl<E: Endpoint> Endpoint for AddHeader<E> {
             type Output = Response;
 
-            async fn call(&self, req: Request) -> Self::Output {
-                let mut resp = self.ep.call(req).await.into_response();
+            async fn call(&self, req: Request) -> Result<Self::Output> {
+                let mut resp = self.ep.call(req).await?.into_response();
                 resp.headers_mut()
                     .insert(self.header.clone(), self.value.clone());
-                resp
+                Ok(resp)
             }
         }
 
@@ -182,7 +181,7 @@ mod tests {
             header: HeaderName::from_static("hello"),
             value: HeaderValue::from_static("world"),
         }));
-        let mut resp = ep.call(Request::default()).await;
+        let mut resp = ep.call(Request::default()).await.unwrap();
         assert_eq!(
             resp.headers()
                 .get(HeaderName::from_static("hello"))
@@ -205,7 +204,7 @@ mod tests {
             SetHeader::new().appending("myheader-2", "b"),
         ));
 
-        let mut resp = ep.call(Request::default()).await;
+        let mut resp = ep.call(Request::default()).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers().get("myheader-1"),
