@@ -1,5 +1,5 @@
 use darling::{util::SpannedValue, FromMeta};
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
 use regex::Regex;
 use syn::{Error, Type};
@@ -134,16 +134,6 @@ impl Validators {
         Ok((container_validators, elem_validators))
     }
 
-    fn first_container_validator_span(&self) -> Option<Span> {
-        self.max_items
-            .as_ref()
-            .map(SpannedValue::span)
-            .or_else(|| self.min_items.as_ref().map(SpannedValue::span))
-            .or_else(|| self.unique_items.as_ref().map(SpannedValue::span))
-            .or_else(|| self.max_properties.as_ref().map(SpannedValue::span))
-            .or_else(|| self.min_properties.as_ref().map(SpannedValue::span))
-    }
-
     pub(crate) fn create_obj_field_checker(
         &self,
         crate_name: &TokenStream,
@@ -162,8 +152,8 @@ impl Validators {
             )*
 
             #(
-            if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {         let
-                validator = #container_validators;
+            if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
+                let validator = #container_validators;
                 if !#crate_name::validation::Validator::check(&validator, value) {
                     return Err(#crate_name::types::ParseError::<Self>::custom(format!("field `{}` verification failed. {}", #field_name, validator)));
                 }
@@ -180,33 +170,40 @@ impl Validators {
     ) -> GeneratorResult<Option<TokenStream>> {
         let (container_validators, elem_validators) = self.create_validators(crate_name)?;
 
-        if !container_validators.is_empty() {
-            return Err(Error::new(
-                self.first_container_validator_span().unwrap(),
-                "The `container` validators is not supported for parameters.",
-            )
-            .into());
-        }
-
-        if elem_validators.is_empty() {
-            return Ok(None);
-        }
-
         Ok(Some(quote! {
             #(
             if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
-                let validator = #elem_validators;
+                let validator = #container_validators;
                 if !#crate_name::validation::Validator::check(&validator, value) {
-                    let err = #crate_name::ParseRequestError::ParseParam {
+                    let err = #crate_name::error::ParseParamError {
                         name: #arg_name,
                         reason: ::std::format!("verification failed. {}", validator),
                     };
 
                     if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER {
-                        let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
-                        return #crate_name::__private::poem::IntoResponse::into_response(resp);
+                        let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(std::convert::Into::into(err));
+                        return ::std::result::Result::Ok(#crate_name::__private::poem::IntoResponse::into_response(resp));
                     } else {
-                        return #crate_name::__private::poem::IntoResponse::into_response(err);
+                        return ::std::result::Result::Err(std::convert::Into::into(err));
+                    }
+                }
+            }
+            )*
+
+            #(
+            if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
+                let validator = #elem_validators;
+                if !#crate_name::validation::Validator::check(&validator, value) {
+                    let err = #crate_name::error::ParseParamError {
+                        name: #arg_name,
+                        reason: ::std::format!("verification failed. {}", validator),
+                    };
+
+                    if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER {
+                        let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(std::convert::Into::into(err));
+                        return ::std::result::Result::Ok(#crate_name::__private::poem::IntoResponse::into_response(resp));
+                    } else {
+                        return ::std::result::Result::Err(std::convert::Into::into(err));
                     }
                 }
             }
@@ -226,11 +223,9 @@ impl Validators {
             for item in #crate_name::types::Type::raw_element_iter(&value) {
                 let validator = #elem_validators;
                 if !#crate_name::validation::Validator::check(&validator, item) {
-                    return Err(#crate_name::ParseRequestError::ParseRequestBody(
-                        #crate_name::__private::poem::Response::builder()
-                            .status(#crate_name::__private::poem::http::StatusCode::BAD_REQUEST)
-                            .body(::std::format!("field `{}` verification failed. {}", #field_name, validator))
-                        ));
+                    return Err(::std::convert::Into::into(#crate_name::error::ParseMultipartError {
+                        reason: ::std::format!("field `{}` verification failed. {}", #field_name, validator),
+                    }));
                 }
             }
             )*
@@ -239,13 +234,11 @@ impl Validators {
             if let ::std::option::Option::Some(value) = #crate_name::types::Type::as_raw_value(&value) {
                 let validator = #container_validators;
                 if !#crate_name::validation::Validator::check(&validator, value) {
-                    return Err(#crate_name::ParseRequestError::ParseRequestBody(
-                        #crate_name::__private::poem::Response::builder()
-                            .status(#crate_name::__private::poem::http::StatusCode::BAD_REQUEST)
-                            .body(::std::format!("field `{}` verification failed. {}", #field_name, validator))
-                        ));
-                    }
+                    return Err(::std::convert::Into::into(#crate_name::error::ParseMultipartError {
+                        reason: ::std::format!("field `{}` verification failed. {}", #field_name, validator),
+                    }));
                 }
+            }
             )*
         })
     }

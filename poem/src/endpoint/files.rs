@@ -7,8 +7,9 @@ use mime::Mime;
 use tokio::fs::File;
 
 use crate::{
-    http::{header, HeaderValue, Method, StatusCode},
-    Body, Endpoint, Request, Response,
+    error::StaticFileError,
+    http::{header, HeaderValue, Method},
+    Body, Endpoint, Request, Response, Result,
 };
 
 struct DirectoryTemplate<'a> {
@@ -61,6 +62,10 @@ struct FileRef {
 }
 
 /// Static files handling service.
+///
+/// # Errors
+///
+/// - [`StaticFileError`]
 pub struct Files {
     path: PathBuf,
     show_files_listing: bool,
@@ -127,13 +132,10 @@ impl Files {
     }
 }
 
-#[async_trait::async_trait]
-impl Endpoint for Files {
-    type Output = Response;
-
-    async fn call(&self, req: Request) -> Self::Output {
+impl Files {
+    async fn internal_call(&self, req: Request) -> Result<Response, StaticFileError> {
         if req.method() != Method::GET {
-            return StatusCode::METHOD_NOT_ALLOWED.into();
+            return Err(StaticFileError::MethodNotAllowed(req.method().clone()));
         }
 
         let path = req
@@ -142,10 +144,9 @@ impl Endpoint for Files {
             .trim_start_matches('/')
             .trim_end_matches('/');
 
-        let path = match percent_encoding::percent_decode_str(path).decode_utf8() {
-            Ok(path) => path,
-            Err(_) => return StatusCode::BAD_REQUEST.into(),
-        };
+        let path = percent_encoding::percent_decode_str(path)
+            .decode_utf8()
+            .map_err(|_| StaticFileError::InvalidPath)?;
 
         let mut file_path = self.path.clone();
         for p in Path::new(&*path) {
@@ -159,11 +160,11 @@ impl Endpoint for Files {
         }
 
         if !file_path.starts_with(&self.path) {
-            return StatusCode::FORBIDDEN.into();
+            return Err(StaticFileError::Forbidden(file_path.display().to_string()));
         }
 
         if !file_path.exists() {
-            return StatusCode::NOT_FOUND.into();
+            return Err(StaticFileError::NotFound(file_path.display().to_string()));
         }
 
         if file_path.is_file() {
@@ -177,22 +178,14 @@ impl Endpoint for Files {
             }
 
             if self.show_files_listing {
-                let read_dir = match file_path.read_dir() {
-                    Ok(d) => d,
-                    Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
-                };
+                let read_dir = file_path.read_dir()?;
                 let mut template = DirectoryTemplate {
                     path: &*path,
                     files: Vec::new(),
                 };
 
                 for res in read_dir {
-                    let entry = match res {
-                        Ok(entry) => entry,
-                        Err(err) => {
-                            return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into()
-                        }
-                    };
+                    let entry = res?;
 
                     if let Some(filename) = entry.file_name().to_str() {
                         let mut base_url = req.original_uri().path().to_string();
@@ -208,22 +201,28 @@ impl Endpoint for Files {
                 }
 
                 let html = template.render();
-                Response::builder()
+                Ok(Response::builder()
                     .header(header::CONTENT_TYPE, mime::TEXT_HTML_UTF_8.as_ref())
-                    .body(Body::from_string(html))
+                    .body(Body::from_string(html)))
             } else {
-                StatusCode::NOT_FOUND.into()
+                Err(StaticFileError::NotFound(file_path.display().to_string()))
             }
         }
     }
 }
 
-async fn create_file_response(path: &Path, prefer_utf8: bool) -> Response {
+#[async_trait::async_trait]
+impl Endpoint for Files {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        self.internal_call(req).await.map_err(Into::into)
+    }
+}
+
+async fn create_file_response(path: &Path, prefer_utf8: bool) -> Result<Response, StaticFileError> {
     let guess = mime_guess::from_path(path);
-    let file = match File::open(path).await {
-        Ok(file) => file,
-        Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
-    };
+    let file = File::open(path).await?;
     let mut resp = Response::builder().body(Body::from_async_read(file));
     if let Some(mut mime) = guess.first() {
         if prefer_utf8 {
@@ -234,7 +233,7 @@ async fn create_file_response(path: &Path, prefer_utf8: bool) -> Response {
                 .insert(header::CONTENT_TYPE, header_value);
         }
     }
-    resp
+    Ok(resp)
 }
 
 fn equiv_utf8_text(ct: Mime) -> Mime {

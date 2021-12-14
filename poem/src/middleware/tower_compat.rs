@@ -1,13 +1,24 @@
 use std::{
-    convert::Infallible,
     sync::Arc,
     task::{Context, Poll},
 };
 
 use futures_util::{future::BoxFuture, FutureExt};
-use tower::{buffer::Buffer, Layer, Service, ServiceExt};
+use tower::{buffer::Buffer, BoxError, Layer, Service, ServiceExt};
 
-use crate::{Endpoint, IntoResponse, Middleware, Request, Result};
+use crate::{Endpoint, Error, IntoResponse, Middleware, Request, Result};
+
+#[doc(hidden)]
+#[derive(Debug, thiserror::Error)]
+#[error("wrapper error")]
+pub struct WrapperError(Error);
+
+fn boxed_err_to_poem_err(err: BoxError) -> Error {
+    match err.downcast::<WrapperError>() {
+        Ok(err) => (*err).0,
+        Err(err) => Error::new_with_string(err.to_string()),
+    }
+}
 
 /// Extension trait for tower layer compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
@@ -34,15 +45,14 @@ where
     L::Service: Service<Request> + Send + 'static,
     <L::Service as Service<Request>>::Future: Send,
     <L::Service as Service<Request>>::Response: IntoResponse + Send + 'static,
-    <L::Service as Service<Request>>::Error: Into<tower::BoxError> + Send + Sync,
+    <L::Service as Service<Request>>::Error: Into<BoxError> + Send + Sync,
 {
     type Output = TowerServiceToEndpoint<L::Service>;
 
     fn transform(&self, ep: E) -> Self::Output {
-        TowerServiceToEndpoint(Buffer::new(
-            self.0.layer(EndpointToTowerService(Arc::new(ep))),
-            32,
-        ))
+        let new_svc = self.0.layer(EndpointToTowerService(Arc::new(ep)));
+        let buffer = Buffer::new(new_svc, 32);
+        TowerServiceToEndpoint(buffer)
     }
 }
 
@@ -54,7 +64,7 @@ where
     E: Endpoint + 'static,
 {
     type Response = E::Output;
-    type Error = Infallible;
+    type Error = WrapperError;
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -63,7 +73,7 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let ep = self.0.clone();
-        async move { Ok(ep.call(req).await) }.boxed()
+        async move { ep.call(req).await.map_err(WrapperError) }.boxed()
     }
 }
 
@@ -75,15 +85,15 @@ impl<Svc> Endpoint for TowerServiceToEndpoint<Svc>
 where
     Svc: Service<Request> + Send + 'static,
     Svc::Future: Send,
-    Svc::Response: IntoResponse + Send + 'static,
-    Svc::Error: Into<tower::BoxError> + Send + Sync,
+    Svc::Response: IntoResponse + 'static,
+    Svc::Error: Into<BoxError> + Send + Sync,
 {
-    type Output = Result<Svc::Response>;
+    type Output = Svc::Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         let mut svc = self.0.clone();
-        svc.ready().await?;
-        let res = svc.call(req).await?;
+        svc.ready().await.map_err(boxed_err_to_poem_err)?;
+        let res = svc.call(req).await.map_err(boxed_err_to_poem_err)?;
         Ok(res)
     }
 }
@@ -129,7 +139,7 @@ mod tests {
         }
 
         let ep = make_sync(|_| ()).with(MyServiceLayer.compat());
-        let resp = ep.call(Request::default()).await.into_response();
+        let resp = ep.call(Request::default()).await.unwrap().into_response();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }

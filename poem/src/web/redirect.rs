@@ -22,7 +22,7 @@ use crate::{
 ///
 /// let app = Route::new().at("/", get(index));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app.call(Request::default()).await;
+/// let resp = app.call(Request::default()).await.unwrap();
 /// assert_eq!(resp.status(), StatusCode::MOVED_PERMANENTLY);
 /// assert_eq!(
 ///     resp.headers().get(header::LOCATION),

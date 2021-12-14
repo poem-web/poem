@@ -22,7 +22,8 @@ Define a OpenAPI response.
 # Examples
 
 ```rust
-use poem_openapi::{payload::PlainText, ApiResponse, ParseRequestError};
+use poem::Error;
+use poem_openapi::{payload::PlainText, ApiResponse};
 
 #[derive(ApiResponse)]
 #[oai(bad_request_handler = "bad_request_handler")]
@@ -39,7 +40,7 @@ enum CreateUserResponse {
 }
 
 // Convert error to `CreateUserResponse::BadRequest`.
-fn bad_request_handler(err: ParseRequestError) -> CreateUserResponse {
+fn bad_request_handler(err: Error) -> CreateUserResponse {
     CreateUserResponse::BadRequest(PlainText(format!("error: {}", err.to_string())))
 }
 ```

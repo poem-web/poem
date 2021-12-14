@@ -1,4 +1,4 @@
-use std::{convert::Infallible, ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc};
 
 use libcsrf::{AesGcmCsrfProtection, CsrfProtection, UnencryptedCsrfCookie};
 
@@ -21,9 +21,7 @@ impl Deref for CsrfToken {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CsrfToken {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req
             .extensions()
             .get::<CsrfToken>()
@@ -51,9 +49,7 @@ impl CsrfVerifier {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CsrfVerifier {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req
             .extensions()
             .get::<CsrfVerifier>()

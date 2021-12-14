@@ -1,7 +1,7 @@
-use poem::Request;
+use poem::{Request, Result};
 use typed_headers::{AuthScheme, Authorization, HeaderMapExt};
 
-use crate::{auth::BearerAuthorization, ParseRequestError};
+use crate::{auth::BearerAuthorization, error::AuthorizationError};
 
 /// Used to extract the token68 from the request.
 pub struct Bearer {
@@ -10,7 +10,7 @@ pub struct Bearer {
 }
 
 impl BearerAuthorization for Bearer {
-    fn from_request(req: &Request) -> Result<Self, ParseRequestError> {
+    fn from_request(req: &Request) -> Result<Self> {
         if let Some(auth) = req.headers().typed_get::<Authorization>().ok().flatten() {
             if auth.0.scheme() == &AuthScheme::BEARER {
                 if let Some(token68) = auth.token68() {
@@ -21,6 +21,6 @@ impl BearerAuthorization for Bearer {
             }
         }
 
-        Err(ParseRequestError::Authorization)
+        Err(AuthorizationError.into())
     }
 }

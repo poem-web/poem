@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use crate::{
     http::{header::HeaderName, HeaderValue},
-    Endpoint, IntoResponse, Middleware, Request, Response,
+    Endpoint, IntoResponse, Middleware, Request, Response, Result,
 };
 
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ enum Action {
 /// );
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app.call(Request::default()).await;
+/// let resp = app.call(Request::default()).await.unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(
 ///     resp.headers()
@@ -124,8 +124,8 @@ pub struct SetHeaderEndpoint<E> {
 impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
-        let mut resp = self.inner.call(req).await.into_response();
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        let mut resp = self.inner.call(req).await?.into_response();
         let headers = resp.headers_mut();
 
         for action in &self.actions {
@@ -139,7 +139,7 @@ impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
             }
         }
 
-        resp
+        Ok(resp)
     }
 }
 
@@ -162,7 +162,8 @@ mod tests {
                     .appending("custom-b", "b"),
             )
             .call(Request::default())
-            .await;
+            .await
+            .unwrap();
 
         assert_eq!(
             resp.headers()

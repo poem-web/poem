@@ -14,6 +14,10 @@ use crate::{
 };
 
 /// An extractor that can accept websocket connections.
+///
+/// # Errors
+///
+/// - [`WebSocketError`]
 pub struct WebSocket {
     key: HeaderValue,
     on_upgrade: OnUpgrade,
@@ -21,11 +25,8 @@ pub struct WebSocket {
     sec_websocket_protocol: Option<HeaderValue>,
 }
 
-#[async_trait::async_trait]
-impl<'a> FromRequest<'a> for WebSocket {
-    type Error = WebSocketError;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+impl WebSocket {
+    async fn internal_from_request(req: &Request) -> Result<Self, WebSocketError> {
         if req.method() != Method::GET
             || req.headers().get(header::UPGRADE) != Some(&HeaderValue::from_static("websocket"))
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
@@ -57,6 +58,13 @@ impl<'a> FromRequest<'a> for WebSocket {
             protocols: None,
             sec_websocket_protocol,
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a> FromRequest<'a> for WebSocket {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Self::internal_from_request(req).await.map_err(Into::into)
     }
 }
 

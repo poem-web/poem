@@ -7,11 +7,11 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
-use std::{convert::Infallible, io::ErrorKind, ops::Deref, sync::Arc};
+use std::{io::ErrorKind, ops::Deref, sync::Arc};
 
 pub use lambda_http::lambda_runtime::Error;
 use lambda_http::{handler, lambda_runtime, Body as LambdaBody, Request as LambdaRequest};
-use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, RequestBody};
+use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, RequestBody, Result};
 
 /// The Lambda function execution context.
 ///
@@ -65,7 +65,10 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
                 let mut req: Request = from_lambda_request(req);
                 req.extensions_mut().insert(Context(ctx));
 
-                let resp = ep.call(req).await;
+                let resp = match ep.call(req).await {
+                    Ok(resp) => resp,
+                    Err(err) => err.as_response(),
+                };
 
                 let (parts, body) = resp.into_parts();
                 let data = body
@@ -111,9 +114,7 @@ fn from_lambda_request(req: LambdaRequest) -> Request {
 
 #[poem::async_trait]
 impl<'a> FromRequest<'a> for &'a Context {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let ctx = match req.extensions().get::<Context>() {
             Some(ctx) => ctx,
             None => panic!("Lambda runtime is required."),

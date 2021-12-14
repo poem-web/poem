@@ -38,7 +38,8 @@ async fn param_name() {
                 .uri(Uri::from_static("/abc?a=10"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -64,7 +65,8 @@ async fn query() {
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/?v=10")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -101,7 +103,8 @@ async fn query_multiple_values() {
                 .uri(Uri::from_static("/?v=10&v=20&v=30"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -133,7 +136,7 @@ async fn query_default() {
     );
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::default()).await;
+    let resp = api.call(Request::default()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -150,7 +153,10 @@ async fn header() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::builder().header("v", 10).finish()).await;
+    let resp = api
+        .call(Request::builder().header("v", 10).finish())
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -175,7 +181,8 @@ async fn header_multiple_values() {
                 .header("v", 30)
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -192,7 +199,7 @@ async fn header_default() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::default()).await;
+    let resp = api.call(Request::default()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -211,7 +218,8 @@ async fn path() {
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/k/10")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -251,7 +259,8 @@ async fn cookie() {
 
     let resp = api
         .call(Request::builder().header(header::COOKIE, cookie).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -268,7 +277,7 @@ async fn cookie_default() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::builder().finish()).await;
+    let resp = api.call(Request::builder().finish()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -356,6 +365,7 @@ async fn default_opt() {
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }

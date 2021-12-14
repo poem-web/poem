@@ -8,7 +8,9 @@ use libopentelemetry::{
 use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{resource, trace};
 
-use crate::{web::headers::HeaderMapExt, Endpoint, IntoResponse, Middleware, Request, Response};
+use crate::{
+    web::headers::HeaderMapExt, Endpoint, IntoResponse, Middleware, Request, Response, Result,
+};
 
 /// Middleware for tracing with OpenTelemetry.
 #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
@@ -55,7 +57,7 @@ where
 {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         let parent_cx = global::get_text_map_propagator(|propagator| {
             propagator.extract(&HeaderExtractor(req.headers()))
         });
@@ -80,7 +82,7 @@ where
         span.add_event("request.started".to_string(), vec![]);
 
         async move {
-            let resp = self.inner.call(req).await.into_response();
+            let resp = self.inner.call(req).await?.into_response();
 
             let cx = Context::current();
             let span = cx.span();
@@ -91,7 +93,7 @@ where
                     trace::HTTP_RESPONSE_CONTENT_LENGTH.i64(content_length.0 as i64),
                 );
             }
-            resp
+            Ok(resp)
         }
         .with_context(Context::current_with_span(span))
         .await

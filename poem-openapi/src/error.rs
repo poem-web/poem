@@ -1,60 +1,81 @@
-use poem::{http::StatusCode, IntoResponse, Response};
+//! Some common error types.
+
+use poem::{error::ResponseError, http::StatusCode};
 use thiserror::Error;
 
-/// This type represents errors that occur when parsing the HTTP request.
+/// Parameter error.
 #[derive(Debug, Error)]
-pub enum ParseRequestError {
-    /// Failed to parse a parameter.
-    #[error("Failed to parse parameter `{name}`: {reason}")]
-    ParseParam {
-        /// The name of the parameter.
-        name: &'static str,
+#[error("failed to parse parameter `{name}`: {reason}")]
+pub struct ParseParamError {
+    /// The name of the parameter.
+    pub name: &'static str,
 
-        /// The reason for the error.
-        reason: String,
-    },
+    /// The reason for the error.
+    pub reason: String,
+}
 
-    /// Failed to parse a request body.
-    #[error("Failed to parse a request body")]
-    ParseRequestBody(Response),
+impl ResponseError for ParseParamError {
+    fn status(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+}
 
-    /// The `Content-Type` requested by the client is not supported.
-    #[error("The `Content-Type` requested by the client is not supported: {content_type}")]
-    ContentTypeNotSupported {
+/// Parse JSON error.
+#[derive(Debug, Error)]
+#[error("parse JSON error: {reason}")]
+pub struct ParseJsonError {
+    /// The reason for the error.
+    pub reason: String,
+}
+
+impl ResponseError for ParseJsonError {
+    fn status(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+}
+
+/// Parse multipart error.
+#[derive(Debug, Error)]
+#[error("parse multipart error: {reason}")]
+pub struct ParseMultipartError {
+    /// The reason for the error.
+    pub reason: String,
+}
+
+impl ResponseError for ParseMultipartError {
+    fn status(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+}
+
+/// Content type error.
+#[derive(Debug, Error)]
+pub enum ContentTypeError {
+    /// Not supported.
+    #[error("the `Content-Type` requested by the client is not supported: {content_type}")]
+    NotSupported {
         /// The `Content-Type` header requested by the client.
         content_type: String,
     },
 
-    /// The client request does not include the `Content-Type` header.
-    #[error("The client request does not include the `Content-Type` header")]
+    /// Expect content type header.
+    #[error("the client request does not include the `Content-Type` header")]
     ExpectContentType,
-
-    /// Poem extractor error.
-    #[error("Poem extractor error")]
-    Extractor(Response),
-
-    /// Authorization error.
-    #[error("Authorization error")]
-    Authorization,
 }
 
-impl IntoResponse for ParseRequestError {
-    fn into_response(self) -> Response {
-        match self {
-            ParseRequestError::ParseParam { .. } => self
-                .to_string()
-                .with_status(StatusCode::BAD_REQUEST)
-                .into_response(),
-            ParseRequestError::ContentTypeNotSupported { .. }
-            | ParseRequestError::ExpectContentType => self
-                .to_string()
-                .with_status(StatusCode::METHOD_NOT_ALLOWED)
-                .into_response(),
-            ParseRequestError::ParseRequestBody(resp) | ParseRequestError::Extractor(resp) => resp,
-            ParseRequestError::Authorization => self
-                .to_string()
-                .with_status(StatusCode::UNAUTHORIZED)
-                .into_response(),
-        }
+impl ResponseError for ContentTypeError {
+    fn status(&self) -> StatusCode {
+        StatusCode::METHOD_NOT_ALLOWED
+    }
+}
+
+/// Authorization error.
+#[derive(Debug, Error)]
+#[error("authorization error")]
+pub struct AuthorizationError;
+
+impl ResponseError for AuthorizationError {
+    fn status(&self) -> StatusCode {
+        StatusCode::UNAUTHORIZED
     }
 }

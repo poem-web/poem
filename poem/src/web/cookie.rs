@@ -22,7 +22,11 @@ use crate::{
 /// The `SameSite` cookie attribute.
 pub type SameSite = libcookie::SameSite;
 
-/// Representation of an HTTP cookie.
+/// HTTP cookie extractor.
+///
+/// # Errors
+///
+/// - [`ParseCookieError`]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cookie(libcookie::Cookie<'static>);
 
@@ -289,9 +293,7 @@ impl Cookie {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Cookie {
-    type Error = ParseCookieError;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let value = req
             .headers()
             .get(header::COOKIE)
@@ -333,14 +335,15 @@ impl<'a> FromRequest<'a> for Cookie {
 ///     .at("/", get(index))
 ///     .with(CookieJarManager::new());
 ///
-/// let resp = app.call(Request::default()).await;
+/// let resp = app.call(Request::default()).await.unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// let cookie = resp.headers().get(header::SET_COOKIE).cloned().unwrap();
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "count: 1");
 ///
 /// let resp = app
 ///     .call(Request::builder().header(header::COOKIE, cookie).finish())
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "count: 2");
 /// # });
 /// ```
@@ -489,9 +492,7 @@ impl FromStr for CookieJar {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CookieJar {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.cookie())
     }
 }

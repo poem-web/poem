@@ -2,7 +2,7 @@ use poem::{
     endpoint::{make_sync, BoxEndpoint},
     middleware::CookieJarManager,
     web::cookie::CookieKey,
-    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Route,
+    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route,
 };
 
 use crate::{
@@ -234,10 +234,10 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
     type Endpoint = BoxEndpoint<'static, Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
-        async fn extract_query(mut req: Request) -> Request {
+        async fn extract_query(mut req: Request) -> Result<Request> {
             let url_query: Vec<(String, String)> = req.params().unwrap_or_default();
             req.extensions_mut().insert(UrlQuery(url_query));
-            req
+            Ok(req)
         }
 
         let cookie_jar_manager = match self.cookie_key {

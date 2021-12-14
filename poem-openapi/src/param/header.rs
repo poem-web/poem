@@ -1,11 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{Request, RequestBody};
+use poem::{Request, RequestBody, Result};
 
 use crate::{
+    error::ParseParamError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions, ParseRequestError,
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the request header.
@@ -53,7 +54,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Header<T> {
         request: &'a Request,
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         let mut values = request
             .headers()
             .get_all(param_opts.name)
@@ -70,9 +71,12 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Header<T> {
 
         ParseFromParameter::parse_from_parameters(values)
             .map(Self)
-            .map_err(|err| ParseRequestError::ParseParam {
-                name: param_opts.name,
-                reason: err.into_message(),
+            .map_err(|err| {
+                ParseParamError {
+                    name: param_opts.name,
+                    reason: err.into_message(),
+                }
+                .into()
             })
     }
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     web::cookie::{CookieJar, CookieKey},
-    Endpoint, IntoResponse, Middleware, Request, Response,
+    Endpoint, IntoResponse, Middleware, Request, Response, Result,
 };
 
 /// Middleware for CookieJar support.
@@ -53,16 +53,16 @@ pub struct CookieJarManagerEndpoint<E> {
 impl<E: Endpoint> Endpoint for CookieJarManagerEndpoint<E> {
     type Output = Response;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         if req.state().cookie_jar.is_none() {
             let mut cookie_jar = CookieJar::extract_from_headers(req.headers());
             cookie_jar.key = self.key.clone();
             req.state_mut().cookie_jar = Some(cookie_jar.clone());
-            let mut resp = self.inner.call(req).await.into_response();
+            let mut resp = self.inner.call(req).await?.into_response();
             cookie_jar.append_delta_to_headers(resp.headers_mut());
-            resp
+            Ok(resp)
         } else {
-            self.inner.call(req).await.into_response()
+            self.inner.call(req).await.map(IntoResponse::into_response)
         }
     }
 }
@@ -82,7 +82,8 @@ mod tests {
         let ep = index.with(CookieJarManager::new());
         let resp = ep
             .call(Request::builder().header("Cookie", "value=88").finish())
-            .await;
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
@@ -120,7 +121,8 @@ mod tests {
                     )
                     .finish(),
             )
-            .await;
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }

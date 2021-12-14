@@ -4,6 +4,10 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that can extract data from the request extension.
 ///
+/// # Errors
+///
+/// - [`GetDataError`]
+///
 /// # Example
 ///
 /// ```
@@ -19,7 +23,7 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let app = Route::new().at("/", get(index)).with(AddData::new(10));
-/// let resp = app.call(Request::default()).await;
+/// let resp = app.call(Request::default()).await.unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// # });
 /// ```
@@ -35,20 +39,19 @@ impl<T> Deref for Data<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
-    type Error = GetDataError;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
-        req.extensions()
-            .get::<T>()
-            .ok_or_else(|| GetDataError(std::any::type_name::<T>()))
-            .map(Data)
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Ok(Data(
+            req.extensions()
+                .get::<T>()
+                .ok_or_else(|| GetDataError(std::any::type_name::<T>()))?,
+        ))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, http::StatusCode, middleware::AddData, Endpoint, EndpointExt};
+    use crate::{handler, middleware::AddData, Endpoint, EndpointExt};
 
     #[tokio::test]
     async fn test_data_extractor() {
@@ -58,7 +61,7 @@ mod tests {
         }
 
         let app = index.with(AddData::new(100i32));
-        app.call(Request::default()).await;
+        app.call(Request::default()).await.unwrap();
     }
 
     #[tokio::test]
@@ -69,11 +72,12 @@ mod tests {
         }
 
         let app = index;
-        let mut resp = app.call(Request::default()).await;
-        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(
-            resp.take_body().into_string().await.unwrap(),
-            "data of type `i32` was not found."
+            app.call(Request::default())
+                .await
+                .unwrap_err()
+                .downcast_ref::<GetDataError>(),
+            Some(&GetDataError("i32"))
         );
     }
 
@@ -83,7 +87,8 @@ mod tests {
         async fn index(value: Data<&String>) {
             assert_eq!(value.to_uppercase(), "ABC");
         }
+
         let app = index.with(AddData::new("abc".to_string()));
-        app.call(Request::default()).await;
+        app.call(Request::default()).await.unwrap();
     }
 }

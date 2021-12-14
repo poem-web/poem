@@ -11,7 +11,7 @@ use crate::{
         cookie::{Cookie, SameSite},
         CsrfToken, CsrfVerifier,
     },
-    Endpoint, Middleware, Request,
+    Endpoint, Middleware, Request, Result,
 };
 
 /// Middleware for Cross-Site Request Forgery (CSRF) protection.
@@ -38,10 +38,10 @@ use crate::{
 /// async fn login(verifier: &CsrfVerifier, req: &Request) -> Result<String> {
 ///     let csrf_token = req
 ///         .header("X-CSRF-Token")
-///         .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED))?;
+///         .ok_or_else(|| Error::new_with_status(StatusCode::UNAUTHORIZED))?;
 ///
 ///     if !verifier.is_valid(&csrf_token) {
-///         return Err(Error::new(StatusCode::UNAUTHORIZED));
+///         return Err(Error::new_with_status(StatusCode::UNAUTHORIZED));
 ///     }
 ///
 ///     Ok(format!("login success"))
@@ -52,7 +52,7 @@ use crate::{
 ///     .at("/", get(login_ui).post(login))
 ///     .with(Csrf::new());
 ///
-/// let resp = app.call(Request::default()).await;
+/// let resp = app.call(Request::default()).await.unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// let cookie = resp.headers().get(header::SET_COOKIE).unwrap();
 /// let cookie = Cookie::parse(cookie.to_str().unwrap()).unwrap();
@@ -69,7 +69,8 @@ use crate::{
 ///             )
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(
 ///     resp.into_body().into_string().await.unwrap(),
@@ -200,7 +201,7 @@ impl<E> CsrfEndpoint<E> {
 impl<E: Endpoint> Endpoint for CsrfEndpoint<E> {
     type Output = E::Output;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         let existing_cookie = req
             .cookie()
             .get(&self.cookie_name)
@@ -246,19 +247,22 @@ mod tests {
 
         #[handler(internal)]
         fn login(verifier: &CsrfVerifier, req: &Request) -> Result<impl IntoResponse> {
-            let token = req
-                .header(CSRF_TOKEN_NAME)
-                .ok_or_else(|| Error::new(StatusCode::BAD_REQUEST).with_reason("missing token"))?;
+            let token = req.header(CSRF_TOKEN_NAME).ok_or_else(|| {
+                Error::new_with_string("missing token").with_status(StatusCode::BAD_REQUEST)
+            })?;
             match verifier.is_valid(token) {
                 true => Ok("ok"),
-                false => Err(Error::new(StatusCode::BAD_REQUEST).with_reason("invalid token")),
+                false => {
+                    Err(Error::new_with_string("invalid token")
+                        .with_status(StatusCode::BAD_REQUEST))
+                }
             }
         }
 
         let app = get(login_ui).post(login).with(Csrf::new());
 
         for _ in 0..5 {
-            let resp = app.call(Request::default()).await;
+            let resp = app.call(Request::default()).await.unwrap();
             let cookie = resp
                 .header(header::SET_COOKIE)
                 .map(|cookie| cookie.to_string())
@@ -274,6 +278,7 @@ mod tests {
                         .finish(),
                 )
                 .await
+                .unwrap()
                 .into_body()
                 .into_string()
                 .await
@@ -281,7 +286,7 @@ mod tests {
             assert_eq!(resp, "ok");
         }
 
-        let resp = app.call(Request::default()).await;
+        let resp = app.call(Request::default()).await.unwrap();
         let cookie = resp
             .header(header::SET_COOKIE)
             .map(|cookie| cookie.to_string())
@@ -291,8 +296,8 @@ mod tests {
         let mut token = base64::decode(token).unwrap();
         token[0] = token[0].wrapping_add(1);
 
-        let resp = app
-            .call(
+        assert_eq!(
+            app.call(
                 Request::builder()
                     .method(Method::POST)
                     .header(CSRF_TOKEN_NAME, base64::encode(token))
@@ -300,10 +305,9 @@ mod tests {
                     .finish(),
             )
             .await
-            .into_body()
-            .into_string()
-            .await
-            .unwrap();
-        assert_eq!(resp, "invalid token");
+            .unwrap_err()
+            .to_string(),
+            "invalid token"
+        );
     }
 }

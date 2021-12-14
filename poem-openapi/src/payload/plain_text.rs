@@ -1,12 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{FromRequest, IntoResponse, Request, RequestBody, Response};
+use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 
 use crate::{
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
-    ApiResponse, ParseRequestError,
+    ApiResponse,
 };
 
 /// A UTF8 string payload.
@@ -39,13 +39,8 @@ impl<T: Send> Payload for PlainText<T> {
 impl ParsePayload for PlainText<String> {
     const IS_REQUIRED: bool = false;
 
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(Self(String::from_request(request, body).await.map_err(
-            |err| ParseRequestError::ParseRequestBody(err.into_response()),
-        )?))
+    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(Self(String::from_request(request, body).await?))
     }
 }
 

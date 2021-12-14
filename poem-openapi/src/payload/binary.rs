@@ -1,12 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
 use bytes::Bytes;
-use poem::{Body, FromRequest, IntoResponse, Request, RequestBody, Response};
+use poem::{Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 
 use crate::{
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
-    ApiResponse, ParseRequestError,
+    ApiResponse,
 };
 
 /// A binary payload.
@@ -54,7 +54,8 @@ use crate::{
 ///             .uri(Uri::from_static("/upload"))
 ///             .body("abcdef"),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "6");
 ///
@@ -66,7 +67,8 @@ use crate::{
 ///             .uri(Uri::from_static("/upload_stream"))
 ///             .body("abcdef"),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "6");
 /// # });
@@ -103,13 +105,8 @@ impl<T: Send> Payload for Binary<T> {
 impl ParsePayload for Binary<Vec<u8>> {
     const IS_REQUIRED: bool = true;
 
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(Self(<Vec<u8>>::from_request(request, body).await.map_err(
-            |err| ParseRequestError::ParseRequestBody(err.into_response()),
-        )?))
+    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(Self(<Vec<u8>>::from_request(request, body).await?))
     }
 }
 
@@ -117,13 +114,8 @@ impl ParsePayload for Binary<Vec<u8>> {
 impl ParsePayload for Binary<Bytes> {
     const IS_REQUIRED: bool = true;
 
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(Self(Bytes::from_request(request, body).await.map_err(
-            |err| ParseRequestError::ParseRequestBody(err.into_response()),
-        )?))
+    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(Self(Bytes::from_request(request, body).await?))
     }
 }
 
@@ -131,13 +123,8 @@ impl ParsePayload for Binary<Bytes> {
 impl ParsePayload for Binary<Body> {
     const IS_REQUIRED: bool = true;
 
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(Self(Body::from_request(request, body).await.map_err(
-            |err| ParseRequestError::ParseRequestBody(err.into_response()),
-        )?))
+    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(Self(Body::from_request(request, body).await?))
     }
 }
 

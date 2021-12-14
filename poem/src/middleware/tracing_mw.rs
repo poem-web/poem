@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use tracing::{Instrument, Level};
 
-use crate::{Endpoint, IntoResponse, Middleware, Request, Response};
+use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
 /// Middleware for [`tracing`](https://crates.io/crates/tracing).
 #[derive(Default)]
@@ -25,7 +25,7 @@ pub struct TracingEndpoint<E> {
 impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         let span = tracing::span!(
             target: module_path!(),
             Level::INFO,
@@ -38,7 +38,7 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
 
         async move {
             let now = SystemTime::now();
-            let resp = self.inner.call(req).await.into_response();
+            let resp = self.inner.call(req).await?.into_response();
             match now.elapsed() {
                 Ok(duration) => tracing::info!(
                     status = %resp.status(),
@@ -50,7 +50,7 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
                     "response"
                 ),
             }
-            resp
+            Ok(resp)
         }
         .instrument(span)
         .await

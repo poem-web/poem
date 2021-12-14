@@ -92,6 +92,7 @@
 mod macros;
 
 pub mod auth;
+pub mod error;
 pub mod param;
 pub mod payload;
 #[doc(hidden)]
@@ -101,7 +102,6 @@ pub mod types;
 pub mod validation;
 
 mod base;
-mod error;
 mod openapi;
 #[cfg(any(feature = "swagger-ui", feature = "rapidoc", feature = "redoc"))]
 mod ui;
@@ -110,7 +110,6 @@ pub use base::{
     ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
     OpenApi, Tags,
 };
-pub use error::ParseRequestError;
 pub use openapi::{LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;

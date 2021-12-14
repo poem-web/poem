@@ -28,7 +28,7 @@ mod typed_header;
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub mod websocket;
 
-use std::convert::Infallible;
+use std::{convert::Infallible, fmt::Debug};
 
 pub use addr::{LocalAddr, RemoteAddr};
 use bytes::Bytes;
@@ -218,7 +218,7 @@ impl RequestBody {
 ///    Ready to accept a websocket [`WebSocket`](websocket::WebSocket)
 /// connection.
 ///
-/// # Custom extractor
+/// # Create you own extractor
 ///
 /// The following is an example of a custom token extractor, which extracts the
 /// token from the `MyToken` header.
@@ -235,14 +235,14 @@ impl RequestBody {
 ///
 /// #[poem::async_trait]
 /// impl<'a> FromRequest<'a> for Token {
-///     type Error = Error;
-///
 ///     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
 ///         let token = req
 ///             .headers()
 ///             .get("MyToken")
 ///             .and_then(|value| value.to_str().ok())
-///             .ok_or_else(|| Error::new(StatusCode::BAD_REQUEST).with_reason("missing token"))?;
+///             .ok_or_else(|| {
+///                 Error::new_with_string("missing token").with_status(StatusCode::BAD_REQUEST)
+///             })?;
 ///         Ok(Token(token.to_string()))
 ///     }
 /// }
@@ -259,27 +259,15 @@ impl RequestBody {
 ///     .await;
 /// # });
 /// ```
-
 #[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
-    /// The error type of this extractor.
-    ///
-    /// If you don't know what type you should use, you can use
-    /// [`Error`](crate::Error).
-    type Error: IntoResponse;
-
     /// Perform the extraction.
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error>;
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
 }
 
 /// Represents a type that can convert into response.
 ///
 /// # Provided Implementations
-///
-/// - **Result&lt;T: IntoResponse, E: IntoResponse>**
-///
-///    if the result is `Ok`, use the `Ok` value as the response, otherwise use
-/// the `Err` value.
 ///
 /// - **()**
 ///
@@ -355,7 +343,7 @@ pub trait FromRequest<'a>: Sized {
 /// with an event stream body. Use the [`SSE::new`](sse::SSE::new) function to
 /// create it.
 ///
-/// # Custom response
+/// # Create you own response
 ///
 /// ```
 /// use poem::{handler, http::Uri, web::Query, Endpoint, IntoResponse, Request, Response};
@@ -392,6 +380,7 @@ pub trait FromRequest<'a>: Sized {
 ///                 .finish()
 ///         )
 ///         .await
+///         .unwrap()
 ///         .take_body()
 ///         .into_string()
 ///         .await
@@ -403,6 +392,7 @@ pub trait FromRequest<'a>: Sized {
 ///     index
 ///         .call(Request::builder().uri(Uri::from_static("/")).finish())
 ///         .await
+///         .unwrap()
 ///         .take_body()
 ///         .into_string()
 ///         .await
@@ -411,7 +401,6 @@ pub trait FromRequest<'a>: Sized {
 /// );
 /// # });
 /// ```
-
 pub trait IntoResponse: Send {
     /// Consume itself and return [`Response`].
     fn into_response(self) -> Response;
@@ -630,19 +619,6 @@ impl<T: IntoResponse> IntoResponse for (HeaderMap, T) {
     }
 }
 
-impl<T, E> IntoResponse for std::result::Result<T, E>
-where
-    T: IntoResponse,
-    E: IntoResponse,
-{
-    fn into_response(self) -> Response {
-        match self {
-            Ok(resp) => resp.into_response(),
-            Err(err) => err.into_response(),
-        }
-    }
-}
-
 /// An HTML response.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Html<T>(pub T);
@@ -657,118 +633,92 @@ impl<T: Into<String> + Send> IntoResponse for Html<T> {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Request {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Uri {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.uri())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Method {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.method().clone())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Version {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.version())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a HeaderMap {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.headers())
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Body {
-    type Error = ReadBodyError;
-
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
-        body.take()
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Ok(body.take()?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
-    type Error = ReadBodyError;
-
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let data = body.take()?.into_bytes().await?;
-        String::from_utf8(data.to_vec()).map_err(ReadBodyError::Utf8)
+        Ok(String::from_utf8(data.to_vec()).map_err(ReadBodyError::Utf8)?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Bytes {
-    type Error = ReadBodyError;
-
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?.into_bytes().await?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Vec<u8> {
-    type Error = ReadBodyError;
-
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?.into_vec().await?)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a RemoteAddr {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(&req.state().remote_addr)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a LocalAddr {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(&req.state().local_addr)
     }
 }
 
 #[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
-    type Error = T::Error;
-
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await.ok())
     }
 }
 
 #[async_trait::async_trait]
-impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T, T::Error> {
-    type Error = Infallible;
-
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await)
     }
 }
@@ -776,7 +726,7 @@ impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T, T::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Addr, Error};
+    use crate::Addr;
 
     #[tokio::test]
     async fn into_response() {
@@ -852,38 +802,6 @@ mod tests {
             Some(&HeaderValue::from_static("123"))
         );
         assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
-
-        // Result<T, E>
-        let resp = Ok::<_, Error>("abc").into_response();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
-
-        let resp = Err::<(), _>(Error::new(StatusCode::BAD_GATEWAY).with_reason("bad gateway"))
-            .into_response();
-        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
-        assert_eq!(resp.into_body().into_string().await.unwrap(), "bad gateway");
-
-        struct CustomError;
-
-        impl IntoResponse for CustomError {
-            fn into_response(self) -> Response {
-                Response::builder()
-                    .status(StatusCode::CONFLICT)
-                    .header("Value1", "123")
-                    .body("custom error")
-            }
-        }
-
-        let resp = Err::<(), _>(CustomError).into_response();
-        assert_eq!(resp.status(), StatusCode::CONFLICT);
-        assert_eq!(
-            resp.headers().get("Value1"),
-            Some(&HeaderValue::from_static("123"))
-        );
-        assert_eq!(
-            resp.into_body().into_string().await.unwrap(),
-            "custom error"
-        );
 
         // StatusCode
         let resp = StatusCode::CREATED.into_response();

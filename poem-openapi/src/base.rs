@@ -1,13 +1,10 @@
 use std::ops::Deref;
 
-use poem::{FromRequest, IntoResponse, Request, RequestBody, Result, Route};
+use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
-use crate::{
-    registry::{
-        MetaApi, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse, MetaResponses,
-        MetaSchemaRef, Registry,
-    },
-    ParseRequestError,
+use crate::registry::{
+    MetaApi, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse, MetaResponses, MetaSchemaRef,
+    Registry,
 };
 
 /// API extractor types.
@@ -38,6 +35,7 @@ impl Deref for UrlQuery {
 }
 
 impl UrlQuery {
+    #[allow(missing_docs)]
     pub fn get_all<'a, 'b: 'a>(&'b self, name: &'a str) -> impl Iterator<Item = &'b String> + 'a {
         self.0
             .iter()
@@ -45,6 +43,7 @@ impl UrlQuery {
             .map(|(_, value)| value)
     }
 
+    #[allow(missing_docs)]
     pub fn get(&self, name: &str) -> Option<&String> {
         self.get_all(name).next()
     }
@@ -117,7 +116,7 @@ pub trait ApiExtractor<'a>: Sized {
         request: &'a Request,
         body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError>;
+    ) -> Result<Self>;
 }
 
 #[poem::async_trait]
@@ -131,18 +130,15 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
         request: &'a Request,
         body: &mut RequestBody,
         _param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
-        match T::from_request(request, body).await {
-            Ok(value) => Ok(value),
-            Err(err) => Err(ParseRequestError::Extractor(err.into_response())),
-        }
+    ) -> Result<Self> {
+        T::from_request(request, body).await
     }
 }
 
 /// Represents a OpenAPI responses object.
 ///
 /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#responsesObject>
-pub trait ApiResponse: IntoResponse + Sized {
+pub trait ApiResponse: Sized {
     /// If true, it means that the response object has a custom bad request
     /// handler.
     const BAD_REQUEST_HANDLER: bool = false;
@@ -155,7 +151,7 @@ pub trait ApiResponse: IntoResponse + Sized {
 
     /// Convert [`ParseRequestError`] to this response object.
     #[allow(unused_variables)]
-    fn from_parse_request_error(err: ParseRequestError) -> Self {
+    fn from_parse_request_error(err: Error) -> Self {
         unreachable!()
     }
 }
@@ -175,13 +171,19 @@ impl ApiResponse for () {
     fn register(_registry: &mut Registry) {}
 }
 
-impl<T: ApiResponse, E: IntoResponse> ApiResponse for Result<T, E> {
+impl<T: ApiResponse> ApiResponse for Result<T> {
+    const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER;
+
     fn meta() -> MetaResponses {
         T::meta()
     }
 
     fn register(registry: &mut Registry) {
         T::register(registry);
+    }
+
+    fn from_parse_request_error(err: Error) -> Self {
+        Ok(T::from_parse_request_error(err))
     }
 }
 

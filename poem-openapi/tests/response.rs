@@ -2,13 +2,13 @@ mod request;
 
 use poem::{
     http::{HeaderValue, StatusCode},
-    IntoResponse, Response,
+    Error, IntoResponse,
 };
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
     types::ToJSON,
-    ApiResponse, Object, ParseRequestError,
+    ApiResponse, Object,
 };
 use serde_json::Value;
 
@@ -220,13 +220,13 @@ async fn bad_request_handler() {
         BadRequest,
     }
 
-    fn bad_request_handler(_: ParseRequestError) -> CustomApiResponse {
+    fn bad_request_handler(_: Error) -> CustomApiResponse {
         CustomApiResponse::BadRequest
     }
 
     assert_eq!(
-        CustomApiResponse::from_parse_request_error(ParseRequestError::ParseRequestBody(
-            Response::default()
+        CustomApiResponse::from_parse_request_error(Error::new_with_status(
+            StatusCode::BAD_GATEWAY
         )),
         CustomApiResponse::BadRequest
     );
