@@ -1,54 +1,13 @@
-use std::{
-    io::Error as IoError,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use bytes::Bytes;
-use futures_util::Stream;
 use poem::{Body, FromRequest, IntoResponse, Request, RequestBody, Response};
-use tokio::io::AsyncRead;
 
 use crate::{
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
     ApiResponse, ParseRequestError,
 };
-
-/// A stream for binary payload.
-pub struct BinaryStream(Body);
-
-impl BinaryStream {
-    /// Create a [`BinaryStream`].
-    pub fn new(reader: impl AsyncRead + Send + 'static) -> Self {
-        Self(Body::from_async_read(reader))
-    }
-
-    /// Create a body object from bytes stream.
-    pub fn from_bytes_stream<S, O, E>(stream: S) -> Self
-    where
-        S: Stream<Item = Result<O, E>> + Send + 'static,
-        O: Into<Bytes> + 'static,
-        E: std::error::Error + Send + Sync + 'static,
-    {
-        Self(Body::from_bytes_stream(stream))
-    }
-
-    /// Consumes this object to return a reader.
-    pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
-        self.0.into_async_read()
-    }
-
-    /// Consumes this object to return a bytes stream.
-    pub fn into_bytes_stream(self) -> impl Stream<Item = Result<Bytes, IoError>> + Send + 'static {
-        self.0.into_bytes_stream()
-    }
-}
-
-impl From<BinaryStream> for Body {
-    fn from(stream: BinaryStream) -> Self {
-        stream.0
-    }
-}
 
 /// A binary payload.
 ///
@@ -58,10 +17,10 @@ impl From<BinaryStream> for Body {
 /// use poem::{
 ///     error::BadRequest,
 ///     http::{Method, StatusCode, Uri},
-///     IntoEndpoint, Request, Result,
+///     Body, IntoEndpoint, Request, Result,
 /// };
 /// use poem_openapi::{
-///     payload::{Binary, BinaryStream, Json},
+///     payload::{Binary, Json},
 ///     OpenApi, OpenApiService,
 /// };
 /// use tokio::io::AsyncReadExt;
@@ -76,7 +35,7 @@ impl From<BinaryStream> for Body {
 ///     }
 ///
 ///     #[oai(path = "/upload_stream", method = "post")]
-///     async fn upload_binary_stream(&self, data: Binary<BinaryStream>) -> Result<Json<usize>> {
+///     async fn upload_binary_stream(&self, data: Binary<Body>) -> Result<Json<usize>> {
 ///         let mut reader = data.0.into_async_read();
 ///         let mut bytes = Vec::new();
 ///         reader.read_to_end(&mut bytes).await.map_err(BadRequest)?;
@@ -169,19 +128,16 @@ impl ParsePayload for Binary<Bytes> {
 }
 
 #[poem::async_trait]
-impl ParsePayload for Binary<BinaryStream> {
+impl ParsePayload for Binary<Body> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(
         request: &Request,
         body: &mut RequestBody,
     ) -> Result<Self, ParseRequestError> {
-        Ok(Self(
-            Body::from_request(request, body)
-                .await
-                .map(BinaryStream)
-                .map_err(|err| ParseRequestError::ParseRequestBody(err.into_response()))?,
-        ))
+        Ok(Self(Body::from_request(request, body).await.map_err(
+            |err| ParseRequestError::ParseRequestBody(err.into_response()),
+        )?))
     }
 }
 
@@ -213,4 +169,4 @@ impl<T: Into<Body> + Send> ApiResponse for Binary<T> {
 
 impl_apirequest_for_payload!(Binary<Vec<u8>>);
 impl_apirequest_for_payload!(Binary<Bytes>);
-impl_apirequest_for_payload!(Binary<BinaryStream>);
+impl_apirequest_for_payload!(Binary<Body>);
