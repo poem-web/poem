@@ -63,6 +63,7 @@ which are disabled by default:
 | tempfile      | Support for [`tempfile`](https://crates.io/crates/tempfile)                               |
 | tower-compat  | Adapters for `tower::Layer` and `tower::Service`.                                         |
 | websocket     | Support for WebSocket                                                                     |
+| anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.                     |
 
 ## Safety
 

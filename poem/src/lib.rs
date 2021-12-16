@@ -210,6 +210,7 @@
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |websocket         | Support for WebSocket          |
+//! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

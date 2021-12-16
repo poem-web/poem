@@ -225,9 +225,7 @@ async fn bad_request_handler() {
     }
 
     assert_eq!(
-        CustomApiResponse::from_parse_request_error(Error::new_with_status(
-            StatusCode::BAD_GATEWAY
-        )),
+        CustomApiResponse::from_parse_request_error(Error::from_status(StatusCode::BAD_GATEWAY)),
         CustomApiResponse::BadRequest
     );
 }

@@ -13,9 +13,7 @@ impl<'a> FromRequest<'a> for Token {
             .headers()
             .get("MyToken")
             .and_then(|value| value.to_str().ok())
-            .ok_or_else(|| {
-                Error::new_with_string("missing token").with_status(StatusCode::BAD_REQUEST)
-            })?;
+            .ok_or_else(|| Error::from_string("missing token", StatusCode::BAD_REQUEST))?;
         Ok(Token(token.to_string()))
     }
 }

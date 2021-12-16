@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.2] 2021-12-16
+
+- Add `EndpointExt::inspect_typed_err` method.
+- Rename `Error::new_with_string` to `Error::from_string`.
+- Rename `Error::new_with_status` to `Error::from_status`.
+- Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.
+
 # [1.2.0] 2021-12-16
 
 ## Breaking changes

@@ -15,6 +15,10 @@ use crate::{
 /// You can match the full path or wildcard path, and use the
 /// [`Path`](crate::web::Path) extractor to get the path parameters.
 ///
+/// # Errors
+///
+/// - [`NotFoundError`]
+///
 /// # Example
 ///
 /// ```

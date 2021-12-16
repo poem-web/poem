@@ -18,16 +18,32 @@ macro_rules! define_http_error {
         #[allow(non_snake_case)]
         #[inline]
         pub fn $name(err: impl StdError + Send + Sync + 'static) -> Error {
-            Error::new(err).with_status(StatusCode::$status)
+            Error::new(err, StatusCode::$status)
         }
         )*
     };
 }
 
 /// Represents a type that can be converted to [`Error`].
-pub trait ResponseError: StdError + Send + Sync + 'static {
+pub trait ResponseError {
     /// The status code of this error.
     fn status(&self) -> StatusCode;
+}
+
+enum ErrorSource {
+    BoxedError(Box<dyn StdError + Send + Sync>),
+    #[cfg(feature = "anyhow")]
+    Anyhow(anyhow::Error),
+}
+
+impl Debug for ErrorSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorSource::BoxedError(err) => Debug::fmt(err, f),
+            #[cfg(feature = "anyhow")]
+            ErrorSource::Anyhow(err) => Debug::fmt(err, f),
+        }
+    }
 }
 
 /// General response error.
@@ -58,9 +74,13 @@ pub trait ResponseError: StdError + Send + Sync + 'static {
 ///     }
 /// }
 ///
+/// fn do_something() -> Result<(), MyError> {
+///     todo!()
+/// }
+///
 /// #[handler]
-/// async fn index() -> Result<String> {
-///     Ok(std::fs::read_to_string("example.txt").map_err(|_| MyError)?)
+/// async fn index() -> Result<()> {
+///     Ok(do_something()?)
 /// }
 /// ```
 ///
@@ -77,12 +97,16 @@ pub trait ResponseError: StdError + Send + Sync + 'static {
 #[derive(Debug)]
 pub struct Error {
     status: StatusCode,
-    source: Box<dyn StdError + Send + Sync + 'static>,
+    source: ErrorSource,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.source, f)
+        match &self.source {
+            ErrorSource::BoxedError(err) => Display::fmt(err, f),
+            #[cfg(feature = "anyhow")]
+            ErrorSource::Anyhow(err) => Display::fmt(err, f),
+        }
     }
 }
 
@@ -92,16 +116,54 @@ impl From<Infallible> for Error {
     }
 }
 
-impl<T: ResponseError> From<T> for Error {
+impl<T: ResponseError + StdError + Send + Sync + 'static> From<T> for Error {
     fn from(err: T) -> Self {
         let status = err.status();
-        Error::new(err).with_status(status)
+        Error::new(err, status)
+    }
+}
+
+impl From<Box<dyn StdError + Send + Sync>> for Error {
+    fn from(err: Box<dyn StdError + Send + Sync>) -> Self {
+        Error {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            source: ErrorSource::BoxedError(err),
+        }
+    }
+}
+
+impl From<(StatusCode, Box<dyn StdError + Send + Sync>)> for Error {
+    fn from((status, err): (StatusCode, Box<dyn StdError + Send + Sync>)) -> Self {
+        Error {
+            status,
+            source: ErrorSource::BoxedError(err),
+        }
+    }
+}
+
+#[cfg(feature = "anyhow")]
+impl From<anyhow::Error> for Error {
+    fn from(err: anyhow::Error) -> Self {
+        Error {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            source: ErrorSource::Anyhow(err),
+        }
+    }
+}
+
+#[cfg(feature = "anyhow")]
+impl From<(StatusCode, anyhow::Error)> for Error {
+    fn from((status, err): (StatusCode, anyhow::Error)) -> Self {
+        Error {
+            status,
+            source: ErrorSource::Anyhow(err),
+        }
     }
 }
 
 impl From<StatusCode> for Error {
     fn from(status: StatusCode) -> Self {
-        Error::new_with_status(status)
+        Error::from_status(status)
     }
 }
 
@@ -109,15 +171,15 @@ impl Error {
     /// Create a new error object from any error type with `503
     /// INTERNAL_SERVER_ERROR` status code.
     #[inline]
-    pub fn new<T: StdError + Send + Sync + 'static>(err: T) -> Self {
+    pub fn new<T: StdError + Send + Sync + 'static>(err: T, status: StatusCode) -> Self {
         Self {
-            status: StatusCode::INTERNAL_SERVER_ERROR,
-            source: Box::new(err),
+            status,
+            source: ErrorSource::BoxedError(Box::new(err)),
         }
     }
 
     /// create a new error object from status code.
-    pub fn new_with_status(status: StatusCode) -> Self {
+    pub fn from_status(status: StatusCode) -> Self {
         #[derive(Debug, thiserror::Error)]
         #[error("{0}")]
         struct StatusError(StatusCode);
@@ -133,25 +195,12 @@ impl Error {
 
     /// Create a new error object from string with `503 INTERNAL_SERVER_ERROR`
     /// status code.
-    pub fn new_with_string(msg: impl Into<String>) -> Self {
+    pub fn from_string(msg: impl Into<String>, status: StatusCode) -> Self {
         #[derive(Debug, thiserror::Error)]
         #[error("{0}")]
         struct StringError(String);
 
-        impl ResponseError for StringError {
-            fn status(&self) -> StatusCode {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
-        }
-
-        StringError(msg.into()).into()
-    }
-
-    /// Specifies the status code of this error.
-    #[inline]
-    #[must_use]
-    pub fn with_status(self, status: StatusCode) -> Self {
-        Self { status, ..self }
+        Self::new(StringError(msg.into()), status)
     }
 
     /// Returns the status code of this error.
@@ -162,34 +211,56 @@ impl Error {
 
     /// Downcast this error object by reference.
     #[inline]
-    pub fn downcast_ref<T: StdError + 'static>(&self) -> Option<&T> {
-        self.source.downcast_ref()
+    pub fn downcast_ref<T: StdError + Send + Sync + 'static>(&self) -> Option<&T> {
+        match &self.source {
+            ErrorSource::BoxedError(err) => err.downcast_ref::<T>(),
+            #[cfg(feature = "anyhow")]
+            ErrorSource::Anyhow(err) => err.downcast_ref::<T>(),
+        }
     }
 
     /// Attempts to downcast the error to a concrete error type.
     #[inline]
-    pub fn downcast<T: StdError + 'static>(self) -> Result<T, Error> {
+    pub fn downcast<T: StdError + Send + Sync + 'static>(self) -> Result<T, Error> {
         let status = self.status;
-        match self.source.downcast::<T>() {
-            Ok(err) => Ok(*err),
-            Err(err) => Err(Error {
-                status,
-                source: err,
-            }),
+
+        match self.source {
+            ErrorSource::BoxedError(err) => match err.downcast::<T>() {
+                Ok(err) => Ok(*err),
+                Err(err) => Err(Error {
+                    status,
+                    source: ErrorSource::BoxedError(err),
+                }),
+            },
+            #[cfg(feature = "anyhow")]
+            ErrorSource::Anyhow(err) => match err.downcast::<T>() {
+                Ok(err) => Ok(err),
+                Err(err) => Err(Error {
+                    status,
+                    source: ErrorSource::Anyhow(err),
+                }),
+            },
         }
     }
 
     /// Returns `true` if the error type is the same as `T`.
     #[inline]
-    pub fn is<T: StdError + 'static>(&self) -> bool {
-        self.source.is::<T>()
+    pub fn is<T: StdError + Debug + Send + Sync + 'static>(&self) -> bool {
+        match &self.source {
+            ErrorSource::BoxedError(err) => err.is::<T>(),
+            #[cfg(feature = "anyhow")]
+            ErrorSource::Anyhow(err) => err.is::<T>(),
+        }
     }
 
     /// Consumes this to return a response object.
     pub fn as_response(&self) -> Response {
-        Response::builder()
-            .status(self.status)
-            .body(self.source.to_string())
+        let msg = match &self.source {
+            ErrorSource::BoxedError(err) => err.to_string(),
+            #[cfg(feature = "anyhow")]
+            ErrorSource::Anyhow(err) => err.to_string(),
+        };
+        Response::builder().status(self.status).body(msg)
     }
 }
 
@@ -596,5 +667,52 @@ pub enum SizedLimitError {
 impl ResponseError for SizedLimitError {
     fn status(&self) -> StatusCode {
         StatusCode::BAD_REQUEST
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{Error as IoError, ErrorKind};
+
+    use super::*;
+
+    #[test]
+    fn test_error() {
+        let err = Error::new(
+            IoError::new(ErrorKind::AlreadyExists, "aaa"),
+            StatusCode::BAD_GATEWAY,
+        );
+        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
+        assert!(err.is::<IoError>());
+        assert_eq!(
+            err.downcast_ref::<IoError>().unwrap().kind(),
+            ErrorKind::AlreadyExists
+        );
+    }
+
+    #[test]
+    fn test_box_error() {
+        let boxed_err: Box<dyn StdError + Send + Sync> =
+            Box::new(IoError::new(ErrorKind::AlreadyExists, "aaa"));
+        let err: Error = Error::from((StatusCode::BAD_GATEWAY, boxed_err));
+        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
+        assert!(err.is::<IoError>());
+        assert_eq!(
+            err.downcast_ref::<IoError>().unwrap().kind(),
+            ErrorKind::AlreadyExists
+        );
+    }
+
+    #[cfg(feature = "anyhow")]
+    #[test]
+    fn test_anyhow_error() {
+        let anyhow_err: anyhow::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
+        let err: Error = Error::from((StatusCode::BAD_GATEWAY, anyhow_err));
+        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
+        assert!(err.is::<IoError>());
+        assert_eq!(
+            err.downcast_ref::<IoError>().unwrap().kind(),
+            ErrorKind::AlreadyExists
+        );
     }
 }

@@ -4,6 +4,7 @@ use std::{
 };
 
 use futures_util::{future::BoxFuture, FutureExt};
+use http::StatusCode;
 use tower::{buffer::Buffer, BoxError, Layer, Service, ServiceExt};
 
 use crate::{Endpoint, Error, IntoResponse, Middleware, Request, Result};
@@ -16,7 +17,7 @@ pub struct WrapperError(Error);
 fn boxed_err_to_poem_err(err: BoxError) -> Error {
     match err.downcast::<WrapperError>() {
         Ok(err) => (*err).0,
-        Err(err) => Error::new_with_string(err.to_string()),
+        Err(err) => Error::from_string(err.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 

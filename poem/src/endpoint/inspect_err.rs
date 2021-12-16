@@ -1,6 +1,6 @@
 use crate::{Endpoint, Error, Request, Result};
 
-/// Endpoint for the [`inspect_error`](super::EndpointExt::inspect_error)
+/// Endpoint for the [`inspect_err`](super::EndpointExt::inspect_err)
 /// method.
 pub struct InspectError<E, F> {
     inner: E,

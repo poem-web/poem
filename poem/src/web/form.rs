@@ -22,7 +22,7 @@ use crate::{
 ///
 /// # Errors
 ///
-/// - [`ReadBodyError`]
+/// - [`ReadBodyError`](crate::error::ReadBodyError)
 /// - [`ParseFormError`]
 ///
 /// # Example

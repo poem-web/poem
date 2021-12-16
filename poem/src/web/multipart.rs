@@ -84,7 +84,7 @@ impl Field {
 ///
 /// # Errors
 ///
-/// - [`ReadBodyError`]
+/// - [`ReadBodyError`](crate::error::ReadBodyError)
 /// - [`ParseMultipartError`]
 ///
 /// # Example

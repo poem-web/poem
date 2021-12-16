@@ -5,6 +5,10 @@ use crate::{
 
 /// Routing object for HTTP methods
 ///
+/// # Errors
+///
+/// - [`NotFoundError`]
+///
 /// # Example
 ///
 /// ```

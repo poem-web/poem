@@ -9,6 +9,7 @@ mod catch_error;
 mod endpoint;
 mod files;
 mod inspect_err;
+mod inspect_typed_err;
 mod map;
 mod map_to_response;
 #[cfg(feature = "prometheus")]
@@ -24,6 +25,7 @@ pub use catch_error::CatchError;
 pub use endpoint::{make, make_sync, BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint};
 pub use files::Files;
 pub use inspect_err::InspectError;
+pub use inspect_typed_err::InspectTypedError;
 pub use map::Map;
 pub use map_to_response::MapToResponse;
 #[cfg(feature = "prometheus")]

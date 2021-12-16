@@ -5,6 +5,10 @@ use crate::{
 
 /// Routing object for `HOST` header
 ///
+/// # Errors
+///
+/// - [`NotFoundError`]
+///
 /// # Example
 ///
 /// ```

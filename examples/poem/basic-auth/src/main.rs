@@ -42,7 +42,7 @@ impl<E: Endpoint> Endpoint for BasicAuthEndpoint<E> {
                 return self.ep.call(req).await;
             }
         }
-        Err(Error::new_with_status(StatusCode::UNAUTHORIZED))
+        Err(Error::from_status(StatusCode::UNAUTHORIZED))
     }
 }
 

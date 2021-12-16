@@ -15,7 +15,7 @@ use crate::{
 ///
 /// # Errors
 ///
-/// - [`ReadBodyError`]
+/// - [`ReadBodyError`](crate::error::ReadBodyError)
 /// - [`ParseJsonError`]
 ///
 /// ```

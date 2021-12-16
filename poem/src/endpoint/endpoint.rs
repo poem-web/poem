@@ -1,6 +1,8 @@
 use std::{future::Future, marker::PhantomData, sync::Arc};
 
-use super::{After, AndThen, Around, Before, CatchError, InspectError, Map, MapToResponse};
+use super::{
+    After, AndThen, Around, Before, CatchError, InspectError, InspectTypedError, Map, MapToResponse,
+};
 use crate::{
     error::IntoResult,
     middleware::{AddData, AddDataEndpoint},
@@ -416,7 +418,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// };
     ///
     /// let ep1 = make(|_| async { "hello" }).map_to_response();
-    /// let ep2 = make(|_| async { Err::<(), Error>(Error::new_with_status(StatusCode::BAD_REQUEST)) })
+    /// let ep2 = make(|_| async { Err::<(), Error>(Error::from_status(StatusCode::BAD_REQUEST)) })
     ///     .map_to_response();
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
@@ -474,7 +476,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// let ep1 = make(|_| async { "hello" })
     ///     .and_then(|value| async move { Ok(format!("{}, world!", value)) });
-    /// let ep2 = make(|_| async { Err::<String, _>(Error::new_with_status(StatusCode::BAD_REQUEST)) })
+    /// let ep2 = make(|_| async { Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)) })
     ///     .and_then(|value| async move { Ok(format!("{}, world!", value)) });
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
@@ -561,6 +563,31 @@ pub trait EndpointExt: IntoEndpoint {
         Self: Sized,
     {
         InspectError::new(self, f)
+    }
+
+    /// Does something with each specified error type.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{error::NotFoundError, handler, EndpointExt, Route};
+    ///
+    /// #[handler]
+    /// fn index() {}
+    ///
+    /// let app = Route::new()
+    ///     .at("/", index)
+    ///     .inspect_typed_err(|err: &NotFoundError| {
+    ///         println!("error: {}", err);
+    ///     });
+    /// ```
+    fn inspect_typed_err<F, ErrType>(self, f: F) -> InspectTypedError<Self, F, ErrType>
+    where
+        F: Fn(&ErrType) + Send + Sync,
+        ErrType: std::error::Error + Send + Sync + 'static,
+        Self: Sized,
+    {
+        InspectTypedError::new(self, f)
     }
 }
 
@@ -661,7 +688,7 @@ mod test {
             "abcdef"
         );
 
-        let err = make_sync(|_| Err::<String, _>(Error::new_with_status(StatusCode::BAD_REQUEST)))
+        let err = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
             .and_then(|resp| async move { Ok(resp + "def") })
             .call(Request::default())
             .await
@@ -680,7 +707,7 @@ mod test {
             "abcdef"
         );
 
-        let err = make_sync(|_| Err::<String, _>(Error::new_with_status(StatusCode::BAD_REQUEST)))
+        let err = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
             .map(|resp| async move { resp.to_string() + "def" })
             .call(Request::default())
             .await

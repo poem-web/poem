@@ -38,10 +38,10 @@ use crate::{
 /// async fn login(verifier: &CsrfVerifier, req: &Request) -> Result<String> {
 ///     let csrf_token = req
 ///         .header("X-CSRF-Token")
-///         .ok_or_else(|| Error::new_with_status(StatusCode::UNAUTHORIZED))?;
+///         .ok_or_else(|| Error::from_status(StatusCode::UNAUTHORIZED))?;
 ///
 ///     if !verifier.is_valid(&csrf_token) {
-///         return Err(Error::new_with_status(StatusCode::UNAUTHORIZED));
+///         return Err(Error::from_status(StatusCode::UNAUTHORIZED));
 ///     }
 ///
 ///     Ok(format!("login success"))
@@ -247,15 +247,12 @@ mod tests {
 
         #[handler(internal)]
         fn login(verifier: &CsrfVerifier, req: &Request) -> Result<impl IntoResponse> {
-            let token = req.header(CSRF_TOKEN_NAME).ok_or_else(|| {
-                Error::new_with_string("missing token").with_status(StatusCode::BAD_REQUEST)
-            })?;
+            let token = req
+                .header(CSRF_TOKEN_NAME)
+                .ok_or_else(|| Error::from_string("missing token", StatusCode::BAD_REQUEST))?;
             match verifier.is_valid(token) {
                 true => Ok("ok"),
-                false => {
-                    Err(Error::new_with_string("invalid token")
-                        .with_status(StatusCode::BAD_REQUEST))
-                }
+                false => Err(Error::from_string("invalid token", StatusCode::BAD_REQUEST)),
             }
         }
 
