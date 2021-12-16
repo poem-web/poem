@@ -17,6 +17,33 @@ pub trait Endpoint: Send + Sync {
 
     /// Get the response to the request.
     async fn call(&self, req: Request) -> Result<Self::Output>;
+
+    /// Get the response to the request and return a [`Response`].
+    ///
+    /// Unlike [`Endpoint::call`], when an error occurs, it will also convert
+    /// the error into a response object.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{error::NotFoundError, handler, http::StatusCode, Endpoint, Request, Result};
+    ///
+    /// #[handler]
+    /// fn index() -> Result<()> {
+    ///     Err(NotFoundError.into())
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = index.get_response(Request::default()).await;
+    /// assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    /// # });
+    /// ```
+    async fn get_response(&self, req: Request) -> Response {
+        self.call(req)
+            .await
+            .map(IntoResponse::into_response)
+            .unwrap_or_else(|err| err.as_response())
+    }
 }
 
 struct SyncFnEndpoint<T, F> {
