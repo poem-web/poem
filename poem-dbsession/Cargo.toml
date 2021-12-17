@@ -1,6 +1,6 @@
 [package]
 name = "poem-dbsession"
-version = "0.2.2"
+version = "0.2.4"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Session storage with database for Poem."
@@ -64,7 +64,7 @@ __sqlx-rustls = [
 
 [dependencies]
 chrono = "0.4.19"
-poem = { path = "../poem", version = "1.2.2", features = ["session"] }
+poem = { path = "../poem", version = "1.2.3", features = ["session"] }
 sqlx = { version = "0.5.9", optional = true, features = ["chrono", "json"] }
 tokio = { version = "1.14.0", features = ["time"] }
 tracing = "0.1.29"
