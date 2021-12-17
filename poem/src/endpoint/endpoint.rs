@@ -1,7 +1,8 @@
 use std::{future::Future, marker::PhantomData, sync::Arc};
 
 use super::{
-    After, AndThen, Around, Before, CatchError, InspectError, InspectTypedError, Map, MapToResponse,
+    After, AndThen, Around, Before, CatchAllError, CatchError, InspectAllError, InspectError, Map,
+    MapToResponse,
 };
 use crate::{
     error::IntoResult,
@@ -526,6 +527,58 @@ pub trait EndpointExt: IntoEndpoint {
         AndThen::new(self.into_endpoint(), f)
     }
 
+    /// Catch the all errors and convert it into a response.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use http::Uri;
+    /// use poem::{
+    ///     handler, http::StatusCode, web::Json, Endpoint, EndpointExt, Error, IntoResponse, Request,
+    ///     Response, Route,
+    /// };
+    /// use serde::Serialize;
+    ///
+    /// #[handler]
+    /// async fn index() {}
+    ///
+    /// let app = Route::new()
+    ///     .at("/index", index)
+    ///     .catch_all_error(custom_error);
+    ///
+    /// #[derive(Serialize)]
+    /// struct ErrorResponse {
+    ///     message: String,
+    /// }
+    ///
+    /// async fn custom_error(err: Error) -> impl IntoResponse {
+    ///     Json(ErrorResponse {
+    ///         message: err.to_string(),
+    ///     })
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(Request::builder().uri(Uri::from_static("/abc")).finish())
+    ///     .await
+    ///     .unwrap();
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(
+    ///     resp.into_body().into_string().await.unwrap(),
+    ///     "{\"message\":\"not found\"}"
+    /// );
+    /// # })
+    /// ```
+    fn catch_all_error<F, Fut, R>(self, f: F) -> CatchAllError<Self, F, R>
+    where
+        F: Fn(Error) -> Fut + Send + Sync,
+        Fut: Future<Output = R> + Send,
+        R: IntoResponse + Send,
+        Self: Sized + Sync,
+    {
+        CatchAllError::new(self, f)
+    }
+
     /// Catch the specified type of error and convert it into a response.
     ///
     /// # Example
@@ -533,8 +586,8 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     /// use http::Uri;
     /// use poem::{
-    ///     error::NotFoundError, handler, http::StatusCode, Endpoint, EndpointExt, Request, Response,
-    ///     Route,
+    ///     error::NotFoundError, handler, http::StatusCode, Endpoint, EndpointExt, IntoResponse,
+    ///     Request, Response, Route,
     /// };
     ///
     /// #[handler]
@@ -542,13 +595,12 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// let app = Route::new().at("/index", index).catch_error(custom_404);
     ///
-    /// async fn custom_404(_: NotFoundError) -> Response {
-    ///     Response::builder()
-    ///         .status(StatusCode::NOT_FOUND)
-    ///         .body("custom not found")
+    /// async fn custom_404(_: NotFoundError) -> impl IntoResponse {
+    ///     "custom not found".with_status(StatusCode::NOT_FOUND)
     /// }
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    ///
     /// let resp = app
     ///     .call(Request::builder().uri(Uri::from_static("/abc")).finish())
     ///     .await
@@ -560,10 +612,11 @@ pub trait EndpointExt: IntoEndpoint {
     /// );
     /// # })
     /// ```
-    fn catch_error<F, Fut, ErrType>(self, f: F) -> CatchError<Self, F, ErrType>
+    fn catch_error<F, Fut, R, ErrType>(self, f: F) -> CatchError<Self, F, R, ErrType>
     where
         F: Fn(ErrType) -> Fut + Send + Sync,
-        Fut: Future<Output = Response> + Send,
+        Fut: Future<Output = R> + Send,
+        R: IntoResponse + Send + Sync,
         ErrType: std::error::Error + Send + Sync + 'static,
         Self: Sized,
     {
@@ -580,16 +633,16 @@ pub trait EndpointExt: IntoEndpoint {
     /// #[handler]
     /// fn index() {}
     ///
-    /// let app = Route::new().at("/", index).inspect_err(|err| {
+    /// let app = Route::new().at("/", index).inspect_all_err(|err| {
     ///     println!("error: {}", err);
     /// });
     /// ```
-    fn inspect_err<F>(self, f: F) -> InspectError<Self, F>
+    fn inspect_all_err<F>(self, f: F) -> InspectAllError<Self, F>
     where
         F: Fn(&Error) + Send + Sync,
         Self: Sized,
     {
-        InspectError::new(self, f)
+        InspectAllError::new(self, f)
     }
 
     /// Does something with each specified error type.
@@ -604,17 +657,17 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// let app = Route::new()
     ///     .at("/", index)
-    ///     .inspect_typed_err(|err: &NotFoundError| {
+    ///     .inspect_err(|err: &NotFoundError| {
     ///         println!("error: {}", err);
     ///     });
     /// ```
-    fn inspect_typed_err<F, ErrType>(self, f: F) -> InspectTypedError<Self, F, ErrType>
+    fn inspect_err<F, ErrType>(self, f: F) -> InspectError<Self, F, ErrType>
     where
         F: Fn(&ErrType) + Send + Sync,
         ErrType: std::error::Error + Send + Sync + 'static,
         Self: Sized,
     {
-        InspectTypedError::new(self, f)
+        InspectError::new(self, f)
     }
 }
 
