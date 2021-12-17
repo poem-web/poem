@@ -84,7 +84,7 @@
 //! You will see the automatic interactive API documentation (provided by
 //! [Swagger UI](https://github.com/swagger-api/swagger-ui)):
 //!
-//! ![swagger-ui](https://raw.githubusercontent.com/poem-web/poem-openapi/master/assets/swagger-ui.jpg)
+//! ![swagger-ui](https://raw.githubusercontent.com/poem-web/poem/master/poem-openapi/assets/swagger-ui.jpg)
 //!
 //! ## Crate features
 //!

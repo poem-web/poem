@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `remote` attribute to `Enum` macro.
 - Remove the `BinaryStream` type, use `poem::Body` instead.
+- Do not rename any types by default. [#128](https://github.com/poem-web/poem/issues/128)
 
 # [1.1.1] 2021-12-12
 

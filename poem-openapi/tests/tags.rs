@@ -19,28 +19,28 @@ async fn rename_all() {
 }
 
 #[tokio::test]
-async fn default_rename_all() {
+async fn default_name() {
     #[derive(Tags)]
     enum MyTags {
         UserOperations,
         PetOperations,
     }
 
-    assert_eq!(MyTags::UserOperations.name(), "user_operations");
-    assert_eq!(MyTags::PetOperations.name(), "pet_operations");
+    assert_eq!(MyTags::UserOperations.name(), "UserOperations");
+    assert_eq!(MyTags::PetOperations.name(), "PetOperations");
 }
 
 #[tokio::test]
 async fn rename_item() {
     #[derive(Tags)]
     enum MyTags {
-        #[oai(rename = "UserOperations")]
+        #[oai(rename = "userOperations")]
         UserOperations,
         PetOperations,
     }
 
-    assert_eq!(MyTags::UserOperations.name(), "UserOperations");
-    assert_eq!(MyTags::PetOperations.name(), "pet_operations");
+    assert_eq!(MyTags::UserOperations.name(), "userOperations");
+    assert_eq!(MyTags::PetOperations.name(), "PetOperations");
 }
 
 #[tokio::test]
@@ -60,11 +60,11 @@ async fn meta() {
         registry.tags,
         vec![
             MetaTag {
-                name: "user_operations",
+                name: "UserOperations",
                 description: Some("User operations"),
             },
             MetaTag {
-                name: "pet_operations",
+                name: "PetOperations",
                 description: Some("Pet operations"),
             }
         ]

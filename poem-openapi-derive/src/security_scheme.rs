@@ -9,7 +9,6 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Path};
 
 use crate::{
-    common_args::RenameTarget,
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };
@@ -417,10 +416,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: SecuritySchemeArgs = SecuritySchemeArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
-    let oai_typename = args
-        .rename
-        .clone()
-        .unwrap_or_else(|| RenameTarget::SecurityScheme.rename(ident.to_string()));
+    let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
     args.validate()?;
 
     let fields = match &args.data {

@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, DeriveInput, Error, Path};
 
 use crate::{
-    common_args::{RenameRule, RenameRuleExt, RenameTarget},
+    common_args::{RenameRule, RenameRuleExt},
     error::GeneratorResult,
     utils::get_crate_name,
 };
@@ -43,10 +43,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: EnumArgs = EnumArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
-    let oai_typename = args
-        .rename
-        .clone()
-        .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
+    let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
     let e = match &args.data {
         Data::Enum(e) => e,
         _ => return Err(Error::new_spanned(ident, "Enum can only be applied to an enum.").into()),
@@ -69,10 +66,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         let item_ident = &variant.ident;
-        let oai_item_name = variant.rename.clone().unwrap_or_else(|| {
-            args.rename_all
-                .rename(variant.ident.unraw().to_string(), RenameTarget::EnumItem)
-        });
+        let oai_item_name = variant
+            .rename
+            .clone()
+            .unwrap_or_else(|| args.rename_all.rename(variant.ident.unraw().to_string()));
 
         enum_items.push(quote!(#crate_name::types::ToJSON::to_json(&#ident::#item_ident)));
         ident_to_item.push(quote!(#ident::#item_ident => #oai_item_name));

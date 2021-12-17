@@ -294,14 +294,14 @@ async fn default() {
 
     let schema_ref = A::schema_ref();
     let schema: &MetaSchema = schema_ref.unwrap_inline();
-    assert_eq!(schema.properties[0].0, "valueString");
+    assert_eq!(schema.properties[0].0, "value_string");
     assert_eq!(schema.properties[0].1.unwrap_inline().ty, "string");
     assert_eq!(
         schema.properties[0].1.unwrap_inline().default,
         Some("asd".into())
     );
 
-    assert_eq!(schema.properties[1].0, "valueArray");
+    assert_eq!(schema.properties[1].0, "value_array");
     assert_eq!(schema.properties[1].1.unwrap_inline().ty, "array");
     assert_eq!(
         schema.properties[1]
@@ -318,8 +318,8 @@ async fn default() {
     );
 
     let data = create_multipart_payload(&[
-        ("valueString", None, b"abc"),
-        ("valueArray", None, b"[10, 20, 30]"),
+        ("value_string", None, b"abc"),
+        ("value_array", None, b"[10, 20, 30]"),
     ]);
     let a = A::from_request(
         &Request::builder()

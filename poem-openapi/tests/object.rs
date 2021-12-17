@@ -463,7 +463,7 @@ fn inline_fields() {
     }
 
     let meta = get_meta::<Obj>();
-    assert_eq!(meta.properties[0].0, "innerObj");
+    assert_eq!(meta.properties[0].0, "inner_obj");
 
     let meta_inner_obj = meta.properties[0].1.unwrap_inline();
     assert_eq!(

@@ -80,7 +80,7 @@ async fn into_response() {
     assert_eq!(
         serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
         serde_json::json!({
-            "errorCode": 123,
+            "error_code": 123,
             "message": "abc",
         })
     );
@@ -176,7 +176,7 @@ async fn headers() {
     assert_eq!(
         serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
         serde_json::json!({
-            "errorCode": 11,
+            "error_code": 11,
             "message": "hehe",
         })
     );

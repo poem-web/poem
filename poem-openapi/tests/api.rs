@@ -78,7 +78,7 @@ fn tag() {
     let meta: MetaApi = Api::meta().remove(0);
     assert_eq!(
         meta.paths[0].operations[0].tags,
-        vec!["user_operations", "pet_operations"]
+        vec!["UserOperations", "PetOperations"]
     );
 }
 
@@ -102,7 +102,7 @@ async fn common_attributes() {
     assert_eq!(meta.paths[0].path, "/hello/world");
     assert_eq!(
         meta.paths[0].operations[0].tags,
-        vec!["common_operations", "user_operations"]
+        vec!["CommonOperations", "UserOperations"]
     );
 
     let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();

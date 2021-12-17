@@ -33,38 +33,16 @@ impl RenameRule {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub(crate) enum RenameTarget {
-    Type,
-    EnumItem,
-    Field,
-    Tag,
-    SecurityScheme,
-}
-
-impl RenameTarget {
-    pub(crate) fn rule(self) -> RenameRule {
-        match self {
-            RenameTarget::Type => RenameRule::Pascal,
-            RenameTarget::EnumItem => RenameRule::Pascal,
-            RenameTarget::Field => RenameRule::Camel,
-            RenameTarget::Tag => RenameRule::Snake,
-            RenameTarget::SecurityScheme => RenameRule::Snake,
-        }
-    }
-
-    pub(crate) fn rename(self, name: impl AsRef<str>) -> String {
-        self.rule().rename(name)
-    }
-}
-
 pub(crate) trait RenameRuleExt {
-    fn rename(&self, name: impl AsRef<str>, target: RenameTarget) -> String;
+    fn rename(&self, name: impl AsRef<str>) -> String;
 }
 
 impl RenameRuleExt for Option<RenameRule> {
-    fn rename(&self, name: impl AsRef<str>, target: RenameTarget) -> String {
-        self.unwrap_or(target.rule()).rename(name)
+    fn rename(&self, name: impl AsRef<str>) -> String {
+        match self {
+            Some(rule) => rule.rename(name),
+            None => name.as_ref().to_string(),
+        }
     }
 }
 
