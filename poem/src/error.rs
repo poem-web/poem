@@ -677,6 +677,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_into_result() {
+        assert!(matches!("hello".into_result(), Ok("hello")));
+        assert!(matches!(Ok::<_, Error>("hello").into_result(), Ok("hello")));
+        assert!(matches!(
+            Ok::<_, NotFoundError>("hello").into_result(),
+            Ok("hello")
+        ));
+        assert!(Err::<String, _>(NotFoundError)
+            .into_result()
+            .unwrap_err()
+            .is::<NotFoundError>());
+    }
+
+    #[test]
     fn test_error() {
         let err = Error::new(
             IoError::new(ErrorKind::AlreadyExists, "aaa"),

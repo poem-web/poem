@@ -176,10 +176,11 @@ async fn serve_connection(
             let local_addr = local_addr.clone();
             let remote_addr = remote_addr.clone();
             async move {
-                match ep.call((req, local_addr, remote_addr).into()).await {
-                    Ok(resp) => Ok::<http::Response<_>, Infallible>(resp.into()),
-                    Err(err) => Ok(err.as_response().into()),
-                }
+                Ok::<http::Response<_>, Infallible>(
+                    ep.get_response((req, local_addr, remote_addr).into())
+                        .await
+                        .into(),
+                )
             }
         }
     });

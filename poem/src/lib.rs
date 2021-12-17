@@ -4,8 +4,9 @@
 //! # Table of contents
 //!
 //! - [Quickstart](#quickstart)
-//! - [Routing](#routing)
+//! - [Endpoint](#endpoint)
 //! - [Extractors](#extractors)
+//! - [Routing](#routing)
 //! - [Responses](#responses)
 //! - [Handling errors](#handling-errors)
 //! - [Middleware](#middleware)
@@ -30,29 +31,33 @@
 //! }
 //! ```
 //!
-//! # Routing
+//! # Endpoint
 //!
-//! There are three available routes.
+//! The [`Endpoint`] trait represents a type that can handle HTTP requests, and
+//! it returns the `Result<T: IntoResponse, Error>` type.
 //!
-//! - [`Route`] Routing for path
-//! - [`RouteDomain`] Routing for domain
-//! - [`RouteMethod`] Routing for HTTP method
+//! The [`handler`] macro is used to convert a function into an endpoint.
 //!
 //! ```
-//! use poem::{get, handler, post, web::Path, Route};
+//! use poem::{error::NotFoundError, handler, Endpoint, Request, Result};
 //!
 //! #[handler]
-//! async fn get_user(id: Path<String>) {}
+//! fn return_str() -> &'static str {
+//!     "hello"
+//! }
 //!
 //! #[handler]
-//! async fn delete_user(id: Path<String>) {}
+//! fn return_err() -> Result<&'static str, NotFoundError> {
+//!     Err(NotFoundError)
+//! }
 //!
-//! #[handler]
-//! async fn create_user() {}
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
+//! let resp = return_str.call(Request::default()).await.unwrap();
+//! assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
 //!
-//! let app = Route::new()
-//!     .at("/user/:id", get(get_user).delete(delete_user))
-//!     .at("/user", post(create_user));
+//! let err = return_err.call(Request::default()).await.unwrap_err();
+//! assert!(err.is::<NotFoundError>());
+//! # });
 //! ```
 //!
 //! # Extractors
@@ -105,6 +110,31 @@
 //!         Err(err) => Err(err),
 //!     }
 //! }
+//! ```
+//!
+//! # Routing
+//!
+//! There are three available routes.
+//!
+//! - [`Route`] Routing for path
+//! - [`RouteDomain`] Routing for domain
+//! - [`RouteMethod`] Routing for HTTP method
+//!
+//! ```
+//! use poem::{get, handler, post, web::Path, Route};
+//!
+//! #[handler]
+//! async fn get_user(id: Path<String>) {}
+//!
+//! #[handler]
+//! async fn delete_user(id: Path<String>) {}
+//!
+//! #[handler]
+//! async fn create_user() {}
+//!
+//! let app = Route::new()
+//!     .at("/user/:id", get(get_user).delete(delete_user))
+//!     .at("/user", post(create_user));
 //! ```
 //!
 //! You can create custom extractors, see also [`FromRequest`].
