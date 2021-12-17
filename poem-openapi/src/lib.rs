@@ -5,9 +5,11 @@
 //! boilerplate code, so that you only need to focus on the more
 //! important business implementations.
 //!
-//! * [Book](https://poem-web.github.io/poem/)
-//! * [Docs](https://docs.rs/poem-openapi)
-//! * [Cargo package](https://crates.io/crates/poem-openapi)
+//! # Table of contents
+//!
+//! - [Features](#features)
+//! - [Quickstart](#quickstart)
+//! - [Crate features](#crate-features)
 //!
 //! ## Features
 //!
@@ -19,6 +21,70 @@
 //!   used directly.
 //! * **Minimal overhead** All generated code is necessary, and there is almost
 //!   no overhead.
+//!
+//! ## Quickstart
+//!
+//! Cargo.toml
+//!
+//! ```toml
+//! [package]
+//! name = "helloworld"
+//! version = "0.1.0"
+//! edition = "2021"
+//!
+//! [dependencies]
+//! poem = "1.2"
+//! poem-openapi = { version = "1.2", features = ["swagger-ui"] }
+//! tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+//! ```
+//!
+//! main.rs
+//!
+//! ```no_run
+//! use poem::{listener::TcpListener, Route, Server};
+//! use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
+//!
+//! struct Api;
+//!
+//! #[OpenApi]
+//! impl Api {
+//!     /// Hello world
+//!     #[oai(path = "/", method = "get")]
+//!     async fn index(&self) -> PlainText<&'static str> {
+//!         PlainText("Hello World")
+//!     }
+//! }
+//!
+//! let api_service =
+//!     OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000");
+//! let docs = api_service.swagger_ui();
+//! let app = Route::new().nest("/", api_service).nest("/docs", docs);
+//!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
+//! Server::new(TcpListener::bind("127.0.0.1:3000"))
+//!     .run(app)
+//!     .await;
+//! # });
+//! ```
+//!
+//! ## Check it
+//!
+//! Open your browser at [http://127.0.0.1:3000](http://127.0.0.1:3000).
+//!
+//! You will see the plaintext response as:
+//!
+//! ```text
+//! Hello World
+//! ```
+//!
+//! ## Interactive API docs
+//!
+//! Now go to [http://127.0.0.1:3000/docs](http://127.0.0.1:3000/docs).
+//!
+//! You will see the automatic interactive API documentation (provided by
+//! [Swagger UI](https://github.com/swagger-api/swagger-ui)):
+//!
+//! ![swagger-ui](https://raw.githubusercontent.com/poem-web/poem-openapi/master/assets/swagger-ui.jpg)
 //!
 //! ## Crate features
 //!
@@ -34,52 +100,6 @@
 //! | email      | Support for email address string |
 //! | hostname   | Support for hostname string |
 //! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
-//!
-//! ## Example
-//!
-//! ```ignore
-//! use poem::{listener::TcpListener, Route};
-//! use poem_openapi::{param::Query, payload::PlainText, OpenApi, OpenApiService};
-//!
-//! struct Api;
-//!
-//! #[OpenApi]
-//! impl Api {
-//!     #[oai(path = "/hello", method = "get")]
-//!     async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
-//!         match name.0 {
-//!             Some(name) => PlainText(format!("hello, {}!", name)),
-//!             None => PlainText("hello!".to_string()),
-//!         }
-//!     }
-//! }
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), std::io::Error> {
-//!     let api_service =
-//!         OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000/api");
-//!     let ui = api_service.swagger_ui();
-//!     let app = Route::new().nest("/api", api_service).nest("/", ui);
-//!
-//!     poem::Server::new(TcpListener::bind("127.0.0.1:3000"))
-//!         .run(app)
-//!         .await
-//! }
-//! ```
-//!
-//! ## Run example
-//!
-//! Open `http://localhost:3000/ui` in your browser, you will see the `Swagger UI` that contains these API definitions.
-//!
-//! ```shell
-//! > cargo run --example hello_world
-//!
-//! > curl http://localhost:3000
-//! hello!
-//!
-//! > curl http://localhost:3000\?name\=sunli
-//! hello, sunli!
-//! ```
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

@@ -149,7 +149,7 @@ pub trait ApiResponse: Sized {
     /// Register the schema contained in this response object to the registry.
     fn register(registry: &mut Registry);
 
-    /// Convert [`ParseRequestError`] to this response object.
+    /// Convert [`poem::Error`] to this response object.
     #[allow(unused_variables)]
     fn from_parse_request_error(err: Error) -> Self {
         unreachable!()

@@ -148,7 +148,7 @@ impl<T> OpenApiService<T> {
 
     /// Specifies the license information for the exposed API.
     ///
-    /// Reference: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#license-object
+    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#license-object>
     #[must_use]
     pub fn license(mut self, license: impl Into<LicenseObject>) -> Self {
         let license = license.into();
