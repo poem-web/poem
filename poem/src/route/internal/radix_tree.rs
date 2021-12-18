@@ -8,6 +8,13 @@ fn longest_common_prefix(a: &[u8], b: &[u8]) -> usize {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub(crate) enum RadixTreeError {
+    InvalidPath(String),
+    Duplicate(String),
+    InvalidRegex { path: String, regex: String },
+}
+
+#[derive(Debug, Eq, PartialEq)]
 enum RawSegment<'a> {
     Static(&'a [u8]),
     Param(&'a [u8]),
@@ -115,9 +122,6 @@ fn parse_path_segments(path: &[u8]) -> Result<Vec<RawSegment<'_>>, ()> {
         }
     }
 
-    if segments.is_empty() {
-        return Err(());
-    }
     Ok(segments)
 }
 
@@ -433,10 +437,10 @@ impl<T> Default for RadixTree<T> {
 }
 
 impl<T> RadixTree<T> {
-    pub(crate) fn add(&mut self, path: &str, data: T) -> bool {
+    pub(crate) fn add(&mut self, path: &str, data: T) -> Result<(), RadixTreeError> {
         let raw_segments = match parse_path_segments(path.as_bytes()) {
             Ok(raw_segments) => raw_segments,
-            Err(_) => return false,
+            Err(_) => return Err(RadixTreeError::InvalidPath(path.to_string())),
         };
 
         let mut segments = Vec::with_capacity(raw_segments.len());
@@ -449,7 +453,10 @@ impl<T> RadixTree<T> {
                     if let Some(re) = PathRegex::new(re_bytes) {
                         Segment::Regex(name, re)
                     } else {
-                        return false;
+                        return Err(RadixTreeError::InvalidRegex {
+                            path: path.to_string(),
+                            regex: String::from_utf8(re_bytes.to_vec()).unwrap(),
+                        });
                     }
                 }
             };
@@ -457,7 +464,11 @@ impl<T> RadixTree<T> {
         }
         segments.reverse();
 
-        self.root.insert_child(segments, data)
+        if self.root.insert_child(segments, data) {
+            Ok(())
+        } else {
+            Err(RadixTreeError::Duplicate(path.to_string()))
+        }
     }
 
     pub(crate) fn matches(&self, path: &str) -> Option<Matches<T>> {
@@ -501,7 +512,7 @@ mod tests {
             Ok(vec![RawSegment::Static(b"/a/b")])
         );
 
-        assert_eq!(parse_path_segments(b""), Err(()));
+        assert_eq!(parse_path_segments(b""), Ok(vec![]));
 
         assert_eq!(
             parse_path_segments(b"/a/:v/b"),
@@ -559,9 +570,9 @@ mod tests {
     #[test]
     fn test_insert_static_child_1() {
         let mut tree = RadixTree::default();
-        tree.add("/abc", 1);
-        tree.add("/abcdef", 2);
-        tree.add("/abcdefgh", 3);
+        tree.add("/abc", 1).unwrap();
+        tree.add("/abcdef", 2).unwrap();
+        tree.add("/abcdefgh", 3).unwrap();
 
         assert_eq!(
             tree,
@@ -614,10 +625,10 @@ mod tests {
     #[test]
     fn test_insert_static_child_2() {
         let mut tree = RadixTree::default();
-        tree.add("/abcd", 1);
-        tree.add("/ab1234", 2);
-        tree.add("/ab1256", 3);
-        tree.add("/ab125678", 4);
+        tree.add("/abcd", 1).unwrap();
+        tree.add("/ab1234", 2).unwrap();
+        tree.add("/ab1256", 3).unwrap();
+        tree.add("/ab125678", 4).unwrap();
 
         assert_eq!(
             tree,
@@ -706,8 +717,8 @@ mod tests {
     #[test]
     fn test_insert_static_child_3() {
         let mut tree = RadixTree::default();
-        tree.add("/abc", 1);
-        tree.add("/ab", 2);
+        tree.add("/abc", 1).unwrap();
+        tree.add("/ab", 2).unwrap();
         assert_eq!(
             tree,
             RadixTree {
@@ -749,9 +760,9 @@ mod tests {
     #[test]
     fn test_insert_param_child() {
         let mut tree = RadixTree::default();
-        tree.add("/abc/:p1", 1);
-        tree.add("/abc/:p1/p2", 2);
-        tree.add("/abc/:p1/:p3", 3);
+        tree.add("/abc/:p1", 1).unwrap();
+        tree.add("/abc/:p1/p2", 2).unwrap();
+        tree.add("/abc/:p1/:p3", 3).unwrap();
         assert_eq!(
             tree,
             RadixTree {
@@ -823,8 +834,8 @@ mod tests {
     #[test]
     fn test_catch_all_child_1() {
         let mut tree = RadixTree::default();
-        tree.add("/abc/*p1", 1);
-        tree.add("/ab/de", 2);
+        tree.add("/abc/*p1", 1).unwrap();
+        tree.add("/ab/de", 2).unwrap();
         assert_eq!(
             tree,
             RadixTree {
@@ -889,7 +900,7 @@ mod tests {
     #[test]
     fn test_catch_all_child_2() {
         let mut tree = RadixTree::default();
-        tree.add("*p1", 1);
+        tree.add("*p1", 1).unwrap();
         assert_eq!(
             tree,
             RadixTree {
@@ -921,8 +932,8 @@ mod tests {
     #[test]
     fn test_insert_regex_child() {
         let mut tree = RadixTree::default();
-        tree.add("/abc/<\\d+>/def", 1);
-        tree.add("/abc/def/:name<\\d+>", 2);
+        tree.add("/abc/<\\d+>/def", 1).unwrap();
+        tree.add("/abc/def/:name<\\d+>", 2).unwrap();
 
         assert_eq!(
             tree,
@@ -995,17 +1006,17 @@ mod tests {
     #[test]
     fn test_add_result() {
         let mut tree = RadixTree::default();
-        assert!(tree.add("/a/b", 1));
-        assert!(!tree.add("/a/b", 2));
-        assert!(tree.add("/a/b/:p/d", 1));
-        assert!(tree.add("/a/b/c/d", 2));
-        assert!(!tree.add("/a/b/:p2/d", 3));
-        assert!(tree.add("/a/*p", 1));
-        assert!(!tree.add("/a/*p", 2));
-        assert!(tree.add("/a/b/*p", 1));
-        assert!(!tree.add("/a/b/*p2", 2));
-        assert!(tree.add("/k/h/<\\d>+", 1));
-        assert!(!tree.add("/k/h/:name<\\d>+", 2));
+        assert!(tree.add("/a/b", 1).is_ok());
+        assert!(!tree.add("/a/b", 2).is_ok());
+        assert!(tree.add("/a/b/:p/d", 1).is_ok());
+        assert!(tree.add("/a/b/c/d", 2).is_ok());
+        assert!(!tree.add("/a/b/:p2/d", 3).is_ok());
+        assert!(tree.add("/a/*p", 1).is_ok());
+        assert!(!tree.add("/a/*p", 2).is_ok());
+        assert!(tree.add("/a/b/*p", 1).is_ok());
+        assert!(!tree.add("/a/b/*p2", 2).is_ok());
+        assert!(tree.add("/k/h/<\\d>+", 1).is_ok());
+        assert!(!tree.add("/k/h/:name<\\d>+", 2).is_ok());
     }
 
     fn create_url_params<I, K, V>(values: I) -> PathParams
@@ -1038,7 +1049,7 @@ mod tests {
         ];
 
         for (path, id) in paths {
-            tree.add(path, id);
+            tree.add(path, id).unwrap();
         }
 
         let matches = vec![

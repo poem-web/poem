@@ -6,7 +6,7 @@ use crate::{
     endpoint::BoxEndpoint,
     error::NotFoundError,
     http::{uri::PathAndQuery, Uri},
-    route::internal::radix_tree::RadixTree,
+    route::internal::radix_tree::{RadixTree, RadixTreeError},
     Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
@@ -168,18 +168,28 @@ impl Route {
     }
 
     /// Add an [Endpoint] to the specified path.
+    ///
+    /// # Panics
+    ///
+    /// Panic when there are duplicates in the routing table.
     #[must_use]
     pub fn at<E>(mut self, path: impl AsRef<str>, ep: E) -> Self
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        self.tree
-            .add(&normalize_path(path.as_ref()), ep.map_to_response().boxed());
+        check_result(
+            self.tree
+                .add(&normalize_path(path.as_ref()), ep.map_to_response().boxed()),
+        );
         self
     }
 
     /// Nest a `Endpoint` to the specified path and strip the prefix.
+    ///
+    /// # Panics
+    ///
+    /// Panic when there are duplicates in the routing table.
     #[must_use]
     pub fn nest<E>(self, path: impl AsRef<str>, ep: E) -> Self
     where
@@ -190,6 +200,10 @@ impl Route {
     }
 
     /// Nest a `Endpoint` to the specified path, but do not strip the prefix.
+    ///
+    /// # Panics
+    ///
+    /// Panic when there are duplicates in the routing table.
     #[must_use]
     pub fn nest_no_strip<E>(self, path: impl AsRef<str>, ep: E) -> Self
     where
@@ -254,22 +268,24 @@ impl Route {
             false => 0,
             true => path.len() - 1,
         };
-        self.tree.add(
+
+        check_result(self.tree.add(
             &format!("{}*--poem-rest", path),
             Box::new(Nest {
                 inner: ep.clone(),
                 root: false,
                 prefix_len,
             }),
-        );
-        self.tree.add(
+        ));
+
+        check_result(self.tree.add(
             &path[..path.len() - 1],
             Box::new(Nest {
                 inner: ep,
                 root: true,
                 prefix_len,
             }),
-        );
+        ));
 
         self
     }
@@ -298,6 +314,17 @@ fn normalize_path(path: &str) -> String {
     }
 
     path
+}
+
+fn check_result(res: Result<(), RadixTreeError>) {
+    match res {
+        Ok(()) => {}
+        Err(RadixTreeError::InvalidPath(path)) => panic!("invalid path: {}", path),
+        Err(RadixTreeError::Duplicate(path)) => panic!("duplicate path: {}", path),
+        Err(RadixTreeError::InvalidRegex { path, regex }) => {
+            panic!("invalid regex in path: {} `{}`", path, regex)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -410,5 +437,35 @@ mod tests {
         );
         assert_eq!(get(&r, "/a").await, "/");
         assert_eq!(get(&r, "/a?a=1").await, "/?a=1");
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_1() {
+        let _ = Route::new().at("/", h).at("/", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_2() {
+        let _ = Route::new().at("/a", h).nest("/a", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_3() {
+        let _ = Route::new().nest("/a", h).nest("/a", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_4() {
+        let _ = Route::new().at("/a/:a", h).at("/a/:b", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_5() {
+        let _ = Route::new().at("/a/*:v", h).at("/a/*", h);
     }
 }
