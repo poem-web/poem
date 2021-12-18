@@ -181,8 +181,9 @@ impl Validators {
                     };
 
                     if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER {
-                        let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(std::convert::Into::into(err));
-                        return ::std::result::Result::Ok(#crate_name::__private::poem::IntoResponse::into_response(resp));
+                        let res = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(std::convert::Into::into(err));
+                        let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                        return ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response);
                     } else {
                         return ::std::result::Result::Err(std::convert::Into::into(err));
                     }
@@ -200,8 +201,9 @@ impl Validators {
                     };
 
                     if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER {
-                        let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(std::convert::Into::into(err));
-                        return ::std::result::Result::Ok(#crate_name::__private::poem::IntoResponse::into_response(resp));
+                        let res = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(std::convert::Into::into(err));
+                        let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                        return ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response);
                     } else {
                         return ::std::result::Result::Err(std::convert::Into::into(err));
                     }

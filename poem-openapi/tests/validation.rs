@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use poem::{
     http::{StatusCode, Uri},
-    Endpoint, IntoEndpoint, Request,
+    Endpoint, IntoEndpoint, Request, Result,
 };
 use poem_openapi::{
     param::Query,
@@ -274,14 +274,22 @@ async fn param_validator() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(
+        async fn test1(
             &self,
             #[oai(name = "v", validator(maximum(value = "100", exclusive)))] _v: Query<i32>,
         ) {
         }
+
+        #[oai(path = "/test2", method = "get")]
+        async fn test2(
+            &self,
+            #[oai(name = "v", validator(maximum(value = "100", exclusive)))] _v: Query<i32>,
+        ) -> Result<()> {
+            Ok(())
+        }
     }
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let api = OpenApiService::new(Api, "test1", "1.0").into_endpoint();
     let err = api
         .call(Request::builder().uri(Uri::from_static("/?v=999")).finish())
         .await
@@ -310,6 +318,30 @@ async fn param_validator() {
 
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/?v=50")).finish())
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let err = api
+        .call(
+            Request::builder()
+                .uri(Uri::from_static("/test2?v=101"))
+                .finish(),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        err.to_string(),
+        "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
+    );
+
+    let resp = api
+        .call(
+            Request::builder()
+                .uri(Uri::from_static("/test2?v=50"))
+                .finish(),
+        )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);

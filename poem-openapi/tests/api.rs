@@ -1,7 +1,7 @@
 use poem::{
     http::{Method, StatusCode, Uri},
     web::Data,
-    Endpoint, EndpointExt, Error, IntoEndpoint,
+    Endpoint, EndpointExt, Error, IntoEndpoint, Result,
 };
 use poem_openapi::{
     param::Query,
@@ -457,7 +457,8 @@ async fn bad_request_handler() {
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        r#"!!! failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#
+        r#"!!! failed to parse parameter `code`: Type "integer(uint16)"
+expects an input value."#
     );
 }
 
@@ -519,7 +520,8 @@ async fn bad_request_handler_for_validator() {
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        r#"!!! failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#
+        r#"!!! failed to parse parameter `code`: verification failed.
+maximum(100, exclusive: false)"#
     );
 }
 
