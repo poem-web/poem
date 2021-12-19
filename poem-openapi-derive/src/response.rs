@@ -31,6 +31,8 @@ struct ResponseItem {
 
     #[darling(default)]
     status: Option<u16>,
+    #[darling(default)]
+    content_type: Option<String>,
 }
 
 #[derive(FromDeriveInput)]
@@ -96,16 +98,38 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             });
         }
 
+        fn update_content(
+            crate_name: &TokenStream,
+            content_type: Option<&str>,
+            payload_ty: &Type,
+        ) -> (TokenStream, TokenStream) {
+            let content_type_value = match content_type {
+                Some(content_type) => quote!(#content_type),
+                None => quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
+            };
+            let update_content_type = match content_type {
+                Some(content_type) => quote! {
+                    resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
+                        #crate_name::__private::poem::http::HeaderValue::from_static(#content_type));
+                },
+                None => quote!(),
+            };
+            (content_type_value, update_content_type)
+        }
+
         match values.len() {
             2 => {
                 // #[oai(default)]
                 // Item(StatusCode, payload)
                 let payload_ty = &values[1].ty;
+                let (content_type, update_content_type) =
+                    update_content(&crate_name, variant.content_type.as_deref(), payload_ty);
                 into_responses.push(quote! {
                     #ident::#item_ident(status, payload, #(#match_headers),*) => {
                         let mut resp = #crate_name::__private::poem::IntoResponse::into_response(payload);
                         resp.set_status(status);
                         #(#with_headers)*
+                        #update_content_type
                         resp
                     }
                 });
@@ -114,7 +138,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::None,
                         content: ::std::vec![#crate_name::registry::MetaMediaType {
-                            content_type: <#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE,
+                            content_type: #content_type,
                             schema: <#payload_ty as #crate_name::payload::Payload>::schema_ref(),
                         }],
                         headers: ::std::vec![#(#meta_headers),*],
@@ -126,12 +150,15 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 // #[oai(status = 200)]
                 // Item(payload)
                 let payload_ty = &values[0].ty;
+                let (content_type, update_content_type) =
+                    update_content(&crate_name, variant.content_type.as_deref(), payload_ty);
                 let status = get_status(variant.ident.span(), variant.status)?;
                 into_responses.push(quote! {
                     #ident::#item_ident(payload, #(#match_headers),*) => {
                         let mut resp = #crate_name::__private::poem::IntoResponse::into_response(payload);
                         resp.set_status(#crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap());
                         #(#with_headers)*
+                        #update_content_type
                         resp
                     }
                 });
@@ -140,7 +167,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
                         content: ::std::vec![#crate_name::registry::MetaMediaType {
-                            content_type: <#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE,
+                            content_type: #content_type,
                             schema: <#payload_ty as #crate_name::payload::Payload>::schema_ref(),
                         }],
                         headers: ::std::vec![#(#meta_headers),*],
@@ -148,34 +175,17 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 });
                 schemas.push(payload_ty);
             }
-            0 if headers.is_empty() => {
-                // #[oai(status = 200)]
-                // Item
-                let status = get_status(variant.ident.span(), variant.status)?;
-                into_responses.push(quote! {
-                    #ident::#item_ident => {
-                        let status = #crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap();
-                        #[allow(unused_mut)]
-                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(status);
-                        #(#with_headers)*
-                        resp
-                    }
-                });
-                responses_meta.push(quote! {
-                    #crate_name::registry::MetaResponse {
-                        description: #item_description.unwrap_or_default(),
-                        status: ::std::option::Option::Some(#status),
-                        content: ::std::vec![],
-                        headers: ::std::vec![#(#meta_headers),*],
-                    }
-                });
-            }
             0 => {
                 // #[oai(status = 200)]
                 // Item
                 let status = get_status(variant.ident.span(), variant.status)?;
+                let item = if !headers.is_empty() {
+                    quote!(#ident::#item_ident(#(#match_headers),*))
+                } else {
+                    quote!(#ident::#item_ident)
+                };
                 into_responses.push(quote! {
-                    #ident::#item_ident(#(#match_headers),*) => {
+                    #item => {
                         let status = #crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap();
                         #[allow(unused_mut)]
                         let mut resp = #crate_name::__private::poem::IntoResponse::into_response(status);

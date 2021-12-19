@@ -260,3 +260,60 @@ async fn generic() {
         serde_json::json!("success")
     );
 }
+
+#[tokio::test]
+async fn item_content_type() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    pub enum Resp {
+        #[oai(status = 200, content_type = "application/json2")]
+        A(Json<i32>),
+        #[oai(content_type = "application/json3")]
+        B(StatusCode, Json<i32>),
+    }
+
+    assert_eq!(
+        Resp::meta(),
+        MetaResponses {
+            responses: vec![
+                MetaResponse {
+                    description: "",
+                    status: Some(200),
+                    content: vec![MetaMediaType {
+                        content_type: "application/json2",
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
+                            "integer", "int32"
+                        )))
+                    }],
+                    headers: vec![]
+                },
+                MetaResponse {
+                    description: "",
+                    status: None,
+                    content: vec![MetaMediaType {
+                        content_type: "application/json3",
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
+                            "integer", "int32"
+                        )))
+                    }],
+                    headers: vec![]
+                }
+            ],
+        },
+    );
+
+    let mut resp = Resp::A(Json(100)).into_response();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.content_type(), Some("application/json2"));
+    assert_eq!(
+        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::json!(100)
+    );
+
+    let mut resp = Resp::B(StatusCode::BAD_GATEWAY, Json(200)).into_response();
+    assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+    assert_eq!(resp.content_type(), Some("application/json3"));
+    assert_eq!(
+        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::json!(200)
+    );
+}

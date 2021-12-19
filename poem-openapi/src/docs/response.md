@@ -8,9 +8,10 @@ Define a OpenAPI response.
 
 # Item parameters
 
-| Attribute | description                                                  | Type | Optional |
-|-----------|--------------------------------------------------------------|------|----------|
-| status    | HTTP status code. If omitted, it is a default response type. | u16  | Y        |
+| Attribute    | description                                                  | Type   | Optional |
+|--------------|--------------------------------------------------------------|--------|----------|
+| status       | HTTP status code. If omitted, it is a default response type. | u16    | Y        |
+| content_type | Specify the content type.                                    | string | Y        |
 
 # Header parameters
 

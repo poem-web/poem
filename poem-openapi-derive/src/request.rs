@@ -19,6 +19,9 @@ use crate::{
 struct RequestItem {
     ident: Ident,
     fields: Fields<Type>,
+
+    #[darling(default)]
+    content_type: Option<String>,
 }
 
 #[derive(FromDeriveInput)]
@@ -69,8 +72,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             1 => {
                 // Item(payload)
                 let payload_ty = &variant.fields.fields[0];
+                let content_type = match &variant.content_type {
+                    Some(content_type) => quote!(#content_type),
+                    None => quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
+                };
                 from_requests.push(quote! {
-                    ::std::option::Option::Some(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE) => {
+                    ::std::option::Option::Some(#content_type) => {
                         ::std::result::Result::Ok(#ident::#item_ident(
                             <#payload_ty as #crate_name::payload::ParsePayload>::from_request(request, body).await?
                         ))
@@ -78,7 +85,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 });
                 content.push(quote! {
                     #crate_name::registry::MetaMediaType {
-                        content_type: <#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE,
+                        content_type: #content_type,
                         schema: <#payload_ty as #crate_name::payload::Payload>::schema_ref(),
                     }
                 });

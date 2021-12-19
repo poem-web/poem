@@ -1,5 +1,11 @@
 Define a OpenAPI request.
 
+# Item parameters
+
+| Attribute    | description               | Type   | Optional |
+|--------------|---------------------------|--------|----------|
+| content_type | Specify the content type. | string | Y        |
+
 # Examples
 
 ```rust

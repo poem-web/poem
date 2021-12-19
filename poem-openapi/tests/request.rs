@@ -106,3 +106,37 @@ async fn generic() {
         MyRequest::CreateByJson(Json("hello".to_string()))
     );
 }
+
+#[tokio::test]
+async fn item_content_type() {
+    #[derive(Debug, ApiRequest, Eq, PartialEq)]
+    enum Req {
+        #[oai(content_type = "application/json2")]
+        Create(Json<i32>),
+    }
+
+    assert_eq!(
+        Req::request_meta().unwrap(),
+        MetaRequest {
+            description: None,
+            content: vec![MetaMediaType {
+                content_type: "application/json2",
+                schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
+                    "integer", "int32"
+                ))),
+            },],
+            required: true
+        }
+    );
+
+    let request = poem::Request::builder()
+        .content_type("application/json2")
+        .body("100".to_string());
+    let (request, mut body) = request.split();
+    assert_eq!(
+        Req::from_request(&request, &mut body, Default::default())
+            .await
+            .unwrap(),
+        Req::Create(Json(100))
+    );
+}
