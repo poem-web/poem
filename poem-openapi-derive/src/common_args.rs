@@ -70,7 +70,7 @@ impl FromMeta for PathList {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromMeta)]
+#[derive(Debug, Copy, Clone, FromMeta, Eq, PartialEq, Hash)]
 #[darling(rename_all = "lowercase")]
 pub(crate) enum APIMethod {
     Get,

@@ -30,7 +30,7 @@ struct APIArgs {
 #[derive(FromMeta)]
 struct APIOperation {
     path: SpannedValue<String>,
-    method: APIMethod,
+    method: SpannedValue<APIMethod>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default, multiple, rename = "tag")]
@@ -59,7 +59,7 @@ struct APIOperationParam {
 }
 
 struct Context {
-    add_routes: IndexMap<String, Vec<TokenStream>>,
+    add_routes: IndexMap<String, IndexMap<APIMethod, TokenStream>>,
     operations: IndexMap<String, Vec<TokenStream>>,
     register_items: Vec<TokenStream>,
 }
@@ -119,6 +119,7 @@ pub(crate) fn generate(
         let mut routes = Vec::new();
 
         for (path, add_route) in add_routes {
+            let add_route = add_route.values();
             routes.push(quote! {
                 at(#path, #crate_name::__private::poem::RouteMethod::new()#(.#add_route)*)
             });
@@ -351,7 +352,7 @@ fn generate_operation(
         }
     });
 
-    ctx.add_routes.entry(new_path).or_default().push(quote! {
+    if ctx.add_routes.entry(new_path).or_default().insert(*method, quote! {
         method(#crate_name::__private::poem::http::Method::#http_method, {
             let api_obj = ::std::clone::Clone::clone(&api_obj);
             let ep = #crate_name::__private::poem::endpoint::make(move |request| {
@@ -367,7 +368,9 @@ fn generate_operation(
             #transform
             ep
         })
-    });
+    }).is_some() {
+        return Err(Error::new(method.span(), "duplicate method").into());
+    }
 
     let mut tag_names = Vec::new();
     for tag in tags {
