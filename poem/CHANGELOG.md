@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Panic when there are duplicates in the routing table. [#126](https://github.com/poem-web/poem/issues/126)
+- Add error messages to the tracing middleware.
 
 # [1.2.4] 2021-12-17
 
