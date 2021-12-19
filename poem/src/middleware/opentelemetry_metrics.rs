@@ -3,14 +3,10 @@ use std::time::Instant;
 use libopentelemetry::{
     global,
     metrics::{Counter, Unit, ValueRecorder},
-    Key,
 };
+use opentelemetry_semantic_conventions::trace;
 
 use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
-
-const METHOD_KEY: Key = Key::from_static_str("request_method");
-const PATH_KEY: Key = Key::from_static_str("request_path");
-const STATUS_KEY: Key = Key::from_static_str("response_status_code");
 
 /// Middleware for metrics with OpenTelemetry.
 #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
@@ -78,22 +74,27 @@ impl<E: Endpoint> Endpoint for OpenTelemetryMetricsEndpoint<E> {
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
         let mut labels = Vec::with_capacity(3);
-        labels.push(METHOD_KEY.string(req.method().to_string()));
-        labels.push(PATH_KEY.string(req.uri().path().to_string()));
+        labels.push(trace::HTTP_METHOD.string(req.method().to_string()));
+        labels.push(trace::HTTP_TARGET.string(req.uri().path().to_string()));
 
         let s = Instant::now();
-        let resp = self.inner.call(req).await?.into_response();
+        let res = self.inner.call(req).await.map(IntoResponse::into_response);
         let elapsed = s.elapsed();
 
-        labels.push(STATUS_KEY.i64(resp.status().as_u16() as i64));
-
-        if resp.status().is_server_error() {
-            self.error_count.add(1, &labels)
+        match &res {
+            Ok(resp) => {
+                labels.push(trace::HTTP_STATUS_CODE.i64(resp.status().as_u16() as i64));
+            }
+            Err(err) => {
+                self.error_count.add(1, &labels);
+                labels.push(trace::EXCEPTION_MESSAGE.string(err.to_string()));
+            }
         }
+
         self.request_count.add(1, &labels);
         self.duration
             .record(elapsed.as_secs_f64() / 1000.0, &labels);
 
-        Ok(resp)
+        res
     }
 }

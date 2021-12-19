@@ -38,19 +38,31 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
 
         async move {
             let now = SystemTime::now();
-            let resp = self.inner.call(req).await?.into_response();
-            match now.elapsed() {
-                Ok(duration) => tracing::info!(
-                    status = %resp.status(),
-                    duration = ?duration,
-                    "response"
-                ),
-                Err(_) => tracing::info!(
-                    status = %resp.status(),
-                    "response"
-                ),
+            let res = self.inner.call(req).await;
+
+            match (res, now.elapsed()) {
+                (Ok(resp), Ok(duration)) => {
+                    let resp = resp.into_response();
+                    tracing::info!(
+                        status = %resp.status(),
+                        duration = ?duration,
+                        "response"
+                    );
+                    Ok(resp)
+                }
+                (Ok(resp), Err(_)) => {
+                    let resp = resp.into_response();
+                    tracing::info!(
+                        status = %resp.status(),
+                        "response"
+                    );
+                    Ok(resp)
+                }
+                (Err(err), _) => {
+                    tracing::info!(error = %err, "error");
+                    Err(err)
+                }
             }
-            Ok(resp)
         }
         .instrument(span)
         .await
