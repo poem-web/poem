@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
     middleware::CookieJarManager,
@@ -244,6 +246,22 @@ impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
             Some(key) => CookieJarManager::with_key(key),
             None => CookieJarManager::new(),
         };
+
+        // check duplicate operation id
+        let mut operation_ids = HashSet::new();
+        for operation in T::meta()
+            .into_iter()
+            .map(|api| api.paths.into_iter())
+            .flatten()
+            .map(|path| path.operations.into_iter())
+            .flatten()
+        {
+            if let Some(operation_id) = operation.operation_id {
+                if !operation_ids.insert(operation_id) {
+                    panic!("duplicate operation id: {}", operation_id);
+                }
+            }
+        }
 
         self.api
             .add_routes(Route::new())

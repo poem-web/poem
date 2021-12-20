@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Added the `content_type` attribute to the `ApiRequest` and `ApiResponse` macros to specify the content type of the request or response.
+- Panic occurs when a duplicate operation id is detected.
 
 # [1.2.7] 2021-12-19
 
