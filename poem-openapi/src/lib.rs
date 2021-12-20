@@ -128,7 +128,7 @@ mod ui;
 
 pub use base::{
     ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
-    OpenApi, Tags,
+    OpenApi, Tags, Webhook,
 };
 pub use openapi::{ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
@@ -151,6 +151,8 @@ pub use poem_openapi_derive::OpenApi;
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]
 pub use poem_openapi_derive::Tags;
+#[doc = include_str!("docs/webhook.md")]
+pub use poem_openapi_derive::Webhook;
 
 #[doc(hidden)]
 pub mod __private {

@@ -429,6 +429,13 @@ fn serialize_headers<S: Serializer>(
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MetaWebhook {
+    pub name: &'static str,
+    pub operation: MetaOperation,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaOperation {
     #[serde(skip)]
     pub method: Method,

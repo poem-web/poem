@@ -325,14 +325,14 @@ fn generate_operation(
             }
         });
 
-        // request object
+        // request object meta
         request_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::RequestObject {
                 request = <#arg_ty as #crate_name::ApiExtractor>::request_meta();
             }
         });
 
-        // security
+        // security meta
         let scopes = &operation_param.scopes;
         security.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::SecurityScheme {

@@ -4,7 +4,7 @@ use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
 use crate::registry::{
     MetaApi, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse, MetaResponses, MetaSchemaRef,
-    Registry,
+    MetaWebhook, Registry,
 };
 
 /// API extractor types.
@@ -318,6 +318,35 @@ pub trait OpenApi: Sized {
     fn combine<T: OpenApi>(self, other: T) -> CombinedAPI<Self, T> {
         CombinedAPI(self, other)
     }
+}
+
+impl OpenApi for () {
+    fn meta() -> Vec<MetaApi> {
+        vec![]
+    }
+
+    fn register(_registry: &mut Registry) {}
+
+    fn add_routes(self, route: Route) -> Route {
+        route
+    }
+}
+
+/// Represents a webhook object.
+pub trait Webhook: Sized {
+    /// Gets metadata of this webhooks object.
+    fn meta() -> Vec<MetaWebhook>;
+
+    /// Register some types to the registry.
+    fn register(registry: &mut Registry);
+}
+
+impl Webhook for () {
+    fn meta() -> Vec<MetaWebhook> {
+        vec![]
+    }
+
+    fn register(_: &mut Registry) {}
 }
 
 /// API for the [`combine`](crate::OpenApi::combine) method.

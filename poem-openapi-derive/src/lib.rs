@@ -21,9 +21,10 @@ mod response;
 mod security_scheme;
 mod tags;
 mod utils;
+mod webhook;
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemImpl};
+use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemImpl, ItemTrait};
 
 #[proc_macro_derive(Object, attributes(oai))]
 pub fn derive_object(input: TokenStream) -> TokenStream {
@@ -112,6 +113,17 @@ pub fn derive_oauth_scopes(input: TokenStream) -> TokenStream {
 pub fn derive_security_scheme(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
     match security_scheme::generate(args) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Webhook(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let item_trait = parse_macro_input!(input as ItemTrait);
+    match webhook::generate(args, item_trait) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

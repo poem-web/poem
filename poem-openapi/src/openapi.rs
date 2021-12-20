@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, marker::PhantomData};
 
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
@@ -10,7 +10,7 @@ use poem::{
 use crate::{
     base::UrlQuery,
     registry::{Document, MetaExternalDocument, MetaInfo, MetaLicense, MetaServer, Registry},
-    OpenApi,
+    OpenApi, Webhook,
 };
 
 /// An object representing a Server.
@@ -35,7 +35,7 @@ impl ServerObject {
         }
     }
 
-    /// Specifies an string describing the host designated by the URL.
+    /// Sets an string describing the host designated by the URL.
     pub fn description(self, description: impl Into<String>) -> Self {
         Self {
             description: Some(description.into()),
@@ -67,7 +67,7 @@ impl LicenseObject {
         }
     }
 
-    /// Specifies an [`SPDX`](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60) license expression for the API.
+    /// Sets an [`SPDX`](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60) license expression for the API.
     pub fn identifier(self, identifier: impl Into<String>) -> Self {
         Self {
             identifier: Some(identifier.into()),
@@ -75,7 +75,7 @@ impl LicenseObject {
         }
     }
 
-    /// Specifies a URL to the license used for the API.
+    /// Sets a URL to the license used for the API.
     pub fn url(self, url: impl Into<String>) -> Self {
         Self {
             url: Some(url.into()),
@@ -106,7 +106,7 @@ impl ExternalDocumentObject {
         }
     }
 
-    /// Specifies a description of the target documentation..
+    /// Sets a description of the target documentation..
     pub fn description(self, description: impl Into<String>) -> Self {
         Self {
             description: Some(description.into()),
@@ -116,20 +116,22 @@ impl ExternalDocumentObject {
 }
 
 /// An OpenAPI service for Poem.
-pub struct OpenApiService<T> {
+pub struct OpenApiService<T, W: ?Sized> {
     api: T,
+    _webhook: PhantomData<W>,
     info: MetaInfo,
     external_document: Option<MetaExternalDocument>,
     servers: Vec<MetaServer>,
     cookie_key: Option<CookieKey>,
 }
 
-impl<T> OpenApiService<T> {
+impl<T> OpenApiService<T, ()> {
     /// Create an OpenAPI container.
     #[must_use]
     pub fn new(api: T, title: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
             api,
+            _webhook: PhantomData,
             info: MetaInfo {
                 title: title.into(),
                 description: None,
@@ -140,6 +142,20 @@ impl<T> OpenApiService<T> {
             external_document: None,
             servers: Vec::new(),
             cookie_key: None,
+        }
+    }
+}
+
+impl<T, W: ?Sized> OpenApiService<T, W> {
+    /// Sets the webhooks.
+    pub fn webhooks<W2: ?Sized>(self) -> OpenApiService<T, W2> {
+        OpenApiService {
+            api: self.api,
+            _webhook: PhantomData,
+            info: self.info,
+            external_document: self.external_document,
+            servers: self.servers,
+            cookie_key: self.cookie_key,
         }
     }
 
@@ -169,7 +185,7 @@ impl<T> OpenApiService<T> {
         self
     }
 
-    /// Specifies the license information for the exposed API.
+    /// Sets the license information for the exposed API.
     ///
     /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#license-object>
     #[must_use]
@@ -213,6 +229,7 @@ impl<T> OpenApiService<T> {
     pub fn swagger_ui(&self) -> impl Endpoint
     where
         T: OpenApi,
+        W: Webhook,
     {
         crate::ui::swagger_ui::create_endpoint(&self.spec())
     }
@@ -223,6 +240,7 @@ impl<T> OpenApiService<T> {
     pub fn rapidoc(&self) -> impl Endpoint
     where
         T: OpenApi,
+        W: Webhook,
     {
         crate::ui::rapidoc::create_endpoint(&self.spec())
     }
@@ -233,6 +251,7 @@ impl<T> OpenApiService<T> {
     pub fn redoc(&self) -> impl Endpoint
     where
         T: OpenApi,
+        W: Webhook,
     {
         crate::ui::redoc::create_endpoint(&self.spec())
     }
@@ -241,6 +260,7 @@ impl<T> OpenApiService<T> {
     pub fn spec_endpoint(&self) -> impl Endpoint
     where
         T: OpenApi,
+        W: Webhook,
     {
         let spec = self.spec();
         make_sync(move |_| {
@@ -254,15 +274,20 @@ impl<T> OpenApiService<T> {
     pub fn spec(&self) -> String
     where
         T: OpenApi,
+        W: Webhook,
     {
         let mut registry = Registry::new();
         let metadata = T::meta();
         T::register(&mut registry);
+        W::register(&mut registry);
+
+        let webhooks = W::meta();
 
         let doc = Document {
             info: &self.info,
             servers: &self.servers,
             apis: &metadata,
+            webhooks: &webhooks,
             registry: &registry,
             external_document: self.external_document.as_ref(),
         };
@@ -270,7 +295,7 @@ impl<T> OpenApiService<T> {
     }
 }
 
-impl<T: OpenApi> IntoEndpoint for OpenApiService<T> {
+impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
     type Endpoint = BoxEndpoint<'static, Response>;
 
     fn into_endpoint(self) -> Self::Endpoint {
