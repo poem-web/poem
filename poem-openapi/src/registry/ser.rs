@@ -6,8 +6,8 @@ use serde::{
 };
 
 use crate::registry::{
-    MetaApi, MetaInfo, MetaPath, MetaResponses, MetaSchema, MetaSchemaRef, MetaSecurityScheme,
-    MetaServer, Registry,
+    MetaApi, MetaExternalDocument, MetaInfo, MetaPath, MetaResponses, MetaSchema, MetaSchemaRef,
+    MetaSecurityScheme, MetaServer, Registry,
 };
 
 const OPENAPI_VERSION: &str = "3.0.0";
@@ -69,6 +69,7 @@ pub(crate) struct Document<'a> {
     pub(crate) servers: &'a [MetaServer],
     pub(crate) apis: &'a [MetaApi],
     pub(crate) registry: &'a Registry,
+    pub(crate) external_document: Option<&'a MetaExternalDocument>,
 }
 
 impl<'a> Serialize for Document<'a> {
@@ -95,6 +96,7 @@ impl<'a> Serialize for Document<'a> {
                 security_schemes: &self.registry.security_schemes,
             },
         )?;
+        s.serialize_field("externalDocs", &self.external_document)?;
 
         s.end()
     }

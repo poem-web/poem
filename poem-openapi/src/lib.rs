@@ -130,7 +130,7 @@ pub use base::{
     ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
     OpenApi, Tags,
 };
-pub use openapi::{LicenseObject, OpenApiService, ServerObject};
+pub use openapi::{ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;
 #[doc = include_str!("docs/response.md")]

@@ -9,7 +9,7 @@ use poem::{
 
 use crate::{
     base::UrlQuery,
-    registry::{Document, MetaInfo, MetaLicense, MetaServer, Registry},
+    registry::{Document, MetaExternalDocument, MetaInfo, MetaLicense, MetaServer, Registry},
     OpenApi,
 };
 
@@ -20,21 +20,9 @@ pub struct ServerObject {
     description: Option<String>,
 }
 
-impl From<String> for ServerObject {
-    fn from(url: String) -> Self {
+impl<T: Into<String>> From<T> for ServerObject {
+    fn from(url: T) -> Self {
         Self::new(url)
-    }
-}
-
-impl From<&str> for ServerObject {
-    fn from(url: &str) -> Self {
-        Self::new(url.to_string())
-    }
-}
-
-impl From<&str> for LicenseObject {
-    fn from(name: &str) -> Self {
-        Self::new(name.to_string())
     }
 }
 
@@ -63,9 +51,9 @@ pub struct LicenseObject {
     url: Option<String>,
 }
 
-impl From<String> for LicenseObject {
-    fn from(name: String) -> Self {
-        Self::new(name)
+impl<T: Into<String>> From<T> for LicenseObject {
+    fn from(url: T) -> Self {
+        Self::new(url)
     }
 }
 
@@ -96,10 +84,42 @@ impl LicenseObject {
     }
 }
 
+/// An object representing a external document.
+#[derive(Debug, Clone)]
+pub struct ExternalDocumentObject {
+    url: String,
+    description: Option<String>,
+}
+
+impl<T: Into<String>> From<T> for ExternalDocumentObject {
+    fn from(url: T) -> Self {
+        Self::new(url)
+    }
+}
+
+impl ExternalDocumentObject {
+    /// Create a external document object by url.
+    pub fn new(url: impl Into<String>) -> ExternalDocumentObject {
+        Self {
+            url: url.into(),
+            description: None,
+        }
+    }
+
+    /// Specifies a description of the target documentation..
+    pub fn description(self, description: impl Into<String>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
+        }
+    }
+}
+
 /// An OpenAPI service for Poem.
 pub struct OpenApiService<T> {
     api: T,
     info: MetaInfo,
+    external_document: Option<MetaExternalDocument>,
     servers: Vec<MetaServer>,
     cookie_key: Option<CookieKey>,
 }
@@ -117,6 +137,7 @@ impl<T> OpenApiService<T> {
                 terms_of_service: None,
                 license: None,
             },
+            external_document: None,
             servers: Vec::new(),
             cookie_key: None,
         }
@@ -158,6 +179,22 @@ impl<T> OpenApiService<T> {
             name: license.name,
             identifier: license.identifier,
             url: license.url,
+        });
+        self
+    }
+
+    /// Add a external document object.
+    ///
+    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#external-documentation-object>
+    #[must_use]
+    pub fn external_document(
+        mut self,
+        external_document: impl Into<ExternalDocumentObject>,
+    ) -> Self {
+        let external_document = external_document.into();
+        self.external_document = Some(MetaExternalDocument {
+            url: external_document.url,
+            description: external_document.description,
         });
         self
     }
@@ -227,6 +264,7 @@ impl<T> OpenApiService<T> {
             servers: &self.servers,
             apis: &metadata,
             registry: &registry,
+            external_document: self.external_document.as_ref(),
         };
         serde_json::to_string_pretty(&doc).unwrap()
     }
