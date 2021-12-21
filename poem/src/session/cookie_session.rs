@@ -94,18 +94,18 @@ mod tests {
         client.assert_cookies(vec![]);
 
         client.call(&app, 1).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","b":"20"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"b":20}"#)]);
 
         client.call(&app, 2).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","b":"20","c":"30"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"b":20,"c":30}"#)]);
 
         client.call(&app, 7).await;
 
         client.call(&app, 6).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","b":"20","c":"30"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"b":20,"c":30}"#)]);
 
         client.call(&app, 3).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","c":"30"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"c":30}"#)]);
 
         client.call(&app, 4).await;
         client.assert_cookies(vec![("poem-session", r#"{}"#)]);
