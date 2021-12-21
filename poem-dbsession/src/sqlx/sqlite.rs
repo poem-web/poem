@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, time::Duration};
 
 use chrono::Utc;
 use poem::{error::InternalServerError, session::SessionStorage, Result};
+use serde_json::Value;
 use sqlx::{sqlite::SqliteStatement, types::Json, Executor, SqlitePool, Statement};
 
 use crate::DatabaseConfig;
@@ -102,9 +103,9 @@ impl SqliteSessionStorage {
 
 #[poem::async_trait]
 impl SessionStorage for SqliteSessionStorage {
-    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, String>>> {
+    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
         let mut conn = self.pool.acquire().await.map_err(InternalServerError)?;
-        let res: Option<(Json<BTreeMap<String, String>>,)> = self
+        let res: Option<(Json<BTreeMap<String, Value>>,)> = self
             .load_stmt
             .query_as()
             .bind(session_id)
@@ -118,7 +119,7 @@ impl SessionStorage for SqliteSessionStorage {
     async fn update_session(
         &self,
         session_id: &str,
-        entries: &BTreeMap<String, String>,
+        entries: &BTreeMap<String, Value>,
         expires: Option<Duration>,
     ) -> Result<()> {
         let mut conn = self.pool.acquire().await.map_err(InternalServerError)?;

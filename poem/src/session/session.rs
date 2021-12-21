@@ -6,6 +6,7 @@ use std::{
 
 use parking_lot::RwLock;
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
 
 use crate::{FromRequest, Request, RequestBody, Result};
 
@@ -27,7 +28,7 @@ pub enum SessionStatus {
 
 struct SessionInner {
     status: SessionStatus,
-    entries: BTreeMap<String, String>,
+    entries: BTreeMap<String, Value>,
 }
 
 /// Session
@@ -56,7 +57,7 @@ impl Session {
     /// Creates a new session instance.
     ///
     /// The default status is [`SessionStatus::Unchanged`].
-    pub(crate) fn new(entries: BTreeMap<String, String>) -> Self {
+    pub(crate) fn new(entries: BTreeMap<String, Value>) -> Self {
         Self {
             inner: Arc::new(RwLock::new(SessionInner {
                 status: SessionStatus::Unchanged,
@@ -71,7 +72,7 @@ impl Session {
         inner
             .entries
             .get(name)
-            .and_then(|value| serde_json::from_str(value).ok())
+            .and_then(|value| serde_json::from_value(value.clone()).ok())
     }
 
     /// Sets a key-value pair into the session.
@@ -79,7 +80,7 @@ impl Session {
         let mut inner = self.inner.write();
 
         if inner.status != SessionStatus::Purged {
-            if let Ok(value) = serde_json::to_string(&value) {
+            if let Ok(value) = serde_json::to_value(&value) {
                 inner.entries.insert(name.to_string(), value);
                 inner.status = SessionStatus::Changed;
             }
@@ -103,7 +104,7 @@ impl Session {
     }
 
     /// Get all raw key-value data from the session
-    pub fn entries(&self) -> BTreeMap<String, String> {
+    pub fn entries(&self) -> BTreeMap<String, Value> {
         let inner = self.inner.read();
         inner.entries.clone()
     }

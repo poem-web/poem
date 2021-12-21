@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use serde_json::Value;
+
 use crate::{
     middleware::{CookieJarManager, CookieJarManagerEndpoint},
     session::{CookieConfig, Session, SessionStatus},
@@ -49,7 +51,7 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
         let session = self
             .config
             .get_cookie_value(&cookie_jar)
-            .and_then(|value| serde_json::from_str::<BTreeMap<String, String>>(&value).ok())
+            .and_then(|value| serde_json::from_str::<BTreeMap<String, Value>>(&value).ok())
             .map(Session::new)
             .unwrap_or_else(Session::default);
 
