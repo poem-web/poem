@@ -3,15 +3,10 @@ use std::fmt::{self, Debug, Formatter};
 use regex::bytes::Regex;
 use smallvec::SmallVec;
 
+use crate::error::RouteError;
+
 fn longest_common_prefix(a: &[u8], b: &[u8]) -> usize {
     a.iter().zip(b).take_while(|(a, b)| **a == **b).count()
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) enum RadixTreeError {
-    InvalidPath(String),
-    Duplicate(String),
-    InvalidRegex { path: String, regex: String },
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -194,7 +189,13 @@ impl<T> Node<T> {
                 Segment::CatchAll(name) => self.insert_catch_all_child(name, data),
                 Segment::Regex(name, re) => self.insert_regex_child(segments, name, re, data),
             },
-            None => self.data.replace(data).is_none(),
+            None => {
+                if self.data.is_some() {
+                    return false;
+                }
+                self.data = Some(data);
+                true
+            }
         }
     }
 
@@ -437,10 +438,10 @@ impl<T> Default for RadixTree<T> {
 }
 
 impl<T> RadixTree<T> {
-    pub(crate) fn add(&mut self, path: &str, data: T) -> Result<(), RadixTreeError> {
+    pub(crate) fn add(&mut self, path: &str, data: T) -> Result<(), RouteError> {
         let raw_segments = match parse_path_segments(path.as_bytes()) {
             Ok(raw_segments) => raw_segments,
-            Err(_) => return Err(RadixTreeError::InvalidPath(path.to_string())),
+            Err(_) => return Err(RouteError::InvalidPath(path.to_string())),
         };
 
         let mut segments = Vec::with_capacity(raw_segments.len());
@@ -453,7 +454,7 @@ impl<T> RadixTree<T> {
                     if let Some(re) = PathRegex::new(re_bytes) {
                         Segment::Regex(name, re)
                     } else {
-                        return Err(RadixTreeError::InvalidRegex {
+                        return Err(RouteError::InvalidRegex {
                             path: path.to_string(),
                             regex: String::from_utf8(re_bytes.to_vec()).unwrap(),
                         });
@@ -467,7 +468,7 @@ impl<T> RadixTree<T> {
         if self.root.insert_child(segments, data) {
             Ok(())
         } else {
-            Err(RadixTreeError::Duplicate(path.to_string()))
+            Err(RouteError::Duplicate(path.to_string()))
         }
     }
 

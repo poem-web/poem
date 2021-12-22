@@ -4,9 +4,9 @@ use regex::Regex;
 
 use crate::{
     endpoint::BoxEndpoint,
-    error::NotFoundError,
+    error::{NotFoundError, RouteError},
     http::{uri::PathAndQuery, Uri},
-    route::internal::radix_tree::{RadixTree, RadixTreeError},
+    route::{check_result, internal::radix_tree::RadixTree},
     Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
@@ -173,16 +173,23 @@ impl Route {
     ///
     /// Panic when there are duplicates in the routing table.
     #[must_use]
-    pub fn at<E>(mut self, path: impl AsRef<str>, ep: E) -> Self
+    pub fn at<E>(self, path: impl AsRef<str>, ep: E) -> Self
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        check_result(
-            self.tree
-                .add(&normalize_path(path.as_ref()), ep.map_to_response().boxed()),
-        );
-        self
+        check_result(self.try_at(path, ep))
+    }
+
+    /// Attempts to add an [Endpoint] to the specified path.
+    pub fn try_at<E>(mut self, path: impl AsRef<str>, ep: E) -> Result<Self, RouteError>
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        self.tree
+            .add(&normalize_path(path.as_ref()), ep.map_to_response().boxed())?;
+        Ok(self)
     }
 
     /// Nest a `Endpoint` to the specified path and strip the prefix.
@@ -192,6 +199,16 @@ impl Route {
     /// Panic when there are duplicates in the routing table.
     #[must_use]
     pub fn nest<E>(self, path: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        check_result(self.try_nest(path, ep))
+    }
+
+    /// Attempts to nest a `Endpoint` to the specified path and strip the
+    /// prefix.
+    pub fn try_nest<E>(self, path: impl AsRef<str>, ep: E) -> Result<Self, RouteError>
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
@@ -210,10 +227,20 @@ impl Route {
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
+        check_result(self.try_nest_no_strip(path, ep))
+    }
+
+    /// Attempts to nest a `Endpoint` to the specified path, but do not strip
+    /// the prefix.
+    pub fn try_nest_no_strip<E>(self, path: impl AsRef<str>, ep: E) -> Result<Self, RouteError>
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
         self.internal_nest(&normalize_path(path.as_ref()), ep, false)
     }
 
-    fn internal_nest<E>(mut self, path: &str, ep: E, strip: bool) -> Self
+    fn internal_nest<E>(mut self, path: &str, ep: E, strip: bool) -> Result<Self, RouteError>
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
@@ -269,25 +296,25 @@ impl Route {
             true => path.len() - 1,
         };
 
-        check_result(self.tree.add(
+        self.tree.add(
             &format!("{}*--poem-rest", path),
             Box::new(Nest {
                 inner: ep.clone(),
                 root: false,
                 prefix_len,
             }),
-        ));
+        )?;
 
-        check_result(self.tree.add(
+        self.tree.add(
             &path[..path.len() - 1],
             Box::new(Nest {
                 inner: ep,
                 root: true,
                 prefix_len,
             }),
-        ));
+        )?;
 
-        self
+        Ok(self)
     }
 }
 
@@ -314,17 +341,6 @@ fn normalize_path(path: &str) -> String {
     }
 
     path
-}
-
-fn check_result(res: Result<(), RadixTreeError>) {
-    match res {
-        Ok(()) => {}
-        Err(RadixTreeError::InvalidPath(path)) => panic!("invalid path: {}", path),
-        Err(RadixTreeError::Duplicate(path)) => panic!("duplicate path: {}", path),
-        Err(RadixTreeError::InvalidRegex { path, regex }) => {
-            panic!("invalid regex in path: {} `{}`", path, regex)
-        }
-    }
 }
 
 #[cfg(test)]

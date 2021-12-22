@@ -655,7 +655,7 @@ impl ResponseError for StaticFileError {
 /// A possible error value occurred in the `SizeLimit` middleware.
 #[derive(Debug, thiserror::Error, Eq, PartialEq)]
 pub enum SizedLimitError {
-    /// Missing `Content-Length` header.
+    /// Missing `Content-Length` header
     #[error("missing `Content-Length` header")]
     MissingContentLength,
 
@@ -667,6 +667,34 @@ pub enum SizedLimitError {
 impl ResponseError for SizedLimitError {
     fn status(&self) -> StatusCode {
         StatusCode::BAD_REQUEST
+    }
+}
+
+/// A possible error value occurred when adding a route.
+#[derive(Debug, thiserror::Error, Eq, PartialEq)]
+pub enum RouteError {
+    /// Invalid path
+    #[error("invalid path: {0}")]
+    InvalidPath(String),
+
+    /// Duplicate path
+    #[error("duplicate path: {0}")]
+    Duplicate(String),
+
+    /// Invalid regex in path
+    #[error("invalid regex in path: {path}")]
+    InvalidRegex {
+        /// Path
+        path: String,
+
+        /// Regex
+        regex: String,
+    },
+}
+
+impl ResponseError for RouteError {
+    fn status(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
     }
 }
 

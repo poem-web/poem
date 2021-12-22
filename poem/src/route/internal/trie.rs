@@ -4,6 +4,8 @@ use std::{
     str::Split,
 };
 
+use crate::error::RouteError;
+
 #[derive(Debug, Eq, PartialEq)]
 struct Node<T> {
     plus_child: Option<Box<Node<T>>>,
@@ -37,9 +39,13 @@ impl<T> Default for Trie<T> {
 }
 
 impl<T> Trie<T> {
-    pub(crate) fn add(&mut self, pattern: &str, data: T) -> bool {
+    pub(crate) fn add(&mut self, pattern: &str, data: T) -> Result<(), RouteError> {
         let segments = pattern.split('.').rev().peekable();
-        Self::internal_add(segments, &mut self.root, data)
+        if Self::internal_add(segments, &mut self.root, data) {
+            Ok(())
+        } else {
+            Err(RouteError::Duplicate(pattern.to_string()))
+        }
     }
 
     fn internal_add(
@@ -62,7 +68,11 @@ impl<T> Trie<T> {
         };
 
         if is_last {
-            node.data.replace(data).is_none()
+            if node.data.is_some() {
+                return false;
+            }
+            node.data = Some(data);
+            true
         } else {
             Self::internal_add(segments, node, data)
         }
@@ -109,14 +119,14 @@ mod tests {
     #[test]
     fn test_add() {
         let mut tree = Trie::default();
-        tree.add("www.example.com", 1);
-        tree.add("example.com", 2);
-        tree.add("+.example.com", 3);
-        tree.add("+.a.example.com", 4);
-        tree.add("b.a.+.com", 5);
-        tree.add("+.+.com", 6);
-        tree.add("*.com", 7);
-        tree.add("*", 8);
+        tree.add("www.example.com", 1).unwrap();
+        tree.add("example.com", 2).unwrap();
+        tree.add("+.example.com", 3).unwrap();
+        tree.add("+.a.example.com", 4).unwrap();
+        tree.add("b.a.+.com", 5).unwrap();
+        tree.add("+.+.com", 6).unwrap();
+        tree.add("*.com", 7).unwrap();
+        tree.add("*", 8).unwrap();
 
         assert_eq!(
             tree,
@@ -228,7 +238,7 @@ mod tests {
         ];
 
         for (domain, id) in domains {
-            tree.add(domain, id);
+            tree.add(domain, id).unwrap();
         }
 
         let matches = vec![

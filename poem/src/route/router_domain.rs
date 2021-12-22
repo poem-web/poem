@@ -1,5 +1,8 @@
 use crate::{
-    endpoint::BoxEndpoint, error::NotFoundError, http::header, route::internal::trie::Trie,
+    endpoint::BoxEndpoint,
+    error::{NotFoundError, RouteError},
+    http::header,
+    route::{check_result, internal::trie::Trie},
     Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result,
 };
 
@@ -15,10 +18,10 @@ use crate::{
 /// use poem::{endpoint::make_sync, handler, http::header, Endpoint, Request, RouteDomain};
 ///
 /// let app = RouteDomain::new()
-///     .add("example.com", make_sync(|_| "1"))
-///     .add("www.+.com", make_sync(|_| "2"))
-///     .add("*.example.com", make_sync(|_| "3"))
-///     .add("*", make_sync(|_| "4"));
+///     .at("example.com", make_sync(|_| "1"))
+///     .at("www.+.com", make_sync(|_| "2"))
+///     .at("*.example.com", make_sync(|_| "3"))
+///     .at("*", make_sync(|_| "4"));
 ///
 /// fn make_request(host: &str) -> Request {
 ///     Request::builder().header(header::HOST, host).finish()
@@ -54,7 +57,20 @@ impl RouteDomain {
     }
 
     /// Add an [Endpoint] to the specified domain pattern.
-    pub fn add<E>(mut self, pattern: impl AsRef<str>, ep: E) -> Self
+    ///
+    /// # Panics
+    ///
+    /// Panic when there are duplicates in the routing table.
+    pub fn at<E>(self, pattern: impl AsRef<str>, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        check_result(self.try_at(pattern, ep))
+    }
+
+    /// Attempts to add an [Endpoint] to the specified domain pattern.
+    pub fn try_at<E>(mut self, pattern: impl AsRef<str>, ep: E) -> Result<Self, RouteError>
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
@@ -62,8 +78,8 @@ impl RouteDomain {
         self.tree.add(
             pattern.as_ref(),
             ep.into_endpoint().map_to_response().boxed(),
-        );
-        self
+        )?;
+        Ok(self)
     }
 }
 
@@ -118,11 +134,11 @@ mod tests {
         }
 
         let r = RouteDomain::new()
-            .add("example.com", make_sync(|_| "1"))
-            .add("www.example.com", make_sync(|_| "2"))
-            .add("www.+.com", make_sync(|_| "3"))
-            .add("*.com", make_sync(|_| "4"))
-            .add("*", make_sync(|_| "5"));
+            .at("example.com", make_sync(|_| "1"))
+            .at("www.example.com", make_sync(|_| "2"))
+            .at("www.+.com", make_sync(|_| "3"))
+            .at("*.com", make_sync(|_| "4"))
+            .at("*", make_sync(|_| "5"));
 
         check(&r, "example.com", "1").await;
         check(&r, "www.example.com", "2").await;
@@ -135,10 +151,10 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let r = RouteDomain::new()
-            .add("example.com", make_sync(|_| "1"))
-            .add("www.example.com", make_sync(|_| "2"))
-            .add("www.+.com", make_sync(|_| "3"))
-            .add("*.com", make_sync(|_| "4"));
+            .at("example.com", make_sync(|_| "1"))
+            .at("www.example.com", make_sync(|_| "2"))
+            .at("www.+.com", make_sync(|_| "3"))
+            .at("*.com", make_sync(|_| "4"));
 
         assert!(r
             .call(
@@ -155,5 +171,36 @@ mod tests {
             .await
             .unwrap_err()
             .is::<NotFoundError>());
+    }
+
+    #[handler(internal)]
+    fn h() {}
+
+    #[test]
+    #[should_panic]
+    fn duplicate_1() {
+        let _ = RouteDomain::new().at("example.com", h).at("example.com", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_2() {
+        let _ = RouteDomain::new()
+            .at("+.example.com", h)
+            .at("+.example.com", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_3() {
+        let _ = RouteDomain::new()
+            .at("*.example.com", h)
+            .at("*.example.com", h);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_4() {
+        let _ = RouteDomain::new().at("*", h).at("*", h);
     }
 }
