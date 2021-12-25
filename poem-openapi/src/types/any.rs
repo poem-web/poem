@@ -9,6 +9,7 @@ use crate::{
 };
 
 /// A any type.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Any<T>(pub T);
 
 impl<T: Send + Sync> Type for Any<T> {

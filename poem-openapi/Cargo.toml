@@ -24,7 +24,7 @@ hostname = ["hostname-validator"]
 
 [dependencies]
 poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.2.9" }
-poem = { path = "../poem", version = "1.2.9", features = ["multipart", "tempfile", "cookie"] }
+poem = { path = "../poem", version = "1.2.9", features = ["multipart", "tempfile", "cookie", "sse"] }
 
 tokio = { version = "1.14.0", features = ["fs"] }
 serde_json = "1.0.68"

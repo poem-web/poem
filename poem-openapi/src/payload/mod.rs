@@ -2,6 +2,7 @@
 
 mod attachment;
 mod binary;
+mod event_stream;
 mod json;
 mod plain_text;
 mod response;
@@ -12,7 +13,8 @@ use mime::Mime;
 use poem::{Request, RequestBody, Result};
 
 pub use self::{
-    attachment::Attachment, binary::Binary, json::Json, plain_text::PlainText, response::Response,
+    attachment::Attachment, binary::Binary, event_stream::EventStream, json::Json,
+    plain_text::PlainText, response::Response,
 };
 use crate::registry::{MetaSchemaRef, Registry};
 

@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.2.10] 2021-12-25
 
 - The `content_type` attribute of the `ApiRequest` macro supports wildcards.
+- Add `EventStream` payload.
 
 ```rust
 #[derive(ApiRequest)]
