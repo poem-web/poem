@@ -157,9 +157,10 @@ pub use poem_openapi_derive::Webhook;
 #[doc(hidden)]
 pub mod __private {
     pub use mime;
+    pub use once_cell;
     pub use poem;
     pub use serde;
     pub use serde_json;
 
-    pub use crate::base::UrlQuery;
+    pub use crate::{base::UrlQuery, payload::ContentTypeTable};
 }

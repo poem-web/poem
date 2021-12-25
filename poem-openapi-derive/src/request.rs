@@ -2,9 +2,10 @@ use std::str::FromStr;
 
 use darling::{
     ast::{Data, Fields},
-    util::Ignored,
+    util::{Ignored, SpannedValue},
     FromDeriveInput, FromVariant,
 };
+use mime::Mime;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Generics, Type};
@@ -21,7 +22,7 @@ struct RequestItem {
     fields: Fields<Type>,
 
     #[darling(default)]
-    content_type: Option<String>,
+    content_type: Option<SpannedValue<String>>,
 }
 
 #[derive(FromDeriveInput)]
@@ -50,6 +51,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let description = get_description(&args.attrs)?;
     let description = optional_literal(&description);
 
+    let mut content_types = Vec::new();
     let mut from_requests = Vec::new();
     let mut content = Vec::new();
     let mut schemas = Vec::new();
@@ -65,7 +67,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
 
-    for variant in e {
+    for (idx, variant) in e.iter().enumerate() {
         let item_ident = &variant.ident;
 
         match variant.fields.len() {
@@ -73,11 +75,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 // Item(payload)
                 let payload_ty = &variant.fields.fields[0];
                 let content_type = match &variant.content_type {
-                    Some(content_type) => quote!(#content_type),
+                    Some(content_type) => {
+                        if !matches!(Mime::from_str(content_type), Ok(mime) if mime.params().count() == 0)
+                        {
+                            return Err(Error::new(content_type.span(), "Invalid mime type").into());
+                        }
+                        let content_type = &**content_type;
+                        quote!(#content_type)
+                    }
                     None => quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
                 };
+                content_types.push(content_type.clone());
                 from_requests.push(quote! {
-                    ::std::option::Option::Some(#content_type) => {
+                    ::std::option::Option::Some(#idx) => {
                         ::std::result::Result::Ok(#ident::#item_ident(
                             <#payload_ty as #crate_name::payload::ParsePayload>::from_request(request, body).await?
                         ))
@@ -125,14 +135,22 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     body: &mut #crate_name::__private::poem::RequestBody,
                     _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
                 ) -> #crate_name::__private::poem::Result<Self> {
-                    let content_type = request.content_type();
-                    match content_type {
-                        #(#from_requests)*
-                        ::std::option::Option::Some(content_type) => ::std::result::Result::Err(
-                            ::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
-                                content_type: ::std::string::ToString::to_string(content_type),
-                            })),
-                        ::std::option::Option::None => ::std::result::Result::Err(::std::convert::Into::into(#crate_name::error::ContentTypeError::ExpectContentType)),
+                    match request.content_type() {
+                        ::std::option::Option::Some(content_type) => {
+                            let table = #crate_name::__private::ContentTypeTable::new(&[#(#content_types),*]);
+                            match table.matches(content_type) {
+                                #(#from_requests)*
+                                _ => {
+                                    ::std::result::Result::Err(
+                                        ::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
+                                            content_type: ::std::string::ToString::to_string(content_type),
+                                    }))
+                                }
+                            }
+                        }
+                        ::std::option::Option::None => {
+                            ::std::result::Result::Err(::std::convert::Into::into(#crate_name::error::ContentTypeError::ExpectContentType))
+                        }
                     }
                 }
             }

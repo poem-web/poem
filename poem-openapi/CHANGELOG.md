@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.10] 2021-12-25
+
+- The `content_type` attribute of the `ApiRequest` macro supports wildcards.
+
+```rust
+#[derive(ApiRequest)]
+enum UploadImageRequest {
+    #[oai(content_type = "image/jpeg")]
+    Jpeg(Binary<Vec<u8>>),
+    #[oai(content_type = "image/png")]
+    Png(Binary<Vec<u8>>),
+    #[oai(content_type = "image/*")]
+    Other(Binary<Vec<u8>>),
+}
+```
+
 # [1.2.8] 2021-12-21
 
 - Added the `content_type` attribute to the `ApiRequest` and `ApiResponse` macros to specify the content type of the request or response.
