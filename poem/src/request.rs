@@ -4,6 +4,7 @@ use std::{
     future::Future,
     io::Error,
     pin::Pin,
+    str::FromStr,
     task::{Context, Poll},
 };
 
@@ -515,6 +516,21 @@ impl RequestBuilder {
     #[must_use]
     pub fn uri(self, uri: Uri) -> RequestBuilder {
         Self { uri, ..self }
+    }
+
+    /// Sets the URI string for this request.
+    ///
+    /// By default this is `/`.
+    ///
+    /// # Panics
+    ///
+    /// Panic when uri is invalid.
+    #[must_use]
+    pub fn uri_str(self, uri: &str) -> RequestBuilder {
+        Self {
+            uri: Uri::from_str(uri).expect("valid url"),
+            ..self
+        }
     }
 
     /// Sets the HTTP version for this request.
