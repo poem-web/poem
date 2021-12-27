@@ -30,7 +30,6 @@
 
 ***
 
-* [Book](https://poem-web.github.io/poem/)
 * [Docs](https://docs.rs/poem)
 * [Cargo package](https://crates.io/crates/poem)
 

@@ -33,7 +33,6 @@
 It uses procedural macros to generate a lots of boilerplate code, so that you only need to focus on the more 
 important business implementations.
 
-* [Book](https://poem-web.github.io/poem/)
 * [Docs](https://docs.rs/poem-openapi)
 * [Cargo package](https://crates.io/crates/poem-openapi)
 
