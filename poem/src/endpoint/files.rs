@@ -1,14 +1,20 @@
 use std::{
     ffi::OsStr,
+    fs::Metadata,
     path::{Path, PathBuf},
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
+use headers::{ETag, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfUnmodifiedSince};
+use http::StatusCode;
+use httpdate::HttpDate;
 use mime::Mime;
 use tokio::fs::File;
 
 use crate::{
     error::StaticFileError,
-    http::{header, HeaderValue, Method},
+    http::{header, Method},
     Body, Endpoint, Request, Response, Result,
 };
 
@@ -66,6 +72,7 @@ struct FileRef {
 /// # Errors
 ///
 /// - [`StaticFileError`]
+#[cfg_attr(docsrs, doc(cfg(feature = "static-files")))]
 pub struct Files {
     path: PathBuf,
     show_files_listing: bool,
@@ -168,12 +175,12 @@ impl Files {
         }
 
         if file_path.is_file() {
-            create_file_response(&file_path, self.prefer_utf8).await
+            create_file_response(&file_path, &req, self.prefer_utf8).await
         } else {
             if let Some(index_file) = &self.index_file {
                 let index_path = file_path.join(index_file);
                 if index_path.is_file() {
-                    return create_file_response(&index_path, self.prefer_utf8).await;
+                    return create_file_response(&index_path, &req, self.prefer_utf8).await;
                 }
             }
 
@@ -220,20 +227,56 @@ impl Endpoint for Files {
     }
 }
 
-async fn create_file_response(path: &Path, prefer_utf8: bool) -> Result<Response, StaticFileError> {
+async fn create_file_response(
+    path: &Path,
+    req: &Request,
+    prefer_utf8: bool,
+) -> Result<Response, StaticFileError> {
     let guess = mime_guess::from_path(path);
     let file = File::open(path).await?;
-    let mut resp = Response::builder().body(Body::from_async_read(file));
+    let metadata = file.metadata().await?;
+    let mut builder = Response::builder();
+
+    // content type
     if let Some(mut mime) = guess.first() {
         if prefer_utf8 {
             mime = equiv_utf8_text(mime);
         }
-        if let Ok(header_value) = HeaderValue::from_str(&mime.to_string()) {
-            resp.headers_mut()
-                .insert(header::CONTENT_TYPE, header_value);
-        }
+        builder = builder.header(header::CONTENT_TYPE, mime.to_string());
     }
-    Ok(resp)
+
+    if let Ok(modified) = metadata.modified() {
+        let etag = etag(ino(&metadata), &modified, metadata.len());
+
+        if let Some(if_match) = req.headers().typed_get::<IfMatch>() {
+            if !if_match.precondition_passes(&etag) {
+                return Ok(builder.status(StatusCode::PRECONDITION_FAILED).finish());
+            }
+        }
+
+        if let Some(if_unmodified_since) = req.headers().typed_get::<IfUnmodifiedSince>() {
+            if !if_unmodified_since.precondition_passes(modified) {
+                return Ok(builder.status(StatusCode::PRECONDITION_FAILED).finish());
+            }
+        }
+
+        if let Some(if_non_match) = req.headers().typed_get::<IfNoneMatch>() {
+            if !if_non_match.precondition_passes(&etag) {
+                return Ok(builder.status(StatusCode::NOT_MODIFIED).finish());
+            }
+        } else if let Some(if_modified_since) = req.headers().typed_get::<IfModifiedSince>() {
+            if !if_modified_since.is_modified(modified) {
+                return Ok(builder.status(StatusCode::NOT_MODIFIED).finish());
+            }
+        }
+
+        builder = builder
+            .header(header::CACHE_CONTROL, "public")
+            .header(header::LAST_MODIFIED, HttpDate::from(modified).to_string());
+        builder = builder.typed_header(etag);
+    }
+
+    Ok(builder.body(Body::from_async_read(file)))
 }
 
 fn equiv_utf8_text(ct: Mime) -> Mime {
@@ -264,8 +307,36 @@ fn equiv_utf8_text(ct: Mime) -> Mime {
     ct
 }
 
+fn ino(md: &Metadata) -> u64 {
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::MetadataExt::ino(md)
+    }
+    #[cfg(not(unix))]
+    {
+        0
+    }
+}
+
+fn etag(ino: u64, modified: &SystemTime, len: u64) -> ETag {
+    let dur = modified
+        .duration_since(UNIX_EPOCH)
+        .expect("modification time must be after epoch");
+
+    ETag::from_str(&format!(
+        "\"{:x}:{:x}:{:x}:{:x}\"",
+        ino,
+        len,
+        dur.as_secs(),
+        dur.subsec_nanos()
+    ))
+    .unwrap()
+}
+
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
     #[test]
@@ -285,5 +356,153 @@ mod tests {
 
         assert_eq!(equiv_utf8_text(mime::TEXT_XML), mime::TEXT_XML);
         assert_eq!(equiv_utf8_text(mime::IMAGE_PNG), mime::IMAGE_PNG);
+    }
+
+    #[tokio::test]
+    async fn test_if_none_match() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let etag = resp.header("etag").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-none-match", etag).finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_MODIFIED);
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-none-match", "abc").finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_if_modified_since() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let modified = resp.header("last-modified").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-modified-since", modified)
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_MODIFIED);
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t -= Duration::from_secs(1);
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-modified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t += Duration::from_secs(1);
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-modified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_MODIFIED);
+    }
+
+    #[tokio::test]
+    async fn test_if_match() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let etag = resp.header("etag").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-match", etag).finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-match", "abc").finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::PRECONDITION_FAILED);
+    }
+
+    #[tokio::test]
+    async fn test_if_unmodified_since() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let modified = resp.header("last-modified").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-unmodified-since", modified)
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t += Duration::from_secs(1);
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-unmodified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t -= Duration::from_secs(1);
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-unmodified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::PRECONDITION_FAILED);
     }
 }

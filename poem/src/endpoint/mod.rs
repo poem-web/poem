@@ -8,6 +8,7 @@ mod catch_all_error;
 mod catch_error;
 #[allow(clippy::module_inception)]
 mod endpoint;
+#[cfg(feature = "static-files")]
 mod files;
 mod inspect_all_err;
 mod inspect_err;
@@ -25,6 +26,7 @@ pub use before::Before;
 pub use catch_all_error::CatchAllError;
 pub use catch_error::CatchError;
 pub use endpoint::{make, make_sync, BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint};
+#[cfg(feature = "static-files")]
 pub use files::Files;
 pub use inspect_all_err::InspectAllError;
 pub use inspect_err::InspectError;

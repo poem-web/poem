@@ -9,7 +9,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new().nest(
         "/",
-        Files::new("./examples/poem/static-files/files").show_files_listing(),
+        Files::new("./poem/static-files/files").show_files_listing(),
     );
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(app)

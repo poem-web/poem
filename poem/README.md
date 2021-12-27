@@ -59,6 +59,7 @@ which are disabled by default:
 | rustls        | Support for HTTP server over TLS with [`rustls`](https://crates.io/crates/rustls)         |
 | session       | Support for session                                                                       |
 | sse           | Support Server-Sent Events (SSE)                                                          |
+| static-files  | Support static files endpoint                                                             | 
 | tempfile      | Support for [`tempfile`](https://crates.io/crates/tempfile)                               |
 | tower-compat  | Adapters for `tower::Layer` and `tower::Service`.                                         |
 | websocket     | Support for WebSocket                                                                     |
