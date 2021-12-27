@@ -127,8 +127,8 @@ mod openapi;
 mod ui;
 
 pub use base::{
-    ApiExtractor, ApiExtractorType, ApiResponse, CombinedAPI, ExtractParamOptions, OAuthScopes,
-    OpenApi, Tags, Webhook,
+    ApiExtractor, ApiExtractorType, ApiResponse, ExtractParamOptions, OAuthScopes, OpenApi, Tags,
+    Webhook,
 };
 pub use openapi::{ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]

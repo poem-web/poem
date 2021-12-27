@@ -46,6 +46,7 @@ pub struct ContentTypeTable {
     items: Vec<(Mime, usize)>,
 }
 
+#[doc(hidden)]
 impl ContentTypeTable {
     pub fn new(types: &[&str]) -> Self {
         let mut items = types

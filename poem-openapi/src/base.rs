@@ -313,12 +313,69 @@ pub trait OpenApi: Sized {
 
     /// Adds all API endpoints to the routing object.
     fn add_routes(self, route: Route) -> Route;
-
-    /// Combine two API objects into one.
-    fn combine<T: OpenApi>(self, other: T) -> CombinedAPI<Self, T> {
-        CombinedAPI(self, other)
-    }
 }
+
+macro_rules! impl_openapi_for_tuple {
+    (($head:ident, $hn:tt), $(($tail:ident, $tn:tt)),*) => {
+        impl<$head: OpenApi, $($tail: OpenApi),*> OpenApi for ($head, $($tail),*) {
+            fn meta() -> Vec<MetaApi> {
+                let mut metadata = $head::meta();
+                $(
+                metadata.extend($tail::meta());
+                )*
+                metadata
+            }
+
+            fn register(registry: &mut Registry) {
+                $head::register(registry);
+                $(
+                $tail::register(registry);
+                )*
+            }
+
+            fn add_routes(self, route: Route) -> Route {
+                let route = self.$hn.add_routes(route);
+                $(
+                let route = self.$tn.add_routes(route);
+                )*
+                route
+            }
+        }
+    };
+
+    () => {};
+}
+
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12), (T14, 13), (T15, 14), (T16, 15));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12), (T14, 13), (T15, 14));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12), (T14, 13));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1));
 
 impl OpenApi for () {
     fn meta() -> Vec<MetaApi> {
@@ -347,24 +404,4 @@ impl Webhook for () {
     }
 
     fn register(_: &mut Registry) {}
-}
-
-/// API for the [`combine`](crate::OpenApi::combine) method.
-pub struct CombinedAPI<A, B>(A, B);
-
-impl<A: OpenApi, B: OpenApi> OpenApi for CombinedAPI<A, B> {
-    fn meta() -> Vec<MetaApi> {
-        let mut metadata = A::meta();
-        metadata.extend(B::meta());
-        metadata
-    }
-
-    fn register(registry: &mut Registry) {
-        A::register(registry);
-        B::register(registry);
-    }
-
-    fn add_routes(self, route: Route) -> Route {
-        self.1.add_routes(self.0.add_routes(route))
-    }
 }
