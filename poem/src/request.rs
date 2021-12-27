@@ -526,9 +526,9 @@ impl RequestBuilder {
     ///
     /// Panic when uri is invalid.
     #[must_use]
-    pub fn uri_str(self, uri: &str) -> RequestBuilder {
+    pub fn uri_str(self, uri: impl AsRef<str>) -> RequestBuilder {
         Self {
-            uri: Uri::from_str(uri).expect("valid url"),
+            uri: Uri::from_str(uri.as_ref()).expect("valid url"),
             ..self
         }
     }

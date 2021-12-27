@@ -129,6 +129,12 @@ impl Response {
         self.status
     }
 
+    /// Returns `true` if status code is [`StatusCode::OK`].
+    #[inline]
+    pub fn is_ok(&self) -> bool {
+        self.status() == StatusCode::OK
+    }
+
     /// Check if status is within 200-299.
     #[inline]
     pub fn is_success(&self) -> bool {
