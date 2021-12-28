@@ -61,6 +61,7 @@ impl RouteDomain {
     /// # Panics
     ///
     /// Panic when there are duplicates in the routing table.
+    #[must_use]
     pub fn at<E>(self, pattern: impl AsRef<str>, ep: E) -> Self
     where
         E: IntoEndpoint,

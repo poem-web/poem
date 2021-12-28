@@ -53,30 +53,35 @@ impl RustlsConfig {
     }
 
     /// Sets the certificates.
+    #[must_use]
     pub fn cert(mut self, cert: impl Into<Vec<u8>>) -> Self {
         self.cert = cert.into();
         self
     }
 
     /// Sets the private key.
+    #[must_use]
     pub fn key(mut self, key: impl Into<Vec<u8>>) -> Self {
         self.key = key.into();
         self
     }
 
     /// Sets the trust anchor for optional client authentication.
+    #[must_use]
     pub fn client_auth_optional(mut self, trust_anchor: impl Into<Vec<u8>>) -> Self {
         self.client_auth = TlsClientAuth::Optional(trust_anchor.into());
         self
     }
 
     /// Sets the trust anchor for required client authentication.
+    #[must_use]
     pub fn client_auth_required(mut self, trust_anchor: impl Into<Vec<u8>>) -> Self {
         self.client_auth = TlsClientAuth::Required(trust_anchor.into());
         self
     }
 
     /// Sets the DER-encoded OCSP response.
+    #[must_use]
     pub fn ocsp_resp(mut self, ocsp_resp: impl Into<Vec<u8>>) -> Self {
         self.ocsp_resp = ocsp_resp.into();
         self

@@ -173,6 +173,7 @@ impl MetaSchema {
         self == &Self::ANY
     }
 
+    #[must_use]
     pub fn merge(
         mut self,
         MetaSchema {
@@ -307,6 +308,7 @@ impl MetaSchemaRef {
         }
     }
 
+    #[must_use]
     pub fn merge(self, other: MetaSchema) -> Self {
         match self {
             MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(Box::new(schema.merge(other))),

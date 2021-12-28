@@ -40,7 +40,7 @@ impl<T: Type> Type for Vec<T> {
     fn raw_element_iter<'a>(
         &'a self,
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-        Box::new(self.iter().map(|item| item.as_raw_value()).flatten())
+        Box::new(self.iter().filter_map(|item| item.as_raw_value()))
     }
 }
 

@@ -40,7 +40,7 @@ where
     fn raw_element_iter<'a>(
         &'a self,
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-        Box::new(self.values().map(|item| item.as_raw_value()).flatten())
+        Box::new(self.values().filter_map(|item| item.as_raw_value()))
     }
 }
 

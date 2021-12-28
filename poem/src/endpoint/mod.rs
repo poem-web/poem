@@ -27,7 +27,7 @@ pub use catch_all_error::CatchAllError;
 pub use catch_error::CatchError;
 pub use endpoint::{make, make_sync, BoxEndpoint, Endpoint, EndpointExt, IntoEndpoint};
 #[cfg(feature = "static-files")]
-pub use files::Files;
+pub use files::{StaticFile, StaticFiles};
 pub use inspect_all_err::InspectAllError;
 pub use inspect_err::InspectError;
 pub use map::Map;

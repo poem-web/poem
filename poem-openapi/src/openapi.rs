@@ -36,6 +36,7 @@ impl ServerObject {
     }
 
     /// Sets an string describing the host designated by the URL.
+    #[must_use]
     pub fn description(self, description: impl Into<String>) -> Self {
         Self {
             description: Some(description.into()),
@@ -68,6 +69,7 @@ impl LicenseObject {
     }
 
     /// Sets an [`SPDX`](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60) license expression for the API.
+    #[must_use]
     pub fn identifier(self, identifier: impl Into<String>) -> Self {
         Self {
             identifier: Some(identifier.into()),
@@ -76,6 +78,7 @@ impl LicenseObject {
     }
 
     /// Sets a URL to the license used for the API.
+    #[must_use]
     pub fn url(self, url: impl Into<String>) -> Self {
         Self {
             url: Some(url.into()),
@@ -106,7 +109,8 @@ impl ExternalDocumentObject {
         }
     }
 
-    /// Sets a description of the target documentation..
+    /// Sets a description of the target documentation.
+    #[must_use]
     pub fn description(self, description: impl Into<String>) -> Self {
         Self {
             description: Some(description.into()),
@@ -167,6 +171,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
     }
 
     /// Sets a URL to the Terms of Service for the API.
+    #[must_use]
     pub fn terms_of_service(mut self, url: impl Into<String>) -> Self {
         self.info.terms_of_service = Some(url.into());
         self
@@ -216,6 +221,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
     }
 
     /// Sets the cookie key.
+    #[must_use]
     pub fn cookie_key(self, key: CookieKey) -> Self {
         Self {
             cookie_key: Some(key),
@@ -314,10 +320,8 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
         let mut operation_ids = HashSet::new();
         for operation in T::meta()
             .into_iter()
-            .map(|api| api.paths.into_iter())
-            .flatten()
-            .map(|path| path.operations.into_iter())
-            .flatten()
+            .flat_map(|api| api.paths.into_iter())
+            .flat_map(|path| path.operations.into_iter())
         {
             if let Some(operation_id) = operation.operation_id {
                 if !operation_ids.insert(operation_id) {

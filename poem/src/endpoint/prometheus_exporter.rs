@@ -20,6 +20,7 @@ impl PrometheusExporter {
     }
 
     /// Add a global label.
+    #[must_use]
     pub fn label(mut self, kv: KeyValue) -> Self {
         self.global_labels.push(kv);
         self

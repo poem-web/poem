@@ -73,24 +73,24 @@ struct FileRef {
 ///
 /// - [`StaticFileError`]
 #[cfg_attr(docsrs, doc(cfg(feature = "static-files")))]
-pub struct Files {
+pub struct StaticFiles {
     path: PathBuf,
     show_files_listing: bool,
     index_file: Option<String>,
     prefer_utf8: bool,
 }
 
-impl Files {
-    /// Create new Files service for a specified base directory.
+impl StaticFiles {
+    /// Create new static files service for a specified base directory.
     ///
     /// # Example
     ///
     /// ```
-    /// use poem::{endpoint::Files, Route};
+    /// use poem::{endpoint::StaticFiles, Route};
     ///
     /// let app = Route::new().nest(
     ///     "/files",
-    ///     Files::new("/etc/www")
+    ///     StaticFiles::new("/etc/www")
     ///         .show_files_listing()
     ///         .index_file("index.html"),
     /// );
@@ -107,6 +107,7 @@ impl Files {
     /// Show files listing for directories.
     ///
     /// By default show files listing is disabled.
+    #[must_use]
     pub fn show_files_listing(self) -> Self {
         Self {
             show_files_listing: true,
@@ -121,6 +122,7 @@ impl Files {
     ///
     /// If the index file is not found, files listing is shown as a fallback if
     /// Files::show_files_listing() is set.
+    #[must_use]
     pub fn index_file(self, index: impl Into<String>) -> Self {
         Self {
             index_file: Some(index.into()),
@@ -131,6 +133,7 @@ impl Files {
     /// Specifies whether text responses should signal a UTF-8 encoding.
     ///
     /// Default is `true`.
+    #[must_use]
     pub fn prefer_utf8(self, value: bool) -> Self {
         Self {
             prefer_utf8: value,
@@ -139,7 +142,7 @@ impl Files {
     }
 }
 
-impl Files {
+impl StaticFiles {
     async fn internal_call(&self, req: Request) -> Result<Response, StaticFileError> {
         if req.method() != Method::GET {
             return Err(StaticFileError::MethodNotAllowed(req.method().clone()));
@@ -219,11 +222,60 @@ impl Files {
 }
 
 #[async_trait::async_trait]
-impl Endpoint for Files {
+impl Endpoint for StaticFiles {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
         self.internal_call(req).await.map_err(Into::into)
+    }
+}
+
+/// Single static file handling service.
+///
+/// # Errors
+///
+/// - [`StaticFileError`]
+#[cfg_attr(docsrs, doc(cfg(feature = "static-files")))]
+pub struct StaticFile {
+    path: PathBuf,
+    prefer_utf8: bool,
+}
+
+impl StaticFile {
+    /// Create new single static file service for a specified file path.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{endpoint::StaticFile, Route};
+    ///
+    /// let app = Route::new().at("/logo.png", StaticFile::new("/etc/logo.png"));
+    /// ```
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self {
+            path: path.into(),
+            prefer_utf8: true,
+        }
+    }
+
+    /// Specifies whether text responses should signal a UTF-8 encoding.
+    ///
+    /// Default is `true`.
+    #[must_use]
+    pub fn prefer_utf8(self, value: bool) -> Self {
+        Self {
+            prefer_utf8: value,
+            ..self
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Endpoint for StaticFile {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        Ok(create_file_response(&self.path, &req, self.prefer_utf8).await?)
     }
 }
 

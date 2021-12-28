@@ -35,12 +35,14 @@ impl NativeTlsConfig {
     }
 
     /// Sets a DER-formatted PKCS #12 archive.
+    #[must_use]
     pub fn pkcs12(mut self, data: impl Into<Vec<u8>>) -> Self {
         self.pkcs12 = data.into();
         self
     }
 
     /// Sets password to decrypt the key.
+    #[must_use]
     pub fn password(mut self, passwd: impl Into<String>) -> Self {
         self.password = passwd.into();
         self

@@ -23,6 +23,7 @@ impl<T: Into<Body> + Send> Attachment<T> {
     }
 
     /// Specify the file name.
+    #[must_use]
     pub fn filename(self, filename: impl Into<String>) -> Self {
         Self {
             filename: Some(filename.into()),

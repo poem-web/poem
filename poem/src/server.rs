@@ -59,6 +59,7 @@ where
     A: Acceptor + 'static,
 {
     /// Specify the name of the server, it is only used for logs.
+    #[must_use]
     pub fn name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),

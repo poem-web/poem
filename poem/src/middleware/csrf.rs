@@ -108,11 +108,13 @@ impl Csrf {
     }
 
     /// Sets AES256 key to provide signed, encrypted CSRF tokens and cookies.
+    #[must_use]
     pub fn key(self, key: [u8; 32]) -> Self {
         Self { key, ..self }
     }
 
     /// Sets the `Secure` to the csrf cookie. Default is `true`.
+    #[must_use]
     pub fn secure(self, value: bool) -> Self {
         Self {
             secure: value,
@@ -121,6 +123,7 @@ impl Csrf {
     }
 
     /// Sets the `HttpOnly` to the csrf cookie. Default is `true`.
+    #[must_use]
     pub fn http_only(self, value: bool) -> Self {
         Self {
             http_only: value,
@@ -130,6 +133,7 @@ impl Csrf {
 
     /// Sets the `SameSite` to the csrf cookie. Default is
     /// [`SameSite::Strict`](libcookie::SameSite::Strict).
+    #[must_use]
     pub fn same_site(self, value: impl Into<Option<SameSite>>) -> Self {
         Self {
             same_site: value.into(),
@@ -142,6 +146,7 @@ impl Csrf {
     /// valid.
     ///
     /// The default for this value is one day.
+    #[must_use]
     pub fn ttl(self, ttl: Duration) -> Self {
         Self { ttl, ..self }
     }

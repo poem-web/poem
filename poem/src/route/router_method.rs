@@ -58,6 +58,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for specified `method`.
+    #[must_use]
     pub fn method<E>(mut self, method: Method, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -69,6 +70,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `GET`.
+    #[must_use]
     pub fn get<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -78,6 +80,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `POST`.
+    #[must_use]
     pub fn post<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -87,6 +90,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `PUT`.
+    #[must_use]
     pub fn put<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -96,6 +100,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `DELETE`.
+    #[must_use]
     pub fn delete<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -105,6 +110,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `HEAD`.
+    #[must_use]
     pub fn head<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -114,6 +120,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `OPTIONS`.
+    #[must_use]
     pub fn options<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -123,6 +130,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `CONNECT`.
+    #[must_use]
     pub fn connect<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -132,6 +140,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `PATCH`.
+    #[must_use]
     pub fn patch<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -141,6 +150,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `TRACE`.
+    #[must_use]
     pub fn trace<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
