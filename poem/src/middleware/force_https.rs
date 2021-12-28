@@ -7,7 +7,7 @@ use crate::{web::Redirect, Endpoint, IntoResponse, Middleware, Request, Response
 pub struct ForceHttps;
 
 impl ForceHttps {
-    /// Create new `ForceToHttps` middleware.
+    /// Create new `ForceHttps` middleware.
     pub fn new() -> Self {
         ForceHttps
     }
@@ -24,7 +24,7 @@ where
     }
 }
 
-/// Endpoint for ForceToHttps middleware.
+/// Endpoint for ForceHttps middleware.
 pub struct ForceHttpsEndpoint<E> {
     inner: E,
 }

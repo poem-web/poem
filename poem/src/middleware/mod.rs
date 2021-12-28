@@ -8,7 +8,7 @@ mod cookie_jar_manager;
 mod cors;
 #[cfg(feature = "csrf")]
 mod csrf;
-mod force_to_https;
+mod force_https;
 mod normalize_path;
 #[cfg(feature = "opentelemetry")]
 mod opentelemetry_metrics;
@@ -29,7 +29,7 @@ pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
 pub use cors::{Cors, CorsEndpoint};
 #[cfg(feature = "csrf")]
 pub use csrf::{Csrf, CsrfEndpoint};
-pub use force_to_https::ForceHttps;
+pub use force_https::ForceHttps;
 pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
 #[cfg(feature = "opentelemetry")]
 pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
