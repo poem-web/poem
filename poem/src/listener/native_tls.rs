@@ -1,13 +1,13 @@
 use futures_util::{
     stream::{BoxStream, Chain, Pending},
-    Stream, StreamExt,
+    Stream, StreamExt, TryFutureExt,
 };
 use http::uri::Scheme;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_native_tls::{native_tls::Identity, TlsStream};
 
 use crate::{
-    listener::{Acceptor, IntoTlsConfigStream, Listener},
+    listener::{Acceptor, HandshakeStream, IntoTlsConfigStream, Listener},
     web::{LocalAddr, RemoteAddr},
 };
 
@@ -143,7 +143,7 @@ where
     S: Stream<Item = NativeTlsConfig> + Send + Unpin + 'static,
     T: Acceptor,
 {
-    type Io = TlsStream<T::Io>;
+    type Io = HandshakeStream<TlsStream<T::Io>>;
 
     fn local_addr(&self) -> Vec<LocalAddr> {
         self.inner.local_addr()
@@ -172,10 +172,11 @@ where
                 res = self.inner.accept() => {
                     let (stream, local_addr, remote_addr, _) = res?;
                     let tls_acceptor = match &self.current_tls_acceptor {
-                        Some(tls_acceptor) => tls_acceptor,
+                        Some(tls_acceptor) => tls_acceptor.clone(),
                         None => return Err(IoError::new(ErrorKind::Other, "no valid tls config.")),
                     };
-                    let stream = tls_acceptor.accept(stream).await.map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+                    let fut = async move { tls_acceptor.accept(stream).map_err(|err| IoError::new(ErrorKind::Other, err.to_string())).await };
+                    let stream = HandshakeStream::new(fut);
                     return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
                 }
             }

@@ -15,7 +15,7 @@ use tokio_rustls::{
 };
 
 use crate::{
-    listener::{Acceptor, IntoTlsConfigStream, Listener},
+    listener::{Acceptor, HandshakeStream, IntoTlsConfigStream, Listener},
     web::{LocalAddr, RemoteAddr},
 };
 
@@ -232,7 +232,7 @@ where
     S: Stream<Item = RustlsConfig> + Send + Unpin + 'static,
     T: Acceptor,
 {
-    type Io = TlsStream<T::Io>;
+    type Io = HandshakeStream<TlsStream<T::Io>>;
 
     fn local_addr(&self) -> Vec<LocalAddr> {
         self.inner.local_addr()
@@ -265,7 +265,8 @@ where
                         Some(tls_acceptor) => tls_acceptor,
                         None => return Err(IoError::new(ErrorKind::Other, "no valid tls config.")),
                     };
-                    let stream = tls_acceptor.accept(stream).await?;
+
+                    let stream = HandshakeStream::new(tls_acceptor.accept(stream));
                     return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
                 }
             }
@@ -278,7 +279,6 @@ mod tests {
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
-        time::Duration,
     };
     use tokio_rustls::rustls::ClientConfig;
 
@@ -313,93 +313,5 @@ mod tests {
 
         let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
-    }
-
-    #[tokio::test]
-    async fn tls_hot_loading() {
-        let tls_config = async_stream::stream! {
-            yield RustlsConfig::new()
-                .cert(include_bytes!("certs/cert1.pem").as_ref())
-                .key(include_bytes!("certs/key1.pem").as_ref());
-
-            tokio::time::sleep(Duration::from_secs(1)).await;
-
-            yield RustlsConfig::new()
-                .cert(include_bytes!("certs/cert2.pem").as_ref())
-                .key(include_bytes!("certs/key2.pem").as_ref());
-
-            tokio::time::sleep(Duration::from_secs(1)).await;
-
-            yield RustlsConfig::new()
-                .cert(include_bytes!("certs/cert1.pem").as_ref())
-                .key(include_bytes!("certs/key1.pem").as_ref());
-        };
-
-        let listener = TcpListener::bind("127.0.0.1:0").rustls(tls_config);
-        let mut acceptor = listener.into_acceptor().await.unwrap();
-        let local_addr = acceptor.local_addr().pop().unwrap();
-
-        tokio::spawn(async move {
-            loop {
-                if let Ok((mut stream, _, _, _)) = acceptor.accept().await {
-                    assert_eq!(stream.read_i32().await.unwrap(), 10);
-                }
-            }
-        });
-
-        async fn do_request(
-            local_addr: &LocalAddr,
-            domain: &str,
-            chain: Option<&[u8]>,
-            success: bool,
-        ) {
-            let mut config = ClientConfig::new();
-
-            if let Some(mut chain) = chain {
-                config.root_store.add_pem_file(&mut chain).ok();
-            }
-
-            let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
-            let domain = webpki::DNSNameRef::try_from_ascii_str(domain).unwrap();
-            let stream = TcpStream::connect(*local_addr.as_socket_addr().unwrap())
-                .await
-                .unwrap();
-
-            match connector.connect(domain, stream).await {
-                Ok(mut stream) => {
-                    if !success {
-                        panic!();
-                    }
-                    stream.write_i32(10).await.unwrap();
-                }
-                Err(err) => {
-                    if success {
-                        panic!("{}", err);
-                    }
-                }
-            }
-        }
-
-        do_request(
-            &local_addr,
-            "testserver.com",
-            Some(include_bytes!("certs/chain1.pem").as_ref()),
-            true,
-        )
-        .await;
-
-        tokio::time::sleep(Duration::from_secs(1)).await;
-
-        do_request(&local_addr, "example.com", None, false).await;
-
-        tokio::time::sleep(Duration::from_secs(1)).await;
-
-        do_request(
-            &local_addr,
-            "testserver.com",
-            Some(include_bytes!("certs/chain1.pem").as_ref()),
-            true,
-        )
-        .await;
     }
 }

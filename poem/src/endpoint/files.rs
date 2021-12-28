@@ -359,6 +359,7 @@ fn equiv_utf8_text(ct: Mime) -> Mime {
     ct
 }
 
+#[allow(unused_variables)]
 fn ino(md: &Metadata) -> u64 {
     #[cfg(unix)]
     {
