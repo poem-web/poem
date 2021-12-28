@@ -19,6 +19,7 @@ use std::{
 };
 
 pub use combined::{Combined, CombinedStream};
+use http::uri::Scheme;
 #[cfg(feature = "native-tls")]
 pub use native_tls::{NativeTlsAcceptor, NativeTlsConfig, NativeTlsListener};
 #[cfg(feature = "rustls")]
@@ -46,7 +47,7 @@ pub trait Acceptor: Send {
     /// This function will yield once a new TCP connection is established. When
     /// established, the corresponding IO stream and the remote peer’s
     /// address will be returned.
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)>;
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)>;
 }
 
 /// An owned dynamically typed Acceptor for use in cases where you can’t
@@ -171,7 +172,7 @@ impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
         self.as_ref().local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         self.as_mut().accept().await
     }
 }
@@ -184,7 +185,7 @@ impl Acceptor for Infallible {
         vec![]
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         unreachable!()
     }
 }
@@ -247,11 +248,13 @@ impl<T: Acceptor> Acceptor for WrappedAcceptor<T> {
         self.0.local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         self.0
             .accept()
             .await
-            .map(|(io, local_addr, remote_addr)| (BoxIo::new(io), local_addr, remote_addr))
+            .map(|(io, local_addr, remote_addr, scheme)| {
+                (BoxIo::new(io), local_addr, remote_addr, scheme)
+            })
     }
 }
 

@@ -1,5 +1,6 @@
 use std::io::Result;
 
+use http::uri::Scheme;
 use tokio::{
     io::Result as IoResult,
     net::{TcpListener as TokioTcpListener, TcpStream, ToSocketAddrs},
@@ -55,11 +56,15 @@ impl Acceptor for TcpAcceptor {
     }
 
     #[inline]
-    async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr)> {
-        self.listener
-            .accept()
-            .await
-            .map(|(io, addr)| (io, self.local_addr.clone(), RemoteAddr(addr.into())))
+    async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
+        self.listener.accept().await.map(|(io, addr)| {
+            (
+                io,
+                self.local_addr.clone(),
+                RemoteAddr(addr.into()),
+                Scheme::HTTP,
+            )
+        })
     }
 }
 
@@ -82,7 +87,7 @@ mod tests {
             stream.write_i32(10).await.unwrap();
         });
 
-        let (mut stream, _, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
     }
 }

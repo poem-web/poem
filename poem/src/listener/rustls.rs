@@ -4,6 +4,7 @@ use futures_util::{
     stream::{BoxStream, Chain, Pending},
     Stream, StreamExt,
 };
+use http::uri::Scheme;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
@@ -232,7 +233,7 @@ where
         self.inner.local_addr()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         loop {
             tokio::select! {
                 res = self.config_stream.next() => {
@@ -254,13 +255,13 @@ where
                     }
                 }
                 res = self.inner.accept() => {
-                    let (stream, local_addr, remote_addr) = res?;
+                    let (stream, local_addr, remote_addr, _) = res?;
                     let tls_acceptor = match &self.current_tls_acceptor {
                         Some(tls_acceptor) => tls_acceptor,
                         None => return Err(IoError::new(ErrorKind::Other, "no valid tls config.")),
                     };
                     let stream = tls_acceptor.accept(stream).await?;
-                    return Ok((stream, local_addr, remote_addr));
+                    return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
                 }
             }
         }
@@ -305,7 +306,7 @@ mod tests {
             stream.write_i32(10).await.unwrap();
         });
 
-        let (mut stream, _, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
     }
 
@@ -335,7 +336,7 @@ mod tests {
 
         tokio::spawn(async move {
             loop {
-                if let Ok((mut stream, _, _)) = acceptor.accept().await {
+                if let Ok((mut stream, _, _, _)) = acceptor.accept().await {
                     assert_eq!(stream.read_i32().await.unwrap(), 10);
                 }
             }

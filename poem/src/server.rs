@@ -7,6 +7,7 @@ use std::{
     },
 };
 
+use http::uri::Scheme;
 use hyper::server::conn::Http;
 use tokio::{
     io::{AsyncRead, AsyncWrite, Result as IoResult},
@@ -126,7 +127,7 @@ where
                     break;
                 },
                 res = acceptor.accept() => {
-                    if let Ok((socket, local_addr, remote_addr)) = res {
+                    if let Ok((socket, local_addr, remote_addr, scheme)) = res {
                         let ep = ep.clone();
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
@@ -137,11 +138,11 @@ where
 
                             if timeout.is_some() {
                                 tokio::select! {
-                                    _ = serve_connection(socket, local_addr, remote_addr, ep) => {}
+                                    _ = serve_connection(socket, local_addr, remote_addr, scheme, ep) => {}
                                     _ = timeout_notify.notified() => {}
                                 }
                             } else {
-                                serve_connection(socket, local_addr, remote_addr, ep).await;
+                                serve_connection(socket, local_addr, remote_addr, scheme, ep).await;
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::SeqCst) == 1 {
@@ -168,6 +169,7 @@ async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
     local_addr: LocalAddr,
     remote_addr: RemoteAddr,
+    scheme: Scheme,
     ep: Arc<dyn Endpoint<Output = Response>>,
 ) {
     let service = hyper::service::service_fn({
@@ -175,9 +177,10 @@ async fn serve_connection(
             let ep = ep.clone();
             let local_addr = local_addr.clone();
             let remote_addr = remote_addr.clone();
+            let scheme = scheme.clone();
             async move {
                 Ok::<http::Response<_>, Infallible>(
-                    ep.get_response((req, local_addr, remote_addr).into())
+                    ep.get_response((req, local_addr, remote_addr, scheme).into())
                         .await
                         .into(),
                 )

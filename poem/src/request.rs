@@ -8,6 +8,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use http::uri::Scheme;
 use parking_lot::Mutex;
 use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -29,15 +30,30 @@ use crate::{
     RequestBody,
 };
 
-#[derive(Default)]
 pub(crate) struct RequestState {
     pub(crate) local_addr: LocalAddr,
     pub(crate) remote_addr: RemoteAddr,
+    pub(crate) scheme: Scheme,
     pub(crate) original_uri: Uri,
     pub(crate) match_params: PathParams,
     #[cfg(feature = "cookie")]
     pub(crate) cookie_jar: Option<CookieJar>,
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
+}
+
+impl Default for RequestState {
+    fn default() -> Self {
+        Self {
+            local_addr: Default::default(),
+            remote_addr: Default::default(),
+            scheme: Scheme::HTTP,
+            original_uri: Default::default(),
+            match_params: vec![],
+            #[cfg(feature = "cookie")]
+            cookie_jar: None,
+            on_upgrade: Default::default(),
+        }
+    }
 }
 
 /// Component parts of an HTTP Request.
@@ -92,9 +108,14 @@ impl Debug for Request {
     }
 }
 
-impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
+impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr, Scheme)> for Request {
     fn from(
-        (req, local_addr, remote_addr): (http::Request<hyper::Body>, LocalAddr, RemoteAddr),
+        (req, local_addr, remote_addr, scheme): (
+            http::Request<hyper::Body>,
+            LocalAddr,
+            RemoteAddr,
+            Scheme,
+        ),
     ) -> Self {
         let (mut parts, body) = req.into_parts();
         let on_upgrade = Mutex::new(
@@ -114,6 +135,7 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
             state: RequestState {
                 local_addr,
                 remote_addr,
+                scheme,
                 original_uri: parts.uri,
                 match_params: Default::default(),
                 #[cfg(feature = "cookie")]
@@ -203,6 +225,12 @@ impl Request {
     #[inline]
     pub fn set_version(&mut self, version: Version) {
         self.version = version;
+    }
+
+    /// Returns the scheme of incoming request.
+    #[inline]
+    pub fn scheme(&self) -> &Scheme {
+        &self.state.scheme
     }
 
     /// Returns a reference to the associated header map.
