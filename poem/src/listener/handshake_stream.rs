@@ -1,3 +1,4 @@
+use std::io::ErrorKind;
 use std::{
     future::Future,
     io::Error,
@@ -11,6 +12,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result};
 enum State<S> {
     Handshaking(BoxFuture<'static, Result<S>>),
     Ready(S),
+    Error,
 }
 
 /// A handshake stream for tls.
@@ -44,10 +46,14 @@ where
             match &mut this.state {
                 State::Handshaking(fut) => match fut.poll_unpin(cx) {
                     Poll::Ready(Ok(s)) => this.state = State::Ready(s),
-                    Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                    Poll::Ready(Err(err)) => {
+                        this.state = State::Error;
+                        return Poll::Ready(Err(err));
+                    }
                     Poll::Pending => return Poll::Pending,
                 },
                 State::Ready(stream) => return Pin::new(stream).poll_read(cx, buf),
+                State::Error => return Poll::Ready(Err(invalid_data_error())),
             }
         }
     }
@@ -68,10 +74,14 @@ where
             match &mut this.state {
                 State::Handshaking(fut) => match fut.poll_unpin(cx) {
                     Poll::Ready(Ok(s)) => this.state = State::Ready(s),
-                    Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                    Poll::Ready(Err(err)) => {
+                        this.state = State::Error;
+                        return Poll::Ready(Err(err));
+                    }
                     Poll::Pending => return Poll::Pending,
                 },
                 State::Ready(stream) => return Pin::new(stream).poll_write(cx, buf),
+                State::Error => return Poll::Ready(Err(invalid_data_error())),
             }
         }
     }
@@ -86,10 +96,14 @@ where
             match &mut this.state {
                 State::Handshaking(fut) => match fut.poll_unpin(cx) {
                     Poll::Ready(Ok(s)) => this.state = State::Ready(s),
-                    Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                    Poll::Ready(Err(err)) => {
+                        this.state = State::Error;
+                        return Poll::Ready(Err(err));
+                    }
                     Poll::Pending => return Poll::Pending,
                 },
                 State::Ready(stream) => return Pin::new(stream).poll_flush(cx),
+                State::Error => return Poll::Ready(Err(invalid_data_error())),
             }
         }
     }
@@ -104,11 +118,19 @@ where
             match &mut this.state {
                 State::Handshaking(fut) => match fut.poll_unpin(cx) {
                     Poll::Ready(Ok(s)) => this.state = State::Ready(s),
-                    Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                    Poll::Ready(Err(err)) => {
+                        this.state = State::Error;
+                        return Poll::Ready(Err(err));
+                    }
                     Poll::Pending => return Poll::Pending,
                 },
                 State::Ready(stream) => return Pin::new(stream).poll_shutdown(cx),
+                State::Error => return Poll::Ready(Err(invalid_data_error())),
             }
         }
     }
+}
+
+fn invalid_data_error() -> Error {
+    Error::new(ErrorKind::InvalidData, "invalid data")
 }
