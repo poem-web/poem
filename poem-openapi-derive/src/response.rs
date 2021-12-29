@@ -258,8 +258,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 }
 
 fn get_status(span: Span, status: Option<u16>) -> GeneratorResult<TokenStream> {
-    let status =
-        status.ok_or_else(|| Error::new(span, "Response can only be applied to an enum."))?;
+    let status = status.ok_or_else(|| Error::new(span, "Missing status attribute"))?;
     if !(100..1000).contains(&status) {
         return Err(Error::new(
             span,

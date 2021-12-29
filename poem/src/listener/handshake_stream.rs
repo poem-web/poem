@@ -1,7 +1,6 @@
-use std::io::ErrorKind;
 use std::{
     future::Future,
-    io::Error,
+    io::{Error, ErrorKind},
     pin::Pin,
     task::{Context, Poll},
 };

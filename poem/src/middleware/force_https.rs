@@ -1,5 +1,6 @@
-use http::{header, uri::Scheme, Uri};
 use std::borrow::Cow;
+
+use http::{header, uri::Scheme, Uri};
 
 use crate::{web::Redirect, Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
