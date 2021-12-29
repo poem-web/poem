@@ -259,8 +259,21 @@ impl RequestBody {
 /// ```
 #[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
-    /// Perform the extraction.
+    /// Extract from request head and body.
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
+
+    /// Extract from request head.
+    ///
+    /// If you know that this type does not need to extract the body, then you
+    /// can just use it.
+    ///
+    /// For example [`Query`], [`Path`] they only extract the content from the
+    /// request head, using this method would be more convenient.
+    /// `String`,`Vec<u8>` they extract the body of the request, using this
+    /// method will cause `ReadBodyError` error.
+    async fn from_request_without_body(req: &'a Request) -> Result<Self> {
+        Self::from_request(req, &mut Default::default()).await
+    }
 }
 
 /// Represents a type that can convert into response.

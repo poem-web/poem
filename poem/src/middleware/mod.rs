@@ -87,7 +87,7 @@ use crate::endpoint::Endpoint;
 ///             req.extensions_mut().insert(Token(token));
 ///         }
 ///
-///         // call the inner endpoint.
+///         // call the next endpoint.
 ///         self.ep.call(req).await
 ///     }
 /// }
@@ -99,6 +99,48 @@ use crate::endpoint::Endpoint;
 ///
 /// // Use the `TokenMiddleware` middleware to convert the `index` endpoint.
 /// let ep = index.with(TokenMiddleware);
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let mut resp = ep
+///     .call(Request::builder().header(TOKEN_HEADER, "abc").finish())
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
+/// # });
+/// ```
+///
+/// # Create middleware with functions
+///
+/// ```rust
+/// use std::sync::Arc;
+///
+/// use poem::{handler, web::Data, Endpoint, EndpointExt, IntoResponse, Request, Result};
+/// const TOKEN_HEADER: &str = "X-Token";
+///
+/// #[handler]
+/// async fn index(Data(token): Data<&Token>) -> String {
+///     token.0.clone()
+/// }
+///
+/// /// Token data
+/// struct Token(String);
+///
+/// async fn token_middleware<E: Endpoint>(next: E, mut req: Request) -> Result<E::Output> {
+///     if let Some(value) = req
+///         .headers()
+///         .get(TOKEN_HEADER)
+///         .and_then(|value| value.to_str().ok())
+///     {
+///         // Insert token data to extensions of request.
+///         let token = value.to_string();
+///         req.extensions_mut().insert(Token(token));
+///     }
+///
+///     // call the next endpoint.
+///     next.call(req).await
+/// }
+///
+/// let ep = index.around(token_middleware);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let mut resp = ep
