@@ -1,6 +1,7 @@
 //! Commonly used listeners.
 
 mod combined;
+#[cfg(any(feature = "native-tls", feature = "native-tls"))]
 mod handshake_stream;
 #[cfg(feature = "native-tls")]
 mod native_tls;
@@ -20,6 +21,7 @@ use std::{
 };
 
 pub use combined::{Combined, CombinedStream};
+#[cfg(any(feature = "native-tls", feature = "native-tls"))]
 pub use handshake_stream::HandshakeStream;
 use http::uri::Scheme;
 #[cfg(feature = "native-tls")]

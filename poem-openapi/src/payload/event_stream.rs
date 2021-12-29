@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use futures_util::{Stream, StreamExt};
 use poem::{
     web::sse::{Event, SSE},
@@ -15,12 +17,27 @@ use crate::{
 ///
 /// Reference: <https://github.com/OAI/OpenAPI-Specification/issues/396#issuecomment-894718960>
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct EventStream<T>(T);
+pub struct EventStream<T> {
+    stream: T,
+    keep_alive: Option<Duration>,
+}
 
 impl<T> EventStream<T> {
     /// Create an event stream payload.
     pub fn new(stream: T) -> Self {
-        Self(stream)
+        Self {
+            stream,
+            keep_alive: None,
+        }
+    }
+
+    /// Set the keep alive interval.
+    #[must_use]
+    pub fn keep_alive(self, duration: Duration) -> Self {
+        Self {
+            keep_alive: Some(duration),
+            ..self
+        }
     }
 }
 
@@ -37,13 +54,18 @@ impl<T: Stream<Item = E> + Send + 'static, E: Type + ToJSON> Payload for EventSt
 
 impl<T: Stream<Item = E> + Send + 'static, E: Type + ToJSON> IntoResponse for EventStream<T> {
     fn into_response(self) -> Response {
-        SSE::new(
-            self.0
+        let mut sse = SSE::new(
+            self.stream
                 .map(|value| serde_json::to_string(&value.to_json()))
                 .take_while(|value| futures_util::future::ready(value.is_ok()))
                 .map(|value| Event::message(value.unwrap())),
-        )
-        .into_response()
+        );
+
+        if let Some(keep_alive) = self.keep_alive {
+            sse = sse.keep_alive(keep_alive);
+        }
+
+        sse.into_response()
     }
 }
 
