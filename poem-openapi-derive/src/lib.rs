@@ -71,6 +71,34 @@ pub fn derive_request(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Deriving OpenApi on a struct is the primary way in which you create an
+/// OpenAPI server.
+///
+/// # Example
+///
+/// ```
+/// use poem_openapi::{payload::PlainText, OpenApi};
+///
+/// struct Api;
+///
+/// #[OpenApi]
+/// impl Api {
+///     /// Hello world
+///     #[oai(path = "/hello", method = "get")]
+///     async fn index(&self) -> PlainText<&'static str> {
+///         PlainText("Hello World")
+///     }
+/// }
+/// ```
+///
+/// # Arguments
+///
+/// You can modify the the derived API in several ways by passing in arguments
+/// to the derive macro.
+///
+/// 1. Using `#[OpenApi(prefix_path="/v1")]` would put
+/// `/v1` before every other route. In the example above, making a GET request
+/// to `/v1/hello` would return "Hello World".
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn OpenApi(args: TokenStream, input: TokenStream) -> TokenStream {

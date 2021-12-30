@@ -29,3 +29,6 @@ indexmap = "1.7.0"
 regex = "1.5.4"
 http = "0.2.5"
 mime = "0.3.16"
+
+[dev-dependencies]
+poem-openapi = { path = "../poem-openapi" }
