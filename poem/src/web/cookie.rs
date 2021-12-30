@@ -231,7 +231,7 @@ impl Cookie {
     /// Sets the expires field of `self` to `time`.
     pub fn set_expires(&mut self, time: DateTime<impl TimeZone>) {
         self.0.set_expires(libcookie::Expiration::DateTime(
-            time::OffsetDateTime::from_unix_timestamp(time.timestamp()),
+            time::OffsetDateTime::from_unix_timestamp(time.timestamp()).unwrap(),
         ));
     }
 
