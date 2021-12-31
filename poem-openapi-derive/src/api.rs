@@ -257,6 +257,7 @@ fn generate_operation(
             }
             None => quote!(::std::option::Option::None),
         };
+        let has_default = operation_param.default.is_some();
         let param_meta_default = match &operation_param.default {
             Some(DefaultValue::Default) => {
                 quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#arg_ty as ::std::default::Default>::default())))
@@ -318,7 +319,7 @@ fn generate_operation(
                     schema: original_schema.merge(patch_schema),
                     in_type: <#arg_ty as #crate_name::ApiExtractor>::param_in().unwrap(),
                     description: #param_desc,
-                    required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED,
+                    required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED && !#has_default,
                     deprecated: #deprecated,
                 };
                 params.push(meta_param);

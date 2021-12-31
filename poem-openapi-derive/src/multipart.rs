@@ -152,6 +152,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
         }
 
+        let has_default = field.default.is_some();
         let field_meta_default = match &field.default {
             Some(DefaultValue::Default) => {
                 quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default())))
@@ -188,7 +189,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         });
 
         required_fields.push(quote! {
-            if <#field_ty as #crate_name::types::Type>::IS_REQUIRED {
+            if <#field_ty as #crate_name::types::Type>::IS_REQUIRED && !#has_default {
                 fields.push(#field_name);
             }
         });

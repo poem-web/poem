@@ -230,8 +230,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             (#field_name, original_schema.merge(patch_schema))
         }});
 
+        let has_default = field.default.is_some();
         required_fields.push(quote! {
-            if <#field_ty>::IS_REQUIRED {
+            if <#field_ty>::IS_REQUIRED && !#has_default {
                 fields.push(#field_name);
             }
         });

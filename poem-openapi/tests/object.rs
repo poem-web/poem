@@ -644,3 +644,17 @@ fn deny_unknown_fields() {
         "failed to parse \"Obj\": unknown field `c`."
     );
 }
+
+#[test]
+fn required_fields() {
+    #[derive(Object)]
+    struct Obj {
+        a: i32,
+        #[oai(default)]
+        b: i32,
+        c: Option<i32>,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.required, vec!["a"]);
+}

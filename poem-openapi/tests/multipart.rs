@@ -78,12 +78,14 @@ async fn required_fields() {
     struct A {
         name: String,
         file: Binary<Vec<u8>>,
+        #[oai(default)]
+        c: i32,
     }
 
     let schema_ref = A::schema_ref();
     let schema: &MetaSchema = schema_ref.unwrap_inline();
     assert_eq!(schema.ty, "object");
-    assert_eq!(schema.properties.len(), 2);
+    assert_eq!(schema.properties.len(), 3);
 
     assert_eq!(schema.properties[0].0, "name");
     assert_eq!(schema.properties[0].1.unwrap_inline().ty, "string");

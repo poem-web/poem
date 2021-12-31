@@ -369,3 +369,29 @@ async fn default_opt() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn required_params() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, #[oai(default = "default_i32")] a: Query<i32>, b: Query<i32>) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "a");
+    assert_eq!(meta.paths[0].operations[0].params[0].required, false);
+
+    assert_eq!(
+        meta.paths[0].operations[0].params[1].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
+    assert_eq!(meta.paths[0].operations[0].params[1].required, true);
+}

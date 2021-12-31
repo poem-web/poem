@@ -74,7 +74,7 @@ where
 }
 
 fn redirect_host(host: &str, https_port: Option<u16>) -> Cow<'_, str> {
-    match (host.split_once(":"), https_port) {
+    match (host.split_once(':'), https_port) {
         (Some((host, _)), Some(port)) => Cow::Owned(format!("{}:{}", host, port)),
         (None, Some(port)) => Cow::Owned(format!("{}:{}", host, port)),
         (_, None) => Cow::Borrowed(host),
