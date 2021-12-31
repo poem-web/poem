@@ -102,7 +102,7 @@ fn read_only_all() {
     assert!(!field_value_schema.write_only);
 
     assert_eq!(
-        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        Obj { id: 99, value: 100 }.to_json(),
         serde_json::json!({
             "id": 99,
             "value": 100,
@@ -110,12 +110,12 @@ fn read_only_all() {
     );
 
     assert_eq!(
-        serde_json::from_value::<Obj>(serde_json::json!({
+        Obj::parse_from_json(serde_json::json!({
             "id": 99,
             "value": 100,
         }))
         .unwrap_err()
-        .to_string(),
+        .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
     );
 }
@@ -138,7 +138,7 @@ fn write_only_all() {
     assert!(field_value_schema.write_only);
 
     assert_eq!(
-        serde_json::from_value::<Obj>(serde_json::json!({
+        Obj::parse_from_json(serde_json::json!({
             "id": 99,
             "value": 100,
         }))
@@ -146,10 +146,7 @@ fn write_only_all() {
         Obj { id: 99, value: 100 }
     );
 
-    assert_eq!(
-        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
-        serde_json::json!({})
-    );
+    assert_eq!(Obj { id: 99, value: 100 }.to_json(), serde_json::json!({}));
 }
 
 #[test]
@@ -328,12 +325,9 @@ fn serde() {
         a: i32,
     }
 
+    assert_eq!(Obj { a: 10 }.to_json(), json!({ "a": 10 }));
     assert_eq!(
-        serde_json::to_value(&Obj { a: 10 }).unwrap(),
-        json!({ "a": 10 })
-    );
-    assert_eq!(
-        serde_json::from_value::<Obj>(json!({ "a": 10 })).unwrap(),
+        Obj::parse_from_json(json!({ "a": 10 })).unwrap(),
         Obj { a: 10 }
     );
 }
@@ -346,12 +340,9 @@ fn serde_generic() {
         a: T,
     }
 
+    assert_eq!(Obj::<i32> { a: 10 }.to_json(), json!({ "a": 10 }));
     assert_eq!(
-        serde_json::to_value(&Obj::<i32> { a: 10 }).unwrap(),
-        json!({ "a": 10 })
-    );
-    assert_eq!(
-        serde_json::from_value::<Obj<i32>>(json!({ "a": 10 })).unwrap(),
+        <Obj<i32>>::parse_from_json(json!({ "a": 10 })).unwrap(),
         Obj { a: 10 }
     );
 }
@@ -370,7 +361,7 @@ fn read_only() {
     assert!(meta.properties[0].1.unwrap_inline().read_only);
 
     assert_eq!(
-        serde_json::from_value::<Obj>(serde_json::json!({
+        Obj::parse_from_json(serde_json::json!({
             "value": 100,
         }))
         .unwrap(),
@@ -378,7 +369,7 @@ fn read_only() {
     );
 
     assert_eq!(
-        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        Obj { id: 99, value: 100 }.to_json(),
         serde_json::json!({
             "id": 99,
             "value": 100,
@@ -386,12 +377,12 @@ fn read_only() {
     );
 
     assert_eq!(
-        serde_json::from_value::<Obj>(serde_json::json!({
+        Obj::parse_from_json(serde_json::json!({
             "id": 99,
             "value": 100,
         }))
         .unwrap_err()
-        .to_string(),
+        .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
     );
 }
@@ -410,7 +401,7 @@ fn write_only() {
     assert!(meta.properties[1].1.unwrap_inline().write_only);
 
     assert_eq!(
-        serde_json::from_value::<Obj>(serde_json::json!({
+        Obj::parse_from_json(serde_json::json!({
             "id": 99,
             "value": 100,
         }))
@@ -419,7 +410,7 @@ fn write_only() {
     );
 
     assert_eq!(
-        serde_json::to_value(Obj { id: 99, value: 100 }).unwrap(),
+        Obj { id: 99, value: 100 }.to_json(),
         serde_json::json!({
             "id": 99,
         })

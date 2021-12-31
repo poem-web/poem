@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Path, Type};
+use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
     common_args::{ConcreteType, DefaultValue, RenameRule, RenameRuleExt},
@@ -267,11 +267,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     };
 
     let expanded = if args.concretes.is_empty() {
-        let mut de_impl_generics = args.generics.clone();
-        de_impl_generics
-            .params
-            .insert(0, GenericParam::Lifetime(syn::parse_str("'de").unwrap()));
-        let (de_impl_generics, _, _) = de_impl_generics.split_for_impl();
         let example = match &args.example {
             Some(path) => {
                 let path = &**path;
@@ -354,19 +349,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     let mut object = ::#crate_name::__private::serde_json::Map::new();
                     #(#serialize_fields)*
                     #crate_name::__private::serde_json::Value::Object(object)
-                }
-            }
-
-            impl #impl_generics #crate_name::__private::serde::Serialize for #ident #ty_generics #where_clause {
-                fn serialize<S: #crate_name::__private::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
-                    #crate_name::types::ToJSON::to_json(self).serialize(serializer)
-                }
-            }
-
-            impl #de_impl_generics #crate_name::__private::serde::Deserialize<'de> for #ident #ty_generics #where_clause {
-                fn deserialize<D: #crate_name::__private::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
-                    let value: #crate_name::__private::serde_json::Value = #crate_name::__private::serde::de::Deserialize::deserialize(deserializer)?;
-                    #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::__private::serde::de::Error::custom(err.into_message()))
                 }
             }
         }
@@ -455,19 +437,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 impl #crate_name::types::ToJSON for #concrete_type {
                     fn to_json(&self) -> #crate_name::__private::serde_json::Value {
                         Self::__internal_to_json(self)
-                    }
-                }
-
-                impl #crate_name::__private::serde::Serialize for #concrete_type {
-                    fn serialize<S: #crate_name::__private::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
-                        #crate_name::types::ToJSON::to_json(self).serialize(serializer)
-                    }
-                }
-
-                impl<'de> #crate_name::__private::serde::Deserialize<'de> for #concrete_type {
-                    fn deserialize<D: #crate_name::__private::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
-                        let value: #crate_name::__private::serde_json::Value = #crate_name::__private::serde::de::Deserialize::deserialize(deserializer)?;
-                        #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::__private::serde::de::Error::custom(err.into_message()))
                     }
                 }
             };

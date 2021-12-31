@@ -375,6 +375,7 @@ async fn required_params() {
     struct Api;
 
     #[OpenApi]
+    #[allow(unused_variables)]
     impl Api {
         #[oai(path = "/", method = "get")]
         async fn test(&self, #[oai(default = "default_i32")] a: Query<i32>, b: Query<i32>) {}
