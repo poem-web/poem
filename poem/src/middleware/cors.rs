@@ -369,7 +369,7 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
             return Ok(self.build_preflight_response(&origin, request_headers));
         }
 
-        let mut resp = self.inner.call(req).await?.into_response();
+        let mut resp = self.inner.get_response(req).await;
 
         resp.headers_mut()
             .insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin);
@@ -400,7 +400,7 @@ mod tests {
     use http::StatusCode;
 
     use super::*;
-    use crate::{endpoint::make_sync, EndpointExt};
+    use crate::{endpoint::make_sync, EndpointExt, Error};
 
     const ALLOW_ORIGIN: &str = "https://example.com";
     const ALLOW_HEADER: &str = "X-Token";
@@ -744,8 +744,9 @@ mod tests {
 
     #[tokio::test]
     async fn set_cors_headers_to_error_responses() {
-        let ep = make_sync(|_| StatusCode::BAD_REQUEST).with(cors());
-        let resp = ep.map_to_response().call(get_request()).await.unwrap();
+        let ep =
+            make_sync(|_| Err::<(), _>(Error::from_status(StatusCode::BAD_REQUEST))).with(cors());
+        let resp = ep.map_to_response().get_response(get_request()).await;
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             resp.headers()
