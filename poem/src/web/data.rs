@@ -22,8 +22,8 @@ use crate::{error::GetDataError, FromRequest, Request, RequestBody, Result};
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let app = Route::new().at("/", get(index)).with(AddData::new(10));
-/// let resp = app.call(Request::default()).await.unwrap();
+/// let app = Route::new().at("/", get(index)).data(10i32);
+/// let resp = app.get_response(Request::default()).await;
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// # });
 /// ```

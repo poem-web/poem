@@ -410,6 +410,9 @@ define_simple_errors!(
     /// Error occurred in the router.
     (NotFoundError, NOT_FOUND, "not found");
 
+    /// Error occurred in the router.
+    (MethodNotAllowedError, METHOD_NOT_ALLOWED, "method not allowed");
+
     /// Error occurred in the `Cors` middleware.
     (CorsError, UNAUTHORIZED, "unauthorized");
 );
