@@ -147,19 +147,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
         }
-
-        impl #crate_name::__private::serde::Serialize for #ident {
-            fn serialize<S: #crate_name::__private::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
-                #crate_name::types::ToJSON::to_json(self).serialize(serializer)
-            }
-        }
-
-        impl<'de> #crate_name::__private::serde::Deserialize<'de> for #ident {
-            fn deserialize<D: #crate_name::__private::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
-                let value: #crate_name::__private::serde_json::Value = #crate_name::__private::serde::de::Deserialize::deserialize(deserializer)?;
-                #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::__private::serde::de::Error::custom(err.into_message()))
-            }
-        }
     };
 
     Ok(expanded)
