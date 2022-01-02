@@ -256,6 +256,9 @@ pub mod middleware;
 #[cfg(feature = "session")]
 #[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;
+#[cfg(feature = "test")]
+#[cfg_attr(docsrs, doc(cfg(feature = "test")))]
+pub mod test;
 pub mod web;
 
 #[doc(inline)]
