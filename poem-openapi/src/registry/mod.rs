@@ -2,7 +2,7 @@ mod ser;
 
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     hash::{Hash, Hasher},
 };
 
@@ -480,6 +480,8 @@ pub struct MetaLicense {
 pub struct MetaInfo {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -609,8 +611,8 @@ pub struct MetaApi {
 
 #[derive(Default)]
 pub struct Registry {
-    pub schemas: HashMap<&'static str, MetaSchema>,
-    pub tags: HashSet<MetaTag>,
+    pub schemas: BTreeMap<&'static str, MetaSchema>,
+    pub tags: BTreeSet<MetaTag>,
     pub security_schemes: BTreeMap<&'static str, MetaSecurityScheme>,
 }
 

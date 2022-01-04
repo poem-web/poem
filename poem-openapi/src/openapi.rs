@@ -138,6 +138,7 @@ impl<T> OpenApiService<T, ()> {
             _webhook: PhantomData,
             info: MetaInfo {
                 title: title.into(),
+                summary: None,
                 description: None,
                 version: version.into(),
                 terms_of_service: None,
@@ -161,6 +162,13 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
             servers: self.servers,
             cookie_key: self.cookie_key,
         }
+    }
+
+    /// Sets the summary of the API container.
+    #[must_use]
+    pub fn summary(mut self, summary: impl Into<String>) -> Self {
+        self.info.summary = Some(summary.into());
+        self
     }
 
     /// Sets the description of the API container.
