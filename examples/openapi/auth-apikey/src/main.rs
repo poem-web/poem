@@ -17,14 +17,10 @@ struct User {
 )]
 struct MyApiKeyAuthorization(User);
 
-async fn api_checker(_: &Request, api_key: ApiKey) -> Result<User> {
-    api_key
-        .key
-        .strip_prefix("key:")
-        .ok_or_else(|| Error::from_status(StatusCode::UNAUTHORIZED))
-        .map(|username| User {
-            username: username.to_string(),
-        })
+async fn api_checker(_: &Request, api_key: ApiKey) -> Option<User> {
+    api_key.key.strip_prefix("key:").map(|username| User {
+        username: username.to_string(),
+    })
 }
 
 struct Api;
