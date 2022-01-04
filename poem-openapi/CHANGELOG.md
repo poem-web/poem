@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.2.23] 2022-1-4
 
 - Add `OpenApiService::summary` method.
+- The return type of the `checker` function of the `SecurityScheme` macro has been changed from `Option<T>` to `Result<T>`.
 
 # [1.2.21] 2022-1-1
 

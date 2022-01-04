@@ -2,7 +2,7 @@ mod ser;
 
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     hash::{Hash, Hasher},
 };
 

@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, Request, Result, Route};
+use poem::{http::StatusCode, listener::TcpListener, Error, Request, Result, Route};
 use poem_openapi::{
     auth::ApiKey, param::Query, payload::PlainText, OpenApi, OpenApiService, SecurityScheme,
 };
@@ -17,10 +17,14 @@ struct User {
 )]
 struct MyApiKeyAuthorization(User);
 
-async fn api_checker(_: &Request, api_key: ApiKey) -> Option<User> {
-    api_key.key.strip_prefix("key:").map(|username| User {
-        username: username.to_string(),
-    })
+async fn api_checker(_: &Request, api_key: ApiKey) -> Result<User> {
+    api_key
+        .key
+        .strip_prefix("key:")
+        .ok_or_else(|| Error::from_status(StatusCode::UNAUTHORIZED))
+        .map(|username| User {
+            username: username.to_string(),
+        })
 }
 
 struct Api;

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use poem_openapi::{
     registry::{MetaTag, Registry},
@@ -69,6 +69,6 @@ async fn meta() {
             }
         ]
         .into_iter()
-        .collect::<HashSet<_>>()
+        .collect::<BTreeSet<_>>()
     );
 }

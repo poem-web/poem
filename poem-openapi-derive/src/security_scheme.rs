@@ -441,8 +441,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let register_security_scheme =
         args.generate_register_security_scheme(&crate_name, &oai_typename)?;
     let from_request = args.generate_from_request(&crate_name);
-    let checker = args.checker.as_ref().map(|path| quote! {
-        let output = ::std::option::Option::ok_or(#path(&req, output).await, #crate_name::error::AuthorizationError)?;
+    let checker = args.checker.as_ref().map(|path| {
+        quote! {
+            let output = {
+                let res: ::std::result::Result<_, #crate_name::__private::poem::Error> = #path(&req, output).await;
+                res?
+            };
+        }
     });
 
     let expanded = quote! {

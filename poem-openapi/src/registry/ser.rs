@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use serde::{
     ser::{SerializeMap, SerializeStruct},
@@ -89,7 +89,7 @@ impl<'a> Serialize for Document<'a> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]
         struct Components<'a> {
-            schemas: &'a HashMap<&'static str, MetaSchema>,
+            schemas: &'a BTreeMap<&'static str, MetaSchema>,
             #[serde(rename = "securitySchemes")]
             #[serde(skip_serializing_if = "BTreeMap::is_empty")]
             security_schemes: &'a BTreeMap<&'static str, MetaSecurityScheme>,
