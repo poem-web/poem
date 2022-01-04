@@ -154,3 +154,45 @@ fn remote() {
     let a: EnumA = EnumB::C.into();
     assert_eq!(a, EnumA::C);
 }
+
+#[test]
+fn description() {
+    /// A
+    ///
+    /// AB
+    /// CDE
+    #[derive(Enum)]
+    enum MyEnum {
+        A,
+    }
+
+    let mut registry = Registry::new();
+    MyEnum::register(&mut registry);
+    let meta = registry.schemas.remove("MyEnum").unwrap();
+    assert_eq!(meta.title, Some("A"));
+    assert_eq!(meta.description, Some("AB\nCDE"));
+}
+
+#[test]
+fn deprecated() {
+    #[derive(Enum)]
+    enum MyEnumA {
+        A,
+    }
+
+    let mut registry = Registry::new();
+    MyEnumA::register(&mut registry);
+    let meta = registry.schemas.remove("MyEnumA").unwrap();
+    assert!(!meta.deprecated);
+
+    #[derive(Enum)]
+    #[oai(deprecated)]
+    enum MyEnumB {
+        A,
+    }
+
+    let mut registry = Registry::new();
+    MyEnumB::register(&mut registry);
+    let meta = registry.schemas.remove("MyEnumB").unwrap();
+    assert!(meta.deprecated);
+}
