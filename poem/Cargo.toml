@@ -35,6 +35,7 @@ prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile"]
 csrf = ["cookie", "base64", "libcsrf"]
 test = ["sse", "sse-codec", "tokio-util/compat"]
+i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.2.25" }
@@ -86,6 +87,11 @@ base64 = { version = "0.13.0", optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
 sse-codec = { version = "0.3.2", optional = true }
+fluent = { version = "0.16.0", optional = true }
+fluent-langneg = { version = "0.13.0", optional = true }
+fluent-syntax = { version = "0.11.0", optional = true }
+unic-langid = { version = "0.9.0", optional = true, features = ["macros"] }
+intl-memoizer = { version = "0.5.1", optional = true }
 
 # Feature optional dependencies
 anyhow = { version = "1.0.0", optional = true }
