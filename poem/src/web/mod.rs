@@ -553,13 +553,17 @@ impl IntoResponse for Response {
 
 impl IntoResponse for String {
     fn into_response(self) -> Response {
-        Response::builder().content_type("text/plain").body(self)
+        Response::builder()
+            .content_type("text/plain; charset=utf8")
+            .body(self)
     }
 }
 
 impl IntoResponse for &'static str {
     fn into_response(self) -> Response {
-        Response::builder().content_type("text/plain").body(self)
+        Response::builder()
+            .content_type("text/plain; charset=utf8")
+            .body(self)
     }
 }
 

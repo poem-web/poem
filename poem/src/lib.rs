@@ -251,6 +251,9 @@
 
 pub mod endpoint;
 pub mod error;
+#[cfg(feature = "i18n")]
+#[cfg_attr(docsrs, doc(cfg(feature = "i18n")))]
+pub mod i18n;
 pub mod listener;
 pub mod middleware;
 #[cfg(feature = "session")]

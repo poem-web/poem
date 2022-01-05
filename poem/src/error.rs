@@ -701,6 +701,45 @@ impl ResponseError for RouteError {
     }
 }
 
+/// A possible error value occurred when load i18n resources.
+#[cfg(feature = "i18n")]
+#[derive(Debug, thiserror::Error)]
+pub enum I18NError {
+    /// Fluent error.
+    #[error("fluent: {}", .0[0])]
+    Fluent(Vec<fluent::FluentError>),
+
+    /// Fluent FTL parser error.
+    #[error("fluent parser: {}", .0[0])]
+    FluentParser(Vec<fluent_syntax::parser::ParserError>),
+
+    /// There is no value in the message.
+    #[error("no value")]
+    FluentNoValue,
+
+    /// Message id was not found.
+    #[error("msg not found: `{id}`")]
+    FluentMessageNotFound {
+        /// Message id
+        id: String,
+    },
+
+    /// Invalid language id.
+    #[error("invalid language id: {0}")]
+    LanguageIdentifier(#[from] unic_langid::LanguageIdentifierError),
+
+    /// Io error
+    #[error("io: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+#[cfg(feature = "i18n")]
+impl ResponseError for I18NError {
+    fn status(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::{Error as IoError, ErrorKind};
