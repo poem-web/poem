@@ -1,10 +1,54 @@
 use crate::{
-    endpoint::BoxEndpoint,
-    http::{Method, StatusCode},
-    Endpoint, EndpointExt, IntoEndpoint, Request, Response,
+    endpoint::BoxEndpoint, error::MethodNotAllowedError, http::Method, Endpoint, EndpointExt,
+    IntoEndpoint, Request, Response, Result,
 };
 
 /// Routing object for HTTP methods
+///
+/// # Errors
+///
+/// - [`MethodNotAllowedError`]
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     handler,
+///     http::{Method, StatusCode},
+///     Endpoint, Request, RouteMethod,
+/// };
+///
+/// #[handler]
+/// fn handle_get() -> &'static str {
+///     "get"
+/// }
+///
+/// #[handler]
+/// fn handle_post() -> &'static str {
+///     "post"
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let route_method = RouteMethod::new().get(handle_get).post(handle_post);
+///
+/// let resp = route_method
+///     .get_response(Request::builder().method(Method::GET).finish())
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "get");
+///
+/// let resp = route_method
+///     .get_response(Request::builder().method(Method::POST).finish())
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "post");
+///
+/// let resp = route_method
+///     .get_response(Request::builder().method(Method::PUT).finish())
+///     .await;
+/// assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+/// # });
+/// ```
 #[derive(Default)]
 pub struct RouteMethod {
     methods: Vec<(Method, BoxEndpoint<'static, Response>)>,
@@ -12,58 +56,24 @@ pub struct RouteMethod {
 
 impl RouteMethod {
     /// Create a `RouteMethod` object.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use poem::{
-    ///     handler,
-    ///     http::{Method, StatusCode},
-    ///     Endpoint, Request, RouteMethod,
-    /// };
-    ///
-    /// #[handler]
-    /// fn handle_get() -> &'static str {
-    ///     "get"
-    /// }
-    ///
-    /// #[handler]
-    /// fn handle_post() -> &'static str {
-    ///     "post"
-    /// }
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let route_method = RouteMethod::new().get(handle_get).post(handle_post);
-    ///
-    /// let resp = route_method
-    ///     .call(Request::builder().method(Method::GET).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "get");
-    ///
-    /// let resp = route_method
-    ///     .call(Request::builder().method(Method::POST).finish())
-    ///     .await;
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "post");
-    /// # });
-    /// ```
     pub fn new() -> Self {
         Default::default()
     }
 
     /// Sets the endpoint for specified `method`.
+    #[must_use]
     pub fn method<E>(mut self, method: Method, ep: E) -> Self
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
         self.methods
-            .push((method, Box::new(ep.into_endpoint().map_to_response())));
+            .push((method, ep.into_endpoint().map_to_response().boxed()));
         self
     }
 
     /// Sets the endpoint for `GET`.
+    #[must_use]
     pub fn get<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -73,6 +83,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `POST`.
+    #[must_use]
     pub fn post<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -82,6 +93,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `PUT`.
+    #[must_use]
     pub fn put<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -91,6 +103,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `DELETE`.
+    #[must_use]
     pub fn delete<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -100,6 +113,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `HEAD`.
+    #[must_use]
     pub fn head<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -109,6 +123,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `OPTIONS`.
+    #[must_use]
     pub fn options<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -118,6 +133,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `CONNECT`.
+    #[must_use]
     pub fn connect<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -127,6 +143,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `PATCH`.
+    #[must_use]
     pub fn patch<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -136,6 +153,7 @@ impl RouteMethod {
     }
 
     /// Sets the endpoint for `TRACE`.
+    #[must_use]
     pub fn trace<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
@@ -149,7 +167,7 @@ impl RouteMethod {
 impl Endpoint for RouteMethod {
     type Output = Response;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         match self
             .methods
             .iter()
@@ -160,11 +178,11 @@ impl Endpoint for RouteMethod {
             None => {
                 if req.method() == Method::HEAD {
                     req.set_method(Method::GET);
-                    let mut resp = self.call(req).await;
+                    let mut resp = self.call(req).await?;
                     resp.set_body(());
-                    return resp;
+                    return Ok(resp);
                 }
-                StatusCode::NOT_FOUND.into()
+                Err(MethodNotAllowedError.into())
             }
         }
     }
@@ -261,6 +279,12 @@ mod tests {
     };
 
     #[tokio::test]
+    async fn method_not_allowed() {
+        let resp = RouteMethod::new().get_response(Request::default()).await;
+        assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
     async fn route_method() {
         #[handler(internal)]
         fn index() -> &'static str {
@@ -280,7 +304,7 @@ mod tests {
         ] {
             let route = RouteMethod::new().method(method.clone(), index).post(index);
             let resp = route
-                .call(Request::builder().method(method.clone()).finish())
+                .get_response(Request::builder().method(method.clone()).finish())
                 .await;
             assert_eq!(resp.status(), StatusCode::OK);
             assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
@@ -291,7 +315,7 @@ mod tests {
                 $(
                 let route = RouteMethod::new().$id(index).post(index);
                 let resp = route
-                    .call(Request::builder().method(Method::$method).finish())
+                    .get_response(Request::builder().method(Method::$method).finish())
                     .await;
                 assert_eq!(resp.status(), StatusCode::OK);
                 assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
@@ -321,7 +345,7 @@ mod tests {
 
         let route = RouteMethod::new().get(index);
         let resp = route
-            .call(Request::builder().method(Method::HEAD).finish())
+            .get_response(Request::builder().method(Method::HEAD).finish())
             .await;
         assert_eq!(resp.status(), StatusCode::OK);
         assert!(resp.into_body().into_vec().await.unwrap().is_empty());

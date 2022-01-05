@@ -4,6 +4,134 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.22] 2022-1-4
+
+- Add test utilities.
+
+# [1.2.20] 2022-1-1
+
+- `RouteMethod` returns `MethodNotAllowedError` error instead of `NotFoundError` when the corresponding method is not found.
+
+# [1.2.19] 2021-12-31
+
+- Fixed the `Cors` middleware to return incorrect headers when an error occurs.
+
+# [1.2.18] 2021-12-31
+
+- Bump `cookie` crate from `0.15.1` to `0.16`. 
+
+# [1.2.17] 2021-12-29
+
+- Add `FromRequest:: from_request_without_body` method.
+
+# [1.2.16] 2021-12-29
+
+- Fix panic when accessing HTTPS endpoint with HTTP. [#141](https://github.com/poem-web/poem/issues/141)
+- Add `ForceHttps::https_port` method.
+
+# [1.2.15] 2021-12-28
+
+- Improve TLS listeners.
+
+# [1.2.14] 2021-12-28
+
+- Rename `poem::endpoint::Files` to `poem::endpoint::StaticFiles`.
+- Add `poem::endpoint::StaticFile` to handing single static file.
+
+# [1.2.13] 2021-12-28
+
+- Add `Request::scheme` method.
+- Add `ForceHttps` middleware.
+
+# [1.2.12] 2021-12-27
+
+- Add `Files` endpoint support for  `If-None-Match`, `If-Modified-Since`, `If-Match`, `If-Unmodified-Since` headers.
+
+# [1.2.11] 2021-12-27
+
+- Add `Response::is_ok` method to check the status code of response is `200 OK`.
+
+# [1.2.10] 2021-12-26
+
+- Add `Request::uri_str` method.
+
+# [1.2.9] 2021-12-22
+
+- Add `Route::try_at`, `Route::try_nest`, `Route::try_nest_no_strip` methods.
+- Add `RouteDomain::try_at` method.
+- Rename `RouteDomain::add` to `RouteDomain::at`.
+
+# [1.2.8] 2021-12-21
+
+- Fix session data is serialized twice. [#109](https://github.com/poem-web/poem/issues/109)
+
+# [1.2.6] 2021-12-19
+
+- Panic when there are duplicates in the routing table. [#126](https://github.com/poem-web/poem/issues/126)
+- Add error messages to the tracing middleware.
+
+# [1.2.4] 2021-12-17
+
+- Rename `EndpointExt::inspect_error` to `EndpointExt::inspect_all_error`.
+- Rename `EndpointExt::inspect_typed_error` to `EndpointExt::inspect_error`.
+- Add `EndpointExt::catch_all_error` method.
+
+# [1.2.3] 2021-12-17
+
+- Add `Endpoint::get_response` method.
+
+# [1.2.2] 2021-12-16
+
+- Add `EndpointExt::inspect_typed_err` method.
+- Rename `Error::new_with_string` to `Error::from_string`.
+- Rename `Error::new_with_status` to `Error::from_status`.
+- Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.
+
+# [1.2.0] 2021-12-16
+
+## Breaking changes
+
+- Refactor error handling.
+- The return value type of the `Endpoint::call` function is changed from `Self::Output` to `Result<Self::Output>`.
+- Remove the associated type `Error` from `FromRequest`. 
+- The return value of the `FromRequest::from_request` function is changed from `Result<Self, Self::Error>` to `Result<Self>`.
+- Add some helper methods to `EndpointExt`.
+
+# [1.1.1] 2021-12-13
+
+- Add `Body::from_bytes_stream` and `Body::to_bytes_stream` methods.
+- Remove the `BinaryStream` type, use `poem::Body` instead.
+
+# [1.1.0] 2021-12-13
+
+- Remove `nom` from dependencies.
+
+# [1.0.38] 2021-12-07
+
+- Rename `Request::deserialize_path` to `Request::path_params`, `Request::deserialize_query` to `Request::params`.
+- Rename `Request::path_param` to `Request::raw_path_param`.
+
+# [1.0.36] 2021-12-01
+
+- Add helper methods `Request::deserialize_path` and `Request::deserialize_query`.
+- Rename `error::ErrorInvalidPathParams` to `error::ParsePathError`.
+
+# [1.0.34] 2021-12-01
+
+- Implement `FromRequest` for `LocalAddr`.
+
+# [1.0.33] 2021-11-30
+
+- Remove `akasma` from dependencies.
+
+# [1.0.32] 2021-11-29
+
+- Add CSRF middleware. [#98](https://github.com/poem-web/poem/issues/98)
+
+# [1.0.31] 2021-11-26
+
+- Add `Request::header` and `Response::header` methods.
+
 # [1.0.30] 2021-11-23
 
 - `Server::new` is no longer an asynchronous method and has no return value.

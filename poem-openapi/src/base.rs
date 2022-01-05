@@ -1,18 +1,10 @@
-use std::{
-    collections::BTreeMap,
-    ops::{Deref, DerefMut},
-};
+use std::ops::Deref;
 
-use mime::Mime;
-use poem::{FromRequest, IntoResponse, Request, RequestBody, Result, Route};
+use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
-use crate::{
-    payload::{ParsePayload, Payload},
-    registry::{
-        MetaApi, MetaMediaType, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse,
-        MetaResponses, MetaSchemaRef, Registry,
-    },
-    ParseRequestError,
+use crate::registry::{
+    MetaApi, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse, MetaResponses, MetaSchemaRef,
+    MetaWebhook, Registry,
 };
 
 /// API extractor types.
@@ -32,13 +24,28 @@ pub enum ApiExtractorType {
 }
 
 #[doc(hidden)]
-pub struct UrlQuery(pub BTreeMap<String, String>);
+pub struct UrlQuery(pub Vec<(String, String)>);
 
 impl Deref for UrlQuery {
-    type Target = BTreeMap<String, String>;
+    type Target = Vec<(String, String)>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl UrlQuery {
+    #[allow(missing_docs)]
+    pub fn get_all<'a, 'b: 'a>(&'b self, name: &'a str) -> impl Iterator<Item = &'b String> + 'a {
+        self.0
+            .iter()
+            .filter(move |(n, _)| n == name)
+            .map(|(_, value)| value)
+    }
+
+    #[allow(missing_docs)]
+    pub fn get(&self, name: &str) -> Option<&String> {
+        self.get_all(name).next()
     }
 }
 
@@ -61,6 +68,71 @@ impl<T> Default for ExtractParamOptions<T> {
 }
 
 /// Represents a OpenAPI extractor.
+///
+/// # Provided Implementations
+///
+/// - **Path&lt;T: Type>**
+///
+///    Extract the parameters in the request path into
+/// [`Path`](crate::param::Path).
+///
+/// - **Query&lt;T: Type>**
+///
+///    Extract the parameters in the query string into
+/// [`Query`](crate::param::Query).
+///
+/// - **Header&lt;T: Type>**
+///
+///    Extract the parameters in the request header into
+/// [`Header`](crate::param::Header).
+///
+/// - **Cookie&lt;T: Type>**
+///
+///    Extract the parameters in the cookie into
+/// [`Cookie`](crate::param::Cookie).
+///
+/// - **CookiePrivate&lt;T: Type>**
+///
+///    Extract the parameters in the private cookie into
+/// [`CookiePrivate`](crate::param::CookiePrivate).
+///
+/// - **CookieSigned&lt;T: Type>**
+///
+///    Extract the parameters in the signed cookie into
+/// [`CookieSigned`](crate::param::CookieSigned).
+///
+/// - **Binary&lt;T>**
+///
+///     Extract the request body as binary into
+/// [`Binary`](crate::payload::Binary).
+///
+/// - **Json&lt;T>**
+///
+///     Parse the request body in `JSON` format into
+/// [`Json`](crate::payload::Json).
+///
+/// - **PlainText&lt;T>**
+///
+///     Extract the request body as utf8 string into
+/// [`PlainText`](crate::payload::PlainText).
+///
+/// - **Any type derived from the [`ApiRequest`](crate::ApiRequest) macro**
+///
+///     Extract the complex request body derived from the `ApiRequest` macro.
+///
+/// - **Any type derived from the [`Multipart`](crate::Multipart) macro**
+///
+///     Extract the multipart object derived from the `Multipart` macro.
+///
+/// - **Any type derived from the [`SecurityScheme`](crate::SecurityScheme)
+///   macro**
+///
+///     Extract the authentication value derived from the `SecurityScheme`
+/// macro.
+///
+/// - **T: poem::FromRequest**
+///
+///     Use Poem's extractor.
 #[poem::async_trait]
 #[allow(unused_variables)]
 pub trait ApiExtractor<'a>: Sized {
@@ -109,122 +181,11 @@ pub trait ApiExtractor<'a>: Sized {
         request: &'a Request,
         body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError>;
+    ) -> Result<Self>;
 }
 
 #[poem::async_trait]
-impl<'a, T: Payload + ParsePayload> ApiExtractor<'a> for T {
-    const TYPE: ApiExtractorType = ApiExtractorType::RequestObject;
-
-    type ParamType = ();
-    type ParamRawType = ();
-
-    fn register(registry: &mut Registry) {
-        T::register(registry);
-    }
-
-    fn request_meta() -> Option<MetaRequest> {
-        Some(MetaRequest {
-            description: None,
-            content: vec![MetaMediaType {
-                content_type: T::CONTENT_TYPE,
-                schema: T::schema_ref(),
-            }],
-            required: true,
-        })
-    }
-
-    async fn from_request(
-        request: &'a Request,
-        body: &mut RequestBody,
-        _param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
-        match request.content_type() {
-            Some(content_type) => {
-                let mime: Mime = match content_type.parse() {
-                    Ok(mime) => mime,
-                    Err(_) => {
-                        return Err(ParseRequestError::ContentTypeNotSupported {
-                            content_type: content_type.to_string(),
-                        });
-                    }
-                };
-
-                if mime.essence_str() != T::CONTENT_TYPE {
-                    return Err(ParseRequestError::ContentTypeNotSupported {
-                        content_type: content_type.to_string(),
-                    });
-                }
-
-                <T as ParsePayload>::from_request(request, body).await
-            }
-            None => Err(ParseRequestError::ExpectContentType),
-        }
-    }
-}
-
-#[poem::async_trait]
-impl<'a, T: ApiExtractor<'a>> ApiExtractor<'a> for Result<T, ParseRequestError> {
-    const TYPE: ApiExtractorType = T::TYPE;
-    const PARAM_IS_REQUIRED: bool = T::PARAM_IS_REQUIRED;
-    type ParamType = T::ParamType;
-    type ParamRawType = T::ParamRawType;
-
-    fn register(registry: &mut Registry) {
-        T::register(registry);
-    }
-
-    fn security_scheme() -> Option<&'static str> {
-        T::security_scheme()
-    }
-
-    fn param_in() -> Option<MetaParamIn> {
-        T::param_in()
-    }
-
-    fn param_schema_ref() -> Option<MetaSchemaRef> {
-        T::param_schema_ref()
-    }
-
-    fn request_meta() -> Option<MetaRequest> {
-        T::request_meta()
-    }
-
-    fn param_raw_type(&self) -> Option<&Self::ParamRawType> {
-        match self {
-            Ok(value) => value.param_raw_type(),
-            Err(_) => None,
-        }
-    }
-
-    async fn from_request(
-        request: &'a Request,
-        body: &mut RequestBody,
-        param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
-        Ok(T::from_request(request, body, param_opts).await)
-    }
-}
-
-/// Represents a poem extractor.
-pub struct PoemExtractor<T>(pub T);
-
-impl<T> Deref for PoemExtractor<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for PoemExtractor<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-#[poem::async_trait]
-impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for PoemExtractor<T> {
+impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
     const TYPE: ApiExtractorType = ApiExtractorType::PoemExtractor;
 
     type ParamType = ();
@@ -234,18 +195,48 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for PoemExtractor<T> {
         request: &'a Request,
         body: &mut RequestBody,
         _param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
-        match T::from_request(request, body).await {
-            Ok(value) => Ok(Self(value)),
-            Err(err) => Err(ParseRequestError::Extractor(err.into_response())),
-        }
+    ) -> Result<Self> {
+        T::from_request(request, body).await
     }
 }
 
 /// Represents a OpenAPI responses object.
 ///
-/// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#responsesObject>
-pub trait ApiResponse: IntoResponse + Sized {
+/// # Provided Implementations
+///
+/// - **Binary&lt;T: Type>**
+///
+///     A binary response with content type `application/octet-stream`.
+///
+/// - **Json&lt;T: Type>**
+///
+///     A JSON response with content type `application/json`.
+///
+/// - **PlainText&lt;T: Type>**
+///
+///     A utf8 string response with content type `text/plain`.
+///
+/// - **Attachment&lt;T: Type>**
+///
+///     A file download response, the content type is
+/// `application/octet-stream`.
+///
+/// - **Response&lt;T: Type>**
+///
+///     A response type use it to modify the status code and HTTP headers.
+///
+/// - **()**
+///
+///     It means that this API does not have any response body.
+///
+/// - **poem::Result&lt;T: ApiResponse>**
+///
+///     It means that an error may occur in this API.
+///
+/// - **Any type derived from the [`ApiResponse`](crate::ApiResponse) macro**
+///
+///     A complex response  derived from the `ApiResponse` macro.
+pub trait ApiResponse: Sized {
     /// If true, it means that the response object has a custom bad request
     /// handler.
     const BAD_REQUEST_HANDLER: bool = false;
@@ -256,9 +247,9 @@ pub trait ApiResponse: IntoResponse + Sized {
     /// Register the schema contained in this response object to the registry.
     fn register(registry: &mut Registry);
 
-    /// Convert [`ParseRequestError`] to this response object.
+    /// Convert [`poem::Error`] to this response object.
     #[allow(unused_variables)]
-    fn from_parse_request_error(err: ParseRequestError) -> Self {
+    fn from_parse_request_error(err: Error) -> Self {
         unreachable!()
     }
 }
@@ -278,13 +269,19 @@ impl ApiResponse for () {
     fn register(_registry: &mut Registry) {}
 }
 
-impl<T: ApiResponse, E: IntoResponse> ApiResponse for Result<T, E> {
+impl<T: ApiResponse> ApiResponse for Result<T> {
+    const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER;
+
     fn meta() -> MetaResponses {
         T::meta()
     }
 
     fn register(registry: &mut Registry) {
         T::register(registry);
+    }
+
+    fn from_parse_request_error(err: Error) -> Self {
+        Ok(T::from_parse_request_error(err))
     }
 }
 
@@ -316,29 +313,95 @@ pub trait OpenApi: Sized {
 
     /// Adds all API endpoints to the routing object.
     fn add_routes(self, route: Route) -> Route;
+}
 
-    /// Combine two API objects into one.
-    fn combine<T: OpenApi>(self, other: T) -> CombinedAPI<Self, T> {
-        CombinedAPI(self, other)
+macro_rules! impl_openapi_for_tuple {
+    (($head:ident, $hn:tt), $(($tail:ident, $tn:tt)),*) => {
+        impl<$head: OpenApi, $($tail: OpenApi),*> OpenApi for ($head, $($tail),*) {
+            fn meta() -> Vec<MetaApi> {
+                let mut metadata = $head::meta();
+                $(
+                metadata.extend($tail::meta());
+                )*
+                metadata
+            }
+
+            fn register(registry: &mut Registry) {
+                $head::register(registry);
+                $(
+                $tail::register(registry);
+                )*
+            }
+
+            fn add_routes(self, route: Route) -> Route {
+                let route = self.$hn.add_routes(route);
+                $(
+                let route = self.$tn.add_routes(route);
+                )*
+                route
+            }
+        }
+    };
+
+    () => {};
+}
+
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12), (T14, 13), (T15, 14), (T16, 15));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12), (T14, 13), (T15, 14));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12), (T14, 13));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11), (T13, 12));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10), (T12, 11));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9), (T11, 10));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8), (T10, 9));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7), (T9, 8));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6), (T8, 7));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5), (T7, 6));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4), (T6, 5));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3), (T5, 4));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0), (T2, 1));
+
+impl OpenApi for () {
+    fn meta() -> Vec<MetaApi> {
+        vec![]
+    }
+
+    fn register(_registry: &mut Registry) {}
+
+    fn add_routes(self, route: Route) -> Route {
+        route
     }
 }
 
-/// API for the [`combine`](crate::OpenApi::combine) method.
-pub struct CombinedAPI<A, B>(A, B);
+/// Represents a webhook object.
+pub trait Webhook: Sized {
+    /// Gets metadata of this webhooks object.
+    fn meta() -> Vec<MetaWebhook>;
 
-impl<A: OpenApi, B: OpenApi> OpenApi for CombinedAPI<A, B> {
-    fn meta() -> Vec<MetaApi> {
-        let mut metadata = A::meta();
-        metadata.extend(B::meta());
-        metadata
+    /// Register some types to the registry.
+    fn register(registry: &mut Registry);
+}
+
+impl Webhook for () {
+    fn meta() -> Vec<MetaWebhook> {
+        vec![]
     }
 
-    fn register(registry: &mut Registry) {
-        A::register(registry);
-        B::register(registry);
-    }
-
-    fn add_routes(self, route: Route) -> Route {
-        self.1.add_routes(self.0.add_routes(route))
-    }
+    fn register(_: &mut Registry) {}
 }

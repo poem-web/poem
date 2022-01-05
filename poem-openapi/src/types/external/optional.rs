@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use poem::web::Field as PoemField;
+use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchemaRef, Registry},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToHeader, ToJSON, Type,
     },
 };
 
@@ -15,6 +15,8 @@ impl<T: Type> Type for Option<T> {
     const IS_REQUIRED: bool = false;
 
     type RawValueType = T::RawValueType;
+
+    type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -34,6 +36,15 @@ impl<T: Type> Type for Option<T> {
             None => None,
         }
     }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        match self {
+            Some(value) => value.raw_element_iter(),
+            None => Box::new(std::iter::empty()),
+        }
+    }
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Option<T> {
@@ -48,13 +59,22 @@ impl<T: ParseFromJSON> ParseFromJSON for Option<T> {
 }
 
 impl<T: ParseFromParameter> ParseFromParameter for Option<T> {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => T::parse_from_parameter(Some(value))
-                .map_err(ParseError::propagate)
-                .map(Some),
-            None => Ok(None),
+    fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
+        unreachable!()
+    }
+
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        let mut iter = iter.into_iter().peekable();
+
+        if iter.peek().is_none() {
+            return Ok(None);
         }
+
+        T::parse_from_parameters(iter)
+            .map_err(ParseError::propagate)
+            .map(Some)
     }
 }
 
@@ -76,6 +96,15 @@ impl<T: ToJSON> ToJSON for Option<T> {
         match self {
             Some(value) => value.to_json(),
             None => Value::Null,
+        }
+    }
+}
+
+impl<T: ToHeader> ToHeader for Option<T> {
+    fn to_header(&self) -> Option<HeaderValue> {
+        match self {
+            Some(value) => value.to_header(),
+            None => None,
         }
     }
 }

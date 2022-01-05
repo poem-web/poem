@@ -4,17 +4,20 @@ use std::{
     future::Future,
     io::Error,
     pin::Pin,
+    str::FromStr,
     task::{Context, Poll},
 };
 
+use http::uri::Scheme;
 use parking_lot::Mutex;
+use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
 use crate::{
     body::Body,
-    error::UpgradeError,
+    error::{ParsePathError, ParseQueryError, UpgradeError},
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
@@ -22,20 +25,35 @@ use crate::{
     route::PathParams,
     web::{
         headers::{Header, HeaderMapExt},
-        LocalAddr, RemoteAddr,
+        LocalAddr, PathDeserializer, RemoteAddr,
     },
     RequestBody,
 };
 
-#[derive(Default)]
 pub(crate) struct RequestState {
     pub(crate) local_addr: LocalAddr,
     pub(crate) remote_addr: RemoteAddr,
+    pub(crate) scheme: Scheme,
     pub(crate) original_uri: Uri,
     pub(crate) match_params: PathParams,
     #[cfg(feature = "cookie")]
     pub(crate) cookie_jar: Option<CookieJar>,
     pub(crate) on_upgrade: Mutex<Option<OnUpgrade>>,
+}
+
+impl Default for RequestState {
+    fn default() -> Self {
+        Self {
+            local_addr: Default::default(),
+            remote_addr: Default::default(),
+            scheme: Scheme::HTTP,
+            original_uri: Default::default(),
+            match_params: vec![],
+            #[cfg(feature = "cookie")]
+            cookie_jar: None,
+            on_upgrade: Default::default(),
+        }
+    }
 }
 
 /// Component parts of an HTTP Request.
@@ -90,9 +108,14 @@ impl Debug for Request {
     }
 }
 
-impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
+impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr, Scheme)> for Request {
     fn from(
-        (req, local_addr, remote_addr): (http::Request<hyper::Body>, LocalAddr, RemoteAddr),
+        (req, local_addr, remote_addr, scheme): (
+            http::Request<hyper::Body>,
+            LocalAddr,
+            RemoteAddr,
+            Scheme,
+        ),
     ) -> Self {
         let (mut parts, body) = req.into_parts();
         let on_upgrade = Mutex::new(
@@ -112,6 +135,7 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr)> for Request {
             state: RequestState {
                 local_addr,
                 remote_addr,
+                scheme,
                 original_uri: parts.uri,
                 match_params: Default::default(),
                 #[cfg(feature = "cookie")]
@@ -203,6 +227,12 @@ impl Request {
         self.version = version;
     }
 
+    /// Returns the scheme of incoming request.
+    #[inline]
+    pub fn scheme(&self) -> &Scheme {
+        &self.state.scheme
+    }
+
     /// Returns a reference to the associated header map.
     #[inline]
     pub fn headers(&self) -> &HeaderMap {
@@ -215,13 +245,108 @@ impl Request {
         &mut self.headers
     }
 
-    /// Returns the path parameter with the specified `name`.
-    pub fn path_param(&self, name: &str) -> Option<&str> {
+    /// Returns the string value of the specified header.
+    ///
+    /// NOTE: Returns `None` if the header value is not a valid UTF8 string.
+    pub fn header(&self, name: impl AsRef<str>) -> Option<&str> {
+        self.headers
+            .get(name.as_ref())
+            .and_then(|value| value.to_str().ok())
+    }
+
+    /// Returns the raw path parameter with the specified `name`.
+    pub fn raw_path_param(&self, name: &str) -> Option<&str> {
         self.state
             .match_params
             .iter()
             .find(|(key, _)| key == name)
             .map(|(_, value)| value.as_str())
+    }
+
+    /// Deserialize path parameters.
+    ///
+    /// See also [`Path`](crate::web::Path)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     Endpoint, Request, Result, Route,
+    /// };
+    ///
+    /// #[handler]
+    /// fn index(req: &Request) -> Result<String> {
+    ///     let (a, b) = req.path_params::<(i32, String)>()?;
+    ///     Ok(format!("{}:{}", a, b))
+    /// }
+    ///
+    /// let app = Route::new().at("/:a/:b", index);
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/100/abc"))
+    ///             .finish(),
+    ///     )
+    ///     .await
+    ///     .unwrap();
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
+    /// # });
+    /// ```
+    pub fn path_params<T: DeserializeOwned>(&self) -> Result<T, ParsePathError> {
+        T::deserialize(PathDeserializer::new(&self.state().match_params))
+            .map_err(|_| ParsePathError)
+    }
+
+    /// Deserialize query parameters.
+    ///
+    /// See also [`Query`](crate::web::Query)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::{
+    ///     handler,
+    ///     http::{StatusCode, Uri},
+    ///     Endpoint, Request, Result, Route,
+    /// };
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// struct Params {
+    ///     a: i32,
+    ///     b: String,
+    /// }
+    ///
+    /// #[handler]
+    /// fn index(req: &Request) -> Result<String> {
+    ///     let params = req.params::<Params>()?;
+    ///     Ok(format!("{}:{}", params.a, params.b))
+    /// }
+    ///
+    /// let app = Route::new().at("/", index);
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = app
+    ///     .call(
+    ///         Request::builder()
+    ///             .uri(Uri::from_static("/?a=100&b=abc"))
+    ///             .finish(),
+    ///     )
+    ///     .await
+    ///     .unwrap();
+    /// assert_eq!(resp.status(), StatusCode::OK);
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
+    /// # });
+    /// ```
+    pub fn params<T: DeserializeOwned>(&self) -> Result<T, ParseQueryError> {
+        Ok(serde_urlencoded::from_str(
+            self.uri().query().unwrap_or_default(),
+        )?)
     }
 
     /// Returns the content type of this request.
@@ -419,6 +544,21 @@ impl RequestBuilder {
     #[must_use]
     pub fn uri(self, uri: Uri) -> RequestBuilder {
         Self { uri, ..self }
+    }
+
+    /// Sets the URI string for this request.
+    ///
+    /// By default this is `/`.
+    ///
+    /// # Panics
+    ///
+    /// Panic when uri is invalid.
+    #[must_use]
+    pub fn uri_str(self, uri: impl AsRef<str>) -> RequestBuilder {
+        Self {
+            uri: Uri::from_str(uri.as_ref()).expect("valid url"),
+            ..self
+        }
     }
 
     /// Sets the HTTP version for this request.

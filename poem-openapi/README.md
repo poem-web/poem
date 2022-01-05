@@ -33,7 +33,6 @@
 It uses procedural macros to generate a lots of boilerplate code, so that you only need to focus on the more 
 important business implementations.
 
-* [Book](https://poem-web.github.io/poem/)
 * [Docs](https://docs.rs/poem-openapi)
 * [Cargo package](https://crates.io/crates/poem-openapi)
 
@@ -48,10 +47,15 @@ important business implementations.
 
 To avoid compiling unused dependencies, Poem gates certain features, some of which are disabled by default:
 
-| Feature    | Description                                                  | Default enabled    |
-| ---------- | ------------------------------------------------------------ | ------------------ |
-| chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). | :x:       |
-| swagger-ui | Add swagger UI support                                       | :heavy_check_mark: |
+| Feature    | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). |
+| swagger-ui | Add swagger UI support                                                |
+| rapidoc    | Add RapiDoc UI support                                                |
+| redoc      | Add Redoc UI support                                                  |
+| email      | Support for email address string                                      |
+| hostname   | Support for hostname string                                           |
+| uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)      |
 
 ## Safety
 

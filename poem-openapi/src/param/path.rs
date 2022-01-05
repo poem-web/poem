@@ -1,11 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{Request, RequestBody};
+use poem::{Request, RequestBody, Result};
 
 use crate::{
+    error::ParseParamError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions, ParseRequestError,
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the URI path.
@@ -53,9 +54,9 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Path<T> {
         request: &'a Request,
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         let value = match (
-            request.path_param(param_opts.name),
+            request.raw_path_param(param_opts.name),
             &param_opts.default_value,
         ) {
             (Some(value), _) => Some(value),
@@ -63,11 +64,14 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Path<T> {
             (None, _) => None,
         };
 
-        ParseFromParameter::parse_from_parameter(value)
+        ParseFromParameter::parse_from_parameters(value)
             .map(Self)
-            .map_err(|err| ParseRequestError::ParseParam {
-                name: param_opts.name,
-                reason: err.into_message(),
+            .map_err(|err| {
+                ParseParamError {
+                    name: param_opts.name,
+                    reason: err.into_message(),
+                }
+                .into()
             })
     }
 }

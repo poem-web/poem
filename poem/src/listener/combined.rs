@@ -3,6 +3,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
 use crate::{
@@ -47,15 +48,15 @@ impl<A: Acceptor, B: Acceptor> Acceptor for Combined<A, B> {
             .collect()
     }
 
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr)> {
+    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         tokio::select! {
             res = self.a.accept() => {
-                let (stream, local_addr, remote_addr) = res?;
-                Ok((CombinedStream::A(stream), local_addr, remote_addr))
+                let (stream, local_addr, remote_addr, scheme) = res?;
+                Ok((CombinedStream::A(stream), local_addr, remote_addr, scheme))
             }
             res = self.b.accept() => {
-                let (stream, local_addr, remote_addr) = res?;
-                Ok((CombinedStream::B(stream), local_addr, remote_addr))
+                let (stream, local_addr, remote_addr, scheme) = res?;
+                Ok((CombinedStream::B(stream), local_addr, remote_addr, scheme))
             }
         }
     }
@@ -145,10 +146,10 @@ mod tests {
             stream.write_i32(20).await.unwrap();
         });
 
-        let (mut stream, _, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
 
-        let (mut stream, _, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 20);
     }
 }

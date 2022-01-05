@@ -13,7 +13,11 @@ use crate::{
 pub struct JsonField<T>(pub T);
 
 impl<T: Type> Type for JsonField<T> {
+    const IS_REQUIRED: bool = true;
+
     type RawValueType = T::RawValueType;
+
+    type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
         T::name()
@@ -31,6 +35,12 @@ impl<T: Type> Type for JsonField<T> {
     #[inline]
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
         self.0.as_raw_value()
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        self.0.raw_element_iter()
     }
 }
 

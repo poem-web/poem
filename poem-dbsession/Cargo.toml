@@ -1,0 +1,75 @@
+[package]
+name = "poem-dbsession"
+version = "0.2.25"
+authors = ["sunli <scott_s829@163.com>"]
+edition = "2021"
+description = "Session storage with database for Poem."
+readme = "README.md"
+license = "MIT/Apache-2.0"
+documentation = "https://docs.rs/poem/"
+homepage = "https://github.com/poem-web/poem"
+repository = "https://github.com/poem-web/poem"
+keywords = ["http", "web", "framework", "async"]
+categories = [
+    "network-programming",
+    "asynchronous",
+    "web-programming::http-server",
+    "web-programming::websocket",
+]
+
+[package.metadata.workspaces]
+independent = true
+
+[package.metadata.docs.rs]
+features = ["__sqlx-native-tls"]
+
+[features]
+default = []
+sqlx-mysql-native-tls = [
+    "sqlx/mysql",
+    "sqlx/runtime-tokio-native-tls"
+]
+sqlx-mysql-rustls = [
+    "sqlx/mysql",
+    "sqlx/runtime-tokio-rustls"
+]
+sqlx-postgres-native-tls = [
+    "sqlx/postgres",
+    "sqlx/runtime-tokio-native-tls"
+]
+sqlx-postgres-rustls = [
+    "sqlx/postgres",
+    "sqlx/runtime-tokio-rustls"
+]
+sqlx-sqlite-native-tls = [
+    "sqlx/sqlite",
+    "sqlx/runtime-tokio-native-tls"
+]
+sqlx-sqlite-rustls = [
+    "sqlx/sqlite",
+    "sqlx/runtime-tokio-rustls"
+]
+
+# Don't use the following features, just for testing.
+__sqlx-native-tls = [
+    "sqlx-mysql-native-tls",
+    "sqlx-postgres-native-tls",
+    "sqlx-sqlite-native-tls",
+]
+__sqlx-rustls = [
+    "sqlx-mysql-rustls",
+    "sqlx-postgres-rustls",
+    "sqlx-sqlite-rustls",
+]
+
+[dependencies]
+poem = { path = "../poem", version = "1.2.25", features = ["session"] }
+
+chrono = "0.4.19"
+serde_json = "1.0.73"
+sqlx = { version = "0.5.9", optional = true, features = ["chrono", "json"] }
+tokio = { version = "1.14.0", features = ["time"] }
+tracing = "0.1.29"
+
+[dev-dependencies]
+tokio = { version = "1.14.0", features = ["macros"] }

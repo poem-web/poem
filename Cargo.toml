@@ -5,7 +5,5 @@ members = [
     "poem-openapi-derive",
     "poem-openapi",
     "poem-lambda",
-
-    "examples/poem/*",
-    "examples/openapi/*",
+    "poem-dbsession",
 ]

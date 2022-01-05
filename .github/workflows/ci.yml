@@ -7,14 +7,47 @@ on:
   pull_request: {}
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - name: poem-derive
+            path: poem-derive
+          - name: poem
+            path: poem
+            options: --all-features
+          - name: poem-openapi-derive
+            path: poem-openapi-derive
+          - name: poem-openapi
+            path: poem-openapi
+            options: --all-features
+          - name: poem-lambda
+            path: poem-lambda
+            options: --all-features
+          - name: poem-dbsession-rustls
+            path: poem-dbsession
+            options: --features __sqlx-rustls
+          - name: poem-dbsession-native-tls
+            path: poem-dbsession
+            options: --features __sqlx-native-tls
     services:
       redis:
         image: redis:5.0.7
         ports:
           - 6379:6379
         options: --entrypoint redis-server
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        options: -e MYSQL_ROOT_PASSWORD=123456 -e MYSQL_DATABASE=test_poem_sessions
+      postgres:
+        image: postgres:14
+        ports:
+          - 5432:5432
+        options: -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=test_poem_sessions
     steps:
       - uses: actions/checkout@v1
 
@@ -26,7 +59,7 @@ jobs:
           components: rustfmt, clippy
       - name: Check format
         run: cargo fmt --all -- --check
-
+      # Switch to stable Rust
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: 1.56.1
@@ -34,11 +67,39 @@ jobs:
           components: rustfmt, clippy
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
-      - name: Install cargo-hack
-        run: cargo install cargo-hack
+
+      # Do tests
       - name: Check with clippy
-        run: cargo clippy --all --all-features
-      - name: Check with cargo-hack
-        run: cargo hack check --all --each-feature --no-dev-deps
+        run: cargo clippy ${{ matrix.package.options }}
+        working-directory: ${{ matrix.package.path }}
+
       - name: Run tests
-        run: cargo test --all --all-features --verbose
+        run: cargo test ${{ matrix.package.options }}
+        working-directory: ${{ matrix.package.path }}
+
+  check-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      # Use nightly Rust to check the format
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+      - name: Check format
+        run: cargo fmt --all -- --check
+        working-directory: examples
+      # Switch to stable Rust
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.56.1
+          override: true
+          components: rustfmt, clippy
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
+      - name: Check with clippy
+        run: cargo clippy
+        working-directory: examples
+

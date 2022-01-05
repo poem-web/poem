@@ -7,11 +7,12 @@ use std::{
 
 use parking_lot::Mutex;
 use priority_queue::PriorityQueue;
+use serde_json::Value;
 
 use crate::{session::SessionStorage, Result};
 
 struct InnerStorage {
-    sessions: HashMap<String, BTreeMap<String, String>>,
+    sessions: HashMap<String, BTreeMap<String, Value>>,
     timeout_queue: PriorityQueue<String, Reverse<Instant>>,
 }
 
@@ -69,7 +70,7 @@ impl MemoryStorage {
 
 #[async_trait::async_trait]
 impl SessionStorage for MemoryStorage {
-    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, String>>> {
+    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
         let inner = self.inner.lock();
         Ok(inner.sessions.get(session_id).cloned())
     }
@@ -77,7 +78,7 @@ impl SessionStorage for MemoryStorage {
     async fn update_session(
         &self,
         session_id: &str,
-        entries: &BTreeMap<String, String>,
+        entries: &BTreeMap<String, Value>,
         expires: Option<Duration>,
     ) -> Result<()> {
         let mut inner = self.inner.lock();
@@ -137,7 +138,7 @@ mod tests {
     async fn timeout() {
         let storage = MemoryStorage::new();
         let mut values = BTreeMap::new();
-        values.insert("value".to_string(), "1".to_string());
+        values.insert("value".to_string(), "1".into());
 
         storage
             .update_session("a", &values, Some(Duration::from_secs(2)))

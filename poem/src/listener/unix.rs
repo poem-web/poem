@@ -1,5 +1,6 @@
 use std::{io::Result, path::Path};
 
+use http::uri::Scheme;
 use tokio::{
     io::Result as IoResult,
     net::{UnixListener as TokioUnixListener, UnixStream},
@@ -57,9 +58,14 @@ impl Acceptor for UnixAcceptor {
     }
 
     #[inline]
-    async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr)> {
+    async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         let (stream, addr) = self.listener.accept().await?;
-        Ok((stream, self.local_addr.clone(), RemoteAddr(addr.into())))
+        Ok((
+            stream,
+            self.local_addr.clone(),
+            RemoteAddr(addr.into()),
+            Scheme::HTTP,
+        ))
     }
 }
 
@@ -82,7 +88,7 @@ mod tests {
             stream.write_i32(10).await.unwrap();
         });
 
-        let (mut stream, _, _) = acceptor.accept().await.unwrap();
+        let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
 
         tokio::time::sleep(Duration::from_secs(1)).await;

@@ -6,6 +6,9 @@ mod compression;
 #[cfg(feature = "cookie")]
 mod cookie_jar_manager;
 mod cors;
+#[cfg(feature = "csrf")]
+mod csrf;
+mod force_https;
 mod normalize_path;
 #[cfg(feature = "opentelemetry")]
 mod opentelemetry_metrics;
@@ -24,6 +27,9 @@ pub use compression::{Compression, CompressionEndpoint};
 #[cfg(feature = "cookie")]
 pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
 pub use cors::{Cors, CorsEndpoint};
+#[cfg(feature = "csrf")]
+pub use csrf::{Csrf, CsrfEndpoint};
+pub use force_https::ForceHttps;
 pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
 #[cfg(feature = "opentelemetry")]
 pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
@@ -36,16 +42,14 @@ pub use size_limit::{SizeLimit, SizeLimitEndpoint};
 pub use tower_compat::TowerLayerCompatExt;
 pub use tracing_mw::{Tracing, TracingEndpoint};
 
-#[cfg(feature = "tracing")]
-pub use self::tracing_mw::{Tracing, TracingEndpoint};
 use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
 ///
-/// # Example
+/// # Create you own middleware
 ///
 /// ```
-/// use poem::{handler, web::Data, Endpoint, EndpointExt, Middleware, Request};
+/// use poem::{handler, web::Data, Endpoint, EndpointExt, Middleware, Request, Result};
 ///
 /// /// A middleware that extract token from HTTP headers.
 /// struct TokenMiddleware;
@@ -72,7 +76,7 @@ use crate::endpoint::Endpoint;
 /// impl<E: Endpoint> Endpoint for TokenMiddlewareImpl<E> {
 ///     type Output = E::Output;
 ///
-///     async fn call(&self, mut req: Request) -> Self::Output {
+///     async fn call(&self, mut req: Request) -> Result<Self::Output> {
 ///         if let Some(value) = req
 ///             .headers()
 ///             .get(TOKEN_HEADER)
@@ -83,7 +87,7 @@ use crate::endpoint::Endpoint;
 ///             req.extensions_mut().insert(Token(token));
 ///         }
 ///
-///         // call the inner endpoint.
+///         // call the next endpoint.
 ///         self.ep.call(req).await
 ///     }
 /// }
@@ -99,7 +103,50 @@ use crate::endpoint::Endpoint;
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let mut resp = ep
 ///     .call(Request::builder().header(TOKEN_HEADER, "abc").finish())
-///     .await;
+///     .await
+///     .unwrap();
+/// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
+/// # });
+/// ```
+///
+/// # Create middleware with functions
+///
+/// ```rust
+/// use std::sync::Arc;
+///
+/// use poem::{handler, web::Data, Endpoint, EndpointExt, IntoResponse, Request, Result};
+/// const TOKEN_HEADER: &str = "X-Token";
+///
+/// #[handler]
+/// async fn index(Data(token): Data<&Token>) -> String {
+///     token.0.clone()
+/// }
+///
+/// /// Token data
+/// struct Token(String);
+///
+/// async fn token_middleware<E: Endpoint>(next: E, mut req: Request) -> Result<E::Output> {
+///     if let Some(value) = req
+///         .headers()
+///         .get(TOKEN_HEADER)
+///         .and_then(|value| value.to_str().ok())
+///     {
+///         // Insert token data to extensions of request.
+///         let token = value.to_string();
+///         req.extensions_mut().insert(Token(token));
+///     }
+///
+///     // call the next endpoint.
+///     next.call(req).await
+/// }
+///
+/// let ep = index.around(token_middleware);
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let mut resp = ep
+///     .call(Request::builder().header(TOKEN_HEADER, "abc").finish())
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
 /// # });
 /// ```
@@ -145,7 +192,7 @@ mod tests {
         handler,
         http::{header::HeaderName, HeaderValue, StatusCode},
         web::Data,
-        EndpointExt, IntoResponse, Request, Response,
+        EndpointExt, IntoResponse, Request, Response, Result,
     };
 
     #[tokio::test]
@@ -165,11 +212,11 @@ mod tests {
         impl<E: Endpoint> Endpoint for AddHeader<E> {
             type Output = Response;
 
-            async fn call(&self, req: Request) -> Self::Output {
-                let mut resp = self.ep.call(req).await.into_response();
+            async fn call(&self, req: Request) -> Result<Self::Output> {
+                let mut resp = self.ep.call(req).await?.into_response();
                 resp.headers_mut()
                     .insert(self.header.clone(), self.value.clone());
-                resp
+                Ok(resp)
             }
         }
 
@@ -178,7 +225,7 @@ mod tests {
             header: HeaderName::from_static("hello"),
             value: HeaderValue::from_static("world"),
         }));
-        let mut resp = ep.call(Request::default()).await;
+        let mut resp = ep.call(Request::default()).await.unwrap();
         assert_eq!(
             resp.headers()
                 .get(HeaderName::from_static("hello"))
@@ -201,7 +248,7 @@ mod tests {
             SetHeader::new().appending("myheader-2", "b"),
         ));
 
-        let mut resp = ep.call(Request::default()).await;
+        let mut resp = ep.call(Request::default()).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers().get("myheader-1"),

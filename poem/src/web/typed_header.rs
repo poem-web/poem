@@ -6,6 +6,10 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 
 /// An extractor that extracts a typed header value.
 ///
+/// # Errors
+///
+/// - [`ParseTypedHeaderError`]
+///
 /// # Example
 ///
 /// ```
@@ -30,11 +34,13 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 ///             .header(header::HOST, "example.com")
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "example.com");
 /// # });
 /// ```
+#[derive(Debug)]
 pub struct TypedHeader<T>(pub T);
 
 impl<T> Deref for TypedHeader<T> {
@@ -51,15 +57,19 @@ impl<T> DerefMut for TypedHeader<T> {
     }
 }
 
-#[async_trait::async_trait]
-impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
-    type Error = ParseTypedHeaderError;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
+impl<T: Header> TypedHeader<T> {
+    async fn internal_from_request(req: &Request) -> Result<Self, ParseTypedHeaderError> {
         let value = req.headers().typed_try_get::<T>()?;
         Ok(Self(value.ok_or_else(|| {
             ParseTypedHeaderError::HeaderRequired(T::name().to_string())
         })?))
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a, T: Header> FromRequest<'a> for TypedHeader<T> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Self::internal_from_request(req).await.map_err(Into::into)
     }
 }
 
@@ -81,7 +91,8 @@ mod tests {
 
         index
             .call(Request::builder().header("content-length", 3).body("abc"))
-            .await;
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -89,8 +100,8 @@ mod tests {
         let (req, mut body) = Request::builder().body("abc").split();
         let res = TypedHeader::<Host>::from_request(&req, &mut body).await;
 
-        match res {
-            Err(ParseTypedHeaderError::HeaderRequired(name)) if name == "host" => {}
+        match res.unwrap_err().downcast_ref::<ParseTypedHeaderError>() {
+            Some(ParseTypedHeaderError::HeaderRequired(name)) if name == "host" => {}
             _ => panic!(),
         }
     }

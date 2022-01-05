@@ -28,7 +28,7 @@ impl TestClient {
                 .insert(header::COOKIE, HeaderValue::from_str(&cookie).unwrap());
         }
 
-        let resp = ep.call(req).await.into_response();
+        let resp = ep.call(req).await.unwrap().into_response();
         for s in resp.headers().get_all(header::SET_COOKIE) {
             if let Ok(s) = s.to_str() {
                 let cookie = Cookie::parse(&s).unwrap();

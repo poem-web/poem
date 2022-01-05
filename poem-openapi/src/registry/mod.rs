@@ -2,7 +2,7 @@ mod ser;
 
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     hash::{Hash, Hasher},
 };
 
@@ -42,6 +42,9 @@ fn serialize_mapping<S: Serializer>(
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaSchema {
+    #[serde(skip)]
+    pub rust_typename: Option<&'static str>,
+
     #[serde(rename = "type", skip_serializing_if = "str::is_empty")]
     pub ty: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,6 +64,8 @@ pub struct MetaSchema {
     pub properties: Vec<(&'static str, MetaSchemaRef)>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Box<MetaSchemaRef>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_properties: Option<Box<MetaSchemaRef>>,
     #[serde(rename = "enum", skip_serializing_if = "Vec::is_empty")]
     pub enum_items: Vec<Value>,
     #[serde(skip_serializing_if = "is_false")]
@@ -75,6 +80,8 @@ pub struct MetaSchema {
     pub read_only: bool,
     #[serde(skip_serializing_if = "is_false")]
     pub write_only: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub example: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiple_of: Option<f64>,
@@ -98,6 +105,10 @@ pub struct MetaSchema {
     pub min_items: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_items: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_properties: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_properties: Option<usize>,
 }
 
 fn serialize_properties<S: Serializer>(
@@ -113,6 +124,7 @@ fn serialize_properties<S: Serializer>(
 
 impl MetaSchema {
     pub const ANY: Self = MetaSchema {
+        rust_typename: None,
         ty: "",
         format: None,
         title: None,
@@ -121,6 +133,7 @@ impl MetaSchema {
         required: vec![],
         properties: vec![],
         items: None,
+        additional_properties: None,
         enum_items: vec![],
         deprecated: false,
         one_of: vec![],
@@ -128,6 +141,7 @@ impl MetaSchema {
         discriminator: None,
         read_only: false,
         write_only: false,
+        example: None,
         multiple_of: None,
         maximum: None,
         exclusive_maximum: None,
@@ -139,67 +153,19 @@ impl MetaSchema {
         max_items: None,
         min_items: None,
         unique_items: None,
+        max_properties: None,
+        min_properties: None,
     };
 
-    pub const fn new(ty: &'static str) -> Self {
-        Self {
-            ty,
-            format: None,
-            title: None,
-            description: None,
-            default: None,
-            required: vec![],
-            properties: vec![],
-            items: None,
-            enum_items: vec![],
-            deprecated: false,
-            one_of: vec![],
-            all_of: vec![],
-            discriminator: None,
-            read_only: false,
-            write_only: false,
-            multiple_of: None,
-            maximum: None,
-            exclusive_maximum: None,
-            minimum: None,
-            exclusive_minimum: None,
-            max_length: None,
-            min_length: None,
-            pattern: None,
-            max_items: None,
-            min_items: None,
-            unique_items: None,
-        }
+    pub fn new(ty: &'static str) -> Self {
+        Self { ty, ..Self::ANY }
     }
 
-    pub const fn new_with_format(ty: &'static str, format: &'static str) -> Self {
+    pub fn new_with_format(ty: &'static str, format: &'static str) -> Self {
         MetaSchema {
             ty,
             format: Some(format),
-            title: None,
-            description: None,
-            default: None,
-            required: vec![],
-            properties: vec![],
-            items: None,
-            enum_items: vec![],
-            deprecated: false,
-            one_of: vec![],
-            all_of: vec![],
-            discriminator: None,
-            read_only: false,
-            write_only: false,
-            multiple_of: None,
-            maximum: None,
-            exclusive_maximum: None,
-            minimum: None,
-            exclusive_minimum: None,
-            max_length: None,
-            min_length: None,
-            pattern: None,
-            max_items: None,
-            min_items: None,
-            unique_items: None,
+            ..Self::ANY
         }
     }
 
@@ -207,6 +173,7 @@ impl MetaSchema {
         self == &Self::ANY
     }
 
+    #[must_use]
     pub fn merge(
         mut self,
         MetaSchema {
@@ -215,6 +182,8 @@ impl MetaSchema {
             write_only,
             title,
             description,
+            items,
+            additional_properties,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -226,7 +195,8 @@ impl MetaSchema {
             max_items,
             min_items,
             unique_items,
-            items,
+            max_properties,
+            min_properties,
             ..
         }: MetaSchema,
     ) -> Self {
@@ -257,7 +227,9 @@ impl MetaSchema {
             pattern,
             max_items,
             min_items,
-            unique_items
+            unique_items,
+            max_properties,
+            min_properties
         );
 
         if let Some(items) = items {
@@ -280,6 +252,29 @@ impl MetaSchema {
             }
         }
 
+        if let Some(additional_properties) = additional_properties {
+            if let Some(self_additional_properties) = self.additional_properties {
+                let additional_properties = *additional_properties;
+
+                match additional_properties {
+                    MetaSchemaRef::Inline(additional_properties) => {
+                        self.additional_properties = Some(Box::new(
+                            self_additional_properties.merge(*additional_properties),
+                        ))
+                    }
+                    MetaSchemaRef::Reference(_) => {
+                        self.additional_properties =
+                            Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
+                                one_of: vec![*self_additional_properties, additional_properties],
+                                ..MetaSchema::ANY
+                            }))));
+                    }
+                }
+            } else {
+                self.additional_properties = Some(additional_properties);
+            }
+        }
+
         self
     }
 }
@@ -291,6 +286,14 @@ pub enum MetaSchemaRef {
 }
 
 impl MetaSchemaRef {
+    pub fn is_array(&self) -> bool {
+        matches!(self, MetaSchemaRef::Inline(schema) if schema.ty == "array")
+    }
+
+    pub fn is_object(&self) -> bool {
+        matches!(self, MetaSchemaRef::Inline(schema) if schema.ty == "object")
+    }
+
     pub fn unwrap_inline(&self) -> &MetaSchema {
         match &self {
             MetaSchemaRef::Inline(schema) => schema,
@@ -305,6 +308,7 @@ impl MetaSchemaRef {
         }
     }
 
+    #[must_use]
     pub fn merge(self, other: MetaSchema) -> Self {
         match self {
             MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(Box::new(schema.merge(other))),
@@ -427,6 +431,13 @@ fn serialize_headers<S: Serializer>(
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MetaWebhook {
+    pub name: &'static str,
+    pub operation: MetaOperation,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaOperation {
     #[serde(skip)]
     pub method: Method,
@@ -456,15 +467,38 @@ pub struct MetaPath {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize)]
+pub struct MetaLicense {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaInfo {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terms_of_service: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<MetaLicense>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct MetaServer {
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Default, PartialEq, Serialize)]
+pub struct MetaExternalDocument {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -577,8 +611,8 @@ pub struct MetaApi {
 
 #[derive(Default)]
 pub struct Registry {
-    pub schemas: HashMap<&'static str, MetaSchema>,
-    pub tags: HashSet<MetaTag>,
+    pub schemas: BTreeMap<&'static str, MetaSchema>,
+    pub tags: BTreeSet<MetaTag>,
     pub security_schemes: BTreeMap<&'static str, MetaSecurityScheme>,
 }
 
@@ -587,16 +621,31 @@ impl Registry {
         Default::default()
     }
 
-    pub fn create_schema<F>(&mut self, name: &'static str, mut f: F)
+    pub fn create_schema<T, F>(&mut self, name: &'static str, f: F)
     where
-        F: FnMut(&mut Registry) -> MetaSchema,
+        F: FnOnce(&mut Registry) -> MetaSchema,
     {
-        if !self.schemas.contains_key(name) {
-            // Inserting a fake type before calling the function allows recursive types to
-            // exist.
-            self.schemas.insert(name, MetaSchema::new("fake"));
-            let meta_schema = f(self);
-            *self.schemas.get_mut(name).unwrap() = meta_schema;
+        match self.schemas.get(name) {
+            Some(schema) => {
+                if let Some(prev_typename) = schema.rust_typename {
+                    if prev_typename != std::any::type_name::<T>() {
+                        panic!(
+                            "`{}` and `{}` have the same OpenAPI name `{}`",
+                            prev_typename,
+                            std::any::type_name::<T>(),
+                            name,
+                        );
+                    }
+                }
+            }
+            None => {
+                // Inserting a fake type before calling the function allows recursive types to
+                // exist.
+                self.schemas.insert(name, MetaSchema::new("fake"));
+                let mut meta_schema = f(self);
+                meta_schema.rust_typename = Some(std::any::type_name::<T>());
+                *self.schemas.get_mut(name).unwrap() = meta_schema;
+            }
         }
     }
 

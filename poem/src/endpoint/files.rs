@@ -1,45 +1,64 @@
 use std::{
     ffi::OsStr,
+    fs::Metadata,
     path::{Path, PathBuf},
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
-use askama::Template;
+use headers::{ETag, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfUnmodifiedSince};
+use http::StatusCode;
+use httpdate::HttpDate;
 use mime::Mime;
 use tokio::fs::File;
 
 use crate::{
-    http::{header, HeaderValue, Method, StatusCode},
-    Body, Endpoint, Request, Response,
+    error::StaticFileError,
+    http::{header, Method},
+    Body, Endpoint, Request, Response, Result,
 };
 
-#[derive(Template)]
-#[template(
-    ext = "html",
-    source = r#"
-<html>
-    <head>
-        <title>Index of {{ path }}</title>
-    </head>
-    <body>
-        <h1>Index of /{{ path }}</h1>
-        <ul>
-            {% for file in files %}
-            <li>
-                {% if file.is_dir %} 
-                <a href="{{ file.url }}">{{ file.filename | e }}/</a>
-                {% else %}
-                <a href="{{ file.url }}">{{ file.filename | e }}</a>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-    </body>
-    </html>
-"#
-)]
 struct DirectoryTemplate<'a> {
     path: &'a str,
     files: Vec<FileRef>,
+}
+
+impl<'a> DirectoryTemplate<'a> {
+    fn render(&self) -> String {
+        let mut s = format!(
+            r#"
+        <html>
+            <head>
+            <title>Index of {}</title>
+        </head>
+        <body>
+        <h1>Index of /{}</h1>
+        <ul>"#,
+            self.path, self.path
+        );
+
+        for file in &self.files {
+            if file.is_dir {
+                s.push_str(&format!(
+                    r#"<li><a href="{}">{}/</a></li>"#,
+                    file.url, file.filename
+                ));
+            } else {
+                s.push_str(&format!(
+                    r#"<li><a href="{}">{}</a></li>"#,
+                    file.url, file.filename
+                ));
+            }
+        }
+
+        s.push_str(
+            r#"</ul>
+        </body>
+        </html>"#,
+        );
+
+        s
+    }
 }
 
 struct FileRef {
@@ -49,25 +68,29 @@ struct FileRef {
 }
 
 /// Static files handling service.
-#[cfg_attr(docsrs, doc(cfg(feature = "staticfiles")))]
-pub struct Files {
+///
+/// # Errors
+///
+/// - [`StaticFileError`]
+#[cfg_attr(docsrs, doc(cfg(feature = "static-files")))]
+pub struct StaticFiles {
     path: PathBuf,
     show_files_listing: bool,
     index_file: Option<String>,
     prefer_utf8: bool,
 }
 
-impl Files {
-    /// Create new Files service for a specified base directory.
+impl StaticFiles {
+    /// Create new static files service for a specified base directory.
     ///
     /// # Example
     ///
     /// ```
-    /// use poem::{endpoint::Files, Route};
+    /// use poem::{endpoint::StaticFiles, Route};
     ///
     /// let app = Route::new().nest(
     ///     "/files",
-    ///     Files::new("/etc/www")
+    ///     StaticFiles::new("/etc/www")
     ///         .show_files_listing()
     ///         .index_file("index.html"),
     /// );
@@ -84,6 +107,7 @@ impl Files {
     /// Show files listing for directories.
     ///
     /// By default show files listing is disabled.
+    #[must_use]
     pub fn show_files_listing(self) -> Self {
         Self {
             show_files_listing: true,
@@ -98,6 +122,7 @@ impl Files {
     ///
     /// If the index file is not found, files listing is shown as a fallback if
     /// Files::show_files_listing() is set.
+    #[must_use]
     pub fn index_file(self, index: impl Into<String>) -> Self {
         Self {
             index_file: Some(index.into()),
@@ -108,6 +133,7 @@ impl Files {
     /// Specifies whether text responses should signal a UTF-8 encoding.
     ///
     /// Default is `true`.
+    #[must_use]
     pub fn prefer_utf8(self, value: bool) -> Self {
         Self {
             prefer_utf8: value,
@@ -116,13 +142,10 @@ impl Files {
     }
 }
 
-#[async_trait::async_trait]
-impl Endpoint for Files {
-    type Output = Response;
-
-    async fn call(&self, req: Request) -> Self::Output {
+impl StaticFiles {
+    async fn internal_call(&self, req: Request) -> Result<Response, StaticFileError> {
         if req.method() != Method::GET {
-            return StatusCode::METHOD_NOT_ALLOWED.into();
+            return Err(StaticFileError::MethodNotAllowed(req.method().clone()));
         }
 
         let path = req
@@ -131,10 +154,9 @@ impl Endpoint for Files {
             .trim_start_matches('/')
             .trim_end_matches('/');
 
-        let path = match percent_encoding::percent_decode_str(path).decode_utf8() {
-            Ok(path) => path,
-            Err(_) => return StatusCode::BAD_REQUEST.into(),
-        };
+        let path = percent_encoding::percent_decode_str(path)
+            .decode_utf8()
+            .map_err(|_| StaticFileError::InvalidPath)?;
 
         let mut file_path = self.path.clone();
         for p in Path::new(&*path) {
@@ -148,40 +170,32 @@ impl Endpoint for Files {
         }
 
         if !file_path.starts_with(&self.path) {
-            return StatusCode::FORBIDDEN.into();
+            return Err(StaticFileError::Forbidden(file_path.display().to_string()));
         }
 
         if !file_path.exists() {
-            return StatusCode::NOT_FOUND.into();
+            return Err(StaticFileError::NotFound(file_path.display().to_string()));
         }
 
         if file_path.is_file() {
-            create_file_response(&file_path, self.prefer_utf8).await
+            create_file_response(&file_path, &req, self.prefer_utf8).await
         } else {
             if let Some(index_file) = &self.index_file {
                 let index_path = file_path.join(index_file);
                 if index_path.is_file() {
-                    return create_file_response(&index_path, self.prefer_utf8).await;
+                    return create_file_response(&index_path, &req, self.prefer_utf8).await;
                 }
             }
 
             if self.show_files_listing {
-                let read_dir = match file_path.read_dir() {
-                    Ok(d) => d,
-                    Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
-                };
+                let read_dir = file_path.read_dir()?;
                 let mut template = DirectoryTemplate {
                     path: &*path,
                     files: Vec::new(),
                 };
 
                 for res in read_dir {
-                    let entry = match res {
-                        Ok(entry) => entry,
-                        Err(err) => {
-                            return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into()
-                        }
-                    };
+                    let entry = res?;
 
                     if let Some(filename) = entry.file_name().to_str() {
                         let mut base_url = req.original_uri().path().to_string();
@@ -196,37 +210,125 @@ impl Endpoint for Files {
                     }
                 }
 
-                let html = match template.render() {
-                    Ok(html) => html,
-                    Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
-                };
-                Response::builder()
+                let html = template.render();
+                Ok(Response::builder()
                     .header(header::CONTENT_TYPE, mime::TEXT_HTML_UTF_8.as_ref())
-                    .body(Body::from_string(html))
+                    .body(Body::from_string(html)))
             } else {
-                StatusCode::NOT_FOUND.into()
+                Err(StaticFileError::NotFound(file_path.display().to_string()))
             }
         }
     }
 }
 
-async fn create_file_response(path: &Path, prefer_utf8: bool) -> Response {
+#[async_trait::async_trait]
+impl Endpoint for StaticFiles {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        self.internal_call(req).await.map_err(Into::into)
+    }
+}
+
+/// Single static file handling service.
+///
+/// # Errors
+///
+/// - [`StaticFileError`]
+#[cfg_attr(docsrs, doc(cfg(feature = "static-files")))]
+pub struct StaticFile {
+    path: PathBuf,
+    prefer_utf8: bool,
+}
+
+impl StaticFile {
+    /// Create new single static file service for a specified file path.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{endpoint::StaticFile, Route};
+    ///
+    /// let app = Route::new().at("/logo.png", StaticFile::new("/etc/logo.png"));
+    /// ```
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self {
+            path: path.into(),
+            prefer_utf8: true,
+        }
+    }
+
+    /// Specifies whether text responses should signal a UTF-8 encoding.
+    ///
+    /// Default is `true`.
+    #[must_use]
+    pub fn prefer_utf8(self, value: bool) -> Self {
+        Self {
+            prefer_utf8: value,
+            ..self
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Endpoint for StaticFile {
+    type Output = Response;
+
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        Ok(create_file_response(&self.path, &req, self.prefer_utf8).await?)
+    }
+}
+
+async fn create_file_response(
+    path: &Path,
+    req: &Request,
+    prefer_utf8: bool,
+) -> Result<Response, StaticFileError> {
     let guess = mime_guess::from_path(path);
-    let file = match File::open(path).await {
-        Ok(file) => file,
-        Err(err) => return (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into(),
-    };
-    let mut resp = Response::builder().body(Body::from_async_read(file));
+    let file = File::open(path).await?;
+    let metadata = file.metadata().await?;
+    let mut builder = Response::builder();
+
+    // content type
     if let Some(mut mime) = guess.first() {
         if prefer_utf8 {
             mime = equiv_utf8_text(mime);
         }
-        if let Ok(header_value) = HeaderValue::from_str(&mime.to_string()) {
-            resp.headers_mut()
-                .insert(header::CONTENT_TYPE, header_value);
-        }
+        builder = builder.header(header::CONTENT_TYPE, mime.to_string());
     }
-    resp
+
+    if let Ok(modified) = metadata.modified() {
+        let etag = etag(ino(&metadata), &modified, metadata.len());
+
+        if let Some(if_match) = req.headers().typed_get::<IfMatch>() {
+            if !if_match.precondition_passes(&etag) {
+                return Ok(builder.status(StatusCode::PRECONDITION_FAILED).finish());
+            }
+        }
+
+        if let Some(if_unmodified_since) = req.headers().typed_get::<IfUnmodifiedSince>() {
+            if !if_unmodified_since.precondition_passes(modified) {
+                return Ok(builder.status(StatusCode::PRECONDITION_FAILED).finish());
+            }
+        }
+
+        if let Some(if_non_match) = req.headers().typed_get::<IfNoneMatch>() {
+            if !if_non_match.precondition_passes(&etag) {
+                return Ok(builder.status(StatusCode::NOT_MODIFIED).finish());
+            }
+        } else if let Some(if_modified_since) = req.headers().typed_get::<IfModifiedSince>() {
+            if !if_modified_since.is_modified(modified) {
+                return Ok(builder.status(StatusCode::NOT_MODIFIED).finish());
+            }
+        }
+
+        builder = builder
+            .header(header::CACHE_CONTROL, "public")
+            .header(header::LAST_MODIFIED, HttpDate::from(modified).to_string());
+        builder = builder.typed_header(etag);
+    }
+
+    Ok(builder.body(Body::from_async_read(file)))
 }
 
 fn equiv_utf8_text(ct: Mime) -> Mime {
@@ -257,8 +359,37 @@ fn equiv_utf8_text(ct: Mime) -> Mime {
     ct
 }
 
+#[allow(unused_variables)]
+fn ino(md: &Metadata) -> u64 {
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::MetadataExt::ino(md)
+    }
+    #[cfg(not(unix))]
+    {
+        0
+    }
+}
+
+fn etag(ino: u64, modified: &SystemTime, len: u64) -> ETag {
+    let dur = modified
+        .duration_since(UNIX_EPOCH)
+        .expect("modification time must be after epoch");
+
+    ETag::from_str(&format!(
+        "\"{:x}:{:x}:{:x}:{:x}\"",
+        ino,
+        len,
+        dur.as_secs(),
+        dur.subsec_nanos()
+    ))
+    .unwrap()
+}
+
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
     #[test]
@@ -278,5 +409,153 @@ mod tests {
 
         assert_eq!(equiv_utf8_text(mime::TEXT_XML), mime::TEXT_XML);
         assert_eq!(equiv_utf8_text(mime::IMAGE_PNG), mime::IMAGE_PNG);
+    }
+
+    #[tokio::test]
+    async fn test_if_none_match() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let etag = resp.header("etag").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-none-match", etag).finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_MODIFIED);
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-none-match", "abc").finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_if_modified_since() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let modified = resp.header("last-modified").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-modified-since", modified)
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_MODIFIED);
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t -= Duration::from_secs(1);
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-modified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t += Duration::from_secs(1);
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-modified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_MODIFIED);
+    }
+
+    #[tokio::test]
+    async fn test_if_match() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let etag = resp.header("etag").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-match", etag).finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder().header("if-match", "abc").finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::PRECONDITION_FAILED);
+    }
+
+    #[tokio::test]
+    async fn test_if_unmodified_since() {
+        let resp = create_file_response(Path::new("Cargo.toml"), &Request::default(), false)
+            .await
+            .unwrap();
+        assert!(resp.is_ok());
+        let modified = resp.header("last-modified").unwrap();
+
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-unmodified-since", modified)
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t += Duration::from_secs(1);
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-unmodified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(resp.is_ok());
+
+        let mut t: SystemTime = HttpDate::from_str(modified).unwrap().into();
+        t -= Duration::from_secs(1);
+        let resp = create_file_response(
+            Path::new("Cargo.toml"),
+            &Request::builder()
+                .header("if-unmodified-since", HttpDate::from(t).to_string())
+                .finish(),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::PRECONDITION_FAILED);
     }
 }

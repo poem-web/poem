@@ -4,7 +4,7 @@ use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
-use syn::{Attribute, Error, Lit, Meta, Result};
+use syn::{visit_mut, visit_mut::VisitMut, Attribute, Error, Lifetime, Lit, Meta, Result};
 
 use crate::error::GeneratorResult;
 
@@ -43,6 +43,12 @@ pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
     } else {
         Some(full_docs)
     })
+}
+
+pub(crate) fn remove_description(attrs: &mut Vec<Attribute>) {
+    attrs.retain(
+        |attr| !matches!(attr.parse_meta(), Ok(Meta::NameValue(nv)) if nv.path.is_ident("doc")),
+    );
 }
 
 pub(crate) fn get_summary_and_description(
@@ -154,4 +160,13 @@ fn handle_path<'a>(
         }
     }
     Ok(())
+}
+
+pub(crate) struct RemoveLifetime;
+
+impl VisitMut for RemoveLifetime {
+    fn visit_lifetime_mut(&mut self, i: &mut Lifetime) {
+        i.ident = Ident::new("_", Span::call_site());
+        visit_mut::visit_lifetime_mut(self, i);
+    }
 }

@@ -9,7 +9,6 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Path};
 
 use crate::{
-    common_args::RenameTarget,
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };
@@ -210,7 +209,7 @@ struct SecuritySchemeArgs {
     #[darling(default)]
     openid_connect_url: Option<String>,
     #[darling(default)]
-    checker: Option<SpannedValue<String>>,
+    checker: Option<Path>,
 }
 
 impl SecuritySchemeArgs {
@@ -417,10 +416,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: SecuritySchemeArgs = SecuritySchemeArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
-    let oai_typename = args
-        .rename
-        .clone()
-        .unwrap_or_else(|| RenameTarget::SecurityScheme.rename(ident.to_string()));
+    let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
     args.validate()?;
 
     let fields = match &args.data {
@@ -445,17 +441,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let register_security_scheme =
         args.generate_register_security_scheme(&crate_name, &oai_typename)?;
     let from_request = args.generate_from_request(&crate_name);
-    let checker = match &args.checker {
-        Some(name) => match syn::parse_str::<Path>(name) {
-            Ok(path) => quote! {
-                let output = ::std::option::Option::ok_or(#path(&req, output).await, #crate_name::ParseRequestError::Authorization)?;
-            },
-            Err(err) => {
-                return Err(Error::new(name.span(), err.to_string()).into());
-            }
-        },
-        None => quote! {},
-    };
+    let checker = args.checker.as_ref().map(|path| {
+        quote! {
+            let output = ::std::option::Option::ok_or(#path(&req, output).await, #crate_name::error::AuthorizationError)?;
+        }
+    });
 
     let expanded = quote! {
         #[#crate_name::__private::poem::async_trait]
@@ -477,7 +467,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 req: &'a #crate_name::__private::poem::Request,
                 body: &mut #crate_name::__private::poem::RequestBody,
                 _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
-            ) -> ::std::result::Result<Self, #crate_name::ParseRequestError> {
+            ) -> #crate_name::__private::poem::Result<Self> {
                 let query = req.extensions().get::<#crate_name::__private::UrlQuery>().unwrap();
                 let output = #from_request?;
                 #checker

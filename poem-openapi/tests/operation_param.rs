@@ -5,10 +5,9 @@ use poem::{
 };
 use poem_openapi::{
     param::{Cookie as ParamCookie, CookiePrivate, CookieSigned, Header, Path, Query},
-    payload::Json,
     registry::{MetaApi, MetaParamIn, MetaSchema, MetaSchemaRef},
     types::Type,
-    OpenApi, OpenApiService, ParseRequestError,
+    OpenApi, OpenApiService,
 };
 use serde_json::json;
 
@@ -39,7 +38,8 @@ async fn param_name() {
                 .uri(Uri::from_static("/abc?a=10"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -65,7 +65,46 @@ async fn query() {
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/?v=10")).finish())
-        .await;
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn query_multiple_values() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, v: Query<Vec<i32>>) {
+            assert_eq!(v.0, vec![10, 20, 30]);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0]
+            .schema
+            .unwrap_inline()
+            .ty,
+        "array"
+    );
+
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = api
+        .call(
+            Request::builder()
+                .uri(Uri::from_static("/?v=10&v=20&v=30"))
+                .finish(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -97,7 +136,7 @@ async fn query_default() {
     );
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::default()).await;
+    let resp = api.call(Request::default()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -114,7 +153,36 @@ async fn header() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::builder().header("v", 10).finish()).await;
+    let resp = api
+        .call(Request::builder().header("v", 10).finish())
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn header_multiple_values() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, v: Header<Vec<i32>>) {
+            assert_eq!(v.0, vec![10, 20, 30]);
+        }
+    }
+
+    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = api
+        .call(
+            Request::builder()
+                .header("v", 10)
+                .header("v", 20)
+                .header("v", 30)
+                .finish(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -131,7 +199,7 @@ async fn header_default() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::default()).await;
+    let resp = api.call(Request::default()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -150,7 +218,8 @@ async fn path() {
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/k/10")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -190,7 +259,8 @@ async fn cookie() {
 
     let resp = api
         .call(Request::builder().header(header::COOKIE, cookie).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -207,7 +277,7 @@ async fn cookie_default() {
     }
 
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::builder().finish()).await;
+    let resp = api.call(Request::builder().finish()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -246,7 +316,11 @@ async fn desc() {
     #[allow(unused_variables)]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(desc = "ABC")] v: Query<i32>) {
+        async fn test(
+            &self,
+            /// ABC
+            v: Query<i32>,
+        ) {
             todo!()
         }
     }
@@ -291,23 +365,20 @@ async fn default_opt() {
     let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
     let resp = api
         .call(Request::builder().uri(Uri::from_static("/")).finish())
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
 #[tokio::test]
-async fn extract_result() {
+async fn required_params() {
     struct Api;
 
     #[OpenApi]
+    #[allow(unused_variables)]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, v: Result<Query<i32>, ParseRequestError>) -> Json<i32> {
-            match v {
-                Ok(Query(v)) => Json(v),
-                Err(_) => Json(0),
-            }
-        }
+        async fn test(&self, #[oai(default = "default_i32")] a: Query<i32>, b: Query<i32>) {}
     }
 
     let meta: MetaApi = Api::meta().remove(0);
@@ -315,12 +386,13 @@ async fn extract_result() {
         meta.paths[0].operations[0].params[0].in_type,
         MetaParamIn::Query
     );
-    assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "a");
+    assert_eq!(meta.paths[0].operations[0].params[0].required, false);
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(Request::builder().uri(Uri::from_static("/?v=a")).finish())
-        .await;
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.into_body().into_string().await.unwrap(), "0");
+    assert_eq!(
+        meta.paths[0].operations[0].params[1].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
+    assert_eq!(meta.paths[0].operations[0].params[1].required, true);
 }

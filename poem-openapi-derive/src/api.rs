@@ -3,16 +3,16 @@ use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod, ItemImpl, Pat, Path,
-    ReturnType,
+    ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
+    ItemImpl, Pat, Path, ReturnType,
 };
 
 use crate::{
     common_args::{APIMethod, DefaultValue},
     error::GeneratorResult,
     utils::{
-        convert_oai_path, get_crate_name, get_summary_and_description, optional_literal,
-        parse_oai_attrs, remove_oai_attrs,
+        convert_oai_path, get_crate_name, get_description, get_summary_and_description,
+        optional_literal, parse_oai_attrs, remove_description, remove_oai_attrs, RemoveLifetime,
     },
     validators::Validators,
 };
@@ -30,7 +30,7 @@ struct APIArgs {
 #[derive(FromMeta)]
 struct APIOperation {
     path: SpannedValue<String>,
-    method: APIMethod,
+    method: SpannedValue<APIMethod>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default, multiple, rename = "tag")]
@@ -47,8 +47,6 @@ struct APIOperationParam {
     #[darling(default)]
     name: Option<String>,
     #[darling(default)]
-    desc: Option<String>,
-    #[darling(default)]
     deprecated: bool,
     #[darling(default)]
     default: Option<DefaultValue>,
@@ -61,7 +59,7 @@ struct APIOperationParam {
 }
 
 struct Context {
-    add_routes: IndexMap<String, Vec<TokenStream>>,
+    add_routes: IndexMap<String, IndexMap<APIMethod, TokenStream>>,
     operations: IndexMap<String, Vec<TokenStream>>,
     register_items: Vec<TokenStream>,
 }
@@ -121,6 +119,7 @@ pub(crate) fn generate(
         let mut routes = Vec::new();
 
         for (path, add_route) in add_routes {
+            let add_route = add_route.values();
             routes.push(quote! {
                 at(#path, #crate_name::__private::poem::RouteMethod::new()#(.#add_route)*)
             });
@@ -179,7 +178,7 @@ fn generate_operation(
 
     if item_method.sig.inputs.is_empty() {
         return Err(Error::new_spanned(
-            &item_method.sig.inputs,
+            &item_method.sig.ident,
             "At least one `&self` receiver is required.",
         )
         .into());
@@ -201,10 +200,11 @@ fn generate_operation(
         .into());
     }
 
-    let res_ty = match &item_method.sig.output {
+    let mut res_ty = match &item_method.sig.output {
         ReturnType::Default => Box::new(syn::parse2(quote!(())).unwrap()),
         ReturnType::Type(_, ty) => ty.clone(),
     };
+    RemoveLifetime.visit_type_mut(&mut *res_ty);
 
     let mut parse_args = Vec::new();
     let mut use_args = Vec::new();
@@ -214,14 +214,16 @@ fn generate_operation(
 
     for i in 1..item_method.sig.inputs.len() {
         let arg = &mut item_method.sig.inputs[i];
-        let (arg_ident, arg_ty, operation_param) = match arg {
+        let (arg_ident, mut arg_ty, operation_param, param_description) = match arg {
             FnArg::Typed(pat) => {
                 if let Pat::Ident(ident) = &*pat.pat {
                     let ident = ident.ident.clone();
                     let operation_param =
                         parse_oai_attrs::<APIOperationParam>(&pat.attrs)?.unwrap_or_default();
+                    let description = get_description(&pat.attrs)?;
                     remove_oai_attrs(&mut pat.attrs);
-                    (ident, pat.ty.clone(), operation_param)
+                    remove_description(&mut pat.attrs);
+                    (ident, pat.ty.clone(), operation_param, description)
                 } else {
                     return Err(Error::new_spanned(pat, "Invalid param definition.").into());
                 }
@@ -230,6 +232,9 @@ fn generate_operation(
                 return Err(Error::new_spanned(item_method, "Invalid method definition.").into());
             }
         };
+
+        RemoveLifetime.visit_type_mut(&mut *arg_ty);
+
         let pname = format_ident!("p{}", i);
         let param_name = operation_param
             .name
@@ -252,6 +257,7 @@ fn generate_operation(
             }
             None => quote!(::std::option::Option::None),
         };
+        let has_default = operation_param.default.is_some();
         let param_meta_default = match &operation_param.default {
             Some(DefaultValue::Default) => {
                 quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#arg_ty as ::std::default::Default>::default())))
@@ -273,9 +279,7 @@ fn generate_operation(
                 }
             }
         }).unwrap_or_default();
-        let validators_update_meta = validator
-            .create_update_meta(crate_name)?
-            .unwrap_or_default();
+        let validators_update_meta = validator.create_update_meta(crate_name)?;
 
         // do extract
         parse_args.push(quote! {
@@ -287,20 +291,21 @@ fn generate_operation(
             let #pname = match <#arg_ty as #crate_name::ApiExtractor>::from_request(&request, &mut body, param_opts).await {
                 ::std::result::Result::Ok(value) => value,
                 ::std::result::Result::Err(err) if <#res_ty as #crate_name::ApiResponse>::BAD_REQUEST_HANDLER => {
-                    let resp = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
-                    return #crate_name::__private::poem::IntoResponse::into_response(resp);
+                    let res = <#res_ty as #crate_name::ApiResponse>::from_parse_request_error(err);
+                    let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                    return ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response);
                 }
-                ::std::result::Result::Err(err) => return #crate_name::__private::poem::IntoResponse::into_response(err),
+                ::std::result::Result::Err(err) => return ::std::result::Result::Err(::std::convert::Into::into(err)),
             };
             #param_checker
         });
 
         // param meta
-        let param_desc = optional_literal(&operation_param.desc);
+        let param_desc = optional_literal(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
-                let mut schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
+                let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
 
                 let mut patch_schema = {
                     let mut schema = #crate_name::registry::MetaSchema::ANY;
@@ -311,24 +316,24 @@ fn generate_operation(
 
                 let meta_param = #crate_name::registry::MetaOperationParam {
                     name: #param_name,
-                    schema: schema.merge(patch_schema),
+                    schema: original_schema.merge(patch_schema),
                     in_type: <#arg_ty as #crate_name::ApiExtractor>::param_in().unwrap(),
                     description: #param_desc,
-                    required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED,
+                    required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED && !#has_default,
                     deprecated: #deprecated,
                 };
                 params.push(meta_param);
             }
         });
 
-        // request object
+        // request object meta
         request_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::RequestObject {
                 request = <#arg_ty as #crate_name::ApiExtractor>::request_meta();
             }
         });
 
-        // security
+        // security meta
         let scopes = &operation_param.scopes;
         security.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::SecurityScheme {
@@ -348,7 +353,7 @@ fn generate_operation(
         }
     });
 
-    ctx.add_routes.entry(new_path).or_default().push(quote! {
+    if ctx.add_routes.entry(new_path).or_default().insert(*method, quote! {
         method(#crate_name::__private::poem::http::Method::#http_method, {
             let api_obj = ::std::clone::Clone::clone(&api_obj);
             let ep = #crate_name::__private::poem::endpoint::make(move |request| {
@@ -356,14 +361,17 @@ fn generate_operation(
                 async move {
                     let (request, mut body) = request.split();
                     #(#parse_args)*
-                    let resp = api_obj.#fn_ident(#(#use_args),*).await;
-                    #crate_name::__private::poem::IntoResponse::into_response(resp)
+                    let res = api_obj.#fn_ident(#(#use_args),*).await;
+                    let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                    ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
                 }
             });
             #transform
             ep
         })
-    });
+    }).is_some() {
+        return Err(Error::new(method.span(), "duplicate method").into());
+    }
 
     let mut tag_names = Vec::new();
     for tag in tags {

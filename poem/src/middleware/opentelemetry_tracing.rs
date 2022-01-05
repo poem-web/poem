@@ -8,7 +8,9 @@ use libopentelemetry::{
 use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{resource, trace};
 
-use crate::{web::headers::HeaderMapExt, Endpoint, IntoResponse, Middleware, Request, Response};
+use crate::{
+    web::headers::HeaderMapExt, Endpoint, IntoResponse, Middleware, Request, Response, Result,
+};
 
 /// Middleware for tracing with OpenTelemetry.
 #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
@@ -55,7 +57,7 @@ where
 {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Self::Output {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         let parent_cx = global::get_text_map_propagator(|propagator| {
             propagator.extract(&HeaderExtractor(req.headers()))
         });
@@ -80,18 +82,32 @@ where
         span.add_event("request.started".to_string(), vec![]);
 
         async move {
-            let resp = self.inner.call(req).await.into_response();
-
+            let res = self.inner.call(req).await;
             let cx = Context::current();
             let span = cx.span();
-            span.add_event("request.completed".to_string(), vec![]);
-            span.set_attribute(trace::HTTP_STATUS_CODE.i64(resp.status().as_u16() as i64));
-            if let Some(content_length) = resp.headers().typed_get::<headers::ContentLength>() {
-                span.set_attribute(
-                    trace::HTTP_RESPONSE_CONTENT_LENGTH.i64(content_length.0 as i64),
-                );
+
+            match res {
+                Ok(resp) => {
+                    let resp = resp.into_response();
+                    span.add_event("request.completed".to_string(), vec![]);
+                    span.set_attribute(trace::HTTP_STATUS_CODE.i64(resp.status().as_u16() as i64));
+                    if let Some(content_length) =
+                        resp.headers().typed_get::<headers::ContentLength>()
+                    {
+                        span.set_attribute(
+                            trace::HTTP_RESPONSE_CONTENT_LENGTH.i64(content_length.0 as i64),
+                        );
+                    }
+                    Ok(resp)
+                }
+                Err(err) => {
+                    span.add_event(
+                        "request.error".to_string(),
+                        vec![trace::EXCEPTION_MESSAGE.string(err.to_string())],
+                    );
+                    Err(err)
+                }
             }
-            resp
         }
         .with_context(Context::current_with_span(span))
         .await

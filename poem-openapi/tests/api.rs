@@ -1,14 +1,14 @@
 use poem::{
     http::{Method, StatusCode, Uri},
     web::Data,
-    Endpoint, EndpointExt, IntoEndpoint,
+    Endpoint, EndpointExt, Error, IntoEndpoint,
 };
 use poem_openapi::{
     param::Query,
     payload::{Binary, Json, PlainText},
     registry::{MetaApi, MetaSchema},
     types::Type,
-    ApiRequest, ApiResponse, OpenApi, OpenApiService, ParseRequestError, PoemExtractor, Tags,
+    ApiRequest, ApiResponse, OpenApi, OpenApiService, Tags,
 };
 
 #[tokio::test]
@@ -33,7 +33,8 @@ async fn path_and_method() {
                 .uri(Uri::from_static("/abc"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -77,7 +78,7 @@ fn tag() {
     let meta: MetaApi = Api::meta().remove(0);
     assert_eq!(
         meta.paths[0].operations[0].tags,
-        vec!["user_operations", "pet_operations"]
+        vec!["UserOperations", "PetOperations"]
     );
 }
 
@@ -101,7 +102,7 @@ async fn common_attributes() {
     assert_eq!(meta.paths[0].path, "/hello/world");
     assert_eq!(
         meta.paths[0].operations[0].tags,
-        vec!["common_operations", "user_operations"]
+        vec!["CommonOperations", "UserOperations"]
     );
 
     let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
@@ -112,7 +113,8 @@ async fn common_attributes() {
                 .uri(Uri::from_static("/hello/world"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -178,7 +180,8 @@ async fn request() {
                 .content_type("application/json")
                 .body("100"),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     let resp = ep
@@ -189,7 +192,8 @@ async fn request() {
                 .content_type("text/plain")
                 .body("abc"),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     let resp = ep
@@ -200,7 +204,8 @@ async fn request() {
                 .content_type("application/octet-stream")
                 .body(vec![1, 2, 3]),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -210,7 +215,7 @@ async fn payload_request() {
 
     #[OpenApi]
     impl Api {
-        #[oai(path = "/", method = "get")]
+        #[oai(path = "/", method = "post")]
         async fn test(&self, req: Json<i32>) {
             assert_eq!(req.0, 100);
         }
@@ -227,24 +232,74 @@ async fn payload_request() {
     let resp = ep
         .call(
             poem::Request::builder()
-                .method(Method::GET)
+                .method(Method::POST)
                 .uri(Uri::from_static("/"))
                 .content_type("application/json")
                 .body("100"),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let resp = ep
+    let err = ep
         .call(
             poem::Request::builder()
-                .method(Method::GET)
+                .method(Method::POST)
                 .uri(Uri::from_static("/"))
                 .content_type("text/plain")
                 .body("100"),
         )
-        .await;
-    assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+        .await
+        .unwrap_err();
+    assert_eq!(err.status(), StatusCode::METHOD_NOT_ALLOWED);
+}
+
+#[tokio::test]
+async fn optional_payload_request() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "post")]
+        async fn test(&self, req: Json<Option<i32>>) -> PlainText<String> {
+            PlainText(req.0.unwrap_or(999).to_string())
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    let meta_request = meta.paths[0].operations[0].request.as_ref().unwrap();
+    assert!(!meta_request.required);
+
+    assert_eq!(meta_request.content[0].content_type, "application/json");
+    assert_eq!(meta_request.content[0].schema, i32::schema_ref());
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::POST)
+                .uri(Uri::from_static("/"))
+                .content_type("application/json")
+                .body("100"),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::POST)
+                .uri(Uri::from_static("/"))
+                .content_type("application/json")
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "999");
 }
 
 #[tokio::test]
@@ -315,7 +370,8 @@ async fn response() {
                 .uri(Uri::from_static("/?code=200"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "");
 
@@ -326,7 +382,8 @@ async fn response() {
                 .uri(Uri::from_static("/?code=409"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
     assert_eq!(resp.content_type(), Some("application/json"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "409");
@@ -338,7 +395,8 @@ async fn response() {
                 .uri(Uri::from_static("/?code=404"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 404");
@@ -357,7 +415,7 @@ async fn bad_request_handler() {
         BadRequest(PlainText<String>),
     }
 
-    fn bad_request_handler(err: ParseRequestError) -> MyResponse {
+    fn bad_request_handler(err: Error) -> MyResponse {
         MyResponse::BadRequest(PlainText(format!("!!! {}", err.to_string())))
     }
 
@@ -380,7 +438,8 @@ async fn bad_request_handler() {
                 .uri(Uri::from_static("/?code=200"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 200");
@@ -392,12 +451,13 @@ async fn bad_request_handler() {
                 .uri(Uri::from_static("/"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        r#"!!! Failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#
+        r#"!!! failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#
     );
 }
 
@@ -414,7 +474,7 @@ async fn bad_request_handler_for_validator() {
         BadRequest(PlainText<String>),
     }
 
-    fn bad_request_handler(err: ParseRequestError) -> MyResponse {
+    fn bad_request_handler(err: Error) -> MyResponse {
         MyResponse::BadRequest(PlainText(format!("!!! {}", err.to_string())))
     }
 
@@ -440,7 +500,8 @@ async fn bad_request_handler_for_validator() {
                 .uri(Uri::from_static("/?code=50"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 50");
@@ -452,12 +513,13 @@ async fn bad_request_handler_for_validator() {
                 .uri(Uri::from_static("/?code=200"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     assert_eq!(resp.content_type(), Some("text/plain"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
-        r#"!!! Failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#
+        r#"!!! failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#
     );
 }
 
@@ -468,8 +530,8 @@ async fn poem_extract() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, data: PoemExtractor<Data<&i32>>) {
-            assert_eq!(*data.0 .0, 100);
+        async fn test(&self, data: Data<&i32>) {
+            assert_eq!(*data.0, 100);
         }
     }
 
@@ -483,6 +545,99 @@ async fn poem_extract() {
                 .uri(Uri::from_static("/"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn returning_borrowed_value() {
+    struct Api {
+        value1: i32,
+        value2: String,
+        values: Vec<i32>,
+    }
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/value1", method = "get")]
+        async fn value1(&self) -> Json<&i32> {
+            Json(&self.value1)
+        }
+
+        #[oai(path = "/value2", method = "get")]
+        async fn value2(&self) -> Json<&String> {
+            Json(&self.value2)
+        }
+
+        #[oai(path = "/value3", method = "get")]
+        async fn value3<'a>(&self, data: Data<&'a i32>) -> Json<&'a i32> {
+            Json(&data)
+        }
+
+        #[oai(path = "/values", method = "get")]
+        async fn values(&self) -> Json<&[i32]> {
+            Json(&self.values)
+        }
+    }
+
+    let ep = OpenApiService::new(
+        Api {
+            value1: 999,
+            value2: "abc".to_string(),
+            values: vec![1, 2, 3, 4, 5],
+        },
+        "test",
+        "1.0",
+    )
+    .into_endpoint()
+    .data(888i32);
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/value1"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "999");
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/value2"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "\"abc\"");
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/value3"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "888");
+
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/values"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.into_body().into_string().await.unwrap(), "[1,2,3,4,5]");
 }

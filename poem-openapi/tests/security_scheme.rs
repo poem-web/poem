@@ -28,7 +28,7 @@ fn default_rename() {
 
     assert_eq!(
         MySecurityScheme::security_scheme().unwrap(),
-        "my_security_scheme"
+        "MySecurityScheme"
     );
 }
 
@@ -46,7 +46,7 @@ fn desc() {
     assert_eq!(
         registry
             .security_schemes
-            .get("my_security_scheme")
+            .get("MySecurityScheme")
             .unwrap()
             .description,
         Some("ABC\n\nD")
@@ -82,7 +82,7 @@ async fn basic_auth() {
     let mut registry = Registry::new();
     MySecurityScheme::register(&mut registry);
     assert_eq!(
-        registry.security_schemes.get("my_security_scheme").unwrap(),
+        registry.security_schemes.get("MySecurityScheme").unwrap(),
         &MetaSecurityScheme {
             ty: "http",
             description: None,
@@ -118,7 +118,8 @@ async fn basic_auth() {
                 )
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abc/123456");
 }
@@ -132,7 +133,7 @@ async fn bearer_auth() {
     let mut registry = Registry::new();
     MySecurityScheme::register(&mut registry);
     assert_eq!(
-        registry.security_schemes.get("my_security_scheme").unwrap(),
+        registry.security_schemes.get("MySecurityScheme").unwrap(),
         &MetaSecurityScheme {
             ty: "http",
             description: None,
@@ -166,7 +167,8 @@ async fn bearer_auth() {
                 )
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 }
@@ -193,7 +195,7 @@ async fn api_key_auth() {
     assert_eq!(
         registry
             .security_schemes
-            .get("my_security_scheme_in_header")
+            .get("MySecuritySchemeInHeader")
             .unwrap(),
         &MetaSecurityScheme {
             ty: "apiKey",
@@ -210,7 +212,7 @@ async fn api_key_auth() {
     assert_eq!(
         registry
             .security_schemes
-            .get("my_security_scheme_in_query")
+            .get("MySecuritySchemeInQuery")
             .unwrap(),
         &MetaSecurityScheme {
             ty: "apiKey",
@@ -227,7 +229,7 @@ async fn api_key_auth() {
     assert_eq!(
         registry
             .security_schemes
-            .get("my_security_scheme_in_cookie")
+            .get("MySecuritySchemeInCookie")
             .unwrap(),
         &MetaSecurityScheme {
             ty: "apiKey",
@@ -269,7 +271,8 @@ async fn api_key_auth() {
                 .header("X-API-Key", "abcdef")
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 
@@ -279,7 +282,8 @@ async fn api_key_auth() {
                 .uri(Uri::from_static("/query?key=abcdef"))
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 
@@ -293,7 +297,8 @@ async fn api_key_auth() {
                 )
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
 }
@@ -341,13 +346,13 @@ async fn oauth2_scopes_rename_item() {
                 description: None
             },
             MetaOAuthScope {
-                name: "write",
+                name: "Write",
                 description: None
             }
         ]
     );
     assert_eq!(GithubScopes::Read.name(), "r_ead");
-    assert_eq!(GithubScopes::Write.name(), "write");
+    assert_eq!(GithubScopes::Write.name(), "Write");
 }
 
 #[tokio::test]
@@ -365,11 +370,11 @@ async fn oauth2_scopes_description() {
         GithubScopes::meta(),
         &[
             MetaOAuthScope {
-                name: "read",
+                name: "Read",
                 description: Some("Read data")
             },
             MetaOAuthScope {
-                name: "write",
+                name: "Write",
                 description: Some("Write data")
             }
         ]
@@ -411,7 +416,7 @@ async fn oauth2_auth() {
     let mut registry = Registry::new();
     MySecurityScheme::register(&mut registry);
     assert_eq!(
-        registry.security_schemes.get("my_security_scheme").unwrap(),
+        registry.security_schemes.get("MySecurityScheme").unwrap(),
         &MetaSecurityScheme {
             ty: "oauth2",
             description: None,

@@ -97,6 +97,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             type RawValueType = Self;
 
+            type RawElementValueType = Self;
+
             fn name() -> ::std::borrow::Cow<'static, str> {
                 ::std::convert::Into::into("object")
             }
@@ -123,6 +125,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
                 ::std::option::Option::Some(self)
             }
+
+            fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
+            }
         }
 
         impl #crate_name::types::ParseFromJSON for #ident {
@@ -139,19 +145,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 match self {
                     #(#to_json),*
                 }
-            }
-        }
-
-        impl #crate_name::__private::serde::Serialize for #ident {
-            fn serialize<S: #crate_name::__private::serde::Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
-                #crate_name::types::ToJSON::to_json(self).serialize(serializer)
-            }
-        }
-
-        impl<'de> #crate_name::__private::serde::Deserialize<'de> for #ident {
-            fn deserialize<D: #crate_name::__private::serde::Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
-                let value: #crate_name::__private::serde_json::Value = #crate_name::__private::serde::de::Deserialize::deserialize(deserializer)?;
-                #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(|err| #crate_name::__private::serde::de::Error::custom(err.into_message()))
             }
         }
     };

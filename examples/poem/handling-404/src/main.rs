@@ -1,6 +1,6 @@
 use poem::{
-    get, handler, http::StatusCode, listener::TcpListener, web::Path, EndpointExt, Response, Route,
-    Server,
+    error::NotFoundError, get, handler, http::StatusCode, listener::TcpListener, web::Path,
+    EndpointExt, Response, Route, Server,
 };
 
 #[handler]
@@ -15,17 +15,14 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = Route::new()
-        .at("/hello/:name", get(hello))
-        .after(|resp| async move {
-            if resp.status() == StatusCode::NOT_FOUND {
+    let app =
+        Route::new()
+            .at("/hello/:name", get(hello))
+            .catch_error(|_: NotFoundError| async move {
                 Response::builder()
                     .status(StatusCode::NOT_FOUND)
                     .body("haha")
-            } else {
-                resp
-            }
-        });
+            });
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(app)

@@ -1,10 +1,15 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use redis::{aio::ConnectionLike, AsyncCommands, Cmd};
+use serde_json::Value;
 
 use crate::{error::InternalServerError, session::session_storage::SessionStorage, Result};
 
 /// A session storage using redis.
+///
+/// # Errors
+///
+/// - [`redis::RedisError`]
 #[cfg_attr(docsrs, doc(cfg(feature = "redis-session")))]
 pub struct RedisStorage<T> {
     connection: T,
@@ -19,7 +24,7 @@ impl<T> RedisStorage<T> {
 
 #[async_trait::async_trait]
 impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T> {
-    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, String>>> {
+    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
         let data: Option<String> = self
             .connection
             .clone()
@@ -27,7 +32,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
             .await
             .map_err(InternalServerError)?;
         match data {
-            Some(data) => match serde_json::from_str::<BTreeMap<String, String>>(&data) {
+            Some(data) => match serde_json::from_str::<BTreeMap<String, Value>>(&data) {
                 Ok(entries) => Ok(Some(entries)),
                 Err(_) => Ok(None),
             },
@@ -38,7 +43,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
     async fn update_session(
         &self,
         session_id: &str,
-        entries: &BTreeMap<String, String>,
+        entries: &BTreeMap<String, Value>,
         expires: Option<Duration>,
     ) -> Result<()> {
         let value = serde_json::to_string(entries).unwrap_or_default();

@@ -66,6 +66,7 @@ impl CookieConfig {
     }
 
     /// Sets the `name` to the session cookie.
+    #[must_use]
     pub fn name(self, value: impl Into<String>) -> Self {
         Self {
             name: value.into(),
@@ -74,6 +75,7 @@ impl CookieConfig {
     }
 
     /// Sets the `Path` to the session cookie. Default is `/`.
+    #[must_use]
     pub fn path(self, value: impl Into<String>) -> Self {
         Self {
             path: value.into(),
@@ -82,6 +84,7 @@ impl CookieConfig {
     }
 
     /// Sets the `Domain` to the session cookie.
+    #[must_use]
     pub fn domain(self, value: impl Into<String>) -> Self {
         Self {
             domain: Some(value.into()),
@@ -90,6 +93,7 @@ impl CookieConfig {
     }
 
     /// Sets the `Secure` to the session cookie. Default is `true`.
+    #[must_use]
     pub fn secure(self, value: bool) -> Self {
         Self {
             secure: value,
@@ -98,6 +102,7 @@ impl CookieConfig {
     }
 
     /// Sets the `HttpOnly` to the session cookie. Default is `true`.
+    #[must_use]
     pub fn http_only(self, value: bool) -> Self {
         Self {
             http_only: value,
@@ -106,17 +111,19 @@ impl CookieConfig {
     }
 
     /// Sets the `SameSite` to the session cookie.
-    pub fn same_site(self, value: SameSite) -> Self {
+    #[must_use]
+    pub fn same_site(self, value: impl Into<Option<SameSite>>) -> Self {
         Self {
-            same_site: Some(value),
+            same_site: value.into(),
             ..self
         }
     }
 
     /// Sets the `MaxAge` to the session cookie.
-    pub fn max_age(self, value: Duration) -> Self {
+    #[must_use]
+    pub fn max_age(self, value: impl Into<Option<Duration>>) -> Self {
         Self {
-            max_age: Some(value),
+            max_age: value.into(),
             ..self
         }
     }
@@ -144,9 +151,7 @@ impl CookieConfig {
             cookie.set_max_age(*max_age);
         }
 
-        if let Some(same_site) = &self.same_site {
-            cookie.set_same_site(*same_site);
-        }
+        cookie.set_same_site(self.same_site);
 
         match &self.security {
             CookieSecurity::Plain => cookie_jar.add(cookie),

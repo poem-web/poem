@@ -6,12 +6,15 @@ use std::{
 };
 
 use bytes::Bytes;
-use futures_util::Stream;
+use futures_util::{Stream, TryStreamExt};
 use hyper::body::HttpBody;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::io::AsyncRead;
 
-use crate::error::{ParseJsonError, ReadBodyError};
+use crate::{
+    error::{ParseJsonError, ReadBodyError},
+    Result,
+};
 
 /// A body object for requests and responses.
 #[derive(Default)]
@@ -98,6 +101,16 @@ impl Body {
         )))
     }
 
+    /// Create a body object from bytes stream.
+    pub fn from_bytes_stream<S, O, E>(stream: S) -> Self
+    where
+        S: Stream<Item = Result<O, E>> + Send + 'static,
+        O: Into<Bytes> + 'static,
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        Self(hyper::Body::wrap_stream(stream))
+    }
+
     /// Create a body object from JSON.
     pub fn from_json(body: impl Serialize) -> serde_json::Result<Self> {
         Ok(serde_json::to_vec(&body)?.into())
@@ -131,13 +144,23 @@ impl Body {
     }
 
     /// Consumes this body object and parse it as `T`.
-    pub async fn into_json<T: DeserializeOwned>(self) -> Result<T, ParseJsonError> {
-        Ok(serde_json::from_slice(&self.into_vec().await?)?)
+    ///
+    /// # Errors
+    ///
+    /// - [`ReadBodyError`]
+    /// - [`ParseJsonError`]
+    pub async fn into_json<T: DeserializeOwned>(self) -> Result<T> {
+        Ok(serde_json::from_slice(&self.into_vec().await?).map_err(ParseJsonError)?)
     }
 
     /// Consumes this body object to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
         tokio_util::io::StreamReader::new(BodyStream::new(self.0))
+    }
+
+    /// Consumes this body object to return a bytes stream.
+    pub fn into_bytes_stream(self) -> impl Stream<Item = Result<Bytes, IoError>> + Send + 'static {
+        TryStreamExt::map_err(self.0, |err| IoError::new(ErrorKind::Other, err))
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.0.30"
+version = "1.2.25"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -19,11 +19,12 @@ categories = [
 
 [features]
 default = []
-websocket = ["tokio-tungstenite"]
+websocket = ["tokio-tungstenite", "sha1", "base64"]
 multipart = ["multer"]
 rustls = ["tokio-rustls"]
 native-tls = ["tokio-native-tls"]
 sse = []
+static-files = ["httpdate"]
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
@@ -32,11 +33,11 @@ redis-session = ["session", "redis"]
 opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile"]
-template = ["askama"]
-staticfiles = ["askama"]
+csrf = ["cookie", "base64", "libcsrf"]
+test = ["sse", "sse-codec", "tokio-util/compat"]
 
 [dependencies]
-poem-derive = { path = "../poem-derive", version = "1.0.0" }
+poem-derive = { path = "../poem-derive", version = "1.2.25" }
 
 async-trait = "0.1.51"
 bytes = "1.1.0"
@@ -44,13 +45,11 @@ futures-util = { version = "0.3.17", features = ["sink"] }
 http = "0.2.5"
 hyper = { version = "0.14.13", features = ["http1", "http2", "server", "runtime", "stream"] }
 mime = "0.3.16"
-tokio = { version = "1.12.0", features = ["sync", "rt", "net", "fs", "time", "macros", "signal"] }
+tokio = { version = "1.12.0", features = ["sync", "rt", "net", "fs", "time", "macros"] }
 tokio-util = { version = "0.6.8", features = ["io"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
 serde_urlencoded = "0.7.0"
-sha1 = "0.6.0"
-base64 = "0.13.0"
 tokio-stream = "0.1.7"
 parking_lot = "0.11.2"
 pin-project-lite = "0.2.7"
@@ -58,9 +57,9 @@ percent-encoding = "2.1.0"
 regex = "1.5.4"
 mime_guess = "2.0.3"
 smallvec = "1.6.1"
-nom = "7.0.0"
 tracing = "0.1.29"
 headers = "0.3.4"
+thiserror = "1.0.30"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
@@ -69,22 +68,27 @@ tokio-rustls = { version = "0.22.0", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
 chrono = { version = "0.4.19", optional = true }
-time = { version = "0.2.27", optional = true }
+time = { version = "0.3", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
 redis = { version = "0.21.2", optional = true, features = ["aio", "tokio-comp", "connection-manager"] }
-libcookie = { package = "cookie", version = "0.15.1", features = ["percent-encode", "private", "signed", "key-expansion", "secure"], optional = true }
+libcookie = { package = "cookie", version = "0.16", features = ["percent-encode", "private", "signed", "key-expansion", "secure"], optional = true }
 opentelemetry-http = { version = "0.5.0", optional = true }
 opentelemetry-semantic-conventions = { version = "0.8.0", optional = true }
 opentelemetry-prometheus = { version = "0.9.0", optional = true }
 libprometheus = { package = "prometheus", version = "0.12.0", optional = true }
 libopentelemetry = { package = "opentelemetry", version = "0.16.0", features = ["metrics"], optional = true }
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
-askama = { version = "0.10.5", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
+sha1 = { version = "0.6.0", optional = true }
+base64 = { version = "0.13.0", optional = true }
+libcsrf = { package = "csrf", version = "0.4.1", optional = true }
+httpdate = { version = "1.0.2", optional = true }
+sse-codec = { version = "0.3.2", optional = true }
 
 # Feature optional dependencies
+anyhow = { version = "1.0.0", optional = true }
 
 [dev-dependencies]
 async-stream = "0.3.2"

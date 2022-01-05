@@ -2,15 +2,16 @@ Define a OpenAPI response.
 
 # Macro parameters
 
-| Attribute     | description               | Type     | Optional |
-|---------------|---------------------------|----------|----------|
-| bad_request_handler | Sets a custom bad request handler, it can convert error to the value of the this response type. | string   | Y
+| Attribute           | description                                                                                     | Type   | Optional |
+|---------------------|-------------------------------------------------------------------------------------------------|--------|----------|
+| bad_request_handler | Sets a custom bad request handler, it can convert error to the value of the this response type. | string | Y        |
 
 # Item parameters
 
-| Attribute   | description               | Type     | Optional |
-|-------------|---------------------------|----------|----------|
-| status      | HTTP status code. If omitted, it is a default response type. | u16   | Y        |
+| Attribute    | description                                                  | Type   | Optional |
+|--------------|--------------------------------------------------------------|--------|----------|
+| status       | HTTP status code. If omitted, it is a default response type. | u16    | Y        |
+| content_type | Specify the content type.                                    | string | Y        |
 
 # Header parameters
 
@@ -22,7 +23,8 @@ Define a OpenAPI response.
 # Examples
 
 ```rust
-use poem_openapi::{payload::PlainText, ApiResponse, ParseRequestError};
+use poem::Error;
+use poem_openapi::{payload::PlainText, ApiResponse};
 
 #[derive(ApiResponse)]
 #[oai(bad_request_handler = "bad_request_handler")]
@@ -39,7 +41,7 @@ enum CreateUserResponse {
 }
 
 // Convert error to `CreateUserResponse::BadRequest`.
-fn bad_request_handler(err: ParseRequestError) -> CreateUserResponse {
+fn bad_request_handler(err: Error) -> CreateUserResponse {
     CreateUserResponse::BadRequest(PlainText(format!("error: {}", err.to_string())))
 }
 ```

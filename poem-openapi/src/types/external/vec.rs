@@ -5,15 +5,22 @@ use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef, Registry},
-    types::{ParseError, ParseFromJSON, ParseFromMultipartField, ParseResult, ToJSON, Type},
+    types::{
+        ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
+        ToJSON, Type,
+    },
 };
 
 impl<T: Type> Type for Vec<T> {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = T::RawValueType;
+
     fn name() -> Cow<'static, str> {
         format!("[{}]", T::name()).into()
     }
-
-    impl_raw_value_type!();
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
@@ -24,6 +31,16 @@ impl<T: Type> Type for Vec<T> {
 
     fn register(registry: &mut Registry) {
         T::register(registry);
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
+
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.iter().filter_map(|item| item.as_raw_value()))
     }
 }
 
@@ -39,6 +56,25 @@ impl<T: ParseFromJSON> ParseFromJSON for Vec<T> {
             }
             _ => Err(ParseError::expected_type(value)),
         }
+    }
+}
+
+impl<T: ParseFromParameter> ParseFromParameter for Vec<T> {
+    fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
+        unreachable!()
+    }
+
+    fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
+        iter: I,
+    ) -> ParseResult<Self> {
+        let mut values = Vec::new();
+        for s in iter {
+            values.push(
+                T::parse_from_parameters(std::iter::once(s.as_ref()))
+                    .map_err(ParseError::propagate)?,
+            );
+        }
+        Ok(values)
     }
 }
 
@@ -72,5 +108,16 @@ impl<T: ToJSON> ToJSON for Vec<T> {
             values.push(item.to_json());
         }
         Value::Array(values)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_from_parameters() {
+        let values = Vec::<i32>::parse_from_parameters(vec!["100", "200", "300"]).unwrap();
+        assert_eq!(values, vec![100, 200, 300]);
     }
 }

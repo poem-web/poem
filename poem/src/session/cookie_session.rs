@@ -1,9 +1,11 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use serde_json::Value;
+
 use crate::{
     middleware::{CookieJarManager, CookieJarManagerEndpoint},
     session::{CookieConfig, Session, SessionStatus},
-    Endpoint, Middleware, Request,
+    Endpoint, Middleware, Request, Result,
 };
 
 /// Middleware for client-side(cookie) session.
@@ -44,17 +46,17 @@ pub struct CookieSessionEndpoint<E> {
 impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
     type Output = E::Output;
 
-    async fn call(&self, mut req: Request) -> Self::Output {
+    async fn call(&self, mut req: Request) -> Result<Self::Output> {
         let cookie_jar = req.cookie().clone();
         let session = self
             .config
             .get_cookie_value(&cookie_jar)
-            .and_then(|value| serde_json::from_str::<BTreeMap<String, String>>(&value).ok())
+            .and_then(|value| serde_json::from_str::<BTreeMap<String, Value>>(&value).ok())
             .map(Session::new)
             .unwrap_or_else(Session::default);
 
         req.extensions_mut().insert(session.clone());
-        let resp = self.inner.call(req).await;
+        let resp = self.inner.call(req).await?;
 
         match session.status() {
             SessionStatus::Changed | SessionStatus::Renewed => {
@@ -69,7 +71,7 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
             SessionStatus::Unchanged => {}
         };
 
-        resp
+        Ok(resp)
     }
 }
 
@@ -92,18 +94,18 @@ mod tests {
         client.assert_cookies(vec![]);
 
         client.call(&app, 1).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","b":"20"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"b":20}"#)]);
 
         client.call(&app, 2).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","b":"20","c":"30"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"b":20,"c":30}"#)]);
 
         client.call(&app, 7).await;
 
         client.call(&app, 6).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","b":"20","c":"30"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"b":20,"c":30}"#)]);
 
         client.call(&app, 3).await;
-        client.assert_cookies(vec![("poem-session", r#"{"a":"10","c":"30"}"#)]);
+        client.assert_cookies(vec![("poem-session", r#"{"a":10,"c":30}"#)]);
 
         client.call(&app, 4).await;
         client.assert_cookies(vec![("poem-session", r#"{}"#)]);

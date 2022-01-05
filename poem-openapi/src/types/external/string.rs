@@ -1,25 +1,39 @@
 use std::borrow::Cow;
 
-use poem::web::Field;
+use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToHeader, ToJSON, Type,
     },
 };
 
 impl Type for String {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = Self;
+
+    fn name() -> Cow<'static, str> {
+        "string".into()
+    }
+
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
     }
 
-    impl_raw_value_type!();
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
 
-    fn name() -> Cow<'static, str> {
-        "string".into()
+    fn raw_element_iter<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 
@@ -34,11 +48,8 @@ impl ParseFromJSON for String {
 }
 
 impl ParseFromParameter for String {
-    fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-        match value {
-            Some(value) => Ok(value.to_string()),
-            None => Err(ParseError::expected_input()),
-        }
+    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+        Ok(value.to_string())
     }
 }
 
@@ -58,15 +69,38 @@ impl ToJSON for String {
     }
 }
 
+impl ToHeader for String {
+    fn to_header(&self) -> Option<HeaderValue> {
+        match HeaderValue::from_str(self) {
+            Ok(value) => Some(value),
+            Err(_) => None,
+        }
+    }
+}
+
 impl<'a> Type for &'a str {
+    const IS_REQUIRED: bool = true;
+
+    type RawValueType = Self;
+
+    type RawElementValueType = Self;
+
     fn name() -> Cow<'static, str> {
         "string".into()
     }
 
-    impl_raw_value_type!();
-
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
+    }
+
+    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+        Some(self)
+    }
+
+    fn raw_element_iter<'b>(
+        &'b self,
+    ) -> Box<dyn Iterator<Item = &'b Self::RawElementValueType> + 'b> {
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 

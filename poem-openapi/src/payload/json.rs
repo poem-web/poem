@@ -1,16 +1,33 @@
-use poem::{http::StatusCode, FromRequest, IntoResponse, Request, RequestBody, Response};
+use std::ops::{Deref, DerefMut};
+
+use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
 use crate::{
+    error::ParseJsonError,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    ApiResponse, ParseRequestError,
+    ApiResponse,
 };
 
 /// A JSON payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Json<T>(pub T);
+
+impl<T> Deref for Json<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Json<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl<T: Type> Payload for Json<T> {
     const CONTENT_TYPE: &'static str = "application/json";
@@ -27,19 +44,20 @@ impl<T: Type> Payload for Json<T> {
 
 #[poem::async_trait]
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
-    async fn from_request(
-        request: &Request,
-        body: &mut RequestBody,
-    ) -> Result<Self, ParseRequestError> {
-        let value = poem::web::Json::<Value>::from_request(request, body)
-            .await
-            .map_err(|err| ParseRequestError::ParseRequestBody(err.into_response()))?;
-        let value = T::parse_from_json(value.0).map_err(|err| {
-            ParseRequestError::ParseRequestBody(
-                Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body(err.into_message()),
-            )
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
+
+    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
+        let data: Vec<u8> = FromRequest::from_request(request, body).await?;
+        let value = if data.is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_slice(&data).map_err(|err| ParseJsonError {
+                reason: err.to_string(),
+            })?
+        };
+
+        let value = T::parse_from_json(value).map_err(|err| ParseJsonError {
+            reason: err.into_message(),
         })?;
         Ok(Self(value))
     }
@@ -70,3 +88,5 @@ impl<T: ToJSON> ApiResponse for Json<T> {
         T::register(registry);
     }
 }
+
+impl_apirequest_for_payload!(Json<T>, T: ParseFromJSON);

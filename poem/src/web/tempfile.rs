@@ -8,24 +8,32 @@ use tokio::{
     io::{AsyncRead, AsyncSeekExt, ReadBuf, SeekFrom},
 };
 
-use crate::{error::ReadBodyError, FromRequest, Request, RequestBody};
+use crate::{error::ReadBodyError, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that extracts the body and writes the contents to a temporary
 /// file.
+///
+/// # Errors
+///
+/// - [`ReadBodyError`]
 #[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
 pub struct TempFile(File);
 
-#[async_trait::async_trait]
-impl<'a> FromRequest<'a> for TempFile {
-    type Error = ReadBodyError;
-
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self, Self::Error> {
+impl TempFile {
+    async fn internal_from_request(body: &mut RequestBody) -> Result<Self, ReadBodyError> {
         let body = body.take()?;
         let mut reader = body.into_async_read();
         let mut file = tokio::fs::File::from_std(::libtempfile::tempfile()?);
         tokio::io::copy(&mut reader, &mut file).await?;
         file.seek(SeekFrom::Start(0)).await?;
         Ok(Self(file))
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a> FromRequest<'a> for TempFile {
+    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Self::internal_from_request(body).await.map_err(Into::into)
     }
 }
 
@@ -55,6 +63,9 @@ mod tests {
             assert_eq!(s, "abcdef");
         }
 
-        index123.call(Request::builder().body("abcdef")).await;
+        index123
+            .call(Request::builder().body("abcdef"))
+            .await
+            .unwrap();
     }
 }

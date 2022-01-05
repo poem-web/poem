@@ -1,6 +1,8 @@
-use poem::Request;
+use poem::{Request, Result};
 
-use crate::{auth::ApiKeyAuthorization, base::UrlQuery, registry::MetaParamIn, ParseRequestError};
+use crate::{
+    auth::ApiKeyAuthorization, base::UrlQuery, error::AuthorizationError, registry::MetaParamIn,
+};
 
 /// Used to extract the Api Key from the request.
 pub struct ApiKey {
@@ -14,13 +16,13 @@ impl ApiKeyAuthorization for ApiKey {
         query: &UrlQuery,
         name: &str,
         in_type: MetaParamIn,
-    ) -> Result<Self, ParseRequestError> {
+    ) -> Result<Self> {
         match in_type {
             MetaParamIn::Query => query
                 .get(name)
                 .cloned()
                 .map(|value| Self { key: value })
-                .ok_or(ParseRequestError::Authorization),
+                .ok_or_else(|| AuthorizationError.into()),
             MetaParamIn::Header => req
                 .headers()
                 .get(name)
@@ -28,7 +30,7 @@ impl ApiKeyAuthorization for ApiKey {
                 .map(|value| Self {
                     key: value.to_string(),
                 })
-                .ok_or(ParseRequestError::Authorization),
+                .ok_or_else(|| AuthorizationError.into()),
             MetaParamIn::Cookie => req
                 .cookie()
                 .get(name)
@@ -36,7 +38,7 @@ impl ApiKeyAuthorization for ApiKey {
                 .map(|cookie| Self {
                     key: cookie.value_str().to_string(),
                 })
-                .ok_or(ParseRequestError::Authorization),
+                .ok_or_else(|| AuthorizationError.into()),
             _ => unreachable!(),
         }
     }

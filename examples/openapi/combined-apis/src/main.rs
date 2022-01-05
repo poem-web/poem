@@ -38,7 +38,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let api_service = OpenApiService::new(Api1.combine(Api2).combine(Api3), "Combined APIs", "1.0")
+    let api_service = OpenApiService::new((Api1, Api2, Api3), "Combined APIs", "1.0")
         .server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 

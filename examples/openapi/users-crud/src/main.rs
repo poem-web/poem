@@ -1,6 +1,9 @@
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{
-    param::Path, payload::Json, types::Password, ApiResponse, Object, OpenApi, OpenApiService, Tags,
+    param::Path,
+    payload::Json,
+    types::{Email, Password},
+    ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
 use slab::Slab;
 use tokio::sync::Mutex;
@@ -23,6 +26,7 @@ struct User {
     /// Password
     #[oai(validator(max_length = 32))]
     password: Password,
+    email: Email,
 }
 
 /// Update user schema

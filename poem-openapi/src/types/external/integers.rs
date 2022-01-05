@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use poem::web::Field;
+use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToHeader, ToJSON, Type,
     },
 };
 
@@ -15,6 +15,12 @@ macro_rules! impl_type_for_integers {
     ($(($ty:ty, $format:literal)),*) => {
         $(
         impl Type for $ty {
+            const IS_REQUIRED: bool = true;
+
+            type RawValueType = Self;
+
+            type RawElementValueType = Self;
+
             fn name() -> Cow<'static, str> {
                 format!("integer({})", $format).into()
             }
@@ -23,7 +29,15 @@ macro_rules! impl_type_for_integers {
                 MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
             }
 
-            impl_raw_value_type!();
+            fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+                Some(self)
+            }
+
+            fn raw_element_iter<'a>(
+                &'a self
+            ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                Box::new(self.as_raw_value().into_iter())
+            }
         }
 
         impl ParseFromJSON for $ty {
@@ -49,11 +63,8 @@ macro_rules! impl_type_for_integers {
         }
 
         impl ParseFromParameter for $ty {
-            fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-                match value {
-                    Some(value) => value.parse().map_err(ParseError::custom),
-                    None => Err(ParseError::expected_input()),
-                }
+            fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+                value.parse().map_err(ParseError::custom)
             }
         }
 
@@ -73,6 +84,15 @@ macro_rules! impl_type_for_integers {
             }
         }
 
+        impl ToHeader for $ty {
+            fn to_header(&self) -> Option<HeaderValue> {
+                match HeaderValue::from_str(&format!("{}", self)) {
+                    Ok(value) => Some(value),
+                    Err(_) => None,
+                }
+            }
+        }
+
         )*
     };
 }
@@ -81,6 +101,12 @@ macro_rules! impl_type_for_unsigneds {
     ($(($ty:ty, $format:literal)),*) => {
         $(
         impl Type for $ty {
+            const IS_REQUIRED: bool = true;
+
+            type RawValueType = Self;
+
+            type RawElementValueType = Self;
+
             fn name() -> Cow<'static, str> {
                 format!("integer({})", $format).into()
             }
@@ -89,7 +115,15 @@ macro_rules! impl_type_for_unsigneds {
                 MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
             }
 
-            impl_raw_value_type!();
+            fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+                Some(self)
+            }
+
+            fn raw_element_iter<'a>(
+                &'a self
+            ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                Box::new(self.as_raw_value().into_iter())
+            }
         }
 
         impl ParseFromJSON for $ty {
@@ -115,11 +149,8 @@ macro_rules! impl_type_for_unsigneds {
         }
 
         impl ParseFromParameter for $ty {
-            fn parse_from_parameter(value: Option<&str>) -> ParseResult<Self> {
-                match value {
-                    Some(value) => value.parse().map_err(ParseError::custom),
-                    None => Err(ParseError::expected_input()),
-                }
+            fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+                value.parse().map_err(ParseError::custom)
             }
         }
 
@@ -139,6 +170,15 @@ macro_rules! impl_type_for_unsigneds {
             }
         }
 
+        impl ToHeader for $ty {
+            fn to_header(&self) -> Option<HeaderValue> {
+                match HeaderValue::from_str(&format!("{}", self)) {
+                    Ok(value) => Some(value),
+                    Err(_) => None,
+                }
+            }
+        }
+
         )*
     };
 }
@@ -149,5 +189,6 @@ impl_type_for_unsigneds!(
     (u8, "uint8"),
     (u16, "uint16"),
     (u32, "uint32"),
-    (u64, "uint64")
+    (u64, "uint64"),
+    (usize, "uint64")
 );

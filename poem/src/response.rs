@@ -11,7 +11,7 @@ use crate::{
         Extensions, StatusCode, Version,
     },
     web::headers::Header,
-    Body, Error,
+    Body,
 };
 
 /// Component parts of an HTTP Response.
@@ -68,12 +68,6 @@ impl<T: Into<Body>> From<T> for Response {
 impl From<StatusCode> for Response {
     fn from(status: StatusCode) -> Self {
         Response::builder().status(status).finish()
-    }
-}
-
-impl From<Error> for Response {
-    fn from(err: Error) -> Self {
-        err.as_response()
     }
 }
 
@@ -135,6 +129,12 @@ impl Response {
         self.status
     }
 
+    /// Returns `true` if status code is [`StatusCode::OK`].
+    #[inline]
+    pub fn is_ok(&self) -> bool {
+        self.status() == StatusCode::OK
+    }
+
     /// Check if status is within 200-299.
     #[inline]
     pub fn is_success(&self) -> bool {
@@ -164,6 +164,15 @@ impl Response {
     #[inline]
     pub fn headers_mut(&mut self) -> &mut HeaderMap {
         &mut self.headers
+    }
+
+    /// Returns the string value of the specified header.
+    ///
+    /// NOTE: Returns `None` if the header value is not a valid UTF8 string.
+    pub fn header(&self, name: impl AsRef<str>) -> Option<&str> {
+        self.headers
+            .get(name.as_ref())
+            .and_then(|value| value.to_str().ok())
     }
 
     /// Returns the associated version.
@@ -332,10 +341,6 @@ mod tests {
         let resp = Response::from(StatusCode::BAD_GATEWAY);
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
         assert!(resp.body.into_string().await.unwrap().is_empty());
-
-        let resp = Response::from(Error::new(StatusCode::BAD_GATEWAY).with_reason("bad gateway"));
-        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
-        assert_eq!(resp.body.into_string().await.unwrap(), "bad gateway");
 
         let resp = Response::from((StatusCode::BAD_GATEWAY, Body::from("abc")));
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);

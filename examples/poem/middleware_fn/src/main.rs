@@ -1,6 +1,6 @@
 use poem::{
     get, handler, listener::TcpListener, Endpoint, EndpointExt, IntoResponse, Request, Response,
-    Route, Server,
+    Result, Route, Server,
 };
 
 #[handler]
@@ -8,15 +8,21 @@ fn index() -> String {
     "hello".to_string()
 }
 
-async fn log<E: Endpoint>(next: E, req: Request) -> Response {
+async fn log<E: Endpoint>(next: E, req: Request) -> Result<Response> {
     println!("request: {}", req.uri().path());
-    let resp = next.call(req).await.into_response();
-    if resp.status().is_success() {
-        println!("response: {}", resp.status());
-    } else {
-        println!("error: {}", resp.status());
+    let res = next.call(req).await;
+
+    match res {
+        Ok(resp) => {
+            let resp = resp.into_response();
+            println!("response: {}", resp.status());
+            Ok(resp)
+        }
+        Err(err) => {
+            println!("error: {}", err);
+            Err(err)
+        }
     }
-    resp
 }
 
 #[tokio::main]

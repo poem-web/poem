@@ -6,6 +6,10 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 
 /// An extractor that can deserialize some type from query string.
 ///
+/// # Errors
+///
+/// - [`ParseQueryError`]
+///
 /// # Example
 ///
 /// ```
@@ -37,7 +41,8 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 ///             .uri(Uri::from_static("/?title=foo&content=bar"))
 ///             .finish(),
 ///     )
-///     .await;
+///     .await
+///     .unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
 /// # });
@@ -59,12 +64,16 @@ impl<T> DerefMut for Query<T> {
     }
 }
 
+impl<T: DeserializeOwned> Query<T> {
+    async fn internal_from_request(req: &Request) -> Result<Self, ParseQueryError> {
+        Ok(serde_urlencoded::from_str(req.uri().query().unwrap_or_default()).map(Self)?)
+    }
+}
+
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Query<T> {
-    type Error = ParseQueryError;
-
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, Self::Error> {
-        Ok(serde_urlencoded::from_str(req.uri().query().unwrap_or_default()).map(Self)?)
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Self::internal_from_request(req).await.map_err(Into::into)
     }
 }
 
@@ -95,6 +104,7 @@ mod tests {
                     .uri(Uri::from_static("/?name=abc&value=100"))
                     .finish(),
             )
-            .await;
+            .await
+            .unwrap();
     }
 }

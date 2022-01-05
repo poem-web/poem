@@ -1,9 +1,0 @@
-[book]
-authors = ["sunli"]
-description = "Poem Book"
-src = "src"
-language = "en"
-title = "Poem Book"
-
-[rust]
-edition = "2021"

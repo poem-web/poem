@@ -28,7 +28,7 @@ use crate::{Body, IntoResponse, Response};
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let mut resp = index.call(Request::default()).await;
+/// let mut resp = index.call(Request::default()).await.unwrap();
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// assert_eq!(
 ///     resp.take_body().into_string().await.unwrap(),
