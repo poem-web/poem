@@ -285,7 +285,7 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
-    use tokio_rustls::rustls::ClientConfig;
+    use tokio_rustls::rustls::{client::ServerName, Certificate, ClientConfig, RootCertStore};
 
     use super::*;
     use crate::listener::TcpListener;
@@ -301,14 +301,17 @@ mod tests {
         let local_addr = acceptor.local_addr().pop().unwrap();
 
         tokio::spawn(async move {
-            let mut config = ClientConfig::new();
-            config
-                .root_store
-                .add_pem_file(&mut include_bytes!("certs/chain1.pem").as_ref())
+            let mut root_certs = RootCertStore::empty();
+            root_certs
+                .add(&Certificate(include_bytes!("certs/chain1.pem").to_vec()))
                 .unwrap();
+            let config = ClientConfig::builder()
+                .with_safe_defaults()
+                .with_root_certificates(root_certs)
+                .with_no_client_auth();
 
             let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
-            let domain = webpki::DNSNameRef::try_from_ascii_str("testserver.com").unwrap();
+            let domain = ServerName::try_from("testserver.com").expect("invalid DNS name");
             let stream = TcpStream::connect(*local_addr.as_socket_addr().unwrap())
                 .await
                 .unwrap();
