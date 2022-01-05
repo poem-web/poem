@@ -20,6 +20,7 @@ impl DatabaseConfig {
     }
 
     /// Specifies the table name.
+    #[must_use]
     pub fn table_name(self, table_name: impl Into<String>) -> Self {
         Self {
             table_name: table_name.into(),

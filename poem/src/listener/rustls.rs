@@ -8,8 +8,10 @@ use http::uri::Scheme;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, NoClientAuth,
-        RootCertStore, ServerConfig,
+        server::{
+            AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, NoClientAuth,
+        },
+        Certificate, PrivateKey, RootCertStore, ServerConfig,
     },
     server::TlsStream,
 };
@@ -20,6 +22,7 @@ use crate::{
 };
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rustls")))]
+#[derive(Clone)]
 enum TlsClientAuth {
     Off,
     Optional(Vec<u8>),
@@ -88,20 +91,21 @@ impl RustlsConfig {
     }
 
     fn create_server_config(&self) -> IoResult<ServerConfig> {
-        let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut self.cert.as_slice())
-            .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
+        let cert_chain = rustls_pemfile::certs(&mut self.cert.as_slice())
+            .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?
+            .into_iter()
+            .map(|cert| Certificate(cert))
+            .collect::<Vec<_>>();
         let key = {
-            let mut pkcs8 = tokio_rustls::rustls::internal::pemfile::pkcs8_private_keys(
-                &mut self.key.as_slice(),
-            )
-            .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
-            if !pkcs8.is_empty() {
+            let mut pkcs8 = rustls_pemfile::pkcs8_private_keys(&mut self.key.as_slice())
+                .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
+            let key = if !pkcs8.is_empty() {
                 pkcs8.remove(0)
             } else {
-                let mut rsa = tokio_rustls::rustls::internal::pemfile::rsa_private_keys(
-                    &mut self.key.as_slice(),
-                )
-                .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
+                let mut rsa =
+                    rustls_pemfile::rsa_private_keys(&mut self.key.as_slice()).map_err(|_| {
+                        IoError::new(ErrorKind::Other, "failed to parse tls private keys")
+                    })?;
 
                 if !rsa.is_empty() {
                     rsa.remove(0)
@@ -111,12 +115,13 @@ impl RustlsConfig {
                         "failed to parse tls private keys",
                     ));
                 }
-            }
+            };
+            PrivateKey(key)
         };
 
-        fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
+        fn read_trust_anchor(trust_anchor: Vec<u8>) -> IoResult<RootCertStore> {
             let mut store = RootCertStore::empty();
-            if let Ok((0, _)) | Err(()) = store.add_pem_file(&mut trust_anchor) {
+            if let Err(_) = store.add(&Certificate(trust_anchor)) {
                 Err(IoError::new(
                     ErrorKind::Other,
                     "failed to parse tls trust anchor",
@@ -126,7 +131,7 @@ impl RustlsConfig {
             }
         }
 
-        let client_auth = match &self.client_auth {
+        let client_auth = match self.client_auth.clone() {
             TlsClientAuth::Off => NoClientAuth::new(),
             TlsClientAuth::Optional(trust_anchor) => {
                 AllowAnyAnonymousOrAuthenticatedClient::new(read_trust_anchor(trust_anchor)?)
@@ -136,11 +141,11 @@ impl RustlsConfig {
             }
         };
 
-        let mut server_config = ServerConfig::new(client_auth);
-        server_config
-            .set_single_cert_with_ocsp_and_sct(cert, key, self.ocsp_resp.clone(), Vec::new())
+        let server_config = ServerConfig::builder()
+            .with_safe_defaults()
+            .with_client_cert_verifier(client_auth)
+            .with_single_cert_with_ocsp_and_sct(cert_chain, key, self.ocsp_resp.clone(), Vec::new())
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
-        server_config.set_protocols(&["h2".into(), "http/1.1".into()]);
 
         Ok(server_config)
     }
