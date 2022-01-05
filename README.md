@@ -47,7 +47,6 @@ The following are cases of community use:
 
 :balloon: Thanks for your help improving the project! We are so happy to have you!
 
-
 ## License
 
 Licensed under either of
