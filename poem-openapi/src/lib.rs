@@ -127,8 +127,8 @@ mod openapi;
 mod ui;
 
 pub use base::{
-    ApiExtractor, ApiExtractorType, ApiResponse, ExtractParamOptions, OAuthScopes, OpenApi, Tags,
-    Webhook,
+    ApiExtractor, ApiExtractorType, ApiResponse, ExtractParamOptions, OAuthScopes, OpenApi,
+    ResponseContent, Tags, Webhook,
 };
 pub use openapi::{ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
@@ -147,6 +147,8 @@ pub use poem_openapi_derive::Object;
 pub use poem_openapi_derive::OneOf;
 #[doc = include_str!("docs/openapi.md")]
 pub use poem_openapi_derive::OpenApi;
+#[doc = include_str!("docs/response_content.md")]
+pub use poem_openapi_derive::ResponseContent;
 #[doc = include_str!("docs/security_scheme.md")]
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]

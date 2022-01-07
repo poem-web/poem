@@ -2,9 +2,12 @@ use std::ops::Deref;
 
 use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
-use crate::registry::{
-    MetaApi, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse, MetaResponses, MetaSchemaRef,
-    MetaWebhook, Registry,
+use crate::{
+    payload::Payload,
+    registry::{
+        MetaApi, MetaMediaType, MetaOAuthScope, MetaParamIn, MetaRequest, MetaResponse,
+        MetaResponses, MetaSchemaRef, MetaWebhook, Registry,
+    },
 };
 
 /// API extractor types.
@@ -197,6 +200,29 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
         _param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
         T::from_request(request, body).await
+    }
+}
+
+/// Represents a OpenAPI response content object.
+pub trait ResponseContent {
+    /// Returns the media types in this content.
+    fn media_types() -> Vec<MetaMediaType>;
+
+    /// Register the schema contained in this content to the registry.
+    #[allow(unused_variables)]
+    fn register(registry: &mut Registry) {}
+}
+
+impl<T: Payload> ResponseContent for T {
+    fn media_types() -> Vec<MetaMediaType> {
+        vec![MetaMediaType {
+            content_type: T::CONTENT_TYPE,
+            schema: T::schema_ref(),
+        }]
+    }
+
+    fn register(registry: &mut Registry) {
+        T::register(registry);
     }
 }
 
