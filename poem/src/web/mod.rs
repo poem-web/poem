@@ -17,6 +17,8 @@ mod redirect;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
+#[cfg(feature = "static-files")]
+mod static_file;
 #[cfg(feature = "tempfile")]
 mod tempfile;
 #[doc(inline)]
@@ -45,8 +47,8 @@ pub use path::Path;
 pub(crate) use path::PathDeserializer;
 pub use query::Query;
 pub use redirect::Redirect;
-#[cfg(feature = "template")]
-pub use template::{HtmlTemplate, Template};
+#[cfg(feature = "static-files")]
+pub use static_file::{StaticFileRequest, StaticFileResponse};
 pub use typed_header::TypedHeader;
 
 #[cfg(feature = "tempfile")]

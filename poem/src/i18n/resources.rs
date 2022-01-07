@@ -48,6 +48,7 @@ impl I18NResourcesBuilder {
     ///         simple.ftl
     ///         errors.ftl
     /// ```
+    #[must_use]
     pub fn add_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.paths.push(path.into());
         self
@@ -66,6 +67,7 @@ impl I18NResourcesBuilder {
     ///     .build()
     ///     .unwrap();
     /// ```
+    #[must_use]
     pub fn add_ftl(mut self, language: impl Into<String>, ftl: impl Into<String>) -> Self {
         self.resources.push((language.into(), ftl.into()));
         self
@@ -89,6 +91,7 @@ impl I18NResourcesBuilder {
     ///     .build()
     ///     .unwrap();
     /// ```
+    #[must_use]
     pub fn default_language(mut self, language: LanguageIdentifier) -> Self {
         self.default_language = language;
         self
@@ -97,6 +100,7 @@ impl I18NResourcesBuilder {
     /// Sets the negotiation strategy.
     ///
     /// Default is [`NegotiationStrategy::Filtering`].
+    #[must_use]
     pub fn negotiation_strategy(mut self, strategy: NegotiationStrategy) -> Self {
         self.strategy = strategy;
         self

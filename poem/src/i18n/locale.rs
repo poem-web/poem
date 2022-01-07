@@ -94,7 +94,7 @@ impl<'a> FromRequest<'a> for Locale {
             .headers()
             .get(header::ACCEPT_LANGUAGE)
             .and_then(|value| value.to_str().ok())
-            .map(|value| parse_accept_languages(value))
+            .map(parse_accept_languages)
             .unwrap_or_default();
 
         Ok(Self {
@@ -112,7 +112,7 @@ fn parse_accept_languages(value: &str) -> LanguageArray {
         }
     }
 
-    languages.sort_by(|(_, a), (_, b)| b.cmp(&a));
+    languages.sort_by(|(_, a), (_, b)| b.cmp(a));
     languages
         .into_iter()
         .map(|(language, _)| language)
