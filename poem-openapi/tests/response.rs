@@ -317,3 +317,60 @@ async fn item_content_type() {
         serde_json::json!(200)
     );
 }
+
+#[tokio::test]
+async fn different_content_with_the_same_status() {
+    #[derive(ApiResponse, Debug)]
+    pub enum Resp {
+        #[oai(status = 200, content_type = "application/json1")]
+        A(Json<i32>),
+        #[oai(status = 200, content_type = "application/json2")]
+        B(Json<i32>),
+    }
+
+    assert_eq!(
+        Resp::meta(),
+        MetaResponses {
+            responses: vec![
+                MetaResponse {
+                    description: "",
+                    status: Some(200),
+                    content: vec![MetaMediaType {
+                        content_type: "application/json1",
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
+                            "integer", "int32"
+                        )))
+                    },],
+                    headers: vec![]
+                },
+                MetaResponse {
+                    description: "",
+                    status: Some(200),
+                    content: vec![MetaMediaType {
+                        content_type: "application/json2",
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
+                            "integer", "int32"
+                        )))
+                    }],
+                    headers: vec![]
+                }
+            ],
+        },
+    );
+
+    let mut resp = Resp::A(Json(100)).into_response();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.content_type(), Some("application/json1"));
+    assert_eq!(
+        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::json!(100)
+    );
+
+    let mut resp = Resp::B(Json(200)).into_response();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.content_type(), Some("application/json2"));
+    assert_eq!(
+        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::json!(200)
+    );
+}

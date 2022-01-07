@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{
     ser::{SerializeMap, SerializeStruct},
@@ -54,12 +54,19 @@ impl Serialize for MetaPath {
 impl Serialize for MetaResponses {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut s = serializer.serialize_map(None)?;
-        for resp in &self.responses {
-            match resp.status {
-                Some(status) => s.serialize_entry(&format!("{}", status), resp)?,
-                None => s.serialize_entry("default", resp)?,
+        let all_status: BTreeSet<_> = self.responses.iter().map(|resp| resp.status).collect();
+
+        for status in all_status {
+            for resp in &self.responses {
+                if resp.status == status {
+                    match status {
+                        Some(status) => s.serialize_entry(&format!("{}", status), resp)?,
+                        None => s.serialize_entry("default", resp)?,
+                    }
+                }
             }
         }
+
         s.end()
     }
 }
