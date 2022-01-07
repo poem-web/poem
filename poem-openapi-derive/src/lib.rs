@@ -18,7 +18,7 @@ mod object;
 mod oneof;
 mod request;
 mod response;
-// mod response_media;
+mod response_content;
 mod security_scheme;
 mod tags;
 mod utils;
@@ -72,14 +72,14 @@ pub fn derive_request(input: TokenStream) -> TokenStream {
     }
 }
 
-// #[proc_macro_derive(ResponseMedia, attributes(oai))]
-// pub fn derive_response_media(input: TokenStream) -> TokenStream {
-//     let args = parse_macro_input!(input as DeriveInput);
-//     match response_media::generate(args) {
-//         Ok(stream) => stream.into(),
-//         Err(err) => err.write_errors().into(),
-//     }
-// }
+#[proc_macro_derive(ResponseContent, attributes(oai))]
+pub fn derive_response_content(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DeriveInput);
+    match response_content::generate(args) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
