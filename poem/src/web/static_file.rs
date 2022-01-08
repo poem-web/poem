@@ -1,21 +1,27 @@
 use std::{
+    collections::Bound,
     fs::Metadata,
+    io::{Seek, SeekFrom},
     path::Path,
     str::FromStr,
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use headers::{ETag, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfUnmodifiedSince};
+use headers::{
+    ContentRange, ETag, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfUnmodifiedSince,
+    Range,
+};
 use http::{header, StatusCode};
 use httpdate::HttpDate;
 use mime::Mime;
-use tokio::fs::File;
+use tokio::{fs::File, io::AsyncReadExt};
 
 use crate::{
     error::StaticFileError, Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
 };
 
 /// A response for static file extractor.
+#[derive(Debug)]
 pub enum StaticFileResponse {
     /// 200 OK
     Ok {
@@ -27,10 +33,10 @@ pub enum StaticFileResponse {
         etag: Option<String>,
         /// `Last-Modified` header value
         last_modified: Option<String>,
+        /// `Content-Range` header value
+        content_range: Option<(std::ops::Range<u64>, u64)>,
     },
-    /// 412 PRECONDITION_FAILED
-    PreconditionFailed,
-    /// 304 NOT_MODIFIED
+    /// 304 NOT MODIFIED
     NotModified,
 }
 
@@ -42,8 +48,10 @@ impl IntoResponse for StaticFileResponse {
                 content_type,
                 etag,
                 last_modified,
+                content_range,
             } => {
-                let mut builder = Response::builder();
+                let mut builder = Response::builder().header(header::ACCEPT_RANGES, "bytes");
+
                 if let Some(content_type) = content_type {
                     builder = builder.content_type(&content_type);
                 }
@@ -53,20 +61,28 @@ impl IntoResponse for StaticFileResponse {
                 if let Some(last_modified) = last_modified {
                     builder = builder.header(header::LAST_MODIFIED, last_modified);
                 }
+
+                if let Some((range, size)) = content_range {
+                    builder = builder
+                        .status(StatusCode::PARTIAL_CONTENT)
+                        .typed_header(ContentRange::bytes(range, size).unwrap());
+                }
+
                 builder.body(body)
             }
-            StaticFileResponse::PreconditionFailed => StatusCode::PRECONDITION_FAILED.into(),
             StaticFileResponse::NotModified => StatusCode::NOT_MODIFIED.into(),
         }
     }
 }
 
 /// An extractor for responding static files.
+#[derive(Debug)]
 pub struct StaticFileRequest {
     if_match: Option<IfMatch>,
     if_unmodified_since: Option<IfUnmodifiedSince>,
     if_none_match: Option<IfNoneMatch>,
     if_modified_since: Option<IfModifiedSince>,
+    range: Option<Range>,
 }
 
 #[async_trait::async_trait]
@@ -77,6 +93,7 @@ impl<'a> FromRequest<'a> for StaticFileRequest {
             if_unmodified_since: req.headers().typed_get::<IfUnmodifiedSince>(),
             if_none_match: req.headers().typed_get::<IfNoneMatch>(),
             if_modified_since: req.headers().typed_get::<IfModifiedSince>(),
+            range: req.headers().typed_get::<Range>(),
         })
     }
 }
@@ -93,7 +110,7 @@ impl StaticFileRequest {
     ) -> Result<StaticFileResponse, StaticFileError> {
         let path = path.as_ref();
         let guess = mime_guess::from_path(path);
-        let file = std::fs::File::open(path)?;
+        let mut file = std::fs::File::open(path)?;
         let metadata = file.metadata()?;
 
         // content type
@@ -105,6 +122,7 @@ impl StaticFileRequest {
             }
         });
 
+        // etag and last modified
         let mut etag_str = String::new();
         let mut last_modified_str = String::new();
 
@@ -114,13 +132,13 @@ impl StaticFileRequest {
 
             if let Some(if_match) = self.if_match {
                 if !if_match.precondition_passes(&etag) {
-                    return Ok(StaticFileResponse::PreconditionFailed);
+                    return Err(StaticFileError::PreconditionFailed);
                 }
             }
 
             if let Some(if_unmodified_since) = self.if_unmodified_since {
                 if !if_unmodified_since.precondition_passes(modified) {
-                    return Ok(StaticFileResponse::PreconditionFailed);
+                    return Err(StaticFileError::PreconditionFailed);
                 }
             }
 
@@ -137,8 +155,38 @@ impl StaticFileRequest {
             last_modified_str = HttpDate::from(modified).to_string();
         }
 
+        let mut content_range = None;
+
+        let body = if let Some((start, end)) = self.range.and_then(|range| range.iter().next()) {
+            let start = match start {
+                Bound::Included(n) => n,
+                Bound::Excluded(n) => n + 1,
+                Bound::Unbounded => 0,
+            };
+            let end = match end {
+                Bound::Included(n) => n + 1,
+                Bound::Excluded(n) => n,
+                Bound::Unbounded => metadata.len(),
+            };
+            if end < start || end > metadata.len() {
+                // builder.typed_header(ContentRange::unsatisfied_bytes(length))
+                return Err(StaticFileError::RangeNotSatisfiable {
+                    size: metadata.len(),
+                });
+            }
+
+            if start != 0 || end != metadata.len() {
+                content_range = Some((start..end, metadata.len()));
+            }
+
+            file.seek(SeekFrom::Start(start))?;
+            Body::from_async_read(File::from_std(file).take(end - start))
+        } else {
+            Body::from_async_read(File::from_std(file))
+        };
+
         Ok(StaticFileResponse::Ok {
-            body: Body::from_async_read(File::from_std(file)),
+            body,
             content_type,
             etag: if !etag_str.is_empty() {
                 Some(etag_str)
@@ -150,6 +198,7 @@ impl StaticFileRequest {
             } else {
                 None
             },
+            content_range,
         })
     }
 }
@@ -249,31 +298,33 @@ mod tests {
         assert_eq!(equiv_utf8_text(mime::IMAGE_PNG), mime::IMAGE_PNG);
     }
 
-    async fn check_response(req: Request) -> StaticFileResponse {
+    async fn check_response(req: Request) -> Result<StaticFileResponse, StaticFileError> {
         let static_file = StaticFileRequest::from_request_without_body(&req)
             .await
             .unwrap();
-        static_file
-            .create_response(Path::new("Cargo.toml"), false)
-            .unwrap()
+        static_file.create_response(Path::new("Cargo.toml"), false)
     }
 
     #[tokio::test]
     async fn test_if_none_match() {
-        let resp = check_response(Request::default()).await;
+        let resp = check_response(Request::default()).await.unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
         let etag = resp.etag();
 
-        let resp = check_response(Request::builder().header("if-none-match", etag).finish()).await;
+        let resp = check_response(Request::builder().header("if-none-match", etag).finish())
+            .await
+            .unwrap();
         assert!(matches!(resp, StaticFileResponse::NotModified));
 
-        let resp = check_response(Request::builder().header("if-none-match", "abc").finish()).await;
+        let resp = check_response(Request::builder().header("if-none-match", "abc").finish())
+            .await
+            .unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
     }
 
     #[tokio::test]
     async fn test_if_modified_since() {
-        let resp = check_response(Request::default()).await;
+        let resp = check_response(Request::default()).await.unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
         let modified = resp.last_modified();
 
@@ -282,7 +333,8 @@ mod tests {
                 .header("if-modified-since", &modified)
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(matches!(resp, StaticFileResponse::NotModified));
 
         let mut t: SystemTime = HttpDate::from_str(&modified).unwrap().into();
@@ -293,7 +345,8 @@ mod tests {
                 .header("if-modified-since", HttpDate::from(t).to_string())
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
 
         let mut t: SystemTime = HttpDate::from_str(&modified).unwrap().into();
@@ -304,26 +357,31 @@ mod tests {
                 .header("if-modified-since", HttpDate::from(t).to_string())
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(matches!(resp, StaticFileResponse::NotModified));
     }
 
     #[tokio::test]
     async fn test_if_match() {
-        let resp = check_response(Request::default()).await;
+        let resp = check_response(Request::default()).await.unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
         let etag = resp.etag();
 
-        let resp = check_response(Request::builder().header("if-match", etag).finish()).await;
+        let resp = check_response(Request::builder().header("if-match", etag).finish())
+            .await
+            .unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
 
-        let resp = check_response(Request::builder().header("if-match", "abc").finish()).await;
-        assert!(matches!(resp, StaticFileResponse::PreconditionFailed));
+        let err = check_response(Request::builder().header("if-match", "abc").finish())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StaticFileError::PreconditionFailed));
     }
 
     #[tokio::test]
     async fn test_if_unmodified_since() {
-        let resp = check_response(Request::default()).await;
+        let resp = check_response(Request::default()).await.unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
         let modified = resp.last_modified();
 
@@ -332,7 +390,8 @@ mod tests {
                 .header("if-unmodified-since", &modified)
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
 
         let mut t: SystemTime = HttpDate::from_str(&modified).unwrap().into();
@@ -342,17 +401,82 @@ mod tests {
                 .header("if-unmodified-since", HttpDate::from(t).to_string())
                 .finish(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(matches!(resp, StaticFileResponse::Ok { .. }));
 
         let mut t: SystemTime = HttpDate::from_str(&modified).unwrap().into();
         t -= Duration::from_secs(1);
-        let resp = check_response(
+        let err = check_response(
             Request::builder()
                 .header("if-unmodified-since", HttpDate::from(t).to_string())
                 .finish(),
         )
-        .await;
-        assert!(matches!(resp, StaticFileResponse::PreconditionFailed));
+        .await
+        .unwrap_err();
+        assert!(matches!(err, StaticFileError::PreconditionFailed));
+    }
+
+    #[tokio::test]
+    async fn test_range_partial_content() {
+        let static_file = StaticFileRequest::from_request_without_body(
+            &Request::builder()
+                .typed_header(Range::bytes(0..10).unwrap())
+                .finish(),
+        )
+        .await
+        .unwrap();
+        let resp = static_file
+            .create_response(Path::new("Cargo.toml"), false)
+            .unwrap();
+        match resp {
+            StaticFileResponse::Ok { content_range, .. } => {
+                assert_eq!(content_range.unwrap().0, 0..10);
+            }
+            StaticFileResponse::NotModified => panic!(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_range_full_content() {
+        let md = std::fs::metadata("Cargo.toml").unwrap();
+
+        let static_file = StaticFileRequest::from_request_without_body(
+            &Request::builder()
+                .typed_header(Range::bytes(0..md.len()).unwrap())
+                .finish(),
+        )
+        .await
+        .unwrap();
+        let resp = static_file
+            .create_response(Path::new("Cargo.toml"), false)
+            .unwrap();
+        match resp {
+            StaticFileResponse::Ok { content_range, .. } => {
+                assert!(content_range.is_none());
+            }
+            StaticFileResponse::NotModified => panic!(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_range_413() {
+        let md = std::fs::metadata("Cargo.toml").unwrap();
+
+        let static_file = StaticFileRequest::from_request_without_body(
+            &Request::builder()
+                .typed_header(Range::bytes(0..md.len() + 1).unwrap())
+                .finish(),
+        )
+        .await
+        .unwrap();
+        let err = static_file
+            .create_response(Path::new("Cargo.toml"), false)
+            .unwrap_err();
+
+        match err {
+            StaticFileError::RangeNotSatisfiable { size } => assert_eq!(size, md.len()),
+            _ => panic!(),
+        }
     }
 }

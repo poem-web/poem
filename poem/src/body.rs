@@ -1,5 +1,5 @@
 use std::{
-    fmt::Display,
+    fmt::{Debug, Display, Formatter},
     io::{Error as IoError, ErrorKind},
     pin::Pin,
     task::{Context, Poll},
@@ -19,6 +19,12 @@ use crate::{
 /// A body object for requests and responses.
 #[derive(Default)]
 pub struct Body(pub(crate) hyper::Body);
+
+impl Debug for Body {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Body").finish()
+    }
+}
 
 impl From<hyper::Body> for Body {
     fn from(body: hyper::Body) -> Self {

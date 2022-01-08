@@ -638,6 +638,17 @@ pub enum StaticFileError {
     #[error("not found: {0}")]
     NotFound(String),
 
+    /// Precondition failed
+    #[error("precondition failed")]
+    PreconditionFailed,
+
+    /// Range not satisfiable
+    #[error("range not satisfiable")]
+    RangeNotSatisfiable {
+        /// Content length
+        size: u64,
+    },
+
     /// Io error
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
@@ -650,6 +661,8 @@ impl ResponseError for StaticFileError {
             StaticFileError::InvalidPath => StatusCode::BAD_REQUEST,
             StaticFileError::Forbidden(_) => StatusCode::FORBIDDEN,
             StaticFileError::NotFound(_) => StatusCode::NOT_FOUND,
+            StaticFileError::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
+            StaticFileError::RangeNotSatisfiable { .. } => StatusCode::RANGE_NOT_SATISFIABLE,
             StaticFileError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
