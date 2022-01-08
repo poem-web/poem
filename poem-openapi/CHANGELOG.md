@@ -8,10 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `ResponseContent` macro.
 
-# [1.2.26] 2022-1-7
-
-- Add `StaticFile` response.
-
 # [1.2.25] 2022-1-4
 
 - Add `deprecated` attribute to `Enum` macro.

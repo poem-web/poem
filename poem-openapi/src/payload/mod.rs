@@ -12,8 +12,6 @@ use std::str::FromStr;
 use mime::Mime;
 use poem::{Request, RequestBody, Result};
 
-#[cfg(feature = "static-files")]
-pub use self::static_file::StaticFile;
 pub use self::{
     attachment::Attachment, binary::Binary, event_stream::EventStream, json::Json,
     plain_text::PlainText, response::Response,
