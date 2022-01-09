@@ -294,7 +294,6 @@ async fn param_validator() {
         .call(Request::builder().uri(Uri::from_static("/?v=999")).finish())
         .await
         .unwrap_err();
-    assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
         err.to_string(),
         "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
@@ -330,7 +329,6 @@ async fn param_validator() {
         )
         .await
         .unwrap_err();
-    assert_eq!(err.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
         err.to_string(),
         "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"

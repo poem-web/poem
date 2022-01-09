@@ -241,17 +241,16 @@ async fn payload_request() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let err = ep
-        .call(
+    let resp = ep
+        .get_response(
             poem::Request::builder()
                 .method(Method::POST)
                 .uri(Uri::from_static("/"))
                 .content_type("text/plain")
                 .body("100"),
         )
-        .await
-        .unwrap_err();
-    assert_eq!(err.status(), StatusCode::METHOD_NOT_ALLOWED);
+        .await;
+    assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
 }
 
 #[tokio::test]

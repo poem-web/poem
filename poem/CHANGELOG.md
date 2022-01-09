@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.2.28] 2022-1-8
 
 - Add support handling `Range` header for the `StaticFile` extractor.
+- Add `ResponseError::as_response` method.
 
 # [1.2.27] 2022-1-7
 

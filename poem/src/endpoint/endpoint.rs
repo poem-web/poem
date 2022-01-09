@@ -454,7 +454,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
     ///
     /// let err = ep2.call(Request::default()).await.unwrap_err();
-    /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
     fn map_to_response(self) -> MapToResponse<Self::Endpoint>
@@ -512,7 +512,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp, "hello, world!");
     ///
     /// let err: Error = ep2.call(Request::default()).await.unwrap_err();
-    /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
     fn and_then<F, Fut, R, R2>(self, f: F) -> AndThen<Self::Endpoint, F>
@@ -768,12 +768,11 @@ mod test {
             "abcdef"
         );
 
-        let err = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
+        let resp = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
             .and_then(|resp| async move { Ok(resp + "def") })
-            .call(Request::default())
-            .await
-            .unwrap_err();
-        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+            .get_response(Request::default())
+            .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
@@ -787,12 +786,11 @@ mod test {
             "abcdef"
         );
 
-        let err = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
+        let resp = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
             .map(|resp| async move { resp.to_string() + "def" })
-            .call(Request::default())
-            .await
-            .unwrap_err();
-        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+            .get_response(Request::default())
+            .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
