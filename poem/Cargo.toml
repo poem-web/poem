@@ -20,11 +20,11 @@ categories = [
 [features]
 default = []
 websocket = ["tokio-tungstenite", "sha1", "base64"]
-multipart = ["multer"]
+multipart = ["multer", "mime"]
 rustls = ["tokio-rustls"]
 native-tls = ["tokio-native-tls"]
 sse = []
-static-files = ["httpdate", "tokio/io-util"]
+static-files = ["httpdate", "mime", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
@@ -32,7 +32,7 @@ session = ["cookie", "rand", "priority-queue"]
 redis-session = ["session", "redis"]
 opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
-tempfile = ["libtempfile"]
+tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
 test = ["sse", "sse-codec", "tokio-util/compat"]
 i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
@@ -45,8 +45,7 @@ bytes = "1.1.0"
 futures-util = { version = "0.3.17", features = ["sink"] }
 http = "0.2.5"
 hyper = { version = "0.14.13", features = ["http1", "http2", "server", "runtime", "stream"] }
-mime = "0.3.16"
-tokio = { version = "1.12.0", features = ["sync", "rt", "net", "fs", "time", "macros"] }
+tokio = { version = "1.12.0", features = ["sync", "rt", "net", "time", "macros"] }
 tokio-util = { version = "0.6.8", features = ["io"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
@@ -56,7 +55,6 @@ parking_lot = "0.11.2"
 pin-project-lite = "0.2.7"
 percent-encoding = "2.1.0"
 regex = "1.5.4"
-mime_guess = "2.0.3"
 smallvec = "1.6.1"
 tracing = "0.1.29"
 headers = "0.3.4"
@@ -70,6 +68,8 @@ async-compression = { version = "0.3.8", optional = true, features = ["tokio", "
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
 chrono = { version = "0.4.19", optional = true }
 time = { version = "0.3", optional = true }
+mime = { version = "0.3.16", optional = true }
+mime_guess = { version = "2.0.3", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
 redis = { version = "0.21.2", optional = true, features = ["aio", "tokio-comp", "connection-manager"] }
