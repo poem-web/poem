@@ -220,6 +220,16 @@ impl RequestBody {
 ///    Ready to accept a websocket [`WebSocket`](websocket::WebSocket)
 /// connection.
 ///
+/// - **Locale**
+///
+///    Extracts the [`Locale`](crate::i18n::Locale) from the incoming
+/// request.
+///
+/// - **StaticFileRequest**
+///
+///     Ready to accept a static file request
+/// [`StaticFileRequest`](static_file::StaticFileRequest).
+///
 /// # Create you own extractor
 ///
 /// The following is an example of a custom token extractor, which extracts the
