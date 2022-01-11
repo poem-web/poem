@@ -13,6 +13,7 @@ mod common_args;
 mod r#enum;
 mod error;
 mod multipart;
+mod newtype;
 mod oauth_scopes;
 mod object;
 mod oneof;
@@ -134,6 +135,15 @@ pub fn Webhook(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);
     let item_trait = parse_macro_input!(input as ItemTrait);
     match webhook::generate(args, item_trait) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_derive(NewType, attributes(oai))]
+pub fn derive_new_type(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DeriveInput);
+    match newtype::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

@@ -139,6 +139,7 @@ pub use poem_openapi_derive::ApiResponse;
 pub use poem_openapi_derive::Enum;
 #[doc = include_str!("docs/multipart.md")]
 pub use poem_openapi_derive::Multipart;
+pub use poem_openapi_derive::NewType;
 #[doc = include_str!("docs/oauth_scopes.md")]
 pub use poem_openapi_derive::OAuthScopes;
 #[doc = include_str!("docs/object.md")]
