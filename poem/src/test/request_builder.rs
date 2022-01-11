@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use http::{header, header::HeaderName, Extensions, HeaderMap, HeaderValue, Method};
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::{
     test::{TestClient, TestResponse},
@@ -11,7 +14,7 @@ pub struct TestRequestBuilder<'a, E> {
     cli: &'a TestClient<E>,
     uri: String,
     method: Method,
-    query: String,
+    query: HashMap<String, Value>,
     headers: HeaderMap,
     body: Body,
     extensions: Extensions,
@@ -35,11 +38,11 @@ where
 
     /// Sets the query string for this request.
     #[must_use]
-    pub fn query(self, params: impl Serialize) -> Self {
-        Self {
-            query: serde_urlencoded::to_string(params).expect("valid query params"),
-            ..self
+    pub fn query(mut self, name: impl Into<String>, value: &impl Serialize) -> Self {
+        if let Ok(value) = serde_json::to_value(value) {
+            self.query.insert(name.into(), value);
         }
+        self
     }
 
     /// Sets the header value for this request.
@@ -86,7 +89,11 @@ where
         let uri = if self.query.is_empty() {
             self.uri
         } else {
-            format!("{}?{}", self.uri, self.query)
+            format!(
+                "{}?{}",
+                self.uri,
+                serde_urlencoded::to_string(&self.query).unwrap()
+            )
         };
 
         let mut req = Request::builder()
