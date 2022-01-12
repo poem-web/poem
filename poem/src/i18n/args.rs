@@ -6,6 +6,19 @@ use fluent::{FluentArgs, FluentValue};
 #[derive(Default)]
 pub struct I18NArgs<'a>(pub(crate) FluentArgs<'a>);
 
+impl<'a> I18NArgs<'a> {
+    /// Append a KV pair to arguments.
+    #[must_use]
+    pub fn set<K, V>(mut self, key: K, value: V) -> Self
+    where
+        K: Into<Cow<'a, str>>,
+        V: Into<FluentValue<'a>>,
+    {
+        self.0.set(key, value);
+        self
+    }
+}
+
 macro_rules! impl_from_tuples {
     (($head_key:ident, $head_value:ident), $(($key:ident, $value:ident),)*) => {
         impl<'a, $head_key, $head_value, $($key, $value),*> From<(($head_key, $head_value), $(($key, $value)),*)> for I18NArgs<'a>
