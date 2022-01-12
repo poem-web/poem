@@ -26,7 +26,9 @@ pub use unique_items::UniqueItems;
 
 use crate::registry::MetaSchema;
 
+/// Represents a validator for validate the input value.
 pub trait Validator<T>: Display {
+    /// Check the value is valid.
     fn check(&self, value: &T) -> bool;
 }
 

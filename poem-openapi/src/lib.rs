@@ -156,6 +156,7 @@ pub use poem_openapi_derive::SecurityScheme;
 pub use poem_openapi_derive::Tags;
 #[doc = include_str!("docs/webhook.md")]
 pub use poem_openapi_derive::Webhook;
+pub use validation::Validator;
 
 #[doc(hidden)]
 pub mod __private {

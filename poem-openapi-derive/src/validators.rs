@@ -2,12 +2,18 @@ use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::quote;
 use regex::Regex;
-use syn::{Error, Type};
+use syn::{Error, Expr, Type};
 
 use crate::{
     common_args::{MaximumValidator, MinimumValidator},
     error::GeneratorResult,
 };
+
+struct ValidatorsTokenStream {
+    container_validators: Vec<TokenStream>,
+    elem_validators: Vec<TokenStream>,
+    custom_validators: Vec<TokenStream>,
+}
 
 #[derive(FromMeta, Default, Clone)]
 pub(crate) struct Validators {
@@ -36,15 +42,20 @@ pub(crate) struct Validators {
     max_properties: Option<SpannedValue<usize>>,
     #[darling(default)]
     min_properties: Option<SpannedValue<usize>>,
+
+    // custom validators for elements
+    #[darling(default, multiple)]
+    custom: Vec<SpannedValue<String>>,
 }
 
 impl Validators {
     fn create_validators(
         &self,
         crate_name: &TokenStream,
-    ) -> GeneratorResult<(Vec<TokenStream>, Vec<TokenStream>)> {
+    ) -> GeneratorResult<ValidatorsTokenStream> {
         let mut container_validators = Vec::new();
         let mut elem_validators = Vec::new();
+        let mut custom_validators = Vec::new();
 
         //////////////////////////////////////////////////////////////////////////////
         // element validators
@@ -99,6 +110,16 @@ impl Validators {
         }
 
         //////////////////////////////////////////////////////////////////////////////
+        // custom validators
+        //////////////////////////////////////////////////////////////////////////////
+
+        for custom in &self.custom {
+            let create_custom_validator: Expr =
+                syn::parse_str(custom).map_err(|err| Error::new(custom.span(), err.to_string()))?;
+            custom_validators.push(quote!(#create_custom_validator));
+        }
+
+        //////////////////////////////////////////////////////////////////////////////
         // container validators
         //////////////////////////////////////////////////////////////////////////////
 
@@ -131,7 +152,11 @@ impl Validators {
             container_validators.push(quote!(#crate_name::validation::MinProperties::new(#value)));
         }
 
-        Ok((container_validators, elem_validators))
+        Ok(ValidatorsTokenStream {
+            container_validators,
+            elem_validators,
+            custom_validators,
+        })
     }
 
     pub(crate) fn create_obj_field_checker(
@@ -139,7 +164,12 @@ impl Validators {
         crate_name: &TokenStream,
         field_name: &str,
     ) -> GeneratorResult<TokenStream> {
-        let (container_validators, elem_validators) = self.create_validators(crate_name)?;
+        let ValidatorsTokenStream {
+            container_validators,
+            elem_validators,
+            custom_validators,
+        } = self.create_validators(crate_name)?;
+        let elem_validators = elem_validators.into_iter().chain(custom_validators);
 
         Ok(quote! {
             #(
@@ -168,7 +198,12 @@ impl Validators {
         res_ty: &Type,
         arg_name: &str,
     ) -> GeneratorResult<Option<TokenStream>> {
-        let (container_validators, elem_validators) = self.create_validators(crate_name)?;
+        let ValidatorsTokenStream {
+            container_validators,
+            elem_validators,
+            custom_validators,
+        } = self.create_validators(crate_name)?;
+        let elem_validators = elem_validators.into_iter().chain(custom_validators);
 
         Ok(Some(quote! {
             #(
@@ -218,7 +253,12 @@ impl Validators {
         crate_name: &TokenStream,
         field_name: &str,
     ) -> GeneratorResult<TokenStream> {
-        let (container_validators, elem_validators) = self.create_validators(crate_name)?;
+        let ValidatorsTokenStream {
+            container_validators,
+            elem_validators,
+            custom_validators,
+        } = self.create_validators(crate_name)?;
+        let elem_validators = elem_validators.into_iter().chain(custom_validators);
 
         Ok(quote! {
             #(
@@ -249,7 +289,11 @@ impl Validators {
         &self,
         crate_name: &TokenStream,
     ) -> GeneratorResult<TokenStream> {
-        let (container_validators, elem_validators) = self.create_validators(crate_name)?;
+        let ValidatorsTokenStream {
+            container_validators,
+            elem_validators,
+            ..
+        } = self.create_validators(crate_name)?;
 
         let update_elem_meta = quote! {
             if original_schema.is_array() {

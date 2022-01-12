@@ -1,4 +1,8 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    ops::Range,
+};
 
 use poem::{
     http::{StatusCode, Uri},
@@ -11,7 +15,7 @@ use poem_openapi::{
     types::{multipart::JsonField, ParseFromJSON, Type},
     validation,
     validation::ValidatorMeta,
-    Multipart, Object, OpenApi, OpenApiService,
+    Multipart, Object, OpenApi, OpenApiService, Validator,
 };
 use serde_json::json;
 
@@ -677,4 +681,44 @@ fn test_map_on_object() {
     let schema_properties = schema_values.additional_properties.as_ref().unwrap();
     let schema_properties = schema_properties.unwrap_inline();
     assert_eq!(schema_properties.maximum, Some(100.0));
+}
+
+#[test]
+fn test_custom_validator() {
+    struct MyIntValidator(Range<i32>);
+
+    impl Display for MyIntValidator {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            f.write_str("MyIntValidator")
+        }
+    }
+
+    impl Validator<i32> for MyIntValidator {
+        fn check(&self, value: &i32) -> bool {
+            self.0.contains(value)
+        }
+    }
+
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        #[oai(validator(custom = "MyIntValidator(100..200)"))]
+        value: i32,
+    }
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "value": 150,
+        }))
+        .unwrap(),
+        A { value: 150 }
+    );
+
+    assert_eq!(
+        A::parse_from_json(json!({
+            "value": 200,
+        }))
+        .unwrap_err()
+        .into_message(),
+        "failed to parse \"A\": field `value` verification failed. MyIntValidator"
+    );
 }
