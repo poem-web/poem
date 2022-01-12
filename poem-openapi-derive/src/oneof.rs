@@ -5,9 +5,13 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{DeriveInput, Error, Type};
+use syn::{Attribute, DeriveInput, Error, Type};
 
-use crate::{error::GeneratorResult, utils::get_crate_name};
+use crate::{
+    common_args::ExternalDocument,
+    error::GeneratorResult,
+    utils::{get_crate_name, get_summary_and_description, optional_literal},
+};
 
 #[derive(FromVariant)]
 #[darling(attributes(oai), forward_attrs(doc))]
@@ -23,17 +27,23 @@ struct OneOfItem {
 #[darling(attributes(oai), forward_attrs(doc))]
 struct OneOfArgs {
     ident: Ident,
+    attrs: Vec<Attribute>,
     data: Data<OneOfItem, Ignored>,
 
     #[darling(default)]
     internal: bool,
     property_name: String,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: OneOfArgs = OneOfArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
+    let (title, description) = get_summary_and_description(&args.attrs)?;
+    let title = optional_literal(&title);
+    let description = optional_literal(&description);
     let property_name = &args.property_name;
 
     let e = match &args.data {
@@ -91,6 +101,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     }
 
+    let external_docs = match &args.external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(&crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
+
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
             const IS_REQUIRED: bool = true;
@@ -105,6 +123,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
                 #crate_name::registry::MetaSchemaRef::Inline(Box::new(#crate_name::registry::MetaSchema {
+                    title: #title,
+                    description: #description,
+                    external_docs: #external_docs,
                     one_of: ::std::vec![#(<#types as #crate_name::types::Type>::schema_ref()),*],
                     properties: ::std::vec![(#property_name, #crate_name::registry::MetaSchemaRef::Inline(Box::new(#crate_name::registry::MetaSchema {
                         enum_items: ::std::vec![#(::std::convert::Into::into(#names)),*],

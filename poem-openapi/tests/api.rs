@@ -6,7 +6,7 @@ use poem::{
 use poem_openapi::{
     param::Query,
     payload::{Binary, Json, PlainText},
-    registry::{MetaApi, MetaSchema},
+    registry::{MetaApi, MetaExternalDocument, MetaSchema},
     types::Type,
     ApiRequest, ApiResponse, OpenApi, OpenApiService, Tags,
 };
@@ -639,4 +639,29 @@ async fn returning_borrowed_value() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.into_body().into_string().await.unwrap(), "[1,2,3,4,5]");
+}
+
+#[tokio::test]
+async fn external_docs() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(
+            path = "/",
+            method = "get",
+            external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+        )]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(
+        meta.paths[0].operations[0].external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
+    );
 }

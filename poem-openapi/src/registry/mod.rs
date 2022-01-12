@@ -54,6 +54,8 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub default: Option<Value>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<&'static str>,
@@ -129,6 +131,7 @@ impl MetaSchema {
         format: None,
         title: None,
         description: None,
+        external_docs: None,
         default: None,
         required: vec![],
         properties: vec![],
@@ -182,6 +185,7 @@ impl MetaSchema {
             write_only,
             title,
             description,
+            external_docs,
             items,
             additional_properties,
             multiple_of,
@@ -217,6 +221,7 @@ impl MetaSchema {
             default,
             title,
             description,
+            external_docs,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -396,6 +401,8 @@ pub struct MetaHeader {
     pub name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
     #[serde(skip_serializing_if = "is_false")]
     pub required: bool,
     pub schema: MetaSchemaRef,
@@ -447,6 +454,8 @@ pub struct MetaOperation {
     pub summary: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
     #[serde(rename = "parameters", skip_serializing_if = "Vec::is_empty")]
     pub params: Vec<MetaOperationParam>,
     #[serde(rename = "requestBody", skip_serializing_if = "Option::is_none")]
@@ -497,7 +506,7 @@ pub struct MetaServer {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MetaExternalDocument {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -509,6 +518,8 @@ pub struct MetaTag {
     pub name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
 }
 
 impl PartialEq for MetaTag {

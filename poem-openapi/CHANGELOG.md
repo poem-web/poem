@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Add support for custom validator.
+- Add `external_docs` attribute for some macros.
 
 # [1.2.29] 2022-1-11
 

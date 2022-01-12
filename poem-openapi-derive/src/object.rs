@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
-    common_args::{ConcreteType, DefaultValue, RenameRule, RenameRuleExt},
+    common_args::{ConcreteType, DefaultValue, ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
     utils::{get_crate_name, get_summary_and_description, optional_literal},
     validators::Validators,
@@ -64,6 +64,8 @@ struct ObjectArgs {
     example: Option<SpannedValue<Path>>,
     #[darling(default)]
     deny_unknown_fields: bool,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -241,10 +243,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
+    let external_docs = match &args.external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(&crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
     let meta = quote! {
         #crate_name::registry::MetaSchema {
             title: #title,
             description: #description,
+            external_docs: #external_docs,
             required: {
                 #[allow(unused_mut)]
                 let mut fields = ::std::vec::Vec::new();

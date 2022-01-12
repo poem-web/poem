@@ -1,5 +1,7 @@
 use poem_openapi::{
-    registry::{MetaDiscriminatorObject, MetaSchema, MetaSchemaRef, Registry},
+    registry::{
+        MetaDiscriminatorObject, MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry,
+    },
     types::{ParseFromJSON, ToJSON, Type},
     Object, OneOf,
 };
@@ -185,6 +187,49 @@ fn mapping() {
         json!({
             "type": "a2",
             "v3": 88.0,
+        })
+    );
+}
+
+#[test]
+fn title_and_description() {
+    /// A
+    ///
+    /// B
+    /// C
+    #[derive(OneOf, Debug, PartialEq)]
+    #[oai(property_name = "type")]
+    enum MyObj2 {
+        A(A),
+        B(B),
+    }
+
+    let schema_ref: MetaSchemaRef = MyObj2::schema_ref();
+    let meta_schema = schema_ref.unwrap_inline();
+    assert_eq!(meta_schema.title, Some("A"));
+    assert_eq!(meta_schema.description, Some("B\nC"));
+}
+
+#[tokio::test]
+async fn external_docs() {
+    #[derive(OneOf, Debug, PartialEq)]
+    #[oai(
+        property_name = "type",
+        external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+    )]
+    enum MyObj2 {
+        A(A),
+        B(B),
+    }
+
+    let schema_ref: MetaSchemaRef = MyObj2::schema_ref();
+    let meta_schema = schema_ref.unwrap_inline();
+    assert_eq!(
+        meta_schema.external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
         })
     );
 }

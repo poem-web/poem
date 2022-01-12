@@ -144,3 +144,27 @@ pub(crate) struct MinimumValidator {
     #[darling(default)]
     pub(crate) exclusive: bool,
 }
+
+pub(crate) struct ExternalDocument {
+    url: String,
+}
+
+impl FromMeta for ExternalDocument {
+    fn from_string(value: &str) -> darling::Result<Self> {
+        Ok(ExternalDocument {
+            url: value.to_string(),
+        })
+    }
+}
+
+impl ExternalDocument {
+    pub(crate) fn to_token_stream(&self, crate_name: &TokenStream) -> TokenStream {
+        let url = &self.url;
+        quote! {
+            #crate_name::registry::MetaExternalDocument {
+                url: #url.to_string(),
+                description: ::std::option::Option::None,
+            }
+        }
+    }
+}

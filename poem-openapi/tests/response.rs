@@ -6,7 +6,9 @@ use poem::{
 };
 use poem_openapi::{
     payload::{Json, PlainText},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
+    registry::{
+        MetaExternalDocument, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef,
+    },
     types::ToJSON,
     ApiResponse, Object,
 };
@@ -315,5 +317,32 @@ async fn item_content_type() {
     assert_eq!(
         serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
         serde_json::json!(200)
+    );
+}
+
+#[tokio::test]
+async fn header_external_docs() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    #[allow(dead_code)]
+    pub enum Resp {
+        #[oai(status = 200)]
+        A(
+            Json<i32>,
+            #[oai(
+                header = "A",
+                external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+            )]
+            String,
+        ),
+    }
+
+    let meta: MetaResponses = Resp::meta();
+    assert_eq!(
+        meta.responses[0].headers[0].external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
     );
 }

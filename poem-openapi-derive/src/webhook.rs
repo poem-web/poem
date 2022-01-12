@@ -10,7 +10,7 @@ use syn::{
 };
 
 use crate::{
-    common_args::{APIMethod, DefaultValue},
+    common_args::{APIMethod, DefaultValue, ExternalDocument},
     error::GeneratorResult,
     utils::{
         get_crate_name, get_description, get_summary_and_description, optional_literal,
@@ -38,6 +38,8 @@ struct WebhookOperation {
     tags: Vec<Path>,
     #[darling(default)]
     operation_id: Option<String>,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 #[derive(FromMeta, Default)]
@@ -128,12 +130,20 @@ fn generate_operation(
         deprecated,
         tags,
         operation_id,
+        external_docs,
     } = args;
     let name = name.unwrap_or_else(|| trait_method.sig.ident.to_string());
     let http_method = method.to_http_method();
     let (summary, description) = get_summary_and_description(&trait_method.attrs)?;
     let summary = optional_literal(&summary);
     let description = optional_literal(&description);
+    let external_docs = match external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
     let tags = webhook_args.common_tags.iter().chain(&tags);
 
     if trait_method.sig.inputs.is_empty() {
@@ -269,6 +279,7 @@ fn generate_operation(
                         method: #crate_name::__private::poem::http::Method::#http_method,
                         summary: #summary,
                         description: #description,
+                        external_docs: #external_docs,
                         params:  {
                             let mut params = ::std::vec::Vec::new();
                             #(#params_meta)*

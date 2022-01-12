@@ -15,10 +15,10 @@ Define a OpenAPI response.
 
 # Header parameters
 
-| Attribute   | description               | Type     | Optional |
-|-------------|---------------------------|----------|----------|
-| name        | Header name               | String   | Y        |
-| desc        | Header description        | String   | Y        |
+| Attribute     | description                                            | Type   | Optional |
+|---------------|--------------------------------------------------------|--------|----------|
+| name          | Header name                                            | String | Y        |
+| external_docs | Specify a external resource for extended documentation | string | Y        |
 
 # Examples
 

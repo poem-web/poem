@@ -41,14 +41,15 @@ impl Api {
 
 Parameters that can be passed into the `#[oai()]` attribute above each operation function within an `OpenApi`.
 
-| Attribute    | description                                                                                                          | Type   | Optional |
-|--------------|----------------------------------------------------------------------------------------------------------------------|--------|----------|
-| path         | URI path optionally containing path parameters (e.g., "/:name/hello")                                                | string | N        |
-| method       | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string | N        |
-| deprecated   | Operation deprecated                                                                                                 | bool   | Y        |
-| tag          | Tag to use for an operation. Must be a variant of an enum which implements `Tags`                                    | Tags   | Y        |
-| operation_id | Unique string used to identify the operation.                                                                        | string | Y        |
-| transform    | Use a function to transform the API endpoint.                                                                        | string | Y        |
+| Attribute     | description                                                                                                          | Type   | Optional |
+|---------------|----------------------------------------------------------------------------------------------------------------------|--------|----------|
+| path          | URI path optionally containing path parameters (e.g., "/:name/hello")                                                | string | N        |
+| method        | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string | N        |
+| deprecated    | Operation deprecated                                                                                                 | bool   | Y        |
+| external_docs | Specify a external resource for extended documentation                                                               | string | Y        |
+| tag           | Tag to use for an operation. Must be a variant of an enum which implements `Tags`                                    | Tags   | Y        |
+| operation_id  | Unique string used to identify the operation.                                                                        | string | Y        |
+| transform     | Use a function to transform the API endpoint.                                                                        | string | Y        |
 
 ## Example
 
@@ -83,7 +84,6 @@ impl Api {
 | Attribute                | description                                                                                                                                                                                                                                           | Type                                      | Optional |
 |--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|----------|
 | name                     | Parameter name                                                                                                                                                                                                                                        | string                                    | Y        |
-| desc                     | Argument description                                                                                                                                                                                                                                  | string                                    | Y        |
 | deprecated               | Argument deprecated                                                                                                                                                                                                                                   | bool                                      | Y        |
 | default                  | Default value                                                                                                                                                                                                                                         | bool,string                               | Y        |
 | validator.multiple_of    | The value of "multiple_of" MUST be a number, strictly greater than 0. A numeric instance is only valid if division by this value results in an integer.                                                                                               | number                                    | Y        |

@@ -1,5 +1,5 @@
 use poem_openapi::{
-    registry::{MetaSchemaRef, Registry},
+    registry::{MetaExternalDocument, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
     Enum,
 };
@@ -195,4 +195,27 @@ fn deprecated() {
     MyEnumB::register(&mut registry);
     let meta = registry.schemas.remove("MyEnumB").unwrap();
     assert!(meta.deprecated);
+}
+
+#[tokio::test]
+async fn external_docs() {
+    #[derive(Enum)]
+    #[oai(
+        external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+    )]
+    enum MyEnumB {
+        A,
+    }
+
+    let mut registry = Registry::new();
+    MyEnumB::register(&mut registry);
+    let meta = registry.schemas.remove("MyEnumB").unwrap();
+    assert_eq!(
+        meta.external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
+    );
 }

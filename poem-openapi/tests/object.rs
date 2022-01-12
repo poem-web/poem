@@ -1,5 +1,5 @@
 use poem_openapi::{
-    registry::{MetaSchema, MetaSchemaRef, Registry},
+    registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
     Enum, Object,
 };
@@ -648,4 +648,25 @@ fn required_fields() {
 
     let meta = get_meta::<Obj>();
     assert_eq!(meta.required, vec!["a"]);
+}
+
+#[tokio::test]
+async fn external_docs() {
+    #[derive(Object)]
+    #[oai(
+        external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+    )]
+    struct Obj {
+        a: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(
+        meta.external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
+    );
 }

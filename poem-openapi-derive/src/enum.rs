@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Path};
 
 use crate::{
-    common_args::{RenameRule, RenameRuleExt},
+    common_args::{ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
     utils::{get_crate_name, get_summary_and_description, optional_literal},
 };
@@ -40,6 +40,8 @@ struct EnumArgs {
     remote: Option<Path>,
     #[darling(default)]
     deprecated: bool,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -118,6 +120,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
+    let external_docs = match &args.external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(&crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
 
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
@@ -143,6 +152,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 registry.create_schema::<Self, _>(#oai_typename, |registry| #crate_name::registry::MetaSchema {
                     title: #title,
                     description: #description,
+                    external_docs: #external_docs,
                     deprecated: #deprecated,
                     enum_items: ::std::vec![#(#enum_items),*],
                     ..#crate_name::registry::MetaSchema::new("string")

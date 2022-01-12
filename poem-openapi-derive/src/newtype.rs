@@ -8,6 +8,7 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Type};
 
 use crate::{
+    common_args::ExternalDocument,
     error::GeneratorResult,
     utils::{get_crate_name, get_summary_and_description, optional_literal},
 };
@@ -31,6 +32,8 @@ struct NewTypeArgs {
     to_json: bool,
     #[darling(default = "default_true")]
     to_header: bool,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 const fn default_true() -> bool {
@@ -63,11 +66,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     }
 
     let inner_ty = &fields.fields[0];
+    let external_docs = match &args.external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(&crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
 
     let schema_ref = quote! {
         <#inner_ty as #crate_name::types::Type>::schema_ref().merge(#crate_name::registry::MetaSchema {
             title: #title,
             description: #description,
+            external_docs: #external_docs,
             ..#crate_name::registry::MetaSchema::ANY
         })
     };

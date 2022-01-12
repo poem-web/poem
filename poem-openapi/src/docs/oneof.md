@@ -5,6 +5,7 @@ Define a OpenAPI discriminator object.
 | Attribute     | description                                                                     | Type   | Optional |
 |---------------|---------------------------------------------------------------------------------|--------|----------|
 | property_name | The name of the property in the payload that will hold the discriminator value. | string | Y        |
+| external_docs | Specify a external resource for extended documentation                          | string | Y        |
 
 # Item parameters
 
