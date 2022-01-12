@@ -396,6 +396,7 @@ pub struct MetaResponses {
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaHeader {
     #[serde(skip)]
     pub name: &'static str,
@@ -514,6 +515,7 @@ pub struct MetaExternalDocument {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaTag {
     pub name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]

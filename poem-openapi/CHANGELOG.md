@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.33] 2022-1-12
+
+- Fixed the `externalDocs` field name is incorrect in the specification.
+
 # [1.2.32] 2022-1-12
 
 - Add `ToJSON::to_json_string` method.
