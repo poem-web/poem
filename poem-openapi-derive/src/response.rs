@@ -1,6 +1,6 @@
 use darling::{
     ast::{Data, Fields},
-    util::{Ignored, SpannedValue},
+    util::Ignored,
     FromDeriveInput, FromField, FromVariant,
 };
 use proc_macro2::{Ident, Span, TokenStream};
@@ -8,7 +8,6 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
-    common_args::ExternalDocument,
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };
@@ -22,7 +21,7 @@ struct ResponseField {
     #[darling(default)]
     header: Option<String>,
     #[darling(default)]
-    external_docs: Option<SpannedValue<ExternalDocument>>,
+    deprecated: bool,
 }
 
 #[derive(FromVariant)]
@@ -85,13 +84,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let header_name = header.header.as_ref().unwrap().to_uppercase();
             let header_ty = &header.ty;
             let header_desc = optional_literal(&get_description(&header.attrs)?);
-            let external_docs = match &header.external_docs {
-                Some(external_docs) => {
-                    let s = external_docs.to_token_stream(&crate_name);
-                    quote!(::std::option::Option::Some(#s))
-                }
-                None => quote!(::std::option::Option::None),
-            };
+            let deprecated = header.deprecated;
 
             with_headers.push(quote! {{
                 if let Some(header) = #crate_name::types::ToHeader::to_header(&#ident) {
@@ -103,8 +96,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 #crate_name::registry::MetaHeader {
                     name: #header_name,
                     description: #header_desc,
-                    external_docs: #external_docs,
                     required: <#header_ty as #crate_name::types::Type>::IS_REQUIRED,
+                    deprecated: #deprecated,
                     schema: <#header_ty as #crate_name::types::Type>::schema_ref(),
                 }
             });
@@ -300,12 +293,6 @@ fn parse_fields(
         if field.header.is_some() {
             headers.push(field);
         } else {
-            if let Some(external_docs) = &field.external_docs {
-                return Err(syn::Error::new(
-                    external_docs.span(),
-                    "Only HTTP header field can define external documents.",
-                ));
-            }
             values.push(field);
         }
     }

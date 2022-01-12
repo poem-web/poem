@@ -402,10 +402,9 @@ pub struct MetaHeader {
     pub name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub external_docs: Option<MetaExternalDocument>,
     #[serde(skip_serializing_if = "is_false")]
     pub required: bool,
+    pub deprecated: bool,
     pub schema: MetaSchemaRef,
 }
 
