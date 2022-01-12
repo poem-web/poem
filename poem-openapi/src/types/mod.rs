@@ -108,6 +108,11 @@ pub trait ParseFromMultipartField: Sized + Type {
 pub trait ToJSON: Type {
     /// Convert this value to [`Value`].
     fn to_json(&self) -> Value;
+
+    /// Convert this value to JSON string.
+    fn to_json_string(&self) -> String {
+        serde_json::to_string(&self.to_json()).unwrap_or_default()
+    }
 }
 
 /// Represents a type that can converted to HTTP header.
