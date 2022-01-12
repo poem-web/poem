@@ -66,6 +66,12 @@ pub trait Type: Send + Sync {
 pub trait ParseFromJSON: Sized + Type {
     /// Parse from [`serde_json::Value`].
     fn parse_from_json(value: Value) -> ParseResult<Self>;
+
+    /// Parse from JSON string.
+    fn parse_from_json_string(s: &str) -> ParseResult<Self> {
+        let value = serde_json::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
+        Self::parse_from_json(value)
+    }
 }
 
 /// Represents a type that can parsing from parameter. (header, query, path,
