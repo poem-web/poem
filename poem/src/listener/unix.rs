@@ -30,10 +30,7 @@ impl<T: AsRef<Path> + Send> Listener for UnixListener<T> {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         let listener = TokioUnixListener::bind(self.path)?;
-        let local_addr = listener
-            .local_addr()
-            .map(|addr| LocalAddr(addr.into()))
-            .unwrap_or_default();
+        let local_addr = listener.local_addr().map(|addr| LocalAddr(addr.into()))?;
         Ok(UnixAcceptor {
             local_addr,
             listener,
@@ -46,6 +43,18 @@ impl<T: AsRef<Path> + Send> Listener for UnixListener<T> {
 pub struct UnixAcceptor {
     local_addr: LocalAddr,
     listener: TokioUnixListener,
+}
+
+impl UnixAcceptor {
+    /// Creates new `UnixAcceptor` from a `std::os::unix::net::UnixListener`.
+    pub fn from_std(listener: std::os::unix::net::UnixListener) -> Result<Self> {
+        let listener = TokioUnixListener::from_std(listener)?;
+        let local_addr = listener.local_addr().map(|addr| LocalAddr(addr.into()))?;
+        Ok(Self {
+            local_addr,
+            listener,
+        })
+    }
 }
 
 #[async_trait::async_trait]
