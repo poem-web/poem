@@ -45,7 +45,12 @@ impl<T: Into<Body> + Send> IntoResponse for Attachment<T> {
         let mut resp = self.data.into_response();
 
         if let Some(header_value) = self.filename.as_ref().and_then(|filename| {
-            HeaderValue::from_str(&format!("attachment; filename={}", filename)).ok()
+            let legal_filename = filename
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\\r")
+                .replace("\n", "\\\n");
+            HeaderValue::from_str(&format!("attachment; filename=\"{}\"", legal_filename)).ok()
         }) {
             resp.headers_mut()
                 .insert("Content-Disposition", header_value);

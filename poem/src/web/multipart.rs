@@ -1,4 +1,5 @@
 use std::{
+    fmt::{self, Debug, Formatter},
     io::{Error as IoError, ErrorKind},
     str::FromStr,
 };
@@ -16,6 +17,26 @@ use crate::{error::ParseMultipartError, http::header, FromRequest, Request, Requ
 /// A single field in a multipart stream.
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
 pub struct Field(multer::Field<'static>);
+
+impl Debug for Field {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("Field");
+
+        if let Some(name) = self.name() {
+            d.field("name", &name);
+        }
+
+        if let Some(file_name) = self.file_name() {
+            d.field("file_name", &file_name);
+        }
+
+        if let Some(content_type) = self.content_type() {
+            d.field("content_type", &content_type);
+        }
+
+        d.finish()
+    }
+}
 
 impl Field {
     /// Get the content type of the field.

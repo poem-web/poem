@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - Add `TcpAcceptor::from_std` and `UnixAcceptor::from_std` methods.
+- Add support for multipart tests.
 
 # [1.2.31] 2022-1-12
 

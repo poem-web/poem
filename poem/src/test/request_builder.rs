@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::{
-    test::{TestClient, TestResponse},
+    test::{TestClient, TestForm, TestResponse},
     Body, Endpoint, Request,
 };
 
@@ -83,6 +83,13 @@ where
             body: serde_json::to_string(&body).expect("valid json").into(),
             ..self
         }
+    }
+
+    /// Sets the multipart body for this request.
+    #[must_use]
+    pub fn multipart(self, form: TestForm) -> Self {
+        self.content_type(format!("multipart/form-data; boundary={}", form.boundary()))
+            .body(Body::from_async_read(form.into_async_read()))
     }
 
     fn make_request(self) -> Request {
