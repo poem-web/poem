@@ -1,10 +1,12 @@
 mod array;
 mod bool;
 mod btreemap;
+mod btreeset;
 #[cfg(feature = "chrono")]
 mod datetime;
 mod floats;
 mod hashmap;
+mod hashset;
 mod integers;
 mod optional;
 mod regex;
