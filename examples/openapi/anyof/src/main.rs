@@ -1,5 +1,5 @@
 use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{payload::Json, AnyOf, Object, OpenApi, OpenApiService};
+use poem_openapi::{payload::Json, Object, OpenApi, OpenApiService, Union};
 
 #[derive(Object, Debug, PartialEq)]
 struct A {
@@ -12,13 +12,11 @@ struct B {
     v3: f32,
 }
 
-#[derive(AnyOf, Debug, PartialEq)]
+#[derive(Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
 enum MyObj {
     A(A),
     B(B),
-    // C(bool),
-    // D(i32),
 }
 
 struct Api;

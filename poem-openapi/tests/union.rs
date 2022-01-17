@@ -3,12 +3,12 @@ use poem_openapi::{
         MetaDiscriminatorObject, MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry,
     },
     types::{ParseFromJSON, ToJSON, Type},
-    AnyOf, Object,
+    Object, Union,
 };
 use serde_json::json;
 
 #[test]
-fn anyof_with_discriminator() {
+fn with_discriminator() {
     #[derive(Object, Debug, PartialEq)]
     struct A {
         v1: i32,
@@ -20,7 +20,7 @@ fn anyof_with_discriminator() {
         v3: bool,
     }
 
-    #[derive(AnyOf, Debug, PartialEq)]
+    #[derive(Union, Debug, PartialEq)]
     #[oai(discriminator_name = "type")]
     enum MyObj {
         A(A),
@@ -125,7 +125,7 @@ fn anyof_with_discriminator() {
 }
 
 #[test]
-fn anyof_with_discriminator_mapping() {
+fn with_discriminator_mapping() {
     #[derive(Object, Debug, PartialEq)]
     struct A {
         v1: i32,
@@ -137,7 +137,7 @@ fn anyof_with_discriminator_mapping() {
         v3: bool,
     }
 
-    #[derive(AnyOf, Debug, PartialEq)]
+    #[derive(Union, Debug, PartialEq)]
     #[oai(discriminator_name = "type")]
     enum MyObj {
         #[oai(mapping = "c")]
@@ -247,14 +247,14 @@ fn anyof_with_discriminator_mapping() {
 }
 
 #[test]
-fn anyof_without_discriminator() {
+fn without_discriminator() {
     #[derive(Object, Debug, PartialEq)]
     struct A {
         v1: i32,
         v2: String,
     }
 
-    #[derive(AnyOf, Debug, PartialEq)]
+    #[derive(Union, Debug, PartialEq)]
     enum MyObj {
         A(A),
         B(bool),
@@ -299,12 +299,111 @@ fn anyof_without_discriminator() {
 }
 
 #[test]
+fn anyof() {
+    #[derive(Object, Debug, PartialEq)]
+    struct A {
+        v1: i32,
+        v2: String,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct B {
+        v1: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    enum MyObj {
+        A(A),
+        B(B),
+    }
+
+    assert_eq!(
+        MyObj::schema_ref(),
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            ty: "object",
+            discriminator: None,
+            any_of: vec![MetaSchemaRef::Reference("A"), MetaSchemaRef::Reference("B")],
+            ..MetaSchema::ANY
+        }))
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(json!({
+            "v1": 100,
+            "v2": "hello",
+        }))
+        .unwrap(),
+        MyObj::A(A {
+            v1: 100,
+            v2: "hello".to_string()
+        })
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(json!({
+            "v1": 100,
+        }))
+        .unwrap(),
+        MyObj::B(B { v1: 100 })
+    );
+}
+
+#[test]
+fn oneof() {
+    #[derive(Object, Debug, PartialEq)]
+    struct A {
+        v1: i32,
+        v2: String,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct B {
+        v1: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyObj {
+        A(A),
+        B(B),
+    }
+
+    assert_eq!(
+        MyObj::schema_ref(),
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            ty: "object",
+            discriminator: None,
+            one_of: vec![MetaSchemaRef::Reference("A"), MetaSchemaRef::Reference("B")],
+            ..MetaSchema::ANY
+        }))
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(json!({
+            "v1": 100,
+        }))
+        .unwrap(),
+        MyObj::B(B { v1: 100 })
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(json!({
+            "v1": 100,
+            "v2": "hello",
+        }))
+        .unwrap_err()
+        .into_message(),
+        "Expected input type \"object\", found {\"v1\":100,\"v2\":\"hello\"}."
+    );
+}
+
+#[test]
 fn title_and_description() {
     /// A
     ///
     /// B
     /// C
-    #[derive(AnyOf, Debug, PartialEq)]
+    #[derive(Union, Debug, PartialEq)]
     enum MyObj2 {
         A(i32),
         B(f32),
@@ -318,7 +417,7 @@ fn title_and_description() {
 
 #[tokio::test]
 async fn external_docs() {
-    #[derive(AnyOf, Debug, PartialEq)]
+    #[derive(Union, Debug, PartialEq)]
     #[oai(
         external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
     )]

@@ -8,7 +8,6 @@
 #[macro_use]
 mod validators;
 
-mod anyof;
 mod api;
 mod common_args;
 mod r#enum;
@@ -22,6 +21,7 @@ mod response;
 mod response_content;
 mod security_scheme;
 mod tags;
+mod union;
 mod utils;
 mod webhook;
 
@@ -46,10 +46,10 @@ pub fn derive_enum(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(AnyOf, attributes(oai))]
-pub fn derive_oneof(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Union, attributes(oai))]
+pub fn derive_union(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
-    match anyof::generate(args) {
+    match union::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

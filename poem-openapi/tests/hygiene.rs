@@ -121,14 +121,14 @@ struct B1 {
     v3: f32,
 }
 
-#[derive(::poem_openapi::AnyOf, Debug, PartialEq)]
+#[derive(::poem_openapi::Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
 enum MyAnyOf1 {
     A(A1),
     B(B1),
 }
 
-#[derive(::poem_openapi::AnyOf, Debug, PartialEq)]
+#[derive(::poem_openapi::Union, Debug, PartialEq)]
 enum MyAnyOf2 {
     A(A1),
     B(B1),

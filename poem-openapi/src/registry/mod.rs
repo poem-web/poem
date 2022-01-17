@@ -75,6 +75,8 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub one_of: Vec<MetaSchemaRef>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminator: Option<MetaDiscriminatorObject>,
@@ -140,6 +142,7 @@ impl MetaSchema {
         enum_items: vec![],
         deprecated: false,
         any_of: vec![],
+        one_of: vec![],
         all_of: vec![],
         discriminator: None,
         read_only: false,

@@ -5,6 +5,7 @@ Define a OpenAPI discriminator object.
 | Attribute          | description                                                                     | Type   | Optional |
 |--------------------|---------------------------------------------------------------------------------|--------|----------|
 | discriminator_name | The name of the property in the payload that will hold the discriminator value. | string | Y        |
+| one_of             | Validates the value against exactly one of the subschemas                       | bool   | Y        |
 | external_docs      | Specify a external resource for extended documentation                          | string | Y        |
 
 # Item parameters
@@ -16,7 +17,7 @@ Define a OpenAPI discriminator object.
 # Example with discriminator
 
 ```rust
-use poem_openapi::{Object, AnyOf};
+use poem_openapi::{Object, Union};
 
 #[derive(Object, Debug, PartialEq)]
 struct A {
@@ -29,7 +30,7 @@ struct B {
     v3: f32,
 }
 
-#[derive(AnyOf, Debug, PartialEq)]
+#[derive(Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
 enum MyObj {
     A(A),
@@ -40,7 +41,7 @@ enum MyObj {
 # Example without discriminator
 
 ```rust
-use poem_openapi::{Object, AnyOf};
+use poem_openapi::{Object, Union};
 
 #[derive(Object, Debug, PartialEq)]
 struct A {
@@ -48,7 +49,7 @@ struct A {
     v2: String,
 }
 
-#[derive(AnyOf, Debug, PartialEq)]
+#[derive(Union, Debug, PartialEq)]
 enum MyObj {
     A(A),
     B(bool),

@@ -132,8 +132,6 @@ pub use base::{
     ResponseContent, Tags, Webhook,
 };
 pub use openapi::{ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject};
-#[doc = include_str!("docs/anyof.md")]
-pub use poem_openapi_derive::AnyOf;
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;
 #[doc = include_str!("docs/response.md")]
@@ -155,6 +153,8 @@ pub use poem_openapi_derive::ResponseContent;
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]
 pub use poem_openapi_derive::Tags;
+#[doc = include_str!("docs/union.md")]
+pub use poem_openapi_derive::Union;
 #[doc = include_str!("docs/webhook.md")]
 pub use poem_openapi_derive::Webhook;
 pub use validation::Validator;

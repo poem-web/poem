@@ -15,7 +15,7 @@ use crate::{
 
 #[derive(FromVariant)]
 #[darling(attributes(oai), forward_attrs(doc))]
-struct AnyOfItem {
+struct UnionItem {
     ident: Ident,
     fields: Fields<Type>,
 
@@ -25,13 +25,15 @@ struct AnyOfItem {
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(oai), forward_attrs(doc))]
-struct AnyOfArgs {
+struct UnionArgs {
     ident: Ident,
     attrs: Vec<Attribute>,
-    data: Data<AnyOfItem, Ignored>,
+    data: Data<UnionItem, Ignored>,
 
     #[darling(default)]
     internal: bool,
+    #[darling(default)]
+    one_of: bool,
     #[darling(default)]
     discriminator_name: Option<String>,
     #[darling(default)]
@@ -39,7 +41,7 @@ struct AnyOfArgs {
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
-    let args: AnyOfArgs = AnyOfArgs::from_derive_input(&args)?;
+    let args: UnionArgs = UnionArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
     let (title, description) = get_summary_and_description(&args.attrs)?;
@@ -88,12 +90,25 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                                 .map_err(#crate_name::types::ParseError::propagate);
                         }
                     });
-                } else {
+                } else if !args.one_of {
+                    // any of
                     from_json.push(quote! {
                         if let ::std::option::Option::Some(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::clone::Clone::clone(&value))
                             .map(Self::#item_ident)
                             .ok() {
                             return ::std::result::Result::Ok(obj);
+                        }
+                    });
+                } else {
+                    // one of
+                    from_json.push(quote! {
+                        if let ::std::option::Option::Some(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::clone::Clone::clone(&value))
+                            .map(Self::#item_ident)
+                            .ok() {
+                            if res_obj.is_some() {
+                                return ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value));
+                            }
+                            res_obj = Some(obj);
                         }
                     });
                 }
@@ -175,9 +190,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             #(#from_json)*
             ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value))
         },
-        None => quote! {
+        // anyof
+        None if !args.one_of => quote! {
             #(#from_json)*
             ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value))
+        },
+        // oneof
+        None => quote! {
+            let mut res_obj = ::std::option::Option::None;
+            #(#from_json)*
+            match res_obj {
+                ::std::option::Option::Some(res_obj) => ::std::result::Result::Ok(res_obj),
+                ::std::option::Option::None => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
+            }
         },
     };
 
@@ -187,6 +212,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             quote!(::std::option::Option::Some(#s))
         }
         None => quote!(::std::option::Option::None),
+    };
+
+    let one_of = if args.one_of {
+        quote!(::std::vec![#(#schemas),*])
+    } else {
+        quote!(::std::vec![])
+    };
+
+    let any_of = if !args.one_of {
+        quote!(::std::vec![#(#schemas),*])
+    } else {
+        quote!(::std::vec![])
     };
 
     let expanded = quote! {
@@ -207,7 +244,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     title: #title,
                     description: #description,
                     external_docs: #external_docs,
-                    any_of: ::std::vec![#(#schemas),*],
+                    one_of: #one_of,
+                    any_of: #any_of,
                     discriminator: #discriminator,
                     ..#crate_name::registry::MetaSchema::ANY
                 }))

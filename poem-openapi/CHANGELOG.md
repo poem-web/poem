@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# Unreleased
+# [1.2.36] 2022-1-17
 
 - Add `HashSet` and `BTreeSet` support to OpenAPI. [#167](https://github.com/poem-web/poem/pull/167)
 - Add `Url` support to OpenAPI. [#168](https://github.com/poem-web/poem/pull/168)
-- Remove `OneOf` macro and add `AnyOf` macro.
+- Remove `OneOf` macro and add `Union` macro.
 
 # [1.2.34] 2022-1-14
 
