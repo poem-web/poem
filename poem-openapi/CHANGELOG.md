@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `HashSet` and `BTreeSet` support to OpenAPI. [#167](https://github.com/poem-web/poem/pull/167)
 - Add `Url` support to OpenAPI. [#168](https://github.com/poem-web/poem/pull/168)
+- Remove `OneOf` macro and add `AnyOf` macro.
 
 # [1.2.34] 2022-1-14
 

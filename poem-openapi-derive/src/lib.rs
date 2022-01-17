@@ -8,6 +8,7 @@
 #[macro_use]
 mod validators;
 
+mod anyof;
 mod api;
 mod common_args;
 mod r#enum;
@@ -16,7 +17,6 @@ mod multipart;
 mod newtype;
 mod oauth_scopes;
 mod object;
-mod oneof;
 mod request;
 mod response;
 mod response_content;
@@ -46,10 +46,10 @@ pub fn derive_enum(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(OneOf, attributes(oai))]
+#[proc_macro_derive(AnyOf, attributes(oai))]
 pub fn derive_oneof(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
-    match oneof::generate(args) {
+    match anyof::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

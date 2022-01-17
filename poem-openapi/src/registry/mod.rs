@@ -73,7 +73,7 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "is_false")]
     pub deprecated: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub one_of: Vec<MetaSchemaRef>,
+    pub any_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -139,7 +139,7 @@ impl MetaSchema {
         additional_properties: None,
         enum_items: vec![],
         deprecated: false,
-        one_of: vec![],
+        any_of: vec![],
         all_of: vec![],
         discriminator: None,
         read_only: false,
@@ -188,6 +188,7 @@ impl MetaSchema {
             external_docs,
             items,
             additional_properties,
+            example,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -222,6 +223,7 @@ impl MetaSchema {
             title,
             description,
             external_docs,
+            example,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -247,7 +249,7 @@ impl MetaSchema {
                     }
                     MetaSchemaRef::Reference(_) => {
                         self.items = Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            one_of: vec![*self_items, items],
+                            any_of: vec![*self_items, items],
                             ..MetaSchema::ANY
                         }))));
                     }
@@ -270,7 +272,7 @@ impl MetaSchema {
                     MetaSchemaRef::Reference(_) => {
                         self.additional_properties =
                             Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
-                                one_of: vec![*self_additional_properties, additional_properties],
+                                any_of: vec![*self_additional_properties, additional_properties],
                                 ..MetaSchema::ANY
                             }))));
                     }

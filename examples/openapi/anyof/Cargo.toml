@@ -1,5 +1,5 @@
 [package]
-name = "example-openapi-oneof"
+name = "example-openapi-anyof"
 version = "0.1.0"
 edition = "2021"
 publish = false
