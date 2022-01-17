@@ -100,6 +100,7 @@
 //! | email      | Support for email address string |
 //! | hostname   | Support for hostname string |
 //! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
+//! | url        | Integrate with the [`url` crate](https://crates.io/crates/url) |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

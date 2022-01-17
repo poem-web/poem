@@ -56,6 +56,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | email      | Support for email address string                                      |
 | hostname   | Support for hostname string                                           |
 | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)      |
+| url        | Integrate with the [`url` crate](https://crates.io/crates/url)        |
 
 ## Safety
 
