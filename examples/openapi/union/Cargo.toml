@@ -1,5 +1,5 @@
 [package]
-name = "example-openapi-anyof"
+name = "example-openapi-union"
 version = "0.1.0"
 edition = "2021"
 publish = false
