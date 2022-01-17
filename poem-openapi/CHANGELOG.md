@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `HashSet` and `BTreeSet` support to OpenAPI. [#167](https://github.com/poem-web/poem/pull/167)
 - Add `Url` support to OpenAPI. [#168](https://github.com/poem-web/poem/pull/168)
-- Remove `OneOf` macro and add `Union` macro.
+- **Breaking change:** Remove `OneOf` macro and add `Union` macro, and replace `property_name` with `discriminator_name`.
+  - The implementation of `OneOf` was incorrect. To migrate, change all instances of `OneOf` to `Union`, and all instances of `property_name` to `discriminator_name`.
 
 # [1.2.34] 2022-1-14
 
