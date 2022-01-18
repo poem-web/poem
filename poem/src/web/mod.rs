@@ -844,7 +844,7 @@ mod tests {
         // Json
         let resp = Json(serde_json::json!({ "a": 1, "b": 2})).into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("application/json"));
+        assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
         assert_eq!(
             resp.into_body().into_string().await.unwrap(),
             r#"{"a":1,"b":2}"#

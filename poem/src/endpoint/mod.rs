@@ -16,6 +16,7 @@ mod map_to_response;
 mod prometheus_exporter;
 #[cfg(feature = "static-files")]
 mod static_files;
+mod to_response;
 #[cfg(feature = "tower-compat")]
 mod tower_compat;
 
@@ -34,5 +35,6 @@ pub use map_to_response::MapToResponse;
 pub use prometheus_exporter::PrometheusExporter;
 #[cfg(feature = "static-files")]
 pub use static_files::{StaticFileEndpoint, StaticFilesEndpoint};
+pub use to_response::ToResponse;
 #[cfg(feature = "tower-compat")]
 pub use tower_compat::TowerCompatExt;

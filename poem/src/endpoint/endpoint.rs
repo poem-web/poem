@@ -2,7 +2,7 @@ use std::{future::Future, marker::PhantomData, sync::Arc};
 
 use super::{
     After, AndThen, Around, Before, CatchAllError, CatchError, InspectAllError, InspectError, Map,
-    MapToResponse,
+    MapToResponse, ToResponse,
 };
 use crate::{
     error::IntoResult,
@@ -462,6 +462,39 @@ pub trait EndpointExt: IntoEndpoint {
         Self: Sized,
     {
         MapToResponse::new(self.into_endpoint())
+    }
+
+    /// Convert the output of this endpoint into a response.
+    /// [`Response`](crate::Response).
+    ///
+    /// NOTE: Unlike [`EndpointExt::map_to_response`], when an error occurs, it
+    /// will also convert the error into a response object, so this endpoint
+    /// will just returns `Ok(Response)`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    /// };
+    ///
+    /// let ep1 = make(|_| async { "hello" }).to_response();
+    /// let ep2 = make(|_| async { Err::<(), Error>(Error::from_status(StatusCode::BAD_REQUEST)) })
+    ///     .to_response();
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = ep1.call(Request::default()).await.unwrap();
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    ///
+    /// let resp = ep2.call(Request::default()).await.unwrap();
+    /// assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    /// # });
+    /// ```
+    fn to_response(self) -> ToResponse<Self::Endpoint>
+    where
+        Self: Sized,
+    {
+        ToResponse::new(self.into_endpoint())
     }
 
     /// Maps the response of this endpoint.

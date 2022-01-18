@@ -31,8 +31,8 @@ impl Default for AppliedTo {
 ///
 /// # Reference
 ///
-/// - https://docs.rs/http/0.2.6/http/header/struct.HeaderValue.html#method.set_sensitive
-/// - https://docs.rs/http/0.2.6/http/header/struct.HeaderValue.html#method.is_sensitive
+/// - <https://docs.rs/http/0.2.6/http/header/struct.HeaderValue.html#method.set_sensitive>
+/// - <https://docs.rs/http/0.2.6/http/header/struct.HeaderValue.html#method.is_sensitive>
 #[derive(Default)]
 pub struct SensitiveHeader {
     headers: HashSet<HeaderName>,
