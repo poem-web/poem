@@ -384,7 +384,7 @@ async fn response() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
-    assert_eq!(resp.content_type(), Some("application/json"));
+    assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "409");
 
     let mut resp = ep
