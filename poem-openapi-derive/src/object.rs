@@ -302,8 +302,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             (
                 quote!(#crate_name::registry::MetaSchemaRef::Reference(#oai_typename)),
                 quote! {
-                    #(#register_types)*
                     registry.create_schema::<Self, _>(#oai_typename, |registry| {
+                        #(#register_types)*
                         let mut meta = #meta;
                         meta.example = #example;
                         meta

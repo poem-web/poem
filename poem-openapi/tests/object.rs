@@ -1,7 +1,7 @@
 use poem_openapi::{
     registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    Enum, Object,
+    Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
 
@@ -669,4 +669,27 @@ async fn external_docs() {
             description: None
         })
     );
+}
+
+#[test]
+fn issue_171() {
+    #[derive(NewType)]
+    #[oai(from_parameter = false, to_header = false, from_multipart = false)]
+    pub struct Schema(Vec<SchemaItem>);
+
+    #[derive(Object)]
+    #[oai(rename_all = "snake_case")]
+    pub struct SchemaItem {
+        pub properties: Option<Schema>,
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn a(&self, _item: poem_openapi::payload::Json<SchemaItem>) {}
+    }
+
+    let _ = poem_openapi::OpenApiService::new(Api, "a", "1.0");
 }
