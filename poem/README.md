@@ -24,6 +24,9 @@
     <img src="https://img.shields.io/badge/rustc-1.56.1+-ab6000.svg"
       alt="rustc 1.56.1+" />
   </a>
+  <a href="https://discord.gg/qWWNxwasb7">
+    <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
+  </a>
 </div>
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
