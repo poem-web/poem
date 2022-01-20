@@ -181,7 +181,14 @@ impl<'a> TestJsonArray<'a> {
 
     /// Returns the element at index `idx`.
     pub fn get(&self, idx: usize) -> TestJsonValue<'a> {
-        TestJsonValue(&self.0[idx])
+        self.get_opt(idx)
+            .unwrap_or_else(|| panic!("expect index `{}`", idx))
+    }
+
+    /// Returns the element at index `idx`, or `None` if the element does not
+    /// exists exists.
+    pub fn get_opt(&self, idx: usize) -> Option<TestJsonValue<'a>> {
+        self.0.get(idx).map(TestJsonValue)
     }
 
     /// Returns an iterator over the array.
@@ -212,7 +219,15 @@ impl<'a> TestJsonObject<'a> {
 
     /// Returns the element corresponding to the `name`.
     pub fn get(&self, name: impl AsRef<str>) -> TestJsonValue<'a> {
-        TestJsonValue(&self.0[name.as_ref()])
+        let name = name.as_ref();
+        self.get_opt(name)
+            .unwrap_or_else(|| panic!("expect key `{}`", name))
+    }
+
+    /// Returns the element corresponding to the `name`, or `None` if the
+    /// element does not exists exists.
+    pub fn get_opt(&self, name: impl AsRef<str>) -> Option<TestJsonValue<'a>> {
+        self.0.get(name.as_ref()).map(TestJsonValue)
     }
 
     /// Returns an iterator over the object.

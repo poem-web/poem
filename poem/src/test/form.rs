@@ -102,18 +102,21 @@ impl TestForm {
     }
 
     /// Adds a field.
+    #[must_use]
     pub fn field(mut self, field: TestFormField) -> Self {
         self.fields.push(field);
         self
     }
 
     /// Adds a text field.
+    #[must_use]
     pub fn text(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.fields.push(TestFormField::text(value).name(name));
         self
     }
 
     /// Adds a binary field.
+    #[must_use]
     pub fn bytes(mut self, name: impl Into<String>, value: impl Into<Vec<u8>>) -> Self {
         self.fields.push(TestFormField::bytes(value).name(name));
         self
@@ -185,10 +188,10 @@ impl TestForm {
 
 fn legal_str(s: impl AsRef<str>) -> String {
     s.as_ref()
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\r", "\\\r")
-        .replace("\n", "\\\n")
+        .replace('\\', "\\\\")
+        .replace('\"', "\\\"")
+        .replace('r', "\\\r")
+        .replace('\n', "\\\n")
 }
 
 fn gen_headers(headers: &HeaderMap) -> Vec<u8> {
