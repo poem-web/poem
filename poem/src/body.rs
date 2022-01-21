@@ -5,11 +5,11 @@ use std::{
     task::{Context, Poll},
 };
 
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use futures_util::{Stream, TryStreamExt};
 use hyper::body::HttpBody;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::io::AsyncRead;
+use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
     error::{ParseJsonError, ReadBodyError},
@@ -142,6 +142,50 @@ impl Body {
             .await
             .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
             .to_vec())
+    }
+
+    /// Consumes this body object to return a [`Bytes`] that contains all
+    /// data, returns `Err(ReadBodyError::PayloadTooLarge)` if the length of the
+    /// payload exceeds `limit`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{error::ReadBodyError, handler, http::StatusCode, Body, Endpoint, Request, Result};
+    ///
+    /// #[handler]
+    /// async fn index(data: Body) -> Result<()> {
+    ///     Ok(data.into_bytes_limit(5).await.map(|_| ())?)
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let req = Request::builder().body("12345");
+    /// assert_eq!(index.get_response(req).await.status(), StatusCode::OK);
+    ///
+    /// let req = Request::builder().body("123456");
+    /// assert_eq!(
+    ///     index.get_response(req).await.status(),
+    ///     StatusCode::PAYLOAD_TOO_LARGE
+    /// );
+    /// # });
+    /// ```
+    pub async fn into_bytes_limit(self, limit: usize) -> Result<Bytes, ReadBodyError> {
+        let mut reader = self.into_async_read();
+        let mut buf = [0; 4096];
+        let mut data = BytesMut::new();
+
+        loop {
+            let sz = reader.read(&mut buf).await?;
+            if sz == 0 {
+                break;
+            }
+            if data.len() + sz > limit {
+                return Err(ReadBodyError::PayloadTooLarge);
+            }
+            data.extend_from_slice(&buf[..sz]);
+        }
+
+        Ok(data.freeze())
     }
 
     /// Consumes this body object to return a [`String`] that contains all data.

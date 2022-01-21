@@ -510,6 +510,10 @@ pub enum ReadBodyError {
     #[error("parse utf8: {0}")]
     Utf8(#[from] FromUtf8Error),
 
+    /// Payload too large
+    #[error("payload too large")]
+    PayloadTooLarge,
+
     /// Io error.
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
@@ -521,6 +525,7 @@ impl ResponseError for ReadBodyError {
             ReadBodyError::BodyHasBeenTaken => StatusCode::INTERNAL_SERVER_ERROR,
             ReadBodyError::Utf8(_) => StatusCode::BAD_REQUEST,
             ReadBodyError::Io(_) => StatusCode::BAD_REQUEST,
+            ReadBodyError::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
         }
     }
 }
