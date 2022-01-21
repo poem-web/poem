@@ -10,7 +10,7 @@ use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Path};
 use crate::{
     common_args::{ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
 };
 
 #[derive(FromVariant)]
@@ -49,7 +49,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
     let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
-    let (title, description) = get_summary_and_description(&args.attrs)?;
+    let description = get_description(&args.attrs)?;
     let e = match &args.data {
         Data::Enum(e) => e,
         _ => return Err(Error::new_spanned(ident, "Enum can only be applied to an enum.").into()),
@@ -117,7 +117,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     } else {
         None
     };
-    let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
     let external_docs = match &args.external_docs {
@@ -150,7 +149,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             fn register(registry: &mut #crate_name::registry::Registry) {
                 registry.create_schema::<Self, _>(#oai_typename, |registry| #crate_name::registry::MetaSchema {
-                    title: #title,
                     description: #description,
                     external_docs: #external_docs,
                     deprecated: #deprecated,

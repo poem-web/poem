@@ -10,7 +10,7 @@ use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
 use crate::{
     common_args::{ConcreteType, DefaultValue, ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
     validators::Validators,
 };
 
@@ -82,7 +82,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
     let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
-    let (title, description) = get_summary_and_description(&args.attrs)?;
+    let description = get_description(&args.attrs)?;
     let mut deserialize_fields = Vec::new();
     let mut serialize_fields = Vec::new();
     let mut register_types = Vec::new();
@@ -132,8 +132,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .rename
             .clone()
             .unwrap_or_else(|| args.rename_all.rename(field_ident.unraw().to_string()));
-        let (field_title, field_description) = get_summary_and_description(&field.attrs)?;
-        let field_title = optional_literal(&field_title);
+        let field_description = get_description(&field.attrs)?;
         let field_description = optional_literal(&field_description);
         let validators = field.validator.clone().unwrap_or_default();
         let validators_checker = validators.create_obj_field_checker(&crate_name, &field_name)?;
@@ -218,10 +217,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 schema.read_only = #read_only;
                 schema.write_only = #write_only;
 
-                if let ::std::option::Option::Some(title) = #field_title {
-                    schema.title = ::std::option::Option::Some(title);
-                }
-
                 if let ::std::option::Option::Some(field_description) = #field_description {
                     schema.description = ::std::option::Option::Some(field_description);
                 }
@@ -240,7 +235,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         });
     }
 
-    let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
     let external_docs = match &args.external_docs {
@@ -252,7 +246,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     };
     let meta = quote! {
         #crate_name::registry::MetaSchema {
-            title: #title,
             description: #description,
             external_docs: #external_docs,
             required: {

@@ -50,8 +50,6 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<&'static str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub external_docs: Option<MetaExternalDocument>,
@@ -131,7 +129,6 @@ impl MetaSchema {
         rust_typename: None,
         ty: "",
         format: None,
-        title: None,
         description: None,
         external_docs: None,
         default: None,
@@ -186,7 +183,6 @@ impl MetaSchema {
             default,
             read_only,
             write_only,
-            title,
             description,
             external_docs,
             items,
@@ -223,7 +219,6 @@ impl MetaSchema {
 
         merge_optional!(
             default,
-            title,
             description,
             external_docs,
             example,

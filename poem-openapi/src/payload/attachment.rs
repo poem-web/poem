@@ -46,10 +46,10 @@ impl<T: Into<Body> + Send> IntoResponse for Attachment<T> {
 
         if let Some(header_value) = self.filename.as_ref().and_then(|filename| {
             let legal_filename = filename
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", "\\\r")
-                .replace("\n", "\\\n");
+                .replace('\\', "\\\\")
+                .replace('\"', "\\\"")
+                .replace('\r', "\\\r")
+                .replace('\n', "\\\n");
             HeaderValue::from_str(&format!("attachment; filename=\"{}\"", legal_filename)).ok()
         }) {
             resp.headers_mut()

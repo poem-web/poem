@@ -72,6 +72,6 @@ impl ToJSON for Url {
 
 impl ToHeader for Url {
     fn to_header(&self) -> Option<HeaderValue> {
-        HeaderValue::from_str(&self.to_string()).ok()
+        HeaderValue::from_str(self.as_ref()).ok()
     }
 }

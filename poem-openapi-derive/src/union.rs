@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, Type};
 use crate::{
     common_args::ExternalDocument,
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
 };
 
 #[derive(FromVariant)]
@@ -44,8 +44,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: UnionArgs = UnionArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
-    let (title, description) = get_summary_and_description(&args.attrs)?;
-    let title = optional_literal(&title);
+    let description = get_description(&args.attrs)?;
     let description = optional_literal(&description);
     let discriminator_name = &args.discriminator_name;
 
@@ -241,7 +240,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
                 #crate_name::registry::MetaSchemaRef::Inline(Box::new(#crate_name::registry::MetaSchema {
                     ty: "object",
-                    title: #title,
                     description: #description,
                     external_docs: #external_docs,
                     one_of: #one_of,

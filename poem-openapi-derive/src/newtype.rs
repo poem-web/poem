@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, Type};
 use crate::{
     common_args::ExternalDocument,
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
 };
 
 #[derive(FromDeriveInput)]
@@ -44,8 +44,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: NewTypeArgs = NewTypeArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
-    let (title, description) = get_summary_and_description(&args.attrs)?;
-    let title = optional_literal(&title);
+    let description = get_description(&args.attrs)?;
     let description = optional_literal(&description);
 
     let fields = match &args.data {
@@ -76,7 +75,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let schema_ref = quote! {
         <#inner_ty as #crate_name::types::Type>::schema_ref().merge(#crate_name::registry::MetaSchema {
-            title: #title,
             description: #description,
             external_docs: #external_docs,
             ..#crate_name::registry::MetaSchema::ANY

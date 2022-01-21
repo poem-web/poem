@@ -411,8 +411,7 @@ fn title_and_description() {
 
     let schema_ref: MetaSchemaRef = MyObj2::schema_ref();
     let meta_schema = schema_ref.unwrap_inline();
-    assert_eq!(meta_schema.title, Some("A"));
-    assert_eq!(meta_schema.description, Some("B\nC"));
+    assert_eq!(meta_schema.description, Some("A\n\nB\nC"));
 }
 
 #[tokio::test]

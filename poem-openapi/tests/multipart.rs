@@ -472,7 +472,7 @@ fn inline_field() {
     assert_eq!(
         meta_inner_obj.all_of[1],
         MetaSchemaRef::Inline(Box::new(MetaSchema {
-            title: Some("Inner Obj"),
+            description: Some("Inner Obj"),
             default: Some(serde_json::json!({
                 "v": 100,
             })),
@@ -488,7 +488,7 @@ fn inline_field() {
     assert_eq!(
         meta_inner_enum.all_of[1],
         MetaSchemaRef::Inline(Box::new(MetaSchema {
-            title: Some("Inner Enum"),
+            description: Some("Inner Enum"),
             default: Some(serde_json::json!("B")),
             ..MetaSchema::ANY
         }))

@@ -230,8 +230,7 @@ fn description() {
     }
 
     let meta = get_meta::<Obj>();
-    assert_eq!(meta.title, Some("A"));
-    assert_eq!(meta.description, Some("AB\nCDE"));
+    assert_eq!(meta.description, Some("A\n\nAB\nCDE"));
 }
 
 #[test]
@@ -247,8 +246,7 @@ fn field_description() {
 
     let meta = get_meta::<Obj>();
     let field_meta = meta.properties[0].1.unwrap_inline();
-    assert_eq!(field_meta.title, Some("A"));
-    assert_eq!(field_meta.description, Some("AB\nCDE"));
+    assert_eq!(field_meta.description, Some("A\n\nAB\nCDE"));
 }
 
 #[test]
@@ -464,7 +462,7 @@ fn inline_fields() {
     assert_eq!(
         meta_inner_obj.all_of[1],
         MetaSchemaRef::Inline(Box::new(MetaSchema {
-            title: Some("Inner Obj"),
+            description: Some("Inner Obj"),
             default: Some(serde_json::json!({
                 "v": 100,
             })),
@@ -480,7 +478,7 @@ fn inline_fields() {
     assert_eq!(
         meta_inner_enum.all_of[1],
         MetaSchemaRef::Inline(Box::new(MetaSchema {
-            title: Some("Inner Enum"),
+            description: Some("Inner Enum"),
             default: Some(serde_json::json!("B")),
             ..MetaSchema::ANY
         }))

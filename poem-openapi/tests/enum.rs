@@ -169,8 +169,7 @@ fn description() {
     let mut registry = Registry::new();
     MyEnum::register(&mut registry);
     let meta = registry.schemas.remove("MyEnum").unwrap();
-    assert_eq!(meta.title, Some("A"));
-    assert_eq!(meta.description, Some("AB\nCDE"));
+    assert_eq!(meta.description, Some("A\n\nAB\nCDE"));
 }
 
 #[test]
