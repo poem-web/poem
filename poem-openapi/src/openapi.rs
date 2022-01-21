@@ -297,14 +297,15 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
 
         let webhooks = W::meta();
 
-        let doc = Document {
+        let mut doc = Document {
             info: &self.info,
             servers: &self.servers,
             apis: &metadata,
             webhooks: &webhooks,
-            registry: &registry,
+            registry: &mut registry,
             external_document: self.external_document.as_ref(),
         };
+        doc.remove_unused_schemas();
         serde_json::to_string_pretty(&doc).unwrap()
     }
 }

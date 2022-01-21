@@ -34,6 +34,8 @@ struct ObjectField {
     read_only: bool,
     #[darling(default)]
     validator: Option<Validators>,
+    #[darling(default)]
+    flatten: bool,
 }
 
 #[derive(FromDeriveInput)]
@@ -150,7 +152,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     Default::default()
                 };
             });
-        } else {
+        } else if !field.flatten {
             match &field.default {
                 Some(default_value) => {
                     let default_value = match default_value {
@@ -186,14 +188,28 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     });
                 }
             };
+        } else {
+            deserialize_fields.push(quote! {
+                #[allow(non_snake_case)]
+                let #field_ident: #field_ty = {
+                    #crate_name::types::ParseFromJSON::parse_from_json(#crate_name::__private::serde_json::Value::Object(::std::clone::Clone::clone(&obj)))
+                        .map_err(#crate_name::types::ParseError::propagate)?
+                };
+            });
         }
 
-        if write_only {
-            serialize_fields.push(quote! {});
+        if !field.flatten {
+            if !write_only {
+                serialize_fields.push(quote! {
+                    let value = #crate_name::types::ToJSON::to_json(&self.#field_ident);
+                    object.insert(::std::string::ToString::to_string(#field_name), value);
+                });
+            }
         } else {
             serialize_fields.push(quote! {
-                let value = #crate_name::types::ToJSON::to_json(&self.#field_ident);
-                object.insert(::std::string::ToString::to_string(#field_name), value);
+                if let #crate_name::__private::serde_json::Value::Object(obj) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                    object.extend(obj);
+                }
             });
         }
 
@@ -207,32 +223,42 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             None => quote!(::std::option::Option::None),
         };
 
-        register_types.push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
+        if !field.flatten {
+            register_types
+                .push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
 
-        meta_fields.push(quote! {{
-            let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
-            let patch_schema = {
-                let mut schema = #crate_name::registry::MetaSchema::ANY;
-                schema.default = #field_meta_default;
-                schema.read_only = #read_only;
-                schema.write_only = #write_only;
+            meta_fields.push(quote! {{
+                let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
+                let patch_schema = {
+                    let mut schema = #crate_name::registry::MetaSchema::ANY;
+                    schema.default = #field_meta_default;
+                    schema.read_only = #read_only;
+                    schema.write_only = #write_only;
 
-                if let ::std::option::Option::Some(field_description) = #field_description {
-                    schema.description = ::std::option::Option::Some(field_description);
+                    if let ::std::option::Option::Some(field_description) = #field_description {
+                        schema.description = ::std::option::Option::Some(field_description);
+                    }
+                    #validators_update_meta
+                    schema
+                };
+
+                fields.push((#field_name, original_schema.merge(patch_schema)));
+            }});
+
+            let has_default = field.default.is_some();
+            required_fields.push(quote! {
+                if <#field_ty>::IS_REQUIRED && !#has_default {
+                    fields.push(#field_name);
                 }
-                #validators_update_meta
-                schema
-            };
-
-            (#field_name, original_schema.merge(patch_schema))
-        }});
-
-        let has_default = field.default.is_some();
-        required_fields.push(quote! {
-            if <#field_ty>::IS_REQUIRED && !#has_default {
-                fields.push(#field_name);
-            }
-        });
+            });
+        } else {
+            meta_fields.push(quote! {
+                fields.extend(registry.create_fake_schema::<#field_ty>().properties);
+            });
+            required_fields.push(quote! {
+                fields.extend(registry.create_fake_schema::<#field_ty>().required);
+            });
+        }
     }
 
     let description = optional_literal(&description);
@@ -254,7 +280,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 #(#required_fields)*
                 fields
             },
-            properties: ::std::vec![#(#meta_fields),*],
+            properties: {
+                let mut fields = ::std::vec::Vec::new();
+                #(#meta_fields)*
+                fields
+            },
             deprecated: #deprecated,
             ..#crate_name::registry::MetaSchema::new("object")
         }

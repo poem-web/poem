@@ -78,7 +78,7 @@ pub(crate) struct Document<'a> {
     pub(crate) servers: &'a [MetaServer],
     pub(crate) apis: &'a [MetaApi],
     pub(crate) webhooks: &'a [MetaWebhook],
-    pub(crate) registry: &'a Registry,
+    pub(crate) registry: &'a mut Registry,
     pub(crate) external_document: Option<&'a MetaExternalDocument>,
 }
 

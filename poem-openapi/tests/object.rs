@@ -691,3 +691,37 @@ fn issue_171() {
 
     let _ = poem_openapi::OpenApiService::new(Api, "a", "1.0");
 }
+
+#[test]
+fn flatten_field() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct Obj1 {
+        a: i32,
+        b: i32,
+    }
+
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct Obj {
+        #[oai(flatten)]
+        obj1: Obj1,
+        c: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.required, vec!["a", "b", "c"]);
+
+    assert_eq!(meta.properties[0].0, "a");
+    assert_eq!(meta.properties[1].0, "b");
+    assert_eq!(meta.properties[2].0, "c");
+
+    let obj = Obj {
+        obj1: Obj1 { a: 100, b: 200 },
+        c: 300,
+    };
+
+    assert_eq!(obj.to_json(), json!({"a": 100, "b": 200, "c": 300}));
+    assert_eq!(
+        Obj::parse_from_json(json!({"a": 100, "b": 200, "c": 300})).unwrap(),
+        obj
+    );
+}

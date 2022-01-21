@@ -41,6 +41,7 @@ fn with_discriminator() {
                     all_of: vec![
                         MetaSchemaRef::Reference("A"),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            title: Some("A".to_string()),
                             properties: vec![(
                                 "type",
                                 String::schema_ref().merge(MetaSchema {
@@ -58,6 +59,7 @@ fn with_discriminator() {
                     all_of: vec![
                         MetaSchemaRef::Reference("B"),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            title: Some("B".to_string()),
                             properties: vec![(
                                 "type",
                                 String::schema_ref().merge(MetaSchema {
@@ -163,6 +165,7 @@ fn with_discriminator_mapping() {
                     all_of: vec![
                         MetaSchemaRef::Reference("A"),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            title: Some("c".to_string()),
                             properties: vec![(
                                 "type",
                                 String::schema_ref().merge(MetaSchema {
@@ -180,6 +183,7 @@ fn with_discriminator_mapping() {
                     all_of: vec![
                         MetaSchemaRef::Reference("B"),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            title: Some("d".to_string()),
                             properties: vec![(
                                 "type",
                                 String::schema_ref().merge(MetaSchema {

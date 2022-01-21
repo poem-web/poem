@@ -1,3 +1,4 @@
+mod clean_unused;
 mod ser;
 
 use std::{
@@ -10,6 +11,8 @@ use poem::http::Method;
 pub(crate) use ser::Document;
 use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::Value;
+
+use crate::types::Type;
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 #[inline]
@@ -49,6 +52,8 @@ pub struct MetaSchema {
     pub ty: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -129,6 +134,7 @@ impl MetaSchema {
         rust_typename: None,
         ty: "",
         format: None,
+        title: None,
         description: None,
         external_docs: None,
         default: None,
@@ -183,6 +189,7 @@ impl MetaSchema {
             default,
             read_only,
             write_only,
+            title,
             description,
             external_docs,
             items,
@@ -219,6 +226,7 @@ impl MetaSchema {
 
         merge_optional!(
             default,
+            title,
             description,
             external_docs,
             example,
@@ -657,6 +665,19 @@ impl Registry {
                 let mut meta_schema = f(self);
                 meta_schema.rust_typename = Some(std::any::type_name::<T>());
                 *self.schemas.get_mut(name).unwrap() = meta_schema;
+            }
+        }
+    }
+
+    pub fn create_fake_schema<T: Type>(&mut self) -> MetaSchema {
+        match T::schema_ref() {
+            MetaSchemaRef::Inline(schema) => *schema,
+            MetaSchemaRef::Reference(name) => {
+                T::register(self);
+                self.schemas
+                    .get(name)
+                    .cloned()
+                    .expect("You definitely encountered a bug!")
             }
         }
     }

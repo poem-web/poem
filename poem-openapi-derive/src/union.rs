@@ -141,6 +141,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             all_of: ::std::vec![
                                 <#object_ty as #crate_name::types::Type>::schema_ref(),
                                 #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
+                                    title: ::std::option::Option::Some(::std::string::ToString::to_string(#mapping_name)),
                                     properties: ::std::vec![
                                         (
                                             #discriminator_name,
