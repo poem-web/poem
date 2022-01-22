@@ -473,6 +473,10 @@ impl<T> RadixTree<T> {
     }
 
     pub(crate) fn matches(&self, path: &str) -> Option<Matches<T>> {
+        if path.is_empty() {
+            return None;
+        }
+
         let mut params = SmallVec::default();
 
         match self.root.matches(path.as_bytes(), &mut params) {

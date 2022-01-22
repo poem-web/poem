@@ -339,13 +339,12 @@ fn normalize_path(path: &str) -> String {
     if !path.starts_with('/') {
         path.insert(0, '/');
     }
-
     path
 }
 
 #[cfg(test)]
 mod tests {
-    use http::Uri;
+    use http::{StatusCode, Uri};
 
     use super::*;
     use crate::{endpoint::make_sync, handler};
@@ -483,5 +482,16 @@ mod tests {
     #[should_panic]
     fn duplicate_5() {
         let _ = Route::new().at("/a/*:v", h).at("/a/*", h);
+    }
+
+    #[tokio::test]
+    async fn issue_174() {
+        let app = Route::new().nest("/", make_sync(|_| "hello"));
+        assert_eq!(
+            app.get_response(Request::builder().uri(Uri::from_static("a")).finish())
+                .await
+                .status(),
+            StatusCode::NOT_FOUND
+        );
     }
 }
