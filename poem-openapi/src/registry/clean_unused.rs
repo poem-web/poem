@@ -9,7 +9,10 @@ impl<'a> Document<'a> {
         let schema = match schema_ref {
             MetaSchemaRef::Reference(name) => {
                 used_types.insert(*name);
-                self.registry.schemas.get(name).unwrap()
+                self.registry
+                    .schemas
+                    .get(name)
+                    .unwrap_or_else(|| panic!("Schema `{}` does not registered", name))
             }
             MetaSchemaRef::Inline(schema) => schema,
         };

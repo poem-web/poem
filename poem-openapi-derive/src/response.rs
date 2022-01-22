@@ -131,7 +131,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         match values.len() {
             2 => {
-                // #[oai(default)]
                 // Item(StatusCode, media)
                 let media_ty = &values[1].ty;
                 let (update_response_content_type, update_meta_content_type) =
@@ -255,7 +254,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 fn meta() -> #crate_name::registry::MetaResponses {
                     #crate_name::registry::MetaResponses {
-                        responses: ::std::vec![#(#responses_meta),*],
+                        responses: ::std::vec![#(#responses_meta),*]
                     }
                 }
 
