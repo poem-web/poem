@@ -21,7 +21,7 @@ fn with_discriminator() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(discriminator_name = "type")]
+    #[oai(inline, discriminator_name = "type")]
     enum MyObj {
         A(A),
         B(B),
@@ -140,7 +140,7 @@ fn with_discriminator_mapping() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(discriminator_name = "type")]
+    #[oai(inline, discriminator_name = "type")]
     enum MyObj {
         #[oai(mapping = "c")]
         A(A),
@@ -259,6 +259,7 @@ fn without_discriminator() {
     }
 
     #[derive(Union, Debug, PartialEq)]
+    #[oai(inline)]
     enum MyObj {
         A(A),
         B(bool),
@@ -316,6 +317,7 @@ fn anyof() {
     }
 
     #[derive(Union, Debug, PartialEq)]
+    #[oai(inline)]
     enum MyObj {
         A(A),
         B(B),
@@ -366,7 +368,7 @@ fn oneof() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(one_of)]
+    #[oai(one_of, inline)]
     enum MyObj {
         A(A),
         B(B),
@@ -408,6 +410,7 @@ fn title_and_description() {
     /// B
     /// C
     #[derive(Union, Debug, PartialEq)]
+    #[oai(inline)]
     enum MyObj2 {
         A(i32),
         B(f32),
@@ -422,6 +425,7 @@ fn title_and_description() {
 async fn external_docs() {
     #[derive(Union, Debug, PartialEq)]
     #[oai(
+        inline,
         external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
     )]
     enum MyObj2 {
@@ -439,4 +443,20 @@ async fn external_docs() {
             description: None
         })
     );
+}
+
+#[tokio::test]
+async fn no_inline() {
+    #[derive(Union, Debug, PartialEq)]
+    enum MyObj {
+        A(i32),
+        B(f32),
+    }
+
+    let schema_ref: MetaSchemaRef = MyObj::schema_ref();
+    assert_eq!(schema_ref.unwrap_reference(), "MyObj");
+
+    let mut registry = Registry::new();
+    MyObj::register(&mut registry);
+    assert!(registry.schemas.contains_key("MyObj"));
 }

@@ -33,6 +33,10 @@ struct UnionArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
+    inline: bool,
+    #[darling(default)]
+    rename: Option<String>,
+    #[darling(default)]
     one_of: bool,
     #[darling(default)]
     discriminator_name: Option<String>,
@@ -44,6 +48,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let args: UnionArgs = UnionArgs::from_derive_input(&args)?;
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
+    let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
     let description = get_description(&args.attrs)?;
     let description = optional_literal(&description);
     let discriminator_name = &args.discriminator_name;
@@ -226,6 +231,34 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         quote!(::std::vec![])
     };
 
+    let meta = quote! {
+        #crate_name::registry::MetaSchema {
+            ty: "object",
+            description: #description,
+            external_docs: #external_docs,
+            one_of: #one_of,
+            any_of: #any_of,
+            discriminator: #discriminator,
+            ..#crate_name::registry::MetaSchema::ANY
+        }
+    };
+    let (fn_schema_ref, fn_register) = if !args.inline {
+        let fn_schema_ref =
+            quote! { #crate_name::registry::MetaSchemaRef::Reference(#oai_typename) };
+        let fn_register = quote! {
+            registry.create_schema::<Self, _>(#oai_typename, |registry| {
+                #(<#types as #crate_name::types::Type>::register(registry);)*
+                #meta
+            });
+        };
+        (fn_schema_ref, fn_register)
+    } else {
+        let fn_schema_ref =
+            quote! { #crate_name::registry::MetaSchemaRef::Inline(Box::new(#meta)) };
+        let fn_register = quote! { #(<#types as #crate_name::types::Type>::register(registry);)* };
+        (fn_schema_ref, fn_register)
+    };
+
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
             const IS_REQUIRED: bool = true;
@@ -239,19 +272,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                #crate_name::registry::MetaSchemaRef::Inline(Box::new(#crate_name::registry::MetaSchema {
-                    ty: "object",
-                    description: #description,
-                    external_docs: #external_docs,
-                    one_of: #one_of,
-                    any_of: #any_of,
-                    discriminator: #discriminator,
-                    ..#crate_name::registry::MetaSchema::ANY
-                }))
+                #fn_schema_ref
             }
 
             fn register(registry: &mut #crate_name::registry::Registry) {
-                #(<#types as #crate_name::types::Type>::register(registry);)*
+                #fn_register
             }
 
             fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
