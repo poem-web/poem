@@ -1,6 +1,11 @@
-use base64::display::Base64Display;
-use poem::http::{HeaderMap, Method};
-use serde::{de::Error as _, ser::Error as _, Deserialize, Deserializer, Serialize, Serializer};
+use std::str::FromStr;
+
+use lambda_runtime::Error;
+use poem::{
+    http::{HeaderMap, Method, Uri},
+    Body, Request, Response,
+};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct VercelEvent {
@@ -30,26 +35,32 @@ pub(crate) struct VercelRequest {
     pub(crate) encoding: Option<String>,
 }
 
-#[derive(Debug)]
-pub(crate) enum VercelBody {
-    /// An empty body
-    Empty,
-    /// A body containing string data
-    Text(String),
-    /// A body containing binary data
-    Binary(Vec<u8>),
-}
+impl TryFrom<VercelRequest> for Request {
+    type Error = Error;
 
-impl<'a> Serialize for VercelBody {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self {
-            VercelBody::Text(data) => serializer
-                .serialize_str(::std::str::from_utf8(data.as_ref()).map_err(S::Error::custom)?),
-            VercelBody::Binary(data) => {
-                serializer.collect_str(&Base64Display::with_config(data, base64::STANDARD))
-            }
-            VercelBody::Empty => serializer.serialize_unit(),
-        }
+    fn try_from(
+        VercelRequest {
+            host,
+            path,
+            method,
+            headers,
+            body,
+            encoding,
+        }: VercelRequest,
+    ) -> Result<Self, Self::Error> {
+        let body = match (body, encoding.as_deref()) {
+            (Some(data), Some("base64")) => Body::from(base64::decode(data)?),
+            (Some(data), _) => Body::from(data),
+            (None, _) => Body::empty(),
+        };
+
+        let mut request = Request::builder()
+            .method(method)
+            .uri(Uri::from_str(&format!("https://{}{}", host, path))?)
+            .body(body);
+        *request.headers_mut() = headers;
+
+        Ok(request)
     }
 }
 
@@ -63,7 +74,27 @@ pub(crate) struct VercelResponse {
     )]
     pub(crate) headers: HeaderMap,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) body: Option<VercelBody>,
+    pub(crate) body: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) encoding: Option<String>,
+    pub(crate) encoding: Option<&'static str>,
+}
+
+pub(crate) async fn to_vercel_response(resp: Response) -> Result<VercelResponse, Error> {
+    let (parts, body) = resp.into_parts();
+    let data = body.into_vec().await?;
+    let (body, encoding) = if data.is_empty() {
+        (None, None)
+    } else {
+        match String::from_utf8(data) {
+            Ok(data) => (Some(data), None),
+            Err(err) => (Some(base64::encode(err.into_bytes())), Some("base64")),
+        }
+    };
+
+    Ok(VercelResponse {
+        status_code: parts.status.as_u16(),
+        headers: parts.headers,
+        body,
+        encoding,
+    })
 }

@@ -3,10 +3,13 @@ name = "poem-vercel"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.workspaces]
+independent = true
+
 [dependencies]
 poem = { path = "../poem", version = "1.2.43" }
 
-lambda_http = { version = "0.4.1" }
+lambda_runtime = { version = "0.4.1" }
 serde_json = "1.0.75"
 serde = { version = "1.0.134", features = ["derive"] }
 http-serde = "1.0.3"

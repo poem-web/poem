@@ -65,24 +65,21 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
                 let mut req: Request = from_lambda_request(req);
                 req.extensions_mut().insert(Context(ctx));
 
-                let resp = match ep.call(req).await {
-                    Ok(resp) => resp,
-                    Err(err) => err.as_response(),
-                };
-
+                let resp = ep.get_response(req).await;
                 let (parts, body) = resp.into_parts();
                 let data = body
                     .into_vec()
                     .await
                     .map_err(|_| std::io::Error::new(ErrorKind::Other, "invalid request"))?;
-                let mut lambda_resp = poem::http::Response::new(if data.is_empty() {
+                let lambda_body = if data.is_empty() {
                     LambdaBody::Empty
                 } else {
                     match String::from_utf8(data) {
                         Ok(data) => LambdaBody::Text(data),
                         Err(err) => LambdaBody::Binary(err.into_bytes()),
                     }
-                });
+                };
+                let mut lambda_resp = poem::http::Response::new(lambda_body);
                 *lambda_resp.status_mut() = parts.status;
                 *lambda_resp.version_mut() = parts.version;
                 *lambda_resp.headers_mut() = parts.headers;

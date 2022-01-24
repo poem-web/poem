@@ -1,14 +1,11 @@
 mod types;
 
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
-use lambda_http::lambda_runtime;
-use poem::IntoEndpoint;
+use lambda_runtime::Error;
+use poem::{Endpoint, EndpointExt, IntoEndpoint, Request};
 
-use crate::{
-    lambda_runtime::Error,
-    types::{VercelEvent, VercelResponse},
-};
+use crate::types::{to_vercel_response, VercelEvent};
 
 /// The Lambda function execution context.
 ///
@@ -35,16 +32,34 @@ impl Deref for Context {
     }
 }
 
+/// Starts the Vercel lambda runtime.
+///
+/// # Example
+///
+/// ```no_run
+/// use poem::handler;
+/// use poem_vercel::Error;
+///
+/// #[handler]
+/// fn index() -> &'static str {
+///     "hello"
+/// }
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), Error> {
+///     poem_vercel::run(index).await
+/// }
+/// ```
 pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
-    let ep = ep.into_endpoint();
+    let ep = Arc::new(ep.map_to_response().into_endpoint());
     lambda_runtime::run(lambda_runtime::handler_fn(
-        move |event: VercelEvent, ctx: lambda_runtime::Context| async move {
-            Ok::<_, Error>(VercelResponse {
-                status_code: 0,
-                headers: Default::default(),
-                body: None,
-                encoding: None,
-            })
+        move |event: VercelEvent, ctx: lambda_runtime::Context| {
+            let ep = ep.clone();
+            async move {
+                let mut req: Request = event.body.try_into()?;
+                req.extensions_mut().insert(Context(ctx));
+                to_vercel_response(ep.get_response(req).await).await
+            }
         },
     ))
     .await
