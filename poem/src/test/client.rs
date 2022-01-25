@@ -14,23 +14,6 @@ macro_rules! impl_methods {
 }
 
 /// A client for testing.
-///
-/// # Examples
-///
-/// ```
-/// use poem::{handler, test::TestClient, Route};
-///
-/// #[handler]
-/// fn index() {}
-///
-/// let app = Route::new().at("/", index);
-///
-/// let cli = TestClient::new(index);
-///
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// cli.get("/").send().await.assert_status_is_ok();
-/// # });
-/// ```
 pub struct TestClient<E = BoxEndpoint<'static, Response>> {
     pub(crate) ep: E,
     pub(crate) default_headers: HeaderMap,
@@ -46,6 +29,30 @@ impl<E: Endpoint> TestClient<E> {
     }
 
     /// Sets the default header for each requests.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use poem::{handler, http::HeaderMap, test::TestClient, Route};
+    ///
+    /// #[handler]
+    /// fn index(headers: &HeaderMap) -> String {
+    ///     headers
+    ///         .get("X-Custom-Header")
+    ///         .and_then(|value| value.to_str().ok())
+    ///         .unwrap_or_default()
+    ///         .to_string()
+    /// }
+    ///
+    /// let app = Route::new().at("/", index);
+    /// let cli = TestClient::new(app).default_header("X-Custom-Header", "test");
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = cli.get("/").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("test").await;
+    /// # });
+    /// ```
     #[must_use]
     pub fn default_header<K, V>(mut self, key: K, value: V) -> Self
     where
@@ -68,23 +75,23 @@ impl<E: Endpoint> TestClient<E> {
     }
 
     impl_methods!(
-        /// Create a `GET` request.
+        /// Create a [`TestRequestBuilder`] with `GET` method.
         (get, GET),
-        /// Create a `POST` request.
+        /// Create a [`TestRequestBuilder`] with `POST` method.
         (post, POST),
-        /// Create a `PUT` request.
+        /// Create a [`TestRequestBuilder`] with `PUT` method.
         (put, PUT),
-        /// Create a `DELETE` request.
+        /// Create a [`TestRequestBuilder`] with `DELETE` method.
         (delete, DELETE),
-        /// Create a `HEAD` request.
+        /// Create a [`TestRequestBuilder`] with `HEAD` method.
         (head, HEAD),
-        /// Create a `OPTIONS` request.
+        /// Create a [`TestRequestBuilder`] with `OPTIONS` method.
         (options, OPTIONS),
-        /// Create a `CONNECT` request.
+        /// Create a [`TestRequestBuilder`] with `CONNECT` method.
         (connect, CONNECT),
-        /// Create a `PATCH` request.
+        /// Create a [`TestRequestBuilder`] with `PATCH` method.
         (patch, PATCH),
-        /// Create a `TRACE` request.
+        /// Create a [`TestRequestBuilder`] with `TRACE` method.
         (trace, TRACE)
     );
 }

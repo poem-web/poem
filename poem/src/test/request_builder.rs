@@ -37,6 +37,38 @@ where
     }
 
     /// Sets the query string for this request.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, test::TestClient, web::Query, Route};
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// struct Params {
+    ///     key: String,
+    ///     value: i32,
+    /// }
+    ///
+    /// #[handler]
+    /// fn index(Query(params): Query<Params>) -> String {
+    ///     format!("{}={}", params.key, params.value)
+    /// }
+    ///
+    /// let app = Route::new().at("/", index);
+    /// let cli = TestClient::new(app);
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = cli
+    ///     .get("/")
+    ///     .query("key", &"a")
+    ///     .query("value", &10)
+    ///     .send()
+    ///     .await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("a=10").await;
+    /// # });
+    /// ```
     #[must_use]
     pub fn query(mut self, name: impl Into<String>, value: &impl Serialize) -> Self {
         if let Ok(value) = serde_json::to_value(value) {
@@ -85,6 +117,18 @@ where
         }
     }
 
+    /// Sets the form data for this request with
+    /// `application/x-www-form-urlencoded` content type.
+    #[must_use]
+    pub fn form(self, form: &impl Serialize) -> Self {
+        Self {
+            body: serde_urlencoded::to_string(form)
+                .expect("valid form data")
+                .into(),
+            ..self
+        }
+    }
+
     /// Sets the multipart body for this request.
     #[must_use]
     pub fn multipart(self, form: TestForm) -> Self {
@@ -116,6 +160,26 @@ where
     }
 
     /// Sets the extension data for this request.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, test::TestClient, web::Data, Route};
+    ///
+    /// #[handler]
+    /// fn index(Data(value): Data<&i32>) -> String {
+    ///     value.to_string()
+    /// }
+    ///
+    /// let app = Route::new().at("/", index);
+    /// let cli = TestClient::new(app);
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = cli.get("/").data(100i32).send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("100").await;
+    /// # });
+    /// ```
     #[must_use]
     pub fn data<T>(mut self, data: T) -> Self
     where

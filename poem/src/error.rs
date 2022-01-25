@@ -630,6 +630,14 @@ pub enum ParseMultipartError {
     /// Parse error.
     #[error("parse: {0}")]
     Multipart(#[from] multer::Error),
+
+    /// Body is not a valid utf8 string.
+    #[error("parse utf8: {0}")]
+    Utf8(#[from] FromUtf8Error),
+
+    /// Io error
+    #[error("io: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 #[cfg(feature = "multipart")]
@@ -639,6 +647,8 @@ impl ResponseError for ParseMultipartError {
             ParseMultipartError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
             ParseMultipartError::ContentTypeRequired => StatusCode::BAD_REQUEST,
             ParseMultipartError::Multipart(_) => StatusCode::BAD_REQUEST,
+            ParseMultipartError::Utf8(_) => StatusCode::BAD_REQUEST,
+            ParseMultipartError::Io(_) => StatusCode::BAD_REQUEST,
         }
     }
 }
