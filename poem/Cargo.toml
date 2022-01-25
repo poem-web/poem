@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.2.43"
+version = "1.2.44"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -34,11 +34,11 @@ opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semant
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
-test = ["sse", "sse-codec", "tokio-util/compat"]
+test = ["sse", "sse-codec", "tokio-util/compat", "mime"]
 i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
 
 [dependencies]
-poem-derive = { path = "../poem-derive", version = "1.2.43" }
+poem-derive = { path = "../poem-derive", version = "1.2.44" }
 
 async-trait = "0.1.51"
 bytes = "1.1.0"
