@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use headers::{Header, HeaderMapExt};
 use http::{header, header::HeaderName, Extensions, HeaderMap, HeaderValue, Method};
 use serde::Serialize;
 use serde_json::Value;
@@ -90,6 +91,13 @@ where
             .map_err(|_| ())
             .expect("valid header value");
         self.headers.append(key, value);
+        self
+    }
+
+    /// Inserts a typed header to this request.
+    #[must_use]
+    pub fn typed_header<T: Header>(mut self, header: T) -> Self {
+        self.headers.typed_insert(header);
         self
     }
 

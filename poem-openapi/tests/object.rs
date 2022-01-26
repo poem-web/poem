@@ -689,7 +689,7 @@ fn issue_171() {
         async fn a(&self, _item: poem_openapi::payload::Json<SchemaItem>) {}
     }
 
-    let _ = poem_openapi::OpenApiService::new(Api, "a", "1.0");
+    let _ = poem_openapi::OpenApiService::new(Api, "a", "1.0").spec();
 }
 
 #[test]

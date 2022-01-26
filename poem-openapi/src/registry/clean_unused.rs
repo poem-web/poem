@@ -8,6 +8,9 @@ impl<'a> Document<'a> {
     fn traverse_schema(&self, used_types: &mut UsedTypes, schema_ref: &MetaSchemaRef) {
         let schema = match schema_ref {
             MetaSchemaRef::Reference(name) => {
+                if used_types.contains(name) {
+                    return;
+                }
                 used_types.insert(*name);
                 self.registry
                     .schemas
