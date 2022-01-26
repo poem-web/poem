@@ -149,6 +149,11 @@ impl<'a> TestJsonValue<'a> {
         assert!(self.0.is_null())
     }
 
+    /// Asserts that the value is not null.
+    pub fn assert_not_null(&self) {
+        assert!(!self.0.is_null())
+    }
+
     /// Deserialize the value to `T`.
     pub fn deserialize<T: DeserializeOwned>(&self) -> T {
         serde_json::from_value(self.0.clone()).expect("valid json")

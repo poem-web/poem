@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.47] 2022-1-26
+
+- Add `TestJsonValue::assert_not_null` method.
+
 # [1.2.46] 2022-1-26
 
 - Add `TestRequestBuilder::typed_header` method.
