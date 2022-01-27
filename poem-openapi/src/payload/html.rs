@@ -9,11 +9,11 @@ use crate::{
     ApiResponse,
 };
 
-/// A UTF8 string payload.
+/// A UTF8 html payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct PlainText<T>(pub T);
+pub struct Html<T>(pub T);
 
-impl<T> Deref for PlainText<T> {
+impl<T> Deref for Html<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -21,14 +21,14 @@ impl<T> Deref for PlainText<T> {
     }
 }
 
-impl<T> DerefMut for PlainText<T> {
+impl<T> DerefMut for Html<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<T: Send> Payload for PlainText<T> {
-    const CONTENT_TYPE: &'static str = "text/plain";
+impl<T: Send> Payload for Html<T> {
+    const CONTENT_TYPE: &'static str = "text/html";
 
     fn schema_ref() -> MetaSchemaRef {
         String::schema_ref()
@@ -36,7 +36,7 @@ impl<T: Send> Payload for PlainText<T> {
 }
 
 #[poem::async_trait]
-impl ParsePayload for PlainText<String> {
+impl ParsePayload for Html<String> {
     const IS_REQUIRED: bool = false;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
@@ -44,13 +44,13 @@ impl ParsePayload for PlainText<String> {
     }
 }
 
-impl<T: Into<String> + Send> IntoResponse for PlainText<T> {
+impl<T: Into<String> + Send> IntoResponse for Html<T> {
     fn into_response(self) -> Response {
-        self.0.into().into_response()
+        poem::web::Html(self.0.into()).into_response()
     }
 }
 
-impl<T: Into<String> + Send> ApiResponse for PlainText<T> {
+impl<T: Into<String> + Send> ApiResponse for Html<T> {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
@@ -68,4 +68,4 @@ impl<T: Into<String> + Send> ApiResponse for PlainText<T> {
     fn register(_registry: &mut Registry) {}
 }
 
-impl_apirequest_for_payload!(PlainText<String>);
+impl_apirequest_for_payload!(Html<String>);
