@@ -21,6 +21,7 @@ rapidoc = []
 redoc = []
 email = ["email_address"]
 hostname = ["hostname-validator"]
+static-files = ["poem/static-files"]
 
 [dependencies]
 poem-openapi-derive = { path = "../poem-openapi-derive", version = "1.2.47" }

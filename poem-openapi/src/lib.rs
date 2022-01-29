@@ -101,6 +101,7 @@
 //! | hostname   | Support for hostname string |
 //! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
 //! | url        | Integrate with the [`url` crate](https://crates.io/crates/url) |
+//! | static-files | Support for static file response |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
@@ -118,6 +119,7 @@ pub mod param;
 pub mod payload;
 #[doc(hidden)]
 pub mod registry;
+pub mod response;
 pub mod types;
 #[doc(hidden)]
 pub mod validation;
