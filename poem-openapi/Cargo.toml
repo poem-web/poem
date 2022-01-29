@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "1.2.49"
+version = "1.2.50"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "OpenAPI support for Poem."
