@@ -109,6 +109,9 @@ impl StaticFileRequest {
         prefer_utf8: bool,
     ) -> Result<StaticFileResponse, StaticFileError> {
         let path = path.as_ref();
+        if !path.exists() {
+            return Err(StaticFileError::NotFound);
+        }
         let guess = mime_guess::from_path(path);
         let mut file = std::fs::File::open(path)?;
         let metadata = file.metadata()?;

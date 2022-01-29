@@ -732,8 +732,8 @@ pub enum StaticFileError {
     Forbidden(String),
 
     /// File not found
-    #[error("not found: {0}")]
-    NotFound(String),
+    #[error("not found")]
+    NotFound,
 
     /// Precondition failed
     #[error("precondition failed")]
@@ -757,7 +757,7 @@ impl ResponseError for StaticFileError {
             StaticFileError::MethodNotAllowed(_) => StatusCode::METHOD_NOT_ALLOWED,
             StaticFileError::InvalidPath => StatusCode::BAD_REQUEST,
             StaticFileError::Forbidden(_) => StatusCode::FORBIDDEN,
-            StaticFileError::NotFound(_) => StatusCode::NOT_FOUND,
+            StaticFileError::NotFound => StatusCode::NOT_FOUND,
             StaticFileError::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
             StaticFileError::RangeNotSatisfiable { .. } => StatusCode::RANGE_NOT_SATISFIABLE,
             StaticFileError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,

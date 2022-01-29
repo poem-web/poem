@@ -169,7 +169,7 @@ impl Endpoint for StaticFilesEndpoint {
         }
 
         if !file_path.exists() {
-            return Err(StaticFileError::NotFound(file_path.display().to_string()).into());
+            return Err(StaticFileError::NotFound.into());
         }
 
         if file_path.is_file() {
@@ -216,7 +216,7 @@ impl Endpoint for StaticFilesEndpoint {
                     .header(header::CONTENT_TYPE, mime::TEXT_HTML_UTF_8.as_ref())
                     .body(Body::from_string(html)))
             } else {
-                Err(StaticFileError::NotFound(file_path.display().to_string()).into())
+                Err(StaticFileError::NotFound.into())
             }
         }
     }

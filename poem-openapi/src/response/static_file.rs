@@ -90,7 +90,7 @@ impl From<Result<poem::web::StaticFileResponse, StaticFileError>> for StaticFile
             Ok(poem::web::StaticFileResponse::NotModified) => StaticFileResponse::NotModified,
             Err(
                 StaticFileError::MethodNotAllowed(_)
-                | StaticFileError::NotFound(_)
+                | StaticFileError::NotFound
                 | StaticFileError::InvalidPath
                 | StaticFileError::Forbidden(_),
             ) => StaticFileResponse::NotFound,
