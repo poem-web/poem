@@ -169,5 +169,5 @@ pub mod __private {
     pub use serde;
     pub use serde_json;
 
-    pub use crate::{base::UrlQuery, payload::ContentTypeTable};
+    pub use crate::base::UrlQuery;
 }

@@ -51,7 +51,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let description = get_description(&args.attrs)?;
     let description = optional_literal(&description);
 
-    let mut content_types = Vec::new();
     let mut from_requests = Vec::new();
     let mut content = Vec::new();
     let mut schemas = Vec::new();
@@ -67,7 +66,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
 
-    for (idx, variant) in e.iter().enumerate() {
+    for variant in e {
         let item_ident = &variant.ident;
 
         match variant.fields.len() {
@@ -85,12 +84,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     }
                     None => quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
                 };
-                content_types.push(content_type.clone());
                 from_requests.push(quote! {
-                    ::std::option::Option::Some(#idx) => {
-                        ::std::result::Result::Ok(#ident::#item_ident(
-                            <#payload_ty as #crate_name::payload::ParsePayload>::from_request(request, body).await?
-                        ))
+                    if let ::std::result::Result::Ok(content_type2) = #crate_name::__private::mime::Mime::from_str(#content_type) {
+                        if content_type2 == content_type  {
+                            return ::std::result::Result::Ok(#ident::#item_ident(
+                                <#payload_ty as #crate_name::payload::ParsePayload>::from_request(request, body).await?
+                            ));
+                        }
                     }
                 });
                 content.push(quote! {
@@ -135,18 +135,15 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     body: &mut #crate_name::__private::poem::RequestBody,
                     _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
                 ) -> #crate_name::__private::poem::Result<Self> {
+                    use ::std::str::FromStr;
+
                     match request.content_type() {
                         ::std::option::Option::Some(content_type) => {
-                            let table = #crate_name::__private::ContentTypeTable::new(&[#(#content_types),*]);
-                            match table.matches(content_type) {
-                                #(#from_requests)*
-                                _ => {
-                                    ::std::result::Result::Err(
-                                        ::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
-                                            content_type: ::std::string::ToString::to_string(content_type),
-                                    }))
-                                }
-                            }
+                            #(#from_requests)*
+                            ::std::result::Result::Err(
+                                ::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
+                                    content_type: ::std::string::ToString::to_string(content_type),
+                            }))
                         }
                         ::std::option::Option::None => {
                             ::std::result::Result::Err(::std::convert::Into::into(#crate_name::error::ContentTypeError::ExpectContentType))

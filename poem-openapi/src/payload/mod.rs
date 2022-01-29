@@ -8,9 +8,6 @@ mod json;
 mod plain_text;
 mod response;
 
-use std::str::FromStr;
-
-use mime::Mime;
 use poem::{Request, RequestBody, Result};
 
 pub use self::{
@@ -40,46 +37,4 @@ pub trait ParsePayload: Sized {
 
     /// Parse the payload object from the HTTP request.
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self>;
-}
-
-#[doc(hidden)]
-pub struct ContentTypeTable {
-    items: Vec<(Mime, usize)>,
-}
-
-#[doc(hidden)]
-impl ContentTypeTable {
-    pub fn new(types: &[&str]) -> Self {
-        let mut items = types
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| (Mime::from_str(s).unwrap(), idx))
-            .collect::<Vec<_>>();
-
-        items.sort_by_key(|(x, _)| {
-            let mut n = 0;
-            if x.type_() == mime::STAR {
-                n += 1;
-            }
-            if x.subtype() == mime::STAR {
-                n += 2;
-            }
-            n
-        });
-
-        ContentTypeTable { items }
-    }
-
-    pub fn matches(&self, content_type: &str) -> Option<usize> {
-        for (mime, idx) in &self.items {
-            if let Ok(x) = Mime::from_str(content_type) {
-                if (x.type_() == mime.type_() || mime.type_() == mime::STAR)
-                    && (x.subtype() == mime.subtype() || mime.subtype() == mime::STAR)
-                {
-                    return Some(*idx);
-                }
-            }
-        }
-        None
-    }
 }
