@@ -250,7 +250,7 @@ async fn payload_request() {
                 .body("100"),
         )
         .await;
-    assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+    assert_eq!(resp.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }
 
 #[tokio::test]
