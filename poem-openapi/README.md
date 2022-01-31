@@ -50,17 +50,18 @@ important business implementations.
 
 To avoid compiling unused dependencies, Poem gates certain features, some of which are disabled by default:
 
-| Feature      | Description                                                           |
-|--------------|-----------------------------------------------------------------------|
-| chrono       | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). |
-| swagger-ui   | Add swagger UI support                                                |
-| rapidoc      | Add RapiDoc UI support                                                |
-| redoc        | Add Redoc UI support                                                  |
-| email        | Support for email address string                                      |
-| hostname     | Support for hostname string                                           |
-| uuid         | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)      |
-| url          | Integrate with the [`url` crate](https://crates.io/crates/url)        |
-| static-files | Support for static file response                                      |
+| Feature    | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). |
+| swagger-ui | Add swagger UI support                                                |
+| rapidoc    | Add RapiDoc UI support                                                |
+| redoc      | Add Redoc UI support                                                  |
+| email      | Support for email address string                                      |
+| hostname   | Support for hostname string                                           |
+| uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)      |
+| url        | Integrate with the [`url` crate](https://crates.io/crates/url)        |
+| bson       | Integrate with the [`bson` crate](https://crates.io/crates/bson)      |
+| static-files | Support for static file response                                    |
 
 ## Safety
 

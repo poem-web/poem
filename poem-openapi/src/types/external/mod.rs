@@ -18,3 +18,5 @@ mod url;
 #[cfg(feature = "uuid")]
 mod uuid;
 mod vec;
+#[cfg(feature = "bson")]
+mod bson;
