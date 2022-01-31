@@ -241,6 +241,7 @@
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |websocket         | Support for WebSocket          |
 //! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
+//! | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate. |
 //! | i18n          | Support for internationalization |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
