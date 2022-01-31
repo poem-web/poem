@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.51] 2022-1-31
+
+- Fix unsupported media-type (415) instead of method not allowed (405). [#188](https://github.com/poem-web/poem/pull/188)
+- Integrate with `bson::oid::ObjectId`. [#185](https://github.com/poem-web/poem/pull/185/) 
+
 # [1.2.50] 2022-1-29
 
 - Make the `ApiRequest` macro exactly match the mime type.

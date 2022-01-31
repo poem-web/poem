@@ -1,8 +1,8 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
+use bson::oid::ObjectId;
 use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
-use bson::oid::ObjectId;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
@@ -20,11 +20,11 @@ impl Type for ObjectId {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "object(ObjectID)".into()
+        "string(oid)".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("object", "oid")))
+        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "oid")))
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
@@ -34,7 +34,7 @@ impl Type for ObjectId {
     fn raw_element_iter<'a>(
         &'a self,
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-        todo!()
+        Box::new(self.as_raw_value().into_iter())
     }
 }
 
