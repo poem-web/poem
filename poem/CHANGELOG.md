@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.50] 2022-1-31
+
+- Replace `SystemTime` with `Instant` in tracing middleware. [#187](https://github.com/poem-web/poem/pull/187)
+
 # [1.2.49] 2022-1-29
 
 - Make the `StaticFileRequest::create_response` method correctly return `Err(StaticFileError::NotFound)` when the specified file does not exist.
