@@ -1,5 +1,7 @@
 mod array;
 mod bool;
+#[cfg(feature = "bson")]
+mod bson;
 mod btreemap;
 mod btreeset;
 #[cfg(feature = "chrono")]
@@ -18,5 +20,3 @@ mod url;
 #[cfg(feature = "uuid")]
 mod uuid;
 mod vec;
-#[cfg(feature = "bson")]
-mod bson;
