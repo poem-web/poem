@@ -585,8 +585,8 @@ pub enum ParseFormError {
 impl ResponseError for ParseFormError {
     fn status(&self) -> StatusCode {
         match self {
-            ParseFormError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
-            ParseFormError::ContentTypeRequired => StatusCode::BAD_REQUEST,
+            ParseFormError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseFormError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             ParseFormError::UrlDecode(_) => StatusCode::BAD_REQUEST,
         }
     }
@@ -644,8 +644,8 @@ pub enum ParseMultipartError {
 impl ResponseError for ParseMultipartError {
     fn status(&self) -> StatusCode {
         match self {
-            ParseMultipartError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
-            ParseMultipartError::ContentTypeRequired => StatusCode::BAD_REQUEST,
+            ParseMultipartError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseMultipartError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             ParseMultipartError::Multipart(_) => StatusCode::BAD_REQUEST,
             ParseMultipartError::Utf8(_) => StatusCode::BAD_REQUEST,
             ParseMultipartError::Io(_) => StatusCode::BAD_REQUEST,
