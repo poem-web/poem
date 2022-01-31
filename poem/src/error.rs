@@ -585,8 +585,8 @@ pub enum ParseFormError {
 impl ResponseError for ParseFormError {
     fn status(&self) -> StatusCode {
         match self {
-            ParseFormError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
-            ParseFormError::ContentTypeRequired => StatusCode::BAD_REQUEST,
+            ParseFormError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseFormError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             ParseFormError::UrlDecode(_) => StatusCode::BAD_REQUEST,
         }
     }
@@ -644,8 +644,8 @@ pub enum ParseMultipartError {
 impl ResponseError for ParseMultipartError {
     fn status(&self) -> StatusCode {
         match self {
-            ParseMultipartError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
-            ParseMultipartError::ContentTypeRequired => StatusCode::BAD_REQUEST,
+            ParseMultipartError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseMultipartError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             ParseMultipartError::Multipart(_) => StatusCode::BAD_REQUEST,
             ParseMultipartError::Utf8(_) => StatusCode::BAD_REQUEST,
             ParseMultipartError::Io(_) => StatusCode::BAD_REQUEST,
@@ -732,8 +732,8 @@ pub enum StaticFileError {
     Forbidden(String),
 
     /// File not found
-    #[error("not found: {0}")]
-    NotFound(String),
+    #[error("not found")]
+    NotFound,
 
     /// Precondition failed
     #[error("precondition failed")]
@@ -757,7 +757,7 @@ impl ResponseError for StaticFileError {
             StaticFileError::MethodNotAllowed(_) => StatusCode::METHOD_NOT_ALLOWED,
             StaticFileError::InvalidPath => StatusCode::BAD_REQUEST,
             StaticFileError::Forbidden(_) => StatusCode::FORBIDDEN,
-            StaticFileError::NotFound(_) => StatusCode::NOT_FOUND,
+            StaticFileError::NotFound => StatusCode::NOT_FOUND,
             StaticFileError::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
             StaticFileError::RangeNotSatisfiable { .. } => StatusCode::RANGE_NOT_SATISFIABLE,
             StaticFileError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,

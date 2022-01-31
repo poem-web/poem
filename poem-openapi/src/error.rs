@@ -65,7 +65,7 @@ pub enum ContentTypeError {
 
 impl ResponseError for ContentTypeError {
     fn status(&self) -> StatusCode {
-        StatusCode::METHOD_NOT_ALLOWED
+        StatusCode::UNSUPPORTED_MEDIA_TYPE
     }
 }
 

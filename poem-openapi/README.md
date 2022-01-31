@@ -60,7 +60,8 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | hostname   | Support for hostname string                                           |
 | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)      |
 | url        | Integrate with the [`url` crate](https://crates.io/crates/url)        |
-| bson        | Integrate with the [`bson` crate](https://crates.io/crates/bson)        |
+| bson       | Integrate with the [`bson` crate](https://crates.io/crates/bson)      |
+| static-files | Support for static file response                                    |
 
 ## Safety
 
