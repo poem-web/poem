@@ -67,6 +67,7 @@ which are disabled by default:
 | tower-compat  | Adapters for `tower::Layer` and `tower::Service`.                                         |
 | websocket     | Support for WebSocket                                                                     |
 | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.                     |
+| eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate.        |
 | i18n          | Support for internationalization                                                          |
 
 ## Safety

@@ -45,6 +45,8 @@ enum ErrorSource {
     BoxedError(Box<dyn StdError + Send + Sync>),
     #[cfg(feature = "anyhow")]
     Anyhow(anyhow::Error),
+    #[cfg(feature = "eyre06")]
+    Eyre06(eyre06::Report),
 }
 
 impl Debug for ErrorSource {
@@ -53,6 +55,8 @@ impl Debug for ErrorSource {
             ErrorSource::BoxedError(err) => Debug::fmt(err, f),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => Debug::fmt(err, f),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => Debug::fmt(err, f),
         }
     }
 }
@@ -200,6 +204,8 @@ impl Display for Error {
             ErrorSource::BoxedError(err) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => Display::fmt(err, f),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => Display::fmt(err, f),
         }
     }
 }
@@ -244,12 +250,32 @@ impl From<anyhow::Error> for Error {
     }
 }
 
+#[cfg(feature = "eyre06")]
+impl From<eyre06::Error> for Error {
+    fn from(err: eyre06::Error) -> Self {
+        Error {
+            as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
+            source: ErrorSource::Eyre06(err),
+        }
+    }
+}
+
 #[cfg(feature = "anyhow")]
 impl From<(StatusCode, anyhow::Error)> for Error {
     fn from((status, err): (StatusCode, anyhow::Error)) -> Self {
         Error {
             as_response: AsResponse::from_status(status),
             source: ErrorSource::Anyhow(err),
+        }
+    }
+}
+
+#[cfg(feature = "eyre06")]
+impl From<(StatusCode, eyre06::Report)> for Error {
+    fn from((status, err): (StatusCode, eyre06::Report)) -> Self {
+        Error {
+            as_response: AsResponse::from_status(status),
+            source: ErrorSource::Eyre06(err),
         }
     }
 }
@@ -303,6 +329,8 @@ impl Error {
             ErrorSource::BoxedError(err) => err.downcast_ref::<T>(),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => err.downcast_ref::<T>(),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => err.downcast_ref::<T>(),
         }
     }
 
@@ -327,6 +355,14 @@ impl Error {
                     source: ErrorSource::Anyhow(err),
                 }),
             },
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => match err.downcast::<T>() {
+                Ok(err) => Ok(err),
+                Err(err) => Err(Error {
+                    as_response,
+                    source: ErrorSource::Eyre06(err),
+                }),
+            },
         }
     }
 
@@ -337,6 +373,8 @@ impl Error {
             ErrorSource::BoxedError(err) => err.is::<T>(),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => err.is::<T>(),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => err.is::<T>(),
         }
     }
 
@@ -913,6 +951,19 @@ mod tests {
     fn test_anyhow_error() {
         let anyhow_err: anyhow::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
         let err: Error = Error::from((StatusCode::BAD_GATEWAY, anyhow_err));
+        assert!(err.is::<IoError>());
+        assert_eq!(
+            err.downcast_ref::<IoError>().unwrap().kind(),
+            ErrorKind::AlreadyExists
+        );
+        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[cfg(feature = "eyre6")]
+    #[test]
+    fn test_eyre6_error() {
+        let eyre6_err: eyre6::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
+        let err: Error = Error::from((StatusCode::BAD_GATEWAY, eyre6_err));
         assert!(err.is::<IoError>());
         assert_eq!(
             err.downcast_ref::<IoError>().unwrap().kind(),
