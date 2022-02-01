@@ -21,7 +21,7 @@ categories = [
 default = []
 websocket = ["tokio-tungstenite", "sha1", "base64"]
 multipart = ["multer", "mime"]
-rustls = ["tokio-rustls"]
+rustls = ["tokio-rustls", "rustls-pemfile"]
 native-tls = ["tokio-native-tls"]
 sse = []
 static-files = ["httpdate", "mime", "mime_guess", "tokio/io-util", "tokio/fs"]
@@ -63,7 +63,8 @@ thiserror = "1.0.30"
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.15.0", optional = true }
-tokio-rustls = { version = "0.22.0", optional = true }
+tokio-rustls = { version = "0.23.2", optional = true }
+rustls-pemfile = { version = "0.2.1", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
 chrono = { version = "0.4.19", optional = true }
@@ -100,7 +101,6 @@ eyre06 = { package = "eyre", version = "0.6", optional = true }
 [dev-dependencies]
 async-stream = "0.3.2"
 tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
-webpki = "0.21.4"
 
 [package.metadata.docs.rs]
 all-features = true
