@@ -311,7 +311,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
 }
 
 impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
-    type Endpoint = BoxEndpoint<'static, Response>;
+    type Endpoint = BoxEndpoint<'static>;
 
     fn into_endpoint(self) -> Self::Endpoint {
         async fn extract_query(mut req: Request) -> Result<Request> {

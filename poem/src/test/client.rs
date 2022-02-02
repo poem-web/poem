@@ -1,6 +1,6 @@
 use http::{header, header::HeaderName, HeaderMap, HeaderValue, Method};
 
-use crate::{endpoint::BoxEndpoint, test::TestRequestBuilder, Endpoint, Response};
+use crate::{test::TestRequestBuilder, Endpoint};
 
 macro_rules! impl_methods {
     ($($(#[$docs:meta])* ($name:ident, $method:ident)),*) => {
@@ -14,7 +14,7 @@ macro_rules! impl_methods {
 }
 
 /// A client for testing.
-pub struct TestClient<E = BoxEndpoint<'static, Response>> {
+pub struct TestClient<E> {
     pub(crate) ep: E,
     pub(crate) default_headers: HeaderMap,
 }

@@ -47,7 +47,7 @@ use crate::{
 /// ```
 #[derive(Default)]
 pub struct RouteDomain {
-    tree: Trie<BoxEndpoint<'static, Response>>,
+    tree: Trie<BoxEndpoint<'static>>,
 }
 
 impl RouteDomain {

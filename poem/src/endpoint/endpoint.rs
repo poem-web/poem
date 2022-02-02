@@ -200,7 +200,7 @@ impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
 
 /// An owned dynamically typed `Endpoint` for use in cases where you can’t
 /// statically type your result or need to add some indirection.
-pub type BoxEndpoint<'a, T> = Box<dyn Endpoint<Output = T> + 'a>;
+pub type BoxEndpoint<'a, T = Response> = Box<dyn Endpoint<Output = T> + 'a>;
 
 /// Extension trait for [`Endpoint`].
 pub trait EndpointExt: IntoEndpoint {

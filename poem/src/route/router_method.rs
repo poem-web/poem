@@ -51,7 +51,7 @@ use crate::{
 /// ```
 #[derive(Default)]
 pub struct RouteMethod {
-    methods: Vec<(Method, BoxEndpoint<'static, Response>)>,
+    methods: Vec<(Method, BoxEndpoint<'static>)>,
 }
 
 impl RouteMethod {

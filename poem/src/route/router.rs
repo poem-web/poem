@@ -158,7 +158,7 @@ use crate::{
 /// ```
 #[derive(Default)]
 pub struct Route {
-    tree: RadixTree<BoxEndpoint<'static, Response>>,
+    tree: RadixTree<BoxEndpoint<'static>>,
 }
 
 impl Route {
