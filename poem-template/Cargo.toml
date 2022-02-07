@@ -19,3 +19,4 @@ categories = [
 ]
 
 [dependencies]
+poem-template-parser = { path = "../poem-template/parser", version = "0.1.0" }

@@ -1,5 +1,5 @@
 [package]
-name = "parser"
+name = "poem-template-parser"
 version = "0.1.0"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
@@ -20,3 +20,4 @@ categories = [
 
 [dependencies]
 nom = "7.1.0"
+nom_locate = "4.0.0"
