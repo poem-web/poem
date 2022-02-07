@@ -80,7 +80,7 @@ pub enum Expr {
 pub struct IfNode {
     pub condition: Spanned<Expr>,
     pub then: Spanned<Block>,
-    pub r#else: Spanned<Block>,
+    pub r#else: Option<Spanned<Block>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -88,6 +88,7 @@ pub enum Node {
     Raw(String),
     Expr(Expr),
     If(IfNode),
+    Block(Block),
 }
 
 #[derive(Debug, Clone, PartialEq)]
