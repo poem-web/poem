@@ -62,3 +62,24 @@ pub(crate) fn ident(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<String>>
         ),
     )(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sp() {
+        check!(sp, " \t\r\n", ());
+    }
+
+    #[test]
+    fn test_ident() {
+        check_spanned!(ident, "a", "a");
+        check_spanned!(ident, "abc", "abc");
+        check_spanned!(ident, "ABC", "ABC");
+        check_spanned!(ident, "a1", "a1");
+        check_spanned!(ident, "A1", "A1");
+        check_spanned!(ident, "a_b", "a_b");
+        check_spanned!(ident, "_ab", "_ab");
+    }
+}

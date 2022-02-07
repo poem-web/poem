@@ -63,18 +63,4 @@ impl<T> Spanned<T> {
             value: f(self.value),
         }
     }
-
-    pub fn wrap<R>(self, f: impl FnOnce(Spanned<T>) -> R) -> Spanned<R> {
-        Spanned {
-            span: self.span,
-            value: f(self),
-        }
-    }
-
-    pub fn spanned<R>(&self, value: R) -> Spanned<R> {
-        Spanned {
-            span: self.span,
-            value,
-        }
-    }
 }

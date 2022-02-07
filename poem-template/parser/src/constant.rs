@@ -82,3 +82,39 @@ pub(crate) fn string(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<String>
         tag("\""),
     ))(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bool() {
+        check_spanned!(boolean, "true", true);
+        check_spanned!(boolean, "false", false);
+        check_spanned!(boolean, "True", true);
+        check_spanned!(boolean, "False", false);
+        check_spanned!(boolean, "TRUE", true);
+        check_spanned!(boolean, "FALSE", false);
+    }
+
+    #[test]
+    fn test_integer() {
+        check_spanned!(integer, "123", 123);
+        check_spanned!(integer, "0123", 123);
+        check_spanned!(integer, "230", 230);
+    }
+
+    #[test]
+    fn test_float() {
+        check_spanned!(float, "123.12", 123.12);
+        check_spanned!(float, "0123.45", 123.45);
+        check_spanned!(float, "12.0e+2", 1200.0);
+        check_spanned!(float, "12.0e-2", 0.12);
+    }
+
+    #[test]
+    fn test_string() {
+        check_spanned!(string, r#""abc""#, "abc");
+        check_spanned!(string, r#""\nab\rc""#, "\nab\rc");
+    }
+}

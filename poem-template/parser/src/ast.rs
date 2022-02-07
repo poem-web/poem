@@ -1,6 +1,6 @@
 use crate::Spanned;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Null,
     Boolean(bool),
@@ -9,20 +9,20 @@ pub enum Literal {
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FilterExpr {
     pub expr: Spanned<Box<Expr>>,
     pub name: Spanned<String>,
     pub arguments: Vec<Spanned<Box<Expr>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IndexExpr {
     pub expr: Spanned<Box<Expr>>,
     pub index: Spanned<Box<Expr>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AttrExpr {
     pub expr: Spanned<Box<Expr>>,
     pub attr: Spanned<String>,
@@ -45,7 +45,7 @@ pub enum BinaryOperator {
     Rem,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BinaryExpr {
     pub op: Spanned<BinaryOperator>,
     pub lhs: Spanned<Box<Expr>>,
@@ -58,13 +58,13 @@ pub enum UnaryOperator {
     Not,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnaryExpr {
     pub op: Spanned<UnaryOperator>,
     pub expr: Spanned<Box<Expr>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Literal(Literal),
     Variable(String),
@@ -76,21 +76,21 @@ pub enum Expr {
     Group(Box<Expr>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IfNode {
     pub condition: Spanned<Expr>,
     pub then: Spanned<Block>,
     pub r#else: Spanned<Block>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Raw(String),
     Expr(Expr),
     If(IfNode),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Block {
     pub nodes: Vec<Spanned<Node>>,
 }
