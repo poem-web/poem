@@ -8,5 +8,8 @@ mod expr;
 mod node;
 mod span;
 
-pub use ast::{Block, Expr, FilterExpr, IfNode, Literal, Node};
+pub use ast::{
+    BinaryExpr, BinaryOperator, Block, Expr, FilterExpr, IfNode, Literal, Node, UnaryExpr,
+    UnaryOperator,
+};
 pub use span::{LineColumn, Span, Spanned};

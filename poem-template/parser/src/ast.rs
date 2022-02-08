@@ -66,14 +66,14 @@ pub struct UnaryExpr {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Literal(Literal),
-    Variable(String),
-    Binary(BinaryExpr),
-    Unary(UnaryExpr),
-    Index(IndexExpr),
-    Attr(AttrExpr),
-    Filter(FilterExpr),
-    Group(Box<Expr>),
+    Literal(Spanned<Literal>),
+    Variable(Spanned<String>),
+    Binary(Spanned<BinaryExpr>),
+    Unary(Spanned<UnaryExpr>),
+    Index(Spanned<IndexExpr>),
+    Attr(Spanned<AttrExpr>),
+    Filter(Spanned<FilterExpr>),
+    Group(Spanned<Box<Expr>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -84,11 +84,18 @@ pub struct IfNode {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ForeachNode {
+    pub var: Spanned<String>,
+    pub source: Spanned<Expr>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Node {
-    Raw(String),
-    Expr(Expr),
-    If(IfNode),
-    Block(Block),
+    Raw(Spanned<String>),
+    Expr(Spanned<Expr>),
+    If(Spanned<IfNode>),
+    Foreach(Spanned<ForeachNode>),
+    Block(Spanned<Block>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

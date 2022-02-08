@@ -19,32 +19,53 @@ use crate::{
 fn literal(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<Expr>> {
     context(
         "literal",
-        map(
-            alt((
-                position(value(Literal::Null, tag_no_case("null"))),
-                map(boolean, |s| s.map(Literal::Boolean)),
-                map(float, |s| s.map(Literal::Float)),
-                map(integer, |s| s.map(Literal::Integer)),
-                map(string, |s| s.map(Literal::String)),
-            )),
-            |literal| literal.map(Expr::Literal),
-        ),
+        alt((
+            map(position(tag_no_case("null")), |s| Spanned {
+                span: s.span,
+                value: Expr::Literal(s.map(|_| Literal::Null)),
+            }),
+            map(boolean, |s| Spanned {
+                span: s.span,
+                value: Expr::Literal(s.map(Literal::Boolean)),
+            }),
+            map(float, |s| Spanned {
+                span: s.span,
+                value: Expr::Literal(s.map(Literal::Float)),
+            }),
+            map(integer, |s| Spanned {
+                span: s.span,
+                value: Expr::Literal(s.map(Literal::Integer)),
+            }),
+            map(string, |s| Spanned {
+                span: s.span,
+                value: Expr::Literal(s.map(Literal::String)),
+            }),
+        )),
     )(input)
 }
 
 fn variable(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<Expr>> {
-    context("variable", map(ident, |s| s.map(Expr::Variable)))(input)
+    context(
+        "variable",
+        map(ident, |s| Spanned {
+            span: s.span,
+            value: Expr::Variable(s),
+        }),
+    )(input)
 }
 
 fn expr_parens(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<Expr>> {
     map(
-        tuple((char('('), sp, expr, sp, char(')'))),
-        |(_, _, expr, _, _)| expr.map(|expr| Expr::Group(Box::new(expr))),
+        tuple((position(char('(')), sp, expr, sp, position(char(')')))),
+        |(s, _, expr, _, e)| Spanned {
+            span: Span::new(s.span.start, e.span.end),
+            value: Expr::Group(expr.map(Box::new)),
+        },
     )(input)
 }
 
 fn expr_primitive(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<Expr>> {
-    let expr = alt((expr_parens, variable, literal));
+    let expr = alt((expr_parens, expr_unary, variable, literal));
     context("expr_primitive", delimited(sp, expr, sp))(input)
 }
 
@@ -53,12 +74,18 @@ fn expr_unary(input: LocatedSpan) -> IResult<LocatedSpan, Spanned<Expr>> {
         value(UnaryOperator::Not, tag_no_case("not")),
         value(UnaryOperator::Neg, char('-')),
     )));
-    map(separated_pair(op, sp, expr), |(op, expr)| Spanned {
-        span: Span::new(op.span.start, expr.span.end),
-        value: Expr::Unary(UnaryExpr {
-            op,
-            expr: expr.map(Box::new),
-        }),
+    map(separated_pair(op, sp, expr), |(op, expr)| {
+        let span = Span::new(op.span.start, expr.span.end);
+        Spanned {
+            span,
+            value: Expr::Unary(Spanned {
+                span,
+                value: UnaryExpr {
+                    op,
+                    expr: expr.map(Box::new),
+                },
+            }),
+        }
     })(input)
 }
 
@@ -126,13 +153,19 @@ fn parse_expr(
     expr: Spanned<Expr>,
     rem: Vec<(Spanned<BinaryOperator>, Spanned<Expr>)>,
 ) -> Spanned<Expr> {
-    rem.into_iter().fold(expr, |lhs, (op, rhs)| Spanned {
-        span: Span::new(lhs.span.start, rhs.span.end),
-        value: Expr::Binary(BinaryExpr {
-            op,
-            lhs: lhs.map(Box::new),
-            rhs: rhs.map(Box::new),
-        }),
+    rem.into_iter().fold(expr, |lhs, (op, rhs)| {
+        let span = Span::new(lhs.span.start, rhs.span.end);
+        Spanned {
+            span,
+            value: Expr::Binary(Spanned {
+                span,
+                value: BinaryExpr {
+                    op,
+                    lhs: lhs.map(Box::new),
+                    rhs: rhs.map(Box::new),
+                },
+            }),
+        }
     })
 }
 
@@ -147,20 +180,40 @@ mod tests {
 
     #[test]
     fn test_literal() {
-        check_spanned!(literal, r#"true"#, Expr::Literal(Literal::Boolean(true)));
-        check_spanned!(literal, r#"0"#, Expr::Literal(Literal::Integer(0)));
-        check_spanned!(literal, r#"127"#, Expr::Literal(Literal::Integer(127)));
-        check_spanned!(literal, r#"-128"#, Expr::Literal(Literal::Integer(-128)));
+        check_spanned!(
+            literal,
+            r#"true"#,
+            Expr::Literal(Spanned::new(Literal::Boolean(true)))
+        );
+        check_spanned!(
+            literal,
+            r#"0"#,
+            Expr::Literal(Spanned::new(Literal::Integer(0)))
+        );
+        check_spanned!(
+            literal,
+            r#"127"#,
+            Expr::Literal(Spanned::new(Literal::Integer(127)))
+        );
+        check_spanned!(
+            literal,
+            r#"-128"#,
+            Expr::Literal(Spanned::new(Literal::Integer(-128)))
+        );
         check_spanned!(
             literal,
             r#""abc""#,
-            Expr::Literal(Literal::String("abc".to_string()))
+            Expr::Literal(Spanned::new(Literal::String("abc".to_string())))
         );
     }
 
     #[test]
     fn test_variable() {
-        check_spanned!(variable, r#"abc"#, Expr::Variable("abc".to_string()));
+        check_spanned!(
+            variable,
+            r#"abc"#,
+            Expr::Variable(Spanned::new("abc".to_string()))
+        );
     }
 
     #[test]
@@ -168,29 +221,37 @@ mod tests {
         check_spanned!(
             expr,
             r#"2000+4/2"#,
-            Expr::Binary(BinaryExpr {
+            Expr::Binary(Spanned::new(BinaryExpr {
                 op: Spanned::new(BinaryOperator::Plus),
-                lhs: Spanned::new(Box::new(Expr::Literal(Literal::Integer(2000)))),
-                rhs: Spanned::new(Box::new(Expr::Binary(BinaryExpr {
+                lhs: Spanned::new(Box::new(Expr::Literal(Spanned::new(Literal::Integer(
+                    2000
+                ))))),
+                rhs: Spanned::new(Box::new(Expr::Binary(Spanned::new(BinaryExpr {
                     op: Spanned::new(BinaryOperator::Divide),
-                    lhs: Spanned::new(Box::new(Expr::Literal(Literal::Integer(4)))),
-                    rhs: Spanned::new(Box::new(Expr::Literal(Literal::Integer(2))))
-                })))
-            })
+                    lhs: Spanned::new(Box::new(Expr::Literal(Spanned::new(Literal::Integer(4))))),
+                    rhs: Spanned::new(Box::new(Expr::Literal(Spanned::new(Literal::Integer(2)))))
+                }))))
+            }))
         );
 
         check_spanned!(
             expr,
             r#"(2000+4)/2"#,
-            Expr::Binary(BinaryExpr {
+            Expr::Binary(Spanned::new(BinaryExpr {
                 op: Spanned::new(BinaryOperator::Divide),
-                lhs: Spanned::new(Box::new(Expr::Group(Box::new(Expr::Binary(BinaryExpr {
-                    op: Spanned::new(BinaryOperator::Plus),
-                    lhs: Spanned::new(Box::new(Expr::Literal(Literal::Integer(2000)))),
-                    rhs: Spanned::new(Box::new(Expr::Literal(Literal::Integer(4))))
-                }))))),
-                rhs: Spanned::new(Box::new(Expr::Literal(Literal::Integer(2)))),
-            })
+                lhs: Spanned::new(Box::new(Expr::Group(Spanned::new(Box::new(Expr::Binary(
+                    Spanned::new(BinaryExpr {
+                        op: Spanned::new(BinaryOperator::Plus),
+                        lhs: Spanned::new(Box::new(Expr::Literal(Spanned::new(Literal::Integer(
+                            2000
+                        ))))),
+                        rhs: Spanned::new(Box::new(Expr::Literal(Spanned::new(Literal::Integer(
+                            4
+                        )))))
+                    })
+                )))))),
+                rhs: Spanned::new(Box::new(Expr::Literal(Spanned::new(Literal::Integer(2))))),
+            }))
         );
     }
 }

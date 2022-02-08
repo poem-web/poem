@@ -13,11 +13,12 @@ use crate::{LineColumn, Span, Spanned};
 
 pub(crate) type LocatedSpan<'a> = nom_locate::LocatedSpan<&'a str>;
 
-pub(crate) fn position<'a, O, E: ParseError<LocatedSpan<'a>>, F>(
+pub(crate) fn position<'a, O, E, F>(
     parser: F,
 ) -> impl FnMut(LocatedSpan<'a>) -> IResult<LocatedSpan<'a>, Spanned<O>, E>
 where
     F: Parser<LocatedSpan<'a>, O, E>,
+    E: ParseError<LocatedSpan<'a>>,
 {
     map(
         tuple((nom_locate::position, parser, nom_locate::position)),
