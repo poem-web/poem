@@ -1,15 +1,11 @@
-#[macro_use]
-mod macros;
-
 mod ast;
-mod common;
-mod constant;
-mod expr;
-mod node;
+mod error;
 mod span;
+mod tmpl_lexer;
 
 pub use ast::{
     BinaryExpr, BinaryOperator, Block, Expr, FilterExpr, IfNode, Literal, Node, UnaryExpr,
     UnaryOperator,
 };
+pub use error::LexerError;
 pub use span::{LineColumn, Span, Spanned};

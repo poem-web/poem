@@ -3,10 +3,10 @@ use crate::Spanned;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Null,
-    Boolean(bool),
-    Integer(i64),
-    Float(f64),
-    String(String),
+    Boolean(Spanned<bool>),
+    Integer(Spanned<i64>),
+    Float(Spanned<f64>),
+    String(Spanned<String>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
