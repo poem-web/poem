@@ -230,7 +230,7 @@ impl RequestBody {
 ///     Ready to accept a static file request
 /// [`StaticFileRequest`](static_file::StaticFileRequest).
 ///
-/// # Create you own extractor
+/// # Create your own extractor
 ///
 /// The following is an example of a custom token extractor, which extracts the
 /// token from the `MyToken` header.
