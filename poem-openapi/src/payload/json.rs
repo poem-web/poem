@@ -56,7 +56,7 @@ impl<T: ParseFromJSON> ParsePayload for Json<T> {
             })?
         };
 
-        let value = T::parse_from_json(value).map_err(|err| ParseJsonError {
+        let value = T::parse_from_json(Some(value)).map_err(|err| ParseJsonError {
             reason: err.into_message(),
         })?;
         Ok(Self(value))

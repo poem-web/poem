@@ -50,14 +50,15 @@ where
     K::Err: Display,
     V: ParseFromJSON,
 {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::Object(value) = value {
             let mut obj = BTreeMap::new();
             for (key, value) in value {
                 let key = key
                     .parse()
                     .map_err(|err| ParseError::custom(format!("object key: {}", err)))?;
-                let value = V::parse_from_json(value).map_err(ParseError::propagate)?;
+                let value = V::parse_from_json(Some(value)).map_err(ParseError::propagate)?;
                 obj.insert(key, value);
             }
             Ok(obj)

@@ -89,7 +89,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 if discriminator_name.is_some() {
                     from_json.push(quote! {
                         if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
-                            return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value)
+                            return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
                                 .map(Self::#item_ident)
                                 .map_err(#crate_name::types::ParseError::propagate);
                         }
@@ -97,7 +97,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 } else if !args.one_of {
                     // any of
                     from_json.push(quote! {
-                        if let ::std::option::Option::Some(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::clone::Clone::clone(&value))
+                        if let ::std::option::Option::Some(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
                             .map(Self::#item_ident)
                             .ok() {
                             return ::std::result::Result::Ok(obj);
@@ -106,7 +106,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 } else {
                     // one of
                     from_json.push(quote! {
-                        if let ::std::option::Option::Some(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::clone::Clone::clone(&value))
+                        if let ::std::option::Option::Some(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
                             .map(Self::#item_ident)
                             .ok() {
                             if res_obj.is_some() {
@@ -289,7 +289,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ParseFromJSON for #ident {
-            fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+            fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                let value = value.unwrap_or_default();
                 #parse_from_json
             }
         }

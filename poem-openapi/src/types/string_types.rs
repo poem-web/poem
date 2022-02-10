@@ -67,7 +67,8 @@ macro_rules! impl_string_types {
         }
 
         impl ParseFromJSON for $ty {
-            fn parse_from_json(value: Value) -> ParseResult<Self> {
+            fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+                let value = value.unwrap_or_default();
                 if let Value::String(value) = value {
                     let validator = $validator;
                     if !validator(&value) {

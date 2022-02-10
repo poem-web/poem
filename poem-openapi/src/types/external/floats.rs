@@ -41,15 +41,16 @@ macro_rules! impl_type_for_floats {
         }
 
         impl ParseFromJSON for $ty {
-             fn parse_from_json(value: Value) -> ParseResult<Self> {
-                if let Value::Number(n) = value {
-                    let n = n
-                        .as_f64()
-                        .ok_or_else(|| ParseError::from("invalid number"))?;
-                    Ok(n as Self)
-                } else {
-                    Err(ParseError::expected_type(value))
-                }
+             fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+                 let value = value.unwrap_or_default();
+                 if let Value::Number(n) = value {
+                     let n = n
+                         .as_f64()
+                         .ok_or_else(|| ParseError::from("invalid number"))?;
+                     Ok(n as Self)
+                 } else {
+                     Err(ParseError::expected_type(value))
+                 }
             }
         }
 

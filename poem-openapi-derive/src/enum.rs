@@ -163,7 +163,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ParseFromJSON for #ident {
-            fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> #crate_name::types::ParseResult<Self> {
+            fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> #crate_name::types::ParseResult<Self> {
+                let value = value.unwrap_or_default();
                 match &value {
                     #crate_name::__private::serde_json::Value::String(item) => match item.as_str() {
                         #(#item_to_ident,)*

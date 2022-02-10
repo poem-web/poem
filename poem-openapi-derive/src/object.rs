@@ -149,7 +149,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     if obj.contains_key(#field_name) {
                         return Err(#crate_name::types::ParseError::custom(format!("properties `{}` is read only.", #field_name)));
                     }
-                    Default::default()
+                    ::std::default::Default::default()
                 };
             });
         } else if !field.flatten {
@@ -165,8 +165,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     deserialize_fields.push(quote! {
                         #[allow(non_snake_case)]
                         let #field_ident: #field_ty = {
-                            match obj.remove(#field_name).unwrap_or_default() {
-                                #crate_name::__private::serde_json::Value::Null => #default_value,
+                            match obj.remove(#field_name) {
+                                ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Null) | ::std::option::Option::None => #default_value,
                                 value => {
                                     let value = #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(#crate_name::types::ParseError::propagate)?;
                                     #validators_checker
@@ -180,7 +180,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     deserialize_fields.push(quote! {
                         #[allow(non_snake_case)]
                         let #field_ident: #field_ty = {
-                            let value = #crate_name::types::ParseFromJSON::parse_from_json(obj.remove(#field_name).unwrap_or_default())
+                            let value = #crate_name::types::ParseFromJSON::parse_from_json(obj.remove(#field_name))
                                 .map_err(#crate_name::types::ParseError::propagate)?;
                             #validators_checker
                             value
@@ -192,7 +192,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             deserialize_fields.push(quote! {
                 #[allow(non_snake_case)]
                 let #field_ident: #field_ty = {
-                    #crate_name::types::ParseFromJSON::parse_from_json(#crate_name::__private::serde_json::Value::Object(::std::clone::Clone::clone(&obj)))
+                    #crate_name::types::ParseFromJSON::parse_from_json(::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(::std::clone::Clone::clone(&obj))))
                         .map_err(#crate_name::types::ParseError::propagate)?
                 };
             });
@@ -365,7 +365,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
-                fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                    let value = value.unwrap_or_default();
                     match value {
                         #crate_name::__private::serde_json::Value::Object(mut obj) => {
                             #(#deserialize_fields)*
@@ -379,7 +380,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
                 fn to_json(&self) -> #crate_name::__private::serde_json::Value {
-                    let mut object = ::#crate_name::__private::serde_json::Map::new();
+                    let mut object = #crate_name::__private::serde_json::Map::new();
                     #(#serialize_fields)*
                     #crate_name::__private::serde_json::Value::Object(object)
                 }
@@ -398,7 +399,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #meta
                 }
 
-                fn __internal_parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
+                fn __internal_parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
+                    let value = value.unwrap_or_default();
                     match value {
                         #crate_name::__private::serde_json::Value::Object(mut obj) => {
                             #(#deserialize_fields)*
@@ -462,7 +464,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
 
                 impl #crate_name::types::ParseFromJSON for #concrete_type {
-                    fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                    fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
                         Self::__internal_parse_from_json(value)
                     }
                 }

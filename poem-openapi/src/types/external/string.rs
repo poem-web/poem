@@ -38,7 +38,8 @@ impl Type for String {
 }
 
 impl ParseFromJSON for String {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::String(value) = value {
             Ok(value)
         } else {

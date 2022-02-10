@@ -45,12 +45,13 @@ impl<T: Type> Type for BTreeSet<T> {
 }
 
 impl<T: ParseFromJSON + Ord> ParseFromJSON for BTreeSet<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         match value {
             Value::Array(values) => {
                 let mut res = BTreeSet::new();
                 for value in values {
-                    res.insert(T::parse_from_json(value).map_err(ParseError::propagate)?);
+                    res.insert(T::parse_from_json(Some(value)).map_err(ParseError::propagate)?);
                 }
                 Ok(res)
             }

@@ -116,28 +116,24 @@ where
         }
     }
 
-    /// Sets the JSON body for this request.
+    /// Sets the JSON body for this request with `application/json` content
+    /// type.
     #[must_use]
     pub fn body_json(self, body: &impl Serialize) -> Self {
-        Self {
-            body: serde_json::to_string(&body).expect("valid json").into(),
-            ..self
-        }
+        self.content_type("application/json")
+            .body(serde_json::to_string(&body).expect("valid json"))
     }
 
     /// Sets the form data for this request with
     /// `application/x-www-form-urlencoded` content type.
     #[must_use]
     pub fn form(self, form: &impl Serialize) -> Self {
-        Self {
-            body: serde_urlencoded::to_string(form)
-                .expect("valid form data")
-                .into(),
-            ..self
-        }
+        self.content_type("application/x-www-form-urlencoded")
+            .body(serde_urlencoded::to_string(form).expect("valid form data"))
     }
 
-    /// Sets the multipart body for this request.
+    /// Sets the multipart body for this request with `multipart/form-data`
+    /// content type.
     #[must_use]
     pub fn multipart(self, form: TestForm) -> Self {
         self.content_type(format!("multipart/form-data; boundary={}", form.boundary()))

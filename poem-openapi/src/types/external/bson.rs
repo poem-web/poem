@@ -39,8 +39,8 @@ impl Type for ObjectId {
 }
 
 impl ParseFromJSON for ObjectId {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
-        let v: ObjectId = serde_json::from_value(value)?;
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let v: ObjectId = serde_json::from_value(value.unwrap_or_default())?;
         Ok(v)
     }
 }

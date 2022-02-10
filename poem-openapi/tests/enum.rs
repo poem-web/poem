@@ -48,12 +48,12 @@ fn rename_all() {
     }
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("createUser".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("createUser".to_string()))).unwrap(),
         MyEnum::CreateUser
     );
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("deleteUser".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("deleteUser".to_string()))).unwrap(),
         MyEnum::DeleteUser
     );
 
@@ -77,12 +77,12 @@ fn rename_item() {
     }
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("CreateUser".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("CreateUser".to_string()))).unwrap(),
         MyEnum::CreateUser
     );
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("delete_user".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("delete_user".to_string()))).unwrap(),
         MyEnum::DeleteUser
     );
 

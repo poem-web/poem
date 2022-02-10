@@ -5,6 +5,7 @@ mod base64_type;
 mod binary;
 mod error;
 mod external;
+mod maybe_undefined;
 mod string_types;
 
 pub mod multipart;
@@ -15,6 +16,7 @@ pub use any::Any;
 pub use base64_type::Base64;
 pub use binary::Binary;
 pub use error::{ParseError, ParseResult};
+pub use maybe_undefined::MaybeUndefined;
 use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
 #[cfg(feature = "email")]
@@ -65,7 +67,7 @@ pub trait Type: Send + Sync {
 /// Represents a type that can parsing from JSON.
 pub trait ParseFromJSON: Sized + Type {
     /// Parse from [`serde_json::Value`].
-    fn parse_from_json(value: Value) -> ParseResult<Self>;
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self>;
 
     /// Parse from JSON string.
     fn parse_from_json_string(s: &str) -> ParseResult<Self> {
@@ -194,7 +196,7 @@ impl<T: Type> Type for Arc<T> {
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Arc<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         T::parse_from_json(value)
             .map_err(ParseError::propagate)
             .map(Arc::new)
@@ -258,7 +260,7 @@ impl<T: Type> Type for Box<T> {
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Box<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         T::parse_from_json(value)
             .map_err(ParseError::propagate)
             .map(Box::new)
@@ -318,7 +320,8 @@ mod tests {
         assert_eq!(Arc::<i32>::name(), "integer(int32)");
         assert_eq!(Arc::new(100).as_raw_value(), Some(&100));
 
-        let value: Arc<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
+        let value: Arc<i32> =
+            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
         assert_eq!(value, Arc::new(100));
 
         let value: Arc<i32> =
@@ -334,10 +337,12 @@ mod tests {
         assert_eq!(Box::<i32>::name(), "integer(int32)");
         assert_eq!(Box::new(100).as_raw_value(), Some(&100));
 
-        let value: Box<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
+        let value: Box<i32> =
+            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
         assert_eq!(value, Box::new(100));
 
-        let value: Box<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
+        let value: Box<i32> =
+            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
         assert_eq!(value, Box::new(100));
 
         let value: Box<i32> =

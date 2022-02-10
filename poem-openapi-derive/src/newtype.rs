@@ -84,7 +84,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let from_json = if args.from_json {
         Some(quote! {
             impl #crate_name::types::ParseFromJSON for #ident {
-                fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> #crate_name::types::ParseResult<Self> {
+                fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> #crate_name::types::ParseResult<Self> {
                     let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value), poem_openapi::types::ParseError::propagate)?;
                     ::std::result::Result::Ok(#ident(value))
                 }

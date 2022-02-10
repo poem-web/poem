@@ -110,10 +110,10 @@ fn read_only_all() {
     );
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        }))
+        })))
         .unwrap_err()
         .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
@@ -138,10 +138,10 @@ fn write_only_all() {
     assert!(field_value_schema.write_only);
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        }))
+        })))
         .unwrap(),
         Obj { id: 99, value: 100 }
     );
@@ -162,9 +162,9 @@ fn field_skip() {
     assert_eq!(meta.properties.len(), 1);
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 10,
-        }))
+        })))
         .unwrap(),
         Obj { a: 10, b: 0 }
     );
@@ -281,9 +281,9 @@ fn field_default() {
     assert_eq!(field_meta.default, Some(json!(200)));
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 1,
-        }))
+        })))
         .unwrap(),
         Obj {
             a: 1,
@@ -293,7 +293,7 @@ fn field_default() {
     );
 
     assert_eq!(
-        Obj::parse_from_json(json!({})).unwrap(),
+        Obj::parse_from_json(Some(json!({}))).unwrap(),
         Obj {
             a: 0,
             b: 100,
@@ -302,11 +302,11 @@ fn field_default() {
     );
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 33,
             "b": 44,
             "c": 55,
-        }))
+        })))
         .unwrap(),
         Obj {
             a: 33,
@@ -325,7 +325,7 @@ fn serde() {
 
     assert_eq!(Obj { a: 10 }.to_json(), json!({ "a": 10 }));
     assert_eq!(
-        Obj::parse_from_json(json!({ "a": 10 })).unwrap(),
+        Obj::parse_from_json(Some(json!({ "a": 10 }))).unwrap(),
         Obj { a: 10 }
     );
 }
@@ -340,7 +340,7 @@ fn serde_generic() {
 
     assert_eq!(Obj::<i32> { a: 10 }.to_json(), json!({ "a": 10 }));
     assert_eq!(
-        <Obj<i32>>::parse_from_json(json!({ "a": 10 })).unwrap(),
+        <Obj<i32>>::parse_from_json(Some(json!({ "a": 10 }))).unwrap(),
         Obj { a: 10 }
     );
 }
@@ -359,9 +359,9 @@ fn read_only() {
     assert!(meta.properties[0].1.unwrap_inline().read_only);
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "value": 100,
-        }))
+        })))
         .unwrap(),
         Obj { id: 0, value: 100 }
     );
@@ -375,10 +375,10 @@ fn read_only() {
     );
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        }))
+        })))
         .unwrap_err()
         .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
@@ -399,10 +399,10 @@ fn write_only() {
     assert!(meta.properties[1].1.unwrap_inline().write_only);
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        }))
+        })))
         .unwrap(),
         Obj { id: 99, value: 100 }
     );
@@ -614,20 +614,20 @@ fn deny_unknown_fields() {
     }
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 1,
             "b": 2,
-        }))
+        })))
         .unwrap(),
         Obj { a: 1, b: 2 }
     );
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 1,
             "b": 2,
             "c": 3,
-        }))
+        })))
         .unwrap_err()
         .into_message(),
         "failed to parse \"Obj\": unknown field `c`."
@@ -721,7 +721,7 @@ fn flatten_field() {
 
     assert_eq!(obj.to_json(), json!({"a": 100, "b": 200, "c": 300}));
     assert_eq!(
-        Obj::parse_from_json(json!({"a": 100, "b": 200, "c": 300})).unwrap(),
+        Obj::parse_from_json(Some(json!({"a": 100, "b": 200, "c": 300}))).unwrap(),
         obj
     );
 }

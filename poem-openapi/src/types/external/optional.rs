@@ -48,11 +48,11 @@ impl<T: Type> Type for Option<T> {
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Option<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
-        match value {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        match value.unwrap_or_default() {
             Value::Null => Ok(None),
             value => Ok(Some(
-                T::parse_from_json(value).map_err(ParseError::propagate)?,
+                T::parse_from_json(Some(value)).map_err(ParseError::propagate)?,
             )),
         }
     }

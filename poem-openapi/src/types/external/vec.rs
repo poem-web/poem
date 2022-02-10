@@ -45,12 +45,13 @@ impl<T: Type> Type for Vec<T> {
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Vec<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         match value {
             Value::Array(values) => {
                 let mut res = Vec::with_capacity(values.len());
                 for value in values {
-                    res.push(T::parse_from_json(value).map_err(ParseError::propagate)?);
+                    res.push(T::parse_from_json(Some(value)).map_err(ParseError::propagate)?);
                 }
                 Ok(res)
             }

@@ -83,11 +83,11 @@ fn with_discriminator() {
     assert!(registry.schemas.contains_key("B"));
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "type": "A",
             "v1": 100,
             "v2": "hello",
-        }))
+        })))
         .unwrap(),
         MyObj::A(A {
             v1: 100,
@@ -109,10 +109,10 @@ fn with_discriminator() {
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "type": "B",
             "v3": true,
-        }))
+        })))
         .unwrap(),
         MyObj::B(B { v3: true })
     );
@@ -207,11 +207,11 @@ fn with_discriminator_mapping() {
     assert!(registry.schemas.contains_key("B"));
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "type": "c",
             "v1": 100,
             "v2": "hello",
-        }))
+        })))
         .unwrap(),
         MyObj::A(A {
             v1: 100,
@@ -233,10 +233,10 @@ fn with_discriminator_mapping() {
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "type": "d",
             "v3": true,
-        }))
+        })))
         .unwrap(),
         MyObj::B(B { v3: true })
     );
@@ -276,10 +276,10 @@ fn without_discriminator() {
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "v1": 100,
             "v2": "hello",
-        }))
+        })))
         .unwrap(),
         MyObj::A(A {
             v1: 100,
@@ -299,7 +299,10 @@ fn without_discriminator() {
         })
     );
 
-    assert_eq!(MyObj::parse_from_json(json!(true)).unwrap(), MyObj::B(true));
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!(true))).unwrap(),
+        MyObj::B(true)
+    );
     assert_eq!(MyObj::B(true).to_json(), json!(true));
 }
 
@@ -334,10 +337,10 @@ fn anyof() {
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "v1": 100,
             "v2": "hello",
-        }))
+        })))
         .unwrap(),
         MyObj::A(A {
             v1: 100,
@@ -346,9 +349,9 @@ fn anyof() {
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "v1": 100,
-        }))
+        })))
         .unwrap(),
         MyObj::B(B { v1: 100 })
     );
@@ -385,18 +388,18 @@ fn oneof() {
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "v1": 100,
-        }))
+        })))
         .unwrap(),
         MyObj::B(B { v1: 100 })
     );
 
     assert_eq!(
-        MyObj::parse_from_json(json!({
+        MyObj::parse_from_json(Some(json!({
             "v1": 100,
             "v2": "hello",
-        }))
+        })))
         .unwrap_err()
         .into_message(),
         "Expected input type \"object\", found {\"v1\":100,\"v2\":\"hello\"}."

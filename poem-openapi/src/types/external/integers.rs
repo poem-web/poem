@@ -41,24 +41,25 @@ macro_rules! impl_type_for_integers {
         }
 
         impl ParseFromJSON for $ty {
-             fn parse_from_json(value: Value) -> ParseResult<Self> {
-                if let Value::Number(n) = value {
-                    let n = n
-                        .as_i64()
-                        .ok_or_else(|| ParseError::from("invalid integer"))?;
+             fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+                 let value = value.unwrap_or_default();
+                 if let Value::Number(n) = value {
+                     let n = n
+                         .as_i64()
+                         .ok_or_else(|| ParseError::from("invalid integer"))?;
 
-                    if n < Self::MIN as i64 || n > Self::MAX as i64 {
-                        return Err(ParseError::from(format!(
-                            "Only integers from {} to {} are accepted.",
-                            Self::MIN,
-                            Self::MAX
-                        )));
-                    }
+                     if n < Self::MIN as i64 || n > Self::MAX as i64 {
+                         return Err(ParseError::from(format!(
+                             "Only integers from {} to {} are accepted.",
+                             Self::MIN,
+                             Self::MAX
+                         )));
+                     }
 
-                    Ok(n as Self)
-                } else {
-                    Err(ParseError::expected_type(value))
-                }
+                     Ok(n as Self)
+                 } else {
+                     Err(ParseError::expected_type(value))
+                 }
             }
         }
 
@@ -127,24 +128,25 @@ macro_rules! impl_type_for_unsigneds {
         }
 
         impl ParseFromJSON for $ty {
-             fn parse_from_json(value: Value) -> ParseResult<Self> {
-                if let Value::Number(n) = value {
-                    let n = n
-                        .as_u64()
-                        .ok_or_else(|| ParseError::from("invalid integer"))?;
+             fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+                 let value = value.unwrap_or_default();
+                 if let Value::Number(n) = value {
+                     let n = n
+                         .as_u64()
+                         .ok_or_else(|| ParseError::from("invalid integer"))?;
 
-                    if n < Self::MIN as u64 || n > Self::MAX as u64 {
-                        return Err(ParseError::from(format!(
-                            "Only integers from {} to {} are accepted.",
-                            Self::MIN,
-                            Self::MAX
-                        )));
-                    }
+                     if n < Self::MIN as u64 || n > Self::MAX as u64 {
+                         return Err(ParseError::from(format!(
+                             "Only integers from {} to {} are accepted.",
+                             Self::MIN,
+                             Self::MAX
+                         )));
+                     }
 
-                    Ok(n as Self)
-                } else {
-                    Err(ParseError::expected_type(value))
-                }
+                     Ok(n as Self)
+                 } else {
+                     Err(ParseError::expected_type(value))
+                 }
             }
         }
 

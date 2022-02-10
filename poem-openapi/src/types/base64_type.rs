@@ -56,7 +56,8 @@ impl<T: Send + Sync> Type for Base64<T> {
 }
 
 impl ParseFromJSON for Base64<Vec<u8>> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::String(value) = value {
             Ok(Self(base64::decode(value)?))
         } else {
@@ -66,7 +67,8 @@ impl ParseFromJSON for Base64<Vec<u8>> {
 }
 
 impl ParseFromJSON for Base64<Bytes> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::String(value) = value {
             Ok(Self(base64::decode(value).map(Into::into)?))
         } else {
