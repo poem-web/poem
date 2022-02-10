@@ -68,8 +68,8 @@ macro_rules! impl_datetime_types {
         }
 
         impl ToJSON for $ty {
-            fn to_json(&self) -> Value {
-                Value::String(self.to_rfc3339())
+            fn to_json(&self) -> Option<Value> {
+                Some(Value::String(self.to_rfc3339()))
             }
         }
     };

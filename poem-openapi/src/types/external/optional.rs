@@ -92,10 +92,10 @@ impl<T: ParseFromMultipartField> ParseFromMultipartField for Option<T> {
 }
 
 impl<T: ToJSON> ToJSON for Option<T> {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         match self {
             Some(value) => value.to_json(),
-            None => Value::Null,
+            None => Some(Value::Null),
         }
     }
 }

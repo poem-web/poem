@@ -71,8 +71,8 @@ macro_rules! impl_type_for_floats {
         }
 
         impl ToJSON for $ty {
-            fn to_json(&self) -> Value {
-                Value::Number(Number::from_f64(*self as f64).unwrap())
+            fn to_json(&self) -> Option<Value> {
+                Some(Value::Number(Number::from_f64(*self as f64).unwrap()))
             }
         }
 

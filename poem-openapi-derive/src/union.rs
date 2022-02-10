@@ -121,7 +121,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     to_json.push(quote! {
                         Self::#item_ident(obj) => {
                             let mut value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
-                            if let ::std::option::Option::Some(obj) = value.as_object_mut() {
+                            if let ::std::option::Option::Some(obj) = value.as_mut().and_then(|value| value.as_object_mut()) {
                                 obj.insert(::std::convert::Into::into(#discriminator_name), ::std::convert::Into::into(#mapping_name));
                             }
                             value
@@ -296,7 +296,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ToJSON for #ident {
-            fn to_json(&self) -> #crate_name::__private::serde_json::Value {
+            fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
                 match self {
                     #(#to_json),*
                 }

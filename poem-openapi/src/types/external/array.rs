@@ -95,11 +95,13 @@ impl<T: ParseFromParameter, const LEN: usize> ParseFromParameter for [T; LEN] {
 }
 
 impl<T: ToJSON, const LEN: usize> ToJSON for [T; LEN] {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         let mut values = Vec::with_capacity(self.len());
         for item in self {
-            values.push(item.to_json());
+            if let Some(value) = item.to_json() {
+                values.push(value);
+            }
         }
-        Value::Array(values)
+        Some(Value::Array(values))
     }
 }

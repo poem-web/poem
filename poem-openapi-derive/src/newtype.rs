@@ -136,7 +136,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let to_json = if args.to_json {
         Some(quote! {
             impl #crate_name::types::ToJSON for #ident {
-                fn to_json(&self) -> #crate_name::__private::serde_json::Value {
+                fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
                     <#inner_ty as #crate_name::types::ToJSON>::to_json(&self.0)
                 }
             }

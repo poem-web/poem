@@ -201,13 +201,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         if !field.flatten {
             if !write_only {
                 serialize_fields.push(quote! {
-                    let value = #crate_name::types::ToJSON::to_json(&self.#field_ident);
-                    object.insert(::std::string::ToString::to_string(#field_name), value);
+                    if let ::std::option::Option::Some(value) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                        object.insert(::std::string::ToString::to_string(#field_name), value);
+                    }
                 });
             }
         } else {
             serialize_fields.push(quote! {
-                if let #crate_name::__private::serde_json::Value::Object(obj) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                if let ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(obj)) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
                     object.extend(obj);
                 }
             });
@@ -215,10 +216,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         let field_meta_default = match &field.default {
             Some(DefaultValue::Default) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default())))
+                quote!(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default()))
             }
             Some(DefaultValue::Function(func_name)) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&#func_name())))
+                quote!(#crate_name::types::ToJSON::to_json(&#func_name()))
             }
             None => quote!(::std::option::Option::None),
         };
@@ -303,9 +304,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let example = match &args.example {
             Some(path) => {
                 let path = &**path;
-                quote! {
-                    ::std::option::Option::Some(<Self as #impl_generics #crate_name::types::ToJSON>::to_json(&#path()))
-                }
+                quote! { <Self as #impl_generics #crate_name::types::ToJSON>::to_json(&#path()) }
             }
             None => quote!(::std::option::Option::None),
         };
@@ -379,10 +378,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
-                fn to_json(&self) -> #crate_name::__private::serde_json::Value {
+                fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
                     let mut object = #crate_name::__private::serde_json::Map::new();
                     #(#serialize_fields)*
-                    #crate_name::__private::serde_json::Value::Object(object)
+                    ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
                 }
             }
         }
@@ -425,9 +424,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let concrete_type = quote! { #ident<#(#params),*> };
             let example = match &concrete.example {
                 Some(path) => {
-                    quote! {
-                        ::std::option::Option::Some(<Self as #crate_name::types::ToJSON>::to_json(&#path()))
-                    }
+                    quote! { <Self as #crate_name::types::ToJSON>::to_json(&#path()) }
                 }
                 None => quote!(::std::option::Option::None),
             };
@@ -470,8 +467,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
 
                 impl #crate_name::types::ToJSON for #concrete_type {
-                    fn to_json(&self) -> #crate_name::__private::serde_json::Value {
-                        Self::__internal_to_json(self)
+                    fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                        ::std::option::Option::Some(Self::__internal_to_json(self))
                     }
                 }
             };

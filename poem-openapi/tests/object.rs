@@ -103,10 +103,10 @@ fn read_only_all() {
 
     assert_eq!(
         Obj { id: 99, value: 100 }.to_json(),
-        serde_json::json!({
+        Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        })
+        }))
     );
 
     assert_eq!(
@@ -146,7 +146,10 @@ fn write_only_all() {
         Obj { id: 99, value: 100 }
     );
 
-    assert_eq!(Obj { id: 99, value: 100 }.to_json(), serde_json::json!({}));
+    assert_eq!(
+        Obj { id: 99, value: 100 }.to_json(),
+        Some(serde_json::json!({}))
+    );
 }
 
 #[test]
@@ -171,9 +174,9 @@ fn field_skip() {
 
     assert_eq!(
         Obj { a: 10, b: 0 }.to_json(),
-        json!({
+        Some(json!({
             "a": 10,
-        })
+        }))
     );
 }
 
@@ -323,7 +326,7 @@ fn serde() {
         a: i32,
     }
 
-    assert_eq!(Obj { a: 10 }.to_json(), json!({ "a": 10 }));
+    assert_eq!(Obj { a: 10 }.to_json(), Some(json!({ "a": 10 })));
     assert_eq!(
         Obj::parse_from_json(Some(json!({ "a": 10 }))).unwrap(),
         Obj { a: 10 }
@@ -338,7 +341,7 @@ fn serde_generic() {
         a: T,
     }
 
-    assert_eq!(Obj::<i32> { a: 10 }.to_json(), json!({ "a": 10 }));
+    assert_eq!(Obj::<i32> { a: 10 }.to_json(), Some(json!({ "a": 10 })));
     assert_eq!(
         <Obj<i32>>::parse_from_json(Some(json!({ "a": 10 }))).unwrap(),
         Obj { a: 10 }
@@ -368,10 +371,10 @@ fn read_only() {
 
     assert_eq!(
         Obj { id: 99, value: 100 }.to_json(),
-        serde_json::json!({
+        Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        })
+        }))
     );
 
     assert_eq!(
@@ -409,9 +412,9 @@ fn write_only() {
 
     assert_eq!(
         Obj { id: 99, value: 100 }.to_json(),
-        serde_json::json!({
+        Some(serde_json::json!({
             "id": 99,
-        })
+        }))
     );
 }
 
@@ -719,7 +722,7 @@ fn flatten_field() {
         c: 300,
     };
 
-    assert_eq!(obj.to_json(), json!({"a": 100, "b": 200, "c": 300}));
+    assert_eq!(obj.to_json(), Some(json!({"a": 100, "b": 200, "c": 300})));
     assert_eq!(
         Obj::parse_from_json(Some(json!({"a": 100, "b": 200, "c": 300}))).unwrap(),
         obj

@@ -73,12 +73,14 @@ where
     K: ToString + FromStr + Eq + Hash + Sync + Send,
     V: ToJSON,
 {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         let mut map = serde_json::Map::new();
         for (name, value) in self {
-            map.insert(name.to_string(), value.to_json());
+            if let Some(value) = value.to_json() {
+                map.insert(name.to_string(), value);
+            }
         }
-        Value::Object(map)
+        Some(Value::Object(map))
     }
 }
 

@@ -65,8 +65,8 @@ impl ParseFromMultipartField for bool {
 }
 
 impl ToJSON for bool {
-    fn to_json(&self) -> Value {
-        Value::Bool(*self)
+    fn to_json(&self) -> Option<Value> {
+        Some(Value::Bool(*self))
     }
 }
 

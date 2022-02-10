@@ -66,8 +66,8 @@ impl ParseFromMultipartField for Uuid {
 }
 
 impl ToJSON for Uuid {
-    fn to_json(&self) -> Value {
-        Value::String(self.to_string())
+    fn to_json(&self) -> Option<Value> {
+        Some(Value::String(self.to_string()))
     }
 }
 

@@ -80,8 +80,8 @@ macro_rules! impl_type_for_integers {
         }
 
         impl ToJSON for $ty {
-            fn to_json(&self) -> Value {
-                Value::Number((*self).into())
+            fn to_json(&self) -> Option<Value> {
+                Some(Value::Number((*self).into()))
             }
         }
 
@@ -167,8 +167,8 @@ macro_rules! impl_type_for_unsigneds {
         }
 
         impl ToJSON for $ty {
-            fn to_json(&self) -> Value {
-                Value::Number((*self).into())
+            fn to_json(&self) -> Option<Value> {
+                Some(Value::Number((*self).into()))
             }
         }
 

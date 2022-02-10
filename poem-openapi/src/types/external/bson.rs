@@ -62,8 +62,8 @@ impl ParseFromMultipartField for ObjectId {
 }
 
 impl ToJSON for ObjectId {
-    fn to_json(&self) -> Value {
-        serde_json::to_value(self).unwrap()
+    fn to_json(&self) -> Option<Value> {
+        Some(serde_json::to_value(self).unwrap())
     }
 }
 

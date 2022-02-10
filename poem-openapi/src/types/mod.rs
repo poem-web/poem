@@ -109,7 +109,7 @@ pub trait ParseFromMultipartField: Sized + Type {
 /// Represents a type that can converted to JSON value.
 pub trait ToJSON: Type {
     /// Convert this value to [`Value`].
-    fn to_json(&self) -> Value;
+    fn to_json(&self) -> Option<Value>;
 
     /// Convert this value to JSON string.
     fn to_json_string(&self) -> String {
@@ -154,7 +154,7 @@ impl<T: Type> Type for &T {
 }
 
 impl<T: ToJSON> ToJSON for &T {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         T::to_json(self)
     }
 }
@@ -218,7 +218,7 @@ impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
 }
 
 impl<T: ToJSON> ToJSON for Arc<T> {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         self.as_ref().to_json()
     }
 }
@@ -299,7 +299,7 @@ impl<T: ParseFromMultipartField> ParseFromMultipartField for Box<T> {
 }
 
 impl<T: ToJSON> ToJSON for Box<T> {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         self.as_ref().to_json()
     }
 }
@@ -328,7 +328,10 @@ mod tests {
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Arc::new(100));
 
-        assert_eq!(ToJSON::to_json(&Arc::new(100)), Value::Number(100.into()));
+        assert_eq!(
+            ToJSON::to_json(&Arc::new(100)),
+            Some(Value::Number(100.into()))
+        );
     }
 
     #[test]
@@ -349,6 +352,9 @@ mod tests {
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Box::new(100));
 
-        assert_eq!(ToJSON::to_json(&Box::new(100)), Value::Number(100.into()));
+        assert_eq!(
+            ToJSON::to_json(&Box::new(100)),
+            Some(Value::Number(100.into()))
+        );
     }
 }

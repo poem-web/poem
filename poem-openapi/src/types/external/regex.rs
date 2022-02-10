@@ -66,8 +66,8 @@ impl ParseFromMultipartField for Regex {
 }
 
 impl ToJSON for Regex {
-    fn to_json(&self) -> Value {
-        Value::String(self.to_string())
+    fn to_json(&self) -> Option<Value> {
+        Some(Value::String(self.to_string()))
     }
 }
 
