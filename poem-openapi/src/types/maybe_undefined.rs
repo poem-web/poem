@@ -99,7 +99,40 @@ impl<T> Default for MaybeUndefined<T> {
     }
 }
 
+impl<T> From<T> for MaybeUndefined<T> {
+    fn from(value: T) -> Self {
+        MaybeUndefined::Value(value)
+    }
+}
+
+impl<T> IntoIterator for MaybeUndefined<T> {
+    type Item = T;
+    type IntoIter = std::option::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.take().into_iter()
+    }
+}
+
 impl<T> MaybeUndefined<T> {
+    /// Create a `MaybeUndefined<T>` from `Option<T>`, returns
+    /// `MaybeUndefined::Undefined` if this value is none.
+    pub fn from_opt_undefined(value: Option<T>) -> Self {
+        match value {
+            Some(value) => MaybeUndefined::Value(value),
+            None => MaybeUndefined::Undefined,
+        }
+    }
+
+    /// Create a `MaybeUndefined<T>` from `Option<T>`, returns
+    /// `MaybeUndefined::Null` if this value is none.
+    pub fn from_opt_null(value: Option<T>) -> Self {
+        match value {
+            Some(value) => MaybeUndefined::Value(value),
+            None => MaybeUndefined::Null,
+        }
+    }
+
     /// Returns true if the `MaybeUndefined<T>` is undefined.
     #[inline]
     pub const fn is_undefined(&self) -> bool {
@@ -118,10 +151,20 @@ impl<T> MaybeUndefined<T> {
         matches!(self, MaybeUndefined::Value(_))
     }
 
-    /// Borrow the value, returns `None` if the the `MaybeUndefined<T>` is
-    /// `undefined` or `null`, otherwise returns `Some(T)`.
+    /// Returns `None` if the the `MaybeUndefined<T>` is
+    /// `undefined` or `null`, otherwise returns `Some(&T)`.
     #[inline]
     pub const fn value(&self) -> Option<&T> {
+        match self {
+            MaybeUndefined::Value(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns `None` if the the `MaybeUndefined<T>` is
+    /// `undefined` or `null`, otherwise returns `Some(&mut T)`.
+    #[inline]
+    pub fn value_mut(&mut self) -> Option<&mut T> {
         match self {
             MaybeUndefined::Value(value) => Some(value),
             _ => None,
@@ -134,6 +177,16 @@ impl<T> MaybeUndefined<T> {
         match self {
             MaybeUndefined::Value(value) => Some(value),
             _ => None,
+        }
+    }
+
+    /// Converts from `&MaybeUndefined<T>` to `MaybeUndefined<&T>`.
+    #[inline]
+    pub const fn as_ref(&self) -> MaybeUndefined<&T> {
+        match self {
+            MaybeUndefined::Undefined => MaybeUndefined::Undefined,
+            MaybeUndefined::Null => MaybeUndefined::Null,
+            MaybeUndefined::Value(value) => MaybeUndefined::Value(value),
         }
     }
 
@@ -212,6 +265,19 @@ impl<T> MaybeUndefined<T> {
             MaybeUndefined::Value(v) => MaybeUndefined::Value(f(v)),
             MaybeUndefined::Null => MaybeUndefined::Null,
             MaybeUndefined::Undefined => MaybeUndefined::Undefined,
+        }
+    }
+}
+
+impl<T: Deref> MaybeUndefined<T> {
+    /// Converts from `MaybeUndefined<T>` (or `&MaybeUndefined<T>`) to
+    /// `MaybeUndefined<&T::Target>`.
+    #[inline]
+    pub fn as_deref(&self) -> MaybeUndefined<&T::Target> {
+        match self {
+            MaybeUndefined::Undefined => MaybeUndefined::Undefined,
+            MaybeUndefined::Null => MaybeUndefined::Null,
+            MaybeUndefined::Value(value) => MaybeUndefined::Value(value.deref()),
         }
     }
 }
