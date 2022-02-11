@@ -3,13 +3,20 @@ use std::{
     ops::Deref,
 };
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct LineColumn {
     pub line: usize,
     pub column: usize,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+impl LineColumn {
+    #[inline]
+    pub const fn new(line: usize, column: usize) -> Self {
+        Self { line, column }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct Span {
     pub start: LineColumn,
     pub end: LineColumn,
@@ -22,22 +29,10 @@ impl Span {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Spanned<T> {
     pub span: Span,
     pub value: T,
-}
-
-impl<T: PartialEq> PartialEq for Spanned<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
-
-impl<T: Hash> Hash for Spanned<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value.hash(state)
-    }
 }
 
 impl<T> Deref for Spanned<T> {

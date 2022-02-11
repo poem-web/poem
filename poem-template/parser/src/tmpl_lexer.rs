@@ -7,6 +7,7 @@ pub(crate) enum TemplateTokenType {
     Tag,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct TemplateToken<'a> {
     ty: TemplateTokenType,
     span: Span,
@@ -88,9 +89,41 @@ impl<'a> TemplateLexer<'a> {
     }
 
     fn parse_raw(&mut self) -> Result<TemplateToken<'a>, LexerError> {
+        let start_pos = self.pos;
         let mut p = 0;
-        memchr::memchr2(b'}', b'%', self.src);
-        todo!()
+
+        loop {
+            match memchr::memchr(b'{', &self.src[p..]) {
+                Some(idx)
+                    if idx + 1 < self.src.len() && self.src[idx + 1] == b'{'
+                        || self.src[idx + 1] == b'%' =>
+                {
+                    let value = &self.src[..p + idx];
+                    self.advance(p + idx);
+                    break Ok(TemplateToken {
+                        ty: TemplateTokenType::Raw,
+                        span: Span {
+                            start: start_pos,
+                            end: self.pos,
+                        },
+                        value,
+                    });
+                }
+                Some(idx) => p += idx,
+                None => {
+                    let value = self.src;
+                    self.advance(self.src.len());
+                    break Ok(TemplateToken {
+                        ty: TemplateTokenType::Raw,
+                        span: Span {
+                            start: start_pos,
+                            end: self.pos,
+                        },
+                        value,
+                    });
+                }
+            }
+        }
     }
 }
 
@@ -108,5 +141,60 @@ impl<'a> Iterator for TemplateLexer<'a> {
             b'{' if len > 1 && self.src[1] == b'%' => self.parse_tag(),
             _ => self.parse_raw(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn check_tokens(input: &[u8], tokens: Vec<Result<TemplateToken, LexerError>>) {
+        let mut lexer = TemplateLexer::new(input);
+        assert_eq!(lexer.collect::<Vec<_>>(), tokens);
+    }
+
+    #[test]
+    fn test_variable() {
+        check_tokens(
+            b"{{ abc }}",
+            vec![Ok(TemplateToken {
+                ty: TemplateTokenType::Variable,
+                span: Span {
+                    start: LineColumn::new(1, 4),
+                    end: LineColumn::new(1, 7),
+                },
+                value: b"abc",
+            })],
+        );
+
+        // check_tokens(
+        //     b"{{ abc }} def {{ ghi }}",
+        //     vec![
+        //         Ok(TemplateToken {
+        //             ty: TemplateTokenType::Variable,
+        //             span: Span {
+        //                 start: LineColumn::new(1, 4),
+        //                 end: LineColumn::new(1, 7),
+        //             },
+        //             value: b"abc",
+        //         }),
+        //         Ok(TemplateToken {
+        //             ty: TemplateTokenType::Raw,
+        //             span: Span {
+        //                 start: LineColumn::new(1, 10),
+        //                 end: LineColumn::new(1, 15),
+        //             },
+        //             value: b"abc",
+        //         }),
+        //         Ok(TemplateToken {
+        //             ty: TemplateTokenType::Variable,
+        //             span: Span {
+        //                 start: LineColumn::new(1, 18),
+        //                 end: LineColumn::new(1, 21),
+        //             },
+        //             value: b"ghi",
+        //         }),
+        //     ],
+        // );
     }
 }
