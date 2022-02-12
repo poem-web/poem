@@ -28,7 +28,7 @@ impl<'a> TemplateLexer<'a> {
     }
 
     fn advance(&mut self, len: usize) {
-        for ch in &self.src[len..] {
+        for ch in &self.src[..len] {
             match *ch {
                 b'\n' => {
                     self.pos.line += 1;
@@ -41,16 +41,19 @@ impl<'a> TemplateLexer<'a> {
     }
 
     fn parse_variable(&mut self) -> Result<TemplateToken<'a>, LexerError> {
-        let start_pos = self.pos;
+        debug_assert!(self.src.starts_with(b"{{"));
         self.advance(2);
+        let start_pos = self.pos;
 
         match memchr::memmem::find(self.src, b"}}") {
             Some(idx) => {
                 let value = &self.src[..idx];
                 self.advance(idx);
+                let end_pos = self.pos;
+                self.advance(2);
                 Ok(TemplateToken {
                     ty: TemplateTokenType::Variable,
-                    span: Span::new(start_pos, self.pos),
+                    span: Span::new(start_pos, end_pos),
                     value,
                 })
             }
@@ -65,16 +68,19 @@ impl<'a> TemplateLexer<'a> {
     }
 
     fn parse_tag(&mut self) -> Result<TemplateToken<'a>, LexerError> {
-        let start_pos = self.pos;
+        debug_assert!(self.src.starts_with(b"{%"));
         self.advance(2);
+        let start_pos = self.pos;
 
         match memchr::memmem::find(self.src, b"%}") {
             Some(idx) => {
                 let value = &self.src[..idx];
                 self.advance(idx);
+                let end_pos = self.pos;
+                self.advance(2);
                 Ok(TemplateToken {
                     ty: TemplateTokenType::Tag,
-                    span: Span::new(start_pos, self.pos),
+                    span: Span::new(start_pos, end_pos),
                     value,
                 })
             }
@@ -149,7 +155,7 @@ mod tests {
     use super::*;
 
     fn check_tokens(input: &[u8], tokens: Vec<Result<TemplateToken, LexerError>>) {
-        let mut lexer = TemplateLexer::new(input);
+        let lexer = TemplateLexer::new(input);
         assert_eq!(lexer.collect::<Vec<_>>(), tokens);
     }
 
@@ -160,41 +166,130 @@ mod tests {
             vec![Ok(TemplateToken {
                 ty: TemplateTokenType::Variable,
                 span: Span {
-                    start: LineColumn::new(1, 4),
-                    end: LineColumn::new(1, 7),
+                    start: LineColumn::new(1, 3),
+                    end: LineColumn::new(1, 8),
                 },
-                value: b"abc",
+                value: b" abc ",
             })],
         );
 
-        // check_tokens(
-        //     b"{{ abc }} def {{ ghi }}",
-        //     vec![
-        //         Ok(TemplateToken {
-        //             ty: TemplateTokenType::Variable,
-        //             span: Span {
-        //                 start: LineColumn::new(1, 4),
-        //                 end: LineColumn::new(1, 7),
-        //             },
-        //             value: b"abc",
-        //         }),
-        //         Ok(TemplateToken {
-        //             ty: TemplateTokenType::Raw,
-        //             span: Span {
-        //                 start: LineColumn::new(1, 10),
-        //                 end: LineColumn::new(1, 15),
-        //             },
-        //             value: b"abc",
-        //         }),
-        //         Ok(TemplateToken {
-        //             ty: TemplateTokenType::Variable,
-        //             span: Span {
-        //                 start: LineColumn::new(1, 18),
-        //                 end: LineColumn::new(1, 21),
-        //             },
-        //             value: b"ghi",
-        //         }),
-        //     ],
-        // );
+        check_tokens(
+            b"{{ abc }} def {{ ghi }}",
+            vec![
+                Ok(TemplateToken {
+                    ty: TemplateTokenType::Variable,
+                    span: Span {
+                        start: LineColumn::new(1, 3),
+                        end: LineColumn::new(1, 8),
+                    },
+                    value: b" abc ",
+                }),
+                Ok(TemplateToken {
+                    ty: TemplateTokenType::Raw,
+                    span: Span {
+                        start: LineColumn::new(1, 10),
+                        end: LineColumn::new(1, 15),
+                    },
+                    value: b" def ",
+                }),
+                Ok(TemplateToken {
+                    ty: TemplateTokenType::Variable,
+                    span: Span {
+                        start: LineColumn::new(1, 17),
+                        end: LineColumn::new(1, 22),
+                    },
+                    value: b" ghi ",
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_tag() {
+        check_tokens(
+            b"{% abc %}",
+            vec![Ok(TemplateToken {
+                ty: TemplateTokenType::Tag,
+                span: Span {
+                    start: LineColumn::new(1, 3),
+                    end: LineColumn::new(1, 8),
+                },
+                value: b" abc ",
+            })],
+        );
+
+        check_tokens(
+            b"{% abc %} def {% ghi %}",
+            vec![
+                Ok(TemplateToken {
+                    ty: TemplateTokenType::Tag,
+                    span: Span {
+                        start: LineColumn::new(1, 3),
+                        end: LineColumn::new(1, 8),
+                    },
+                    value: b" abc ",
+                }),
+                Ok(TemplateToken {
+                    ty: TemplateTokenType::Raw,
+                    span: Span {
+                        start: LineColumn::new(1, 10),
+                        end: LineColumn::new(1, 15),
+                    },
+                    value: b" def ",
+                }),
+                Ok(TemplateToken {
+                    ty: TemplateTokenType::Tag,
+                    span: Span {
+                        start: LineColumn::new(1, 17),
+                        end: LineColumn::new(1, 22),
+                    },
+                    value: b" ghi ",
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_unterminated_variable() {
+        let mut lexer = TemplateLexer::new(b"abc {{ abc");
+
+        assert_eq!(
+            lexer.next(),
+            Some(Ok(TemplateToken {
+                ty: TemplateTokenType::Raw,
+                span: Span::new(LineColumn::new(1, 1), LineColumn::new(1, 5)),
+                value: b"abc "
+            }))
+        );
+
+        assert_eq!(
+            lexer.next(),
+            Some(Err(LexerError {
+                span: Span::new(LineColumn::new(1, 7), LineColumn::new(1, 11)),
+                message: "unterminated variable"
+            }))
+        );
+    }
+
+    #[test]
+    fn test_unterminated_tag() {
+        let mut lexer = TemplateLexer::new(b"abc {% abc");
+
+        assert_eq!(
+            lexer.next(),
+            Some(Ok(TemplateToken {
+                ty: TemplateTokenType::Raw,
+                span: Span::new(LineColumn::new(1, 1), LineColumn::new(1, 5)),
+                value: b"abc "
+            }))
+        );
+
+        assert_eq!(
+            lexer.next(),
+            Some(Err(LexerError {
+                span: Span::new(LineColumn::new(1, 7), LineColumn::new(1, 11)),
+                message: "unterminated tag"
+            }))
+        );
     }
 }

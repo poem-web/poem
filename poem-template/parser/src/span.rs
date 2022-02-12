@@ -1,7 +1,4 @@
-use std::{
-    hash::{Hash, Hasher},
-    ops::Deref,
-};
+use std::ops::Deref;
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct LineColumn {
