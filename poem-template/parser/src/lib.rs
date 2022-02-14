@@ -1,7 +1,7 @@
 mod ast;
 mod error;
+mod lexer;
 mod span;
-mod tmpl_lexer;
 
 pub use ast::{
     BinaryExpr, BinaryOperator, Block, Expr, FilterExpr, IfNode, Literal, Node, UnaryExpr,
