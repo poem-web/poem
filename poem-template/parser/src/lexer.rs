@@ -62,7 +62,7 @@ pub(crate) struct Token<'a> {
     pub(crate) span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Scope {
     Template,
     Variable,
@@ -96,6 +96,52 @@ impl<'a> Lexer<'a> {
         }
         self.src = &self.src[len..];
     }
+
+    fn parse_in_template(&mut self) -> Option<Result<Token<'a>, LexerError>> {
+        let mut p = 0;
+
+        loop {
+            match memchr::memchr(b'{', &self.src[p..]) {
+                Some(idx) => {
+                    if idx + 1 < self.src.len() {
+                        if self.src[idx + 1] == b'{' {
+                        } else if self.src[idx + 1] == b'%' {
+                        }
+                    }
+                }
+                None => {}
+            }
+        }
+
+        // match self.src.get(..2) {
+        //     Some(b"{{") => {
+        //         self.advance(2);
+        //         self.scope = Scope::Variable;
+        //         Some(Ok(Token {
+        //             ty: TokenType::VariableStart,
+        //             span: Span::new(start_pos, self.pos),
+        //         }))
+        //     }
+        //     Some(b"{%") => {
+        //         self.advance(2);
+        //         self.scope = Scope::Tag;
+        //         Some(Ok(Token {
+        //             ty: TokenType::TagStart,
+        //             span: Span::new(start_pos, self.pos),
+        //         }))
+        //     }
+        //     _ => {}
+        // }
+        todo!()
+    }
+
+    fn parse_in_variable(&mut self) -> Option<Result<Token<'a>, LexerError>> {
+        todo!()
+    }
+
+    fn parse_in_tag(&mut self) -> Option<Result<Token<'a>, LexerError>> {
+        todo!()
+    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -106,12 +152,11 @@ impl<'a> Iterator for Lexer<'a> {
             return None;
         }
 
-        let len = self.src.len();
-        Some(match self.src[0] {
-            b'{' if len > 1 && self.src[1] == b'{' => self.parse_variable(),
-            b'{' if len > 1 && self.src[1] == b'%' => self.parse_tag(),
-            _ => self.parse_raw(),
-        })
+        match self.scope {
+            Scope::Template => self.parse_in_template(),
+            Scope::Variable => self.parse_in_variable(),
+            Scope::Tag => self.parse_in_tag(),
+        }
     }
 }
 // #[cfg(test)]
