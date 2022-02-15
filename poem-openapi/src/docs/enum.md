@@ -8,6 +8,7 @@ Define a OpenAPI enum
 | rename_all    | Rename all the items according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string | Y        |
 | deprecated    | Schema deprecated                                                                                                                                                               | bool   | Y        |
 | external_docs | Specify a external resource for extended documentation                                                                                                                          | string | Y        |
+| remote        | Derive a remote enum                                                                                                                                                            | string | Y        |
 
 # Item parameters
 

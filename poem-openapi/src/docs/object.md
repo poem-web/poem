@@ -14,6 +14,7 @@ Define a OpenAPI object
 | deny_unknown_fields | Always error during parsing when encountering unknown fields.                                                                                                                    | bool         | Y        |
 | example             | Specify a function to create an example object.                                                                                                                                  | string       | Y        |
 | external_docs       | Specify a external resource for extended documentation                                                                                                                           | string       | Y        |
+| remote              | Derive a remote object                                                                                                                                                           | string       | Y        |
 
 # Field parameters
 

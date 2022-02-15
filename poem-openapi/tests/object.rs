@@ -728,3 +728,43 @@ fn flatten_field() {
         obj
     );
 }
+
+#[test]
+fn remote() {
+    mod remote {
+        #[derive(Debug, Eq, PartialEq)]
+        pub struct InternalMyObj {
+            pub a: i32,
+            pub b: String,
+        }
+    }
+
+    #[derive(Debug, Object, Eq, PartialEq)]
+    #[oai(remote = "remote::InternalMyObj")]
+    struct MyObj {
+        a: i32,
+        b: String,
+    }
+
+    assert_eq!(
+        Into::<MyObj>::into(remote::InternalMyObj {
+            a: 100,
+            b: "abc".to_string()
+        }),
+        MyObj {
+            a: 100,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Into::<remote::InternalMyObj>::into(MyObj {
+            a: 100,
+            b: "abc".to_string()
+        }),
+        remote::InternalMyObj {
+            a: 100,
+            b: "abc".to_string()
+        }
+    );
+}

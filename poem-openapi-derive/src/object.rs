@@ -68,6 +68,8 @@ struct ObjectArgs {
     deny_unknown_fields: bool,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
+    #[darling(default)]
+    remote: Option<Path>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -109,7 +111,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     }
 
     for field in &s.fields {
-        let field_ident = field.ident.as_ref().unwrap();
+        let field_ident = field
+            .ident
+            .as_ref()
+            .ok_or_else(|| Error::new_spanned(&ident, "All fields must be named."))?;
         let field_ty = &field.ty;
         let read_only = args.read_only_all || field.read_only;
         let write_only = args.write_only_all || field.write_only;
@@ -300,7 +305,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         None
     };
 
-    let expanded = if args.concretes.is_empty() {
+    let define_obj = if args.concretes.is_empty() {
         let example = match &args.example {
             Some(path) => {
                 let path = &**path;
@@ -478,5 +483,36 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         quote!(#(#code)*)
     };
 
-    Ok(expanded)
+    // remote
+    let remote = if let Some(remote) = &args.remote {
+        let fields = s
+            .fields
+            .iter()
+            .map(|field| &field.ident)
+            .collect::<Vec<_>>();
+        Some(quote! {
+            impl #impl_generics ::std::convert::From<#remote> for #ident #ty_generics #where_clause {
+                fn from(value: #remote) -> Self {
+                    Self {
+                        #(#fields: ::std::convert::Into::into(value.#fields)),*
+                    }
+                }
+            }
+
+            impl #impl_generics ::std::convert::Into<#remote> for #ident #ty_generics #where_clause {
+                fn into(self) -> #remote {
+                    #remote {
+                        #(#fields: ::std::convert::Into::into(self.#fields)),*
+                    }
+                }
+            }
+        })
+    } else {
+        None
+    };
+
+    Ok(quote! {
+        #define_obj
+        #remote
+    })
 }
