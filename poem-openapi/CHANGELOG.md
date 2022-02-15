@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.2.58] 2022-2-15
 
 - Add support for deriving remote objects to the `Object` macro.
+- Add `poem_openapi::payload::Base64`.
 
 # [1.2.57] 2022-2-10
 

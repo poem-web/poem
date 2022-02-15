@@ -1,6 +1,6 @@
 use poem::{listener::TcpListener, Error, Route, Server};
 use poem_openapi::{
-    error::ParseJsonError,
+    error::ParseRequestPayloadError,
     payload::Json,
     types::{ParseFromJSON, ToJSON},
     ApiResponse, Object, OpenApi, OpenApiService,
@@ -51,7 +51,7 @@ enum MyResponse<T: ParseFromJSON + ToJSON + Send + Sync> {
 }
 
 fn my_bad_request_handler<T: ParseFromJSON + ToJSON + Send + Sync>(err: Error) -> MyResponse<T> {
-    if err.is::<ParseJsonError>() {
+    if err.is::<ParseRequestPayloadError>() {
         MyResponse::Ok(Json(ResponseObject {
             code: ERRCODE_INVALID_REQUEST,
             msg: err.to_string(),

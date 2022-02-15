@@ -4,7 +4,7 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
 use crate::{
-    error::ParseJsonError,
+    error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
@@ -51,12 +51,12 @@ impl<T: ParseFromJSON> ParsePayload for Json<T> {
         let value = if data.is_empty() {
             Value::Null
         } else {
-            serde_json::from_slice(&data).map_err(|err| ParseJsonError {
+            serde_json::from_slice(&data).map_err(|err| ParseRequestPayloadError {
                 reason: err.to_string(),
             })?
         };
 
-        let value = T::parse_from_json(Some(value)).map_err(|err| ParseJsonError {
+        let value = T::parse_from_json(Some(value)).map_err(|err| ParseRequestPayloadError {
             reason: err.into_message(),
         })?;
         Ok(Self(value))
