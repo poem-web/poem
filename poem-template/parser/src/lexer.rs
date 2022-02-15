@@ -84,7 +84,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn advance(&mut self, len: usize) {
+    fn advance(&mut self, len: usize) -> LineColumn {
         for ch in &self.src[..len] {
             match *ch {
                 b'\n' => {
@@ -95,16 +95,25 @@ impl<'a> Lexer<'a> {
             }
         }
         self.src = &self.src[len..];
+        self.pos
     }
 
     fn parse_in_template(&mut self) -> Option<Result<Token<'a>, LexerError>> {
         let mut p = 0;
+        let start_pos = self.pos;
 
         loop {
             match memchr::memchr(b'{', &self.src[p..]) {
                 Some(idx) => {
                     if idx + 1 < self.src.len() {
                         if self.src[idx + 1] == b'{' {
+                            let value = &self.src[p + idx];
+                            let end_pos = self.advance(p + idx);
+                            self.advance(2);
+                            return Some(Ok(Token {
+                                ty: TokenType::Raw(std::str::from_utf8(value).unwrap()),
+                                span: Default::default(),
+                            }));
                         } else if self.src[idx + 1] == b'%' {
                         }
                     }
