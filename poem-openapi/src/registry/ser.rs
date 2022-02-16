@@ -109,7 +109,10 @@ impl<'a> Serialize for Document<'a> {
                 security_schemes: &self.registry.security_schemes,
             },
         )?;
-        s.serialize_entry("externalDocs", &self.external_document)?;
+
+        if let Some(external_document) = self.external_document {
+            s.serialize_entry("externalDocs", &external_document)?;
+        }
 
         s.end()
     }
