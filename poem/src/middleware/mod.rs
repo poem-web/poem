@@ -22,28 +22,29 @@ mod size_limit;
 mod tower_compat;
 mod tracing_mw;
 
-pub use add_data::{AddData, AddDataEndpoint};
 #[cfg(feature = "compression")]
-pub use compression::{Compression, CompressionEndpoint};
+pub use self::compression::{Compression, CompressionEndpoint};
 #[cfg(feature = "cookie")]
-pub use cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
-pub use cors::{Cors, CorsEndpoint};
+pub use self::cookie_jar_manager::{CookieJarManager, CookieJarManagerEndpoint};
 #[cfg(feature = "csrf")]
-pub use csrf::{Csrf, CsrfEndpoint};
-pub use force_https::ForceHttps;
-pub use normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash};
+pub use self::csrf::{Csrf, CsrfEndpoint};
 #[cfg(feature = "opentelemetry")]
-pub use opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
+pub use self::opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
 #[cfg(feature = "opentelemetry")]
-pub use opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
-pub use propagate_header::{PropagateHeader, PropagateHeaderEndpoint};
-pub use sensitive_header::{SensitiveHeader, SensitiveHeaderEndpoint};
-pub use set_header::{SetHeader, SetHeaderEndpoint};
-pub use size_limit::{SizeLimit, SizeLimitEndpoint};
+pub use self::opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
 #[cfg(feature = "tower-compat")]
-pub use tower_compat::TowerLayerCompatExt;
-pub use tracing_mw::{Tracing, TracingEndpoint};
-
+pub use self::tower_compat::TowerLayerCompatExt;
+pub use self::{
+    add_data::{AddData, AddDataEndpoint},
+    cors::{Cors, CorsEndpoint},
+    force_https::ForceHttps,
+    normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash},
+    propagate_header::{PropagateHeader, PropagateHeaderEndpoint},
+    sensitive_header::{SensitiveHeader, SensitiveHeaderEndpoint},
+    set_header::{SetHeader, SetHeaderEndpoint},
+    size_limit::{SizeLimit, SizeLimitEndpoint},
+    tracing_mw::{Tracing, TracingEndpoint},
+};
 use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.

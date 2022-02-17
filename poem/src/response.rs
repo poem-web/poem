@@ -154,6 +154,14 @@ impl Response {
             .and_then(|value| value.to_str().ok())
     }
 
+    /// Sets the `Content-Type` header on the response.
+    pub fn set_content_type(mut self, content_type: impl AsRef<str>) -> Self {
+        if let Ok(value) = content_type.as_ref().try_into() {
+            self.headers.insert(header::CONTENT_TYPE, value);
+        }
+        self
+    }
+
     /// Returns a reference to the associated header map.
     #[inline]
     pub fn headers(&self) -> &HeaderMap {
@@ -292,8 +300,8 @@ impl ResponseBuilder {
 
     /// Sets the `Content-Type` header on the response.
     #[must_use]
-    pub fn content_type(mut self, content_type: &str) -> Self {
-        if let Ok(value) = content_type.try_into() {
+    pub fn content_type(mut self, content_type: impl AsRef<str>) -> Self {
+        if let Ok(value) = content_type.as_ref().try_into() {
             self.headers.insert(header::CONTENT_TYPE, value);
         }
         self

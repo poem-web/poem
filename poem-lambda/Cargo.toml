@@ -22,4 +22,4 @@ poem = { path = "../poem", version = "1.2.58" }
 lambda_http = { version = "0.4.1" }
 
 [dev-dependencies]
-tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }

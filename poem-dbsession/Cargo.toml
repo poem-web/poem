@@ -68,7 +68,7 @@ poem = { path = "../poem", version = "1.2.58", features = ["session"] }
 chrono = "0.4.19"
 serde_json = "1.0.73"
 sqlx = { version = "0.5.9", optional = true, features = ["chrono", "json"] }
-tokio = { version = "1.14.0", features = ["time"] }
+tokio = { version = "1.17.0", features = ["time"] }
 tracing = "0.1.29"
 
 [dev-dependencies]

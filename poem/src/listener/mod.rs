@@ -20,21 +20,23 @@ use std::{
     task::{Context, Poll},
 };
 
-pub use combined::{Combined, CombinedStream};
-#[cfg(any(feature = "native-tls", feature = "rustls"))]
-pub use handshake_stream::HandshakeStream;
 use http::uri::Scheme;
-#[cfg(feature = "native-tls")]
-pub use native_tls::{NativeTlsAcceptor, NativeTlsConfig, NativeTlsListener};
-#[cfg(feature = "rustls")]
-pub use rustls::{RustlsAcceptor, RustlsConfig, RustlsListener};
-pub use tcp::{TcpAcceptor, TcpListener};
-#[cfg(any(feature = "rustls", feature = "native-tls"))]
-pub use tls::IntoTlsConfigStream;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
-#[cfg(unix)]
-pub use unix::{UnixAcceptor, UnixListener};
 
+#[cfg(any(feature = "native-tls", feature = "rustls"))]
+pub use self::handshake_stream::HandshakeStream;
+#[cfg(feature = "native-tls")]
+pub use self::native_tls::{NativeTlsAcceptor, NativeTlsConfig, NativeTlsListener};
+#[cfg(feature = "rustls")]
+pub use self::rustls::{RustlsAcceptor, RustlsConfig, RustlsListener};
+#[cfg(any(feature = "rustls", feature = "native-tls"))]
+pub use self::tls::IntoTlsConfigStream;
+#[cfg(unix)]
+pub use self::unix::{UnixAcceptor, UnixListener};
+pub use self::{
+    combined::{Combined, CombinedStream},
+    tcp::{TcpAcceptor, TcpListener},
+};
 use crate::web::{LocalAddr, RemoteAddr};
 
 /// Represents a acceptor type.
