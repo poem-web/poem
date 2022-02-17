@@ -15,7 +15,7 @@ pub(crate) enum TokenType<'a> {
     /// Tag end
     TagEnd,
     /// An identifier
-    Ident,
+    Ident(&'a str),
     /// An integer
     Int(i64),
     /// A float
@@ -99,49 +99,32 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_in_template(&mut self) -> Option<Result<Token<'a>, LexerError>> {
-        let mut p = 0;
         let start_pos = self.pos;
 
-        loop {
-            match memchr::memchr(b'{', &self.src[p..]) {
-                Some(idx) => {
-                    if idx + 1 < self.src.len() {
-                        if self.src[idx + 1] == b'{' {
-                            let value = &self.src[p + idx];
-                            let end_pos = self.advance(p + idx);
-                            self.advance(2);
-                            return Some(Ok(Token {
-                                ty: TokenType::Raw(std::str::from_utf8(value).unwrap()),
-                                span: Default::default(),
-                            }));
-                        } else if self.src[idx + 1] == b'%' {
-                        }
-                    }
-                }
-                None => {}
-            }
-        }
+        let idx = {
+            let mut p = 0;
 
-        // match self.src.get(..2) {
-        //     Some(b"{{") => {
-        //         self.advance(2);
-        //         self.scope = Scope::Variable;
-        //         Some(Ok(Token {
-        //             ty: TokenType::VariableStart,
-        //             span: Span::new(start_pos, self.pos),
-        //         }))
-        //     }
-        //     Some(b"{%") => {
-        //         self.advance(2);
-        //         self.scope = Scope::Tag;
-        //         Some(Ok(Token {
-        //             ty: TokenType::TagStart,
-        //             span: Span::new(start_pos, self.pos),
-        //         }))
-        //     }
-        //     _ => {}
-        // }
-        todo!()
+            loop {
+                match memchr::memchr(b'{', &self.src[p..]) {
+                    Some(idx)
+                        if idx + 1 < self.src.len()
+                            && (self.src[idx + 1] == b'{' || self.src[idx + 1] == b'%') =>
+                    {
+                        break p + idx;
+                    }
+                    Some(_) => p += idx + 1,
+                    None => break self.src.len(),
+                };
+            }
+        };
+
+        let value = &self.src[..idx];
+        let end_pos = self.advance(idx);
+        self.advance(2);
+        Some(Ok(Token {
+            ty: TokenType::Raw(std::str::from_utf8(value).unwrap()),
+            span: Span::new(start_pos, end_pos),
+        }))
     }
 
     fn parse_in_variable(&mut self) -> Option<Result<Token<'a>, LexerError>> {
@@ -150,6 +133,23 @@ impl<'a> Lexer<'a> {
 
     fn parse_in_tag(&mut self) -> Option<Result<Token<'a>, LexerError>> {
         todo!()
+    }
+
+    #[inline]
+    fn next_char(&mut self) -> Option<u8> {
+        if self.src.is_empty() {
+            return None;
+        }
+        let ch = self.src[0];
+        self.advance(1);
+        Some(ch)
+    }
+
+    #[inline]
+    fn parse_ident(&mut self) -> Option<Result<Token<'a>, LexerError>> {
+        self.next_char();
+
+        while let Some(ch) = self.next_char() {}
     }
 }
 
@@ -162,12 +162,47 @@ impl<'a> Iterator for Lexer<'a> {
         }
 
         match self.scope {
-            Scope::Template => self.parse_in_template(),
+            Scope::Template => {
+                if self.src.len() >= 2 {
+                    match &self.src[..2] {
+                        b"{{" => {
+                            let start_pos = self.pos;
+                            let end_pos = self.advance(2);
+                            return Some(Ok(Token {
+                                ty: TokenType::VariableStart,
+                                span: Span::new(start_pos, end_pos),
+                            }));
+                        }
+                        b"{%" => {
+                            let start_pos = self.pos;
+                            let end_pos = self.advance(2);
+                            return Some(Ok(Token {
+                                ty: TokenType::TagStart,
+                                span: Span::new(start_pos, end_pos),
+                            }));
+                        }
+                        _ => {}
+                    }
+                }
+
+                self.parse_in_template()
+            }
             Scope::Variable => self.parse_in_variable(),
             Scope::Tag => self.parse_in_tag(),
         }
     }
 }
+
+#[inline]
+fn is_ident_start(ch: u8) -> bool {
+    ch.is_ascii_alphabetic() || ch == b'_'
+}
+
+#[inline]
+fn is_ident_char(ch: u8) -> bool {
+    ch.is_ascii_alphanumeric() || ch == b'_'
+}
+
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
