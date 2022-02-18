@@ -20,15 +20,15 @@ impl ResponseError for ParseParamError {
     }
 }
 
-/// Parse JSON error.
+/// Parse request payload error.
 #[derive(Debug, Error)]
-#[error("parse JSON error: {reason}")]
-pub struct ParseJsonError {
+#[error("parse request payload error: {reason}")]
+pub struct ParseRequestPayloadError {
     /// The reason for the error.
     pub reason: String,
 }
 
-impl ResponseError for ParseJsonError {
+impl ResponseError for ParseRequestPayloadError {
     fn status(&self) -> StatusCode {
         StatusCode::BAD_REQUEST
     }
@@ -65,7 +65,7 @@ pub enum ContentTypeError {
 
 impl ResponseError for ContentTypeError {
     fn status(&self) -> StatusCode {
-        StatusCode::METHOD_NOT_ALLOWED
+        StatusCode::UNSUPPORTED_MEDIA_TYPE
     }
 }
 

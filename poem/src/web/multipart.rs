@@ -1,5 +1,5 @@
 use std::{
-    io::{Error as IoError, ErrorKind},
+    fmt::{self, Debug, Formatter},
     str::FromStr,
 };
 
@@ -16,6 +16,26 @@ use crate::{error::ParseMultipartError, http::header, FromRequest, Request, Requ
 /// A single field in a multipart stream.
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
 pub struct Field(multer::Field<'static>);
+
+impl Debug for Field {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("Field");
+
+        if let Some(name) = self.name() {
+            d.field("name", &name);
+        }
+
+        if let Some(file_name) = self.file_name() {
+            d.field("file_name", &file_name);
+        }
+
+        if let Some(content_type) = self.content_type() {
+            d.field("content_type", &content_type);
+        }
+
+        d.finish()
+    }
+}
 
 impl Field {
     /// Get the content type of the field.
@@ -37,7 +57,7 @@ impl Field {
     }
 
     /// Get the full data of the field as bytes.
-    pub async fn bytes(self) -> Result<Vec<u8>, IoError> {
+    pub async fn bytes(self) -> Result<Vec<u8>, ParseMultipartError> {
         let mut data = Vec::new();
         let mut buf = [0; 2048];
         let mut reader = self.into_async_read();
@@ -55,14 +75,14 @@ impl Field {
 
     /// Get the full field data as text.
     #[inline]
-    pub async fn text(self) -> Result<String, IoError> {
-        String::from_utf8(self.bytes().await?).map_err(|err| IoError::new(ErrorKind::Other, err))
+    pub async fn text(self) -> Result<String, ParseMultipartError> {
+        Ok(String::from_utf8(self.bytes().await?)?)
     }
 
     /// Write the full field data to a temporary file and return it.
     #[cfg(feature = "tempfile")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tempfile")))]
-    pub async fn tempfile(self) -> Result<File, IoError> {
+    pub async fn tempfile(self) -> Result<File, ParseMultipartError> {
         let mut reader = self.into_async_read();
         let mut file = tokio::fs::File::from_std(::libtempfile::tempfile()?);
         tokio::io::copy(&mut reader, &mut file).await?;
@@ -74,7 +94,7 @@ impl Field {
     pub fn into_async_read(self) -> impl AsyncRead + Send {
         tokio_util::io::StreamReader::new(
             self.0
-                .map_err(|err| std::io::Error::new(ErrorKind::Other, err.to_string())),
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string())),
         )
     }
 }

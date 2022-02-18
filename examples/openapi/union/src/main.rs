@@ -1,5 +1,5 @@
 use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{payload::Json, Object, OneOf, OpenApi, OpenApiService};
+use poem_openapi::{payload::Json, Object, OpenApi, OpenApiService, Union};
 
 #[derive(Object, Debug, PartialEq)]
 struct A {
@@ -12,8 +12,8 @@ struct B {
     v3: f32,
 }
 
-#[derive(OneOf, Debug, PartialEq)]
-#[oai(property_name = "type")]
+#[derive(Union, Debug, PartialEq)]
+#[oai(discriminator_name = "type")]
 enum MyObj {
     A(A),
     B(B),
@@ -36,10 +36,16 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let api_service = OpenApiService::new(Api, "Oneof", "1.0").server("http://localhost:3000/api");
+    let api_service = OpenApiService::new(Api, "Union", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
+    let spec = api_service.spec_endpoint();
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
-        .run(Route::new().nest("/api", api_service).nest("/", ui))
+        .run(
+            Route::new()
+                .nest("/api", api_service)
+                .nest("/", ui)
+                .at("/spec", spec),
+        )
         .await
 }

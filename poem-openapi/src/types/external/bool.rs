@@ -38,7 +38,8 @@ impl Type for bool {
 }
 
 impl ParseFromJSON for bool {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::Bool(value) = value {
             Ok(value)
         } else {
@@ -64,8 +65,8 @@ impl ParseFromMultipartField for bool {
 }
 
 impl ToJSON for bool {
-    fn to_json(&self) -> Value {
-        Value::Bool(*self)
+    fn to_json(&self) -> Option<Value> {
+        Some(Value::Bool(*self))
     }
 }
 

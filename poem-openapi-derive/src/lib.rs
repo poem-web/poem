@@ -13,13 +13,15 @@ mod common_args;
 mod r#enum;
 mod error;
 mod multipart;
+mod newtype;
 mod oauth_scopes;
 mod object;
-mod oneof;
 mod request;
 mod response;
+mod response_content;
 mod security_scheme;
 mod tags;
+mod union;
 mod utils;
 mod webhook;
 
@@ -44,10 +46,10 @@ pub fn derive_enum(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(OneOf, attributes(oai))]
-pub fn derive_oneof(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Union, attributes(oai))]
+pub fn derive_union(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
-    match oneof::generate(args) {
+    match union::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }
@@ -66,6 +68,15 @@ pub fn derive_response(input: TokenStream) -> TokenStream {
 pub fn derive_request(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as DeriveInput);
     match request::generate(args) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_derive(ResponseContent, attributes(oai))]
+pub fn derive_response_content(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DeriveInput);
+    match response_content::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }
@@ -124,6 +135,15 @@ pub fn Webhook(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);
     let item_trait = parse_macro_input!(input as ItemTrait);
     match webhook::generate(args, item_trait) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_derive(NewType, attributes(oai))]
+pub fn derive_new_type(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DeriveInput);
+    match newtype::generate(args) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

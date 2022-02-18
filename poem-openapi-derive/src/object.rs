@@ -8,9 +8,9 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
-    common_args::{ConcreteType, DefaultValue, RenameRule, RenameRuleExt},
+    common_args::{ConcreteType, DefaultValue, ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
     validators::Validators,
 };
 
@@ -34,6 +34,8 @@ struct ObjectField {
     read_only: bool,
     #[darling(default)]
     validator: Option<Validators>,
+    #[darling(default)]
+    flatten: bool,
 }
 
 #[derive(FromDeriveInput)]
@@ -64,6 +66,10 @@ struct ObjectArgs {
     example: Option<SpannedValue<Path>>,
     #[darling(default)]
     deny_unknown_fields: bool,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
+    #[darling(default)]
+    remote: Option<Path>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -80,7 +86,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
     let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
-    let (title, description) = get_summary_and_description(&args.attrs)?;
+    let description = get_description(&args.attrs)?;
     let mut deserialize_fields = Vec::new();
     let mut serialize_fields = Vec::new();
     let mut register_types = Vec::new();
@@ -105,7 +111,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     }
 
     for field in &s.fields {
-        let field_ident = field.ident.as_ref().unwrap();
+        let field_ident = field
+            .ident
+            .as_ref()
+            .ok_or_else(|| Error::new_spanned(&ident, "All fields must be named."))?;
         let field_ty = &field.ty;
         let read_only = args.read_only_all || field.read_only;
         let write_only = args.write_only_all || field.write_only;
@@ -130,8 +139,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .rename
             .clone()
             .unwrap_or_else(|| args.rename_all.rename(field_ident.unraw().to_string()));
-        let (field_title, field_description) = get_summary_and_description(&field.attrs)?;
-        let field_title = optional_literal(&field_title);
+        let field_description = get_description(&field.attrs)?;
         let field_description = optional_literal(&field_description);
         let validators = field.validator.clone().unwrap_or_default();
         let validators_checker = validators.create_obj_field_checker(&crate_name, &field_name)?;
@@ -146,10 +154,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     if obj.contains_key(#field_name) {
                         return Err(#crate_name::types::ParseError::custom(format!("properties `{}` is read only.", #field_name)));
                     }
-                    Default::default()
+                    ::std::default::Default::default()
                 };
             });
-        } else {
+        } else if !field.flatten {
             match &field.default {
                 Some(default_value) => {
                     let default_value = match default_value {
@@ -162,8 +170,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     deserialize_fields.push(quote! {
                         #[allow(non_snake_case)]
                         let #field_ident: #field_ty = {
-                            match obj.remove(#field_name).unwrap_or_default() {
-                                #crate_name::__private::serde_json::Value::Null => #default_value,
+                            match obj.remove(#field_name) {
+                                ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Null) | ::std::option::Option::None => #default_value,
                                 value => {
                                     let value = #crate_name::types::ParseFromJSON::parse_from_json(value).map_err(#crate_name::types::ParseError::propagate)?;
                                     #validators_checker
@@ -177,7 +185,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     deserialize_fields.push(quote! {
                         #[allow(non_snake_case)]
                         let #field_ident: #field_ty = {
-                            let value = #crate_name::types::ParseFromJSON::parse_from_json(obj.remove(#field_name).unwrap_or_default())
+                            let value = #crate_name::types::ParseFromJSON::parse_from_json(obj.remove(#field_name))
                                 .map_err(#crate_name::types::ParseError::propagate)?;
                             #validators_checker
                             value
@@ -185,73 +193,104 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     });
                 }
             };
+        } else {
+            deserialize_fields.push(quote! {
+                #[allow(non_snake_case)]
+                let #field_ident: #field_ty = {
+                    #crate_name::types::ParseFromJSON::parse_from_json(::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(::std::clone::Clone::clone(&obj))))
+                        .map_err(#crate_name::types::ParseError::propagate)?
+                };
+            });
         }
 
-        if write_only {
-            serialize_fields.push(quote! {});
+        if !field.flatten {
+            if !write_only {
+                serialize_fields.push(quote! {
+                    if let ::std::option::Option::Some(value) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                        object.insert(::std::string::ToString::to_string(#field_name), value);
+                    }
+                });
+            }
         } else {
             serialize_fields.push(quote! {
-                let value = #crate_name::types::ToJSON::to_json(&self.#field_ident);
-                object.insert(::std::string::ToString::to_string(#field_name), value);
+                if let ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(obj)) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                    object.extend(obj);
+                }
             });
         }
 
         let field_meta_default = match &field.default {
             Some(DefaultValue::Default) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default())))
+                quote!(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default()))
             }
             Some(DefaultValue::Function(func_name)) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&#func_name())))
+                quote!(#crate_name::types::ToJSON::to_json(&#func_name()))
             }
             None => quote!(::std::option::Option::None),
         };
 
-        register_types.push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
+        if !field.flatten {
+            register_types
+                .push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
 
-        meta_fields.push(quote! {{
-            let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
-            let patch_schema = {
-                let mut schema = #crate_name::registry::MetaSchema::ANY;
-                schema.default = #field_meta_default;
-                schema.read_only = #read_only;
-                schema.write_only = #write_only;
+            meta_fields.push(quote! {{
+                let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
+                let patch_schema = {
+                    let mut schema = #crate_name::registry::MetaSchema::ANY;
+                    schema.default = #field_meta_default;
+                    schema.read_only = #read_only;
+                    schema.write_only = #write_only;
 
-                if let ::std::option::Option::Some(title) = #field_title {
-                    schema.title = ::std::option::Option::Some(title);
+                    if let ::std::option::Option::Some(field_description) = #field_description {
+                        schema.description = ::std::option::Option::Some(field_description);
+                    }
+                    #validators_update_meta
+                    schema
+                };
+
+                fields.push((#field_name, original_schema.merge(patch_schema)));
+            }});
+
+            let has_default = field.default.is_some();
+            required_fields.push(quote! {
+                if <#field_ty>::IS_REQUIRED && !#has_default {
+                    fields.push(#field_name);
                 }
-
-                if let ::std::option::Option::Some(field_description) = #field_description {
-                    schema.description = ::std::option::Option::Some(field_description);
-                }
-                #validators_update_meta
-                schema
-            };
-
-            (#field_name, original_schema.merge(patch_schema))
-        }});
-
-        let has_default = field.default.is_some();
-        required_fields.push(quote! {
-            if <#field_ty>::IS_REQUIRED && !#has_default {
-                fields.push(#field_name);
-            }
-        });
+            });
+        } else {
+            meta_fields.push(quote! {
+                fields.extend(registry.create_fake_schema::<#field_ty>().properties);
+            });
+            required_fields.push(quote! {
+                fields.extend(registry.create_fake_schema::<#field_ty>().required);
+            });
+        }
     }
 
-    let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
+    let external_docs = match &args.external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(&crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
     let meta = quote! {
         #crate_name::registry::MetaSchema {
-            title: #title,
             description: #description,
+            external_docs: #external_docs,
             required: {
                 #[allow(unused_mut)]
                 let mut fields = ::std::vec::Vec::new();
                 #(#required_fields)*
                 fields
             },
-            properties: ::std::vec![#(#meta_fields),*],
+            properties: {
+                let mut fields = ::std::vec::Vec::new();
+                #(#meta_fields)*
+                fields
+            },
             deprecated: #deprecated,
             ..#crate_name::registry::MetaSchema::new("object")
         }
@@ -266,13 +305,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         None
     };
 
-    let expanded = if args.concretes.is_empty() {
+    let define_obj = if args.concretes.is_empty() {
         let example = match &args.example {
             Some(path) => {
                 let path = &**path;
-                quote! {
-                    ::std::option::Option::Some(<Self as #impl_generics #crate_name::types::ToJSON>::to_json(&#path()))
-                }
+                quote! { <Self as #impl_generics #crate_name::types::ToJSON>::to_json(&#path()) }
             }
             None => quote!(::std::option::Option::None),
         };
@@ -292,8 +329,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             (
                 quote!(#crate_name::registry::MetaSchemaRef::Reference(#oai_typename)),
                 quote! {
-                    #(#register_types)*
                     registry.create_schema::<Self, _>(#oai_typename, |registry| {
+                        #(#register_types)*
                         let mut meta = #meta;
                         meta.example = #example;
                         meta
@@ -332,7 +369,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
-                fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                    let value = value.unwrap_or_default();
                     match value {
                         #crate_name::__private::serde_json::Value::Object(mut obj) => {
                             #(#deserialize_fields)*
@@ -345,10 +383,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
-                fn to_json(&self) -> #crate_name::__private::serde_json::Value {
-                    let mut object = ::#crate_name::__private::serde_json::Map::new();
+                fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                    let mut object = #crate_name::__private::serde_json::Map::new();
                     #(#serialize_fields)*
-                    #crate_name::__private::serde_json::Value::Object(object)
+                    ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
                 }
             }
         }
@@ -365,7 +403,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #meta
                 }
 
-                fn __internal_parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
+                fn __internal_parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
+                    let value = value.unwrap_or_default();
                     match value {
                         #crate_name::__private::serde_json::Value::Object(mut obj) => {
                             #(#deserialize_fields)*
@@ -390,9 +429,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let concrete_type = quote! { #ident<#(#params),*> };
             let example = match &concrete.example {
                 Some(path) => {
-                    quote! {
-                        ::std::option::Option::Some(<Self as #crate_name::types::ToJSON>::to_json(&#path()))
-                    }
+                    quote! { <Self as #crate_name::types::ToJSON>::to_json(&#path()) }
                 }
                 None => quote!(::std::option::Option::None),
             };
@@ -429,14 +466,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
 
                 impl #crate_name::types::ParseFromJSON for #concrete_type {
-                    fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                    fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
                         Self::__internal_parse_from_json(value)
                     }
                 }
 
                 impl #crate_name::types::ToJSON for #concrete_type {
-                    fn to_json(&self) -> #crate_name::__private::serde_json::Value {
-                        Self::__internal_to_json(self)
+                    fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                        ::std::option::Option::Some(Self::__internal_to_json(self))
                     }
                 }
             };
@@ -446,5 +483,36 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         quote!(#(#code)*)
     };
 
-    Ok(expanded)
+    // remote
+    let remote = if let Some(remote) = &args.remote {
+        let fields = s
+            .fields
+            .iter()
+            .map(|field| &field.ident)
+            .collect::<Vec<_>>();
+        Some(quote! {
+            impl #impl_generics ::std::convert::From<#remote> for #ident #ty_generics #where_clause {
+                fn from(value: #remote) -> Self {
+                    Self {
+                        #(#fields: ::std::convert::Into::into(value.#fields)),*
+                    }
+                }
+            }
+
+            impl #impl_generics ::std::convert::Into<#remote> for #ident #ty_generics #where_clause {
+                fn into(self) -> #remote {
+                    #remote {
+                        #(#fields: ::std::convert::Into::into(self.#fields)),*
+                    }
+                }
+            }
+        })
+    } else {
+        None
+    };
+
+    Ok(quote! {
+        #define_obj
+        #remote
+    })
 }

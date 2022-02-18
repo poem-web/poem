@@ -100,6 +100,9 @@
 //! | email      | Support for email address string |
 //! | hostname   | Support for hostname string |
 //! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
+//! | url        | Integrate with the [`url` crate](https://crates.io/crates/url) |
+//! | bson        | Integrate with the [`bson` crate](https://crates.io/crates/bson) |
+//! | static-files | Support for static file response |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
@@ -117,6 +120,7 @@ pub mod param;
 pub mod payload;
 #[doc(hidden)]
 pub mod registry;
+pub mod response;
 pub mod types;
 #[doc(hidden)]
 pub mod validation;
@@ -127,8 +131,8 @@ mod openapi;
 mod ui;
 
 pub use base::{
-    ApiExtractor, ApiExtractorType, ApiResponse, ExtractParamOptions, OAuthScopes, OpenApi, Tags,
-    Webhook,
+    ApiExtractor, ApiExtractorType, ApiResponse, ExtractParamOptions, OAuthScopes, OpenApi,
+    ResponseContent, Tags, Webhook,
 };
 pub use openapi::{ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject};
 #[doc = include_str!("docs/request.md")]
@@ -139,28 +143,31 @@ pub use poem_openapi_derive::ApiResponse;
 pub use poem_openapi_derive::Enum;
 #[doc = include_str!("docs/multipart.md")]
 pub use poem_openapi_derive::Multipart;
+pub use poem_openapi_derive::NewType;
 #[doc = include_str!("docs/oauth_scopes.md")]
 pub use poem_openapi_derive::OAuthScopes;
 #[doc = include_str!("docs/object.md")]
 pub use poem_openapi_derive::Object;
-#[doc = include_str!("docs/oneof.md")]
-pub use poem_openapi_derive::OneOf;
 #[doc = include_str!("docs/openapi.md")]
 pub use poem_openapi_derive::OpenApi;
+#[doc = include_str!("docs/response_content.md")]
+pub use poem_openapi_derive::ResponseContent;
 #[doc = include_str!("docs/security_scheme.md")]
 pub use poem_openapi_derive::SecurityScheme;
 #[doc = include_str!("docs/tags.md")]
 pub use poem_openapi_derive::Tags;
+#[doc = include_str!("docs/union.md")]
+pub use poem_openapi_derive::Union;
 #[doc = include_str!("docs/webhook.md")]
 pub use poem_openapi_derive::Webhook;
+pub use validation::Validator;
 
 #[doc(hidden)]
 pub mod __private {
     pub use mime;
-    pub use once_cell;
     pub use poem;
     pub use serde;
     pub use serde_json;
 
-    pub use crate::{base::UrlQuery, payload::ContentTypeTable};
+    pub use crate::base::UrlQuery;
 }

@@ -8,9 +8,9 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Path};
 
 use crate::{
-    common_args::{RenameRule, RenameRuleExt},
+    common_args::{ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
 };
 
 #[derive(FromVariant)]
@@ -40,6 +40,8 @@ struct EnumArgs {
     remote: Option<Path>,
     #[darling(default)]
     deprecated: bool,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -47,7 +49,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
     let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
-    let (title, description) = get_summary_and_description(&args.attrs)?;
+    let description = get_description(&args.attrs)?;
     let e = match &args.data {
         Data::Enum(e) => e,
         _ => return Err(Error::new_spanned(ident, "Enum can only be applied to an enum.").into()),
@@ -75,7 +77,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .clone()
             .unwrap_or_else(|| args.rename_all.rename(variant.ident.unraw().to_string()));
 
-        enum_items.push(quote!(#crate_name::types::ToJSON::to_json(&#ident::#item_ident)));
+        enum_items.push(quote!(#crate_name::types::ToJSON::to_json(&#ident::#item_ident).unwrap()));
         ident_to_item.push(quote!(#ident::#item_ident => #oai_item_name));
         item_to_ident
             .push(quote!(#oai_item_name => ::std::result::Result::Ok(#ident::#item_ident)));
@@ -115,9 +117,15 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     } else {
         None
     };
-    let title = optional_literal(&title);
     let description = optional_literal(&description);
     let deprecated = args.deprecated;
+    let external_docs = match &args.external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(&crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
 
     let expanded = quote! {
         impl #crate_name::types::Type for #ident {
@@ -141,8 +149,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             fn register(registry: &mut #crate_name::registry::Registry) {
                 registry.create_schema::<Self, _>(#oai_typename, |registry| #crate_name::registry::MetaSchema {
-                    title: #title,
                     description: #description,
+                    external_docs: #external_docs,
                     deprecated: #deprecated,
                     enum_items: ::std::vec![#(#enum_items),*],
                     ..#crate_name::registry::MetaSchema::new("string")
@@ -155,7 +163,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ParseFromJSON for #ident {
-            fn parse_from_json(value: #crate_name::__private::serde_json::Value) -> #crate_name::types::ParseResult<Self> {
+            fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> #crate_name::types::ParseResult<Self> {
+                let value = value.unwrap_or_default();
                 match &value {
                     #crate_name::__private::serde_json::Value::String(item) => match item.as_str() {
                         #(#item_to_ident,)*
@@ -176,11 +185,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         impl #crate_name::types::ToJSON for #ident {
-            fn to_json(&self) -> #crate_name::__private::serde_json::Value {
+            fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
                 let name = match self {
                     #(#ident_to_item),*
                 };
-                #crate_name::__private::serde_json::Value::String(::std::string::ToString::to_string(name))
+                ::std::option::Option::Some(#crate_name::__private::serde_json::Value::String(::std::string::ToString::to_string(name)))
             }
         }
 

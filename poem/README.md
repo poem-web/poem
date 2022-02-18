@@ -24,6 +24,9 @@
     <img src="https://img.shields.io/badge/rustc-1.56.1+-ab6000.svg"
       alt="rustc 1.56.1+" />
   </a>
+  <a href="https://discord.gg/qWWNxwasb7">
+    <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
+  </a>
 </div>
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
@@ -64,6 +67,8 @@ which are disabled by default:
 | tower-compat  | Adapters for `tower::Layer` and `tower::Service`.                                         |
 | websocket     | Support for WebSocket                                                                     |
 | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.                     |
+| eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate.        |
+| i18n          | Support for internationalization                                                          |
 
 ## Safety
 

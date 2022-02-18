@@ -2,7 +2,7 @@ use std::{future::Future, marker::PhantomData, sync::Arc};
 
 use super::{
     After, AndThen, Around, Before, CatchAllError, CatchError, InspectAllError, InspectError, Map,
-    MapToResponse,
+    MapToResponse, ToResponse,
 };
 use crate::{
     error::IntoResult,
@@ -200,7 +200,7 @@ impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
 
 /// An owned dynamically typed `Endpoint` for use in cases where you can’t
 /// statically type your result or need to add some indirection.
-pub type BoxEndpoint<'a, T> = Box<dyn Endpoint<Output = T> + 'a>;
+pub type BoxEndpoint<'a, T = Response> = Box<dyn Endpoint<Output = T> + 'a>;
 
 /// Extension trait for [`Endpoint`].
 pub trait EndpointExt: IntoEndpoint {
@@ -454,7 +454,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
     ///
     /// let err = ep2.call(Request::default()).await.unwrap_err();
-    /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
     fn map_to_response(self) -> MapToResponse<Self::Endpoint>
@@ -462,6 +462,39 @@ pub trait EndpointExt: IntoEndpoint {
         Self: Sized,
     {
         MapToResponse::new(self.into_endpoint())
+    }
+
+    /// Convert the output of this endpoint into a response.
+    /// [`Response`](crate::Response).
+    ///
+    /// NOTE: Unlike [`EndpointExt::map_to_response`], when an error occurs, it
+    /// will also convert the error into a response object, so this endpoint
+    /// will just returns `Ok(Response)`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    /// };
+    ///
+    /// let ep1 = make(|_| async { "hello" }).to_response();
+    /// let ep2 = make(|_| async { Err::<(), Error>(Error::from_status(StatusCode::BAD_REQUEST)) })
+    ///     .to_response();
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = ep1.call(Request::default()).await.unwrap();
+    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+    ///
+    /// let resp = ep2.call(Request::default()).await.unwrap();
+    /// assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    /// # });
+    /// ```
+    fn to_response(self) -> ToResponse<Self::Endpoint>
+    where
+        Self: Sized,
+    {
+        ToResponse::new(self.into_endpoint())
     }
 
     /// Maps the response of this endpoint.
@@ -512,7 +545,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp, "hello, world!");
     ///
     /// let err: Error = ep2.call(Request::default()).await.unwrap_err();
-    /// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
     fn and_then<F, Fut, R, R2>(self, f: F) -> AndThen<Self::Endpoint, F>
@@ -768,12 +801,11 @@ mod test {
             "abcdef"
         );
 
-        let err = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
+        let resp = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
             .and_then(|resp| async move { Ok(resp + "def") })
-            .call(Request::default())
-            .await
-            .unwrap_err();
-        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+            .get_response(Request::default())
+            .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
@@ -787,12 +819,11 @@ mod test {
             "abcdef"
         );
 
-        let err = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
+        let resp = make_sync(|_| Err::<String, _>(Error::from_status(StatusCode::BAD_REQUEST)))
             .map(|resp| async move { resp.to_string() + "def" })
-            .call(Request::default())
-            .await
-            .unwrap_err();
-        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+            .get_response(Request::default())
+            .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]

@@ -8,7 +8,7 @@ use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
 use crate::{
     common_args::{DefaultValue, RenameRule, RenameRuleExt},
     error::GeneratorResult,
-    utils::{get_crate_name, get_summary_and_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal},
     validators::Validators,
 };
 
@@ -84,8 +84,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .rename
             .clone()
             .unwrap_or_else(|| args.rename_all.rename(field_ident.unraw().to_string()));
-        let (field_title, field_description) = get_summary_and_description(&field.attrs)?;
-        let field_title = optional_literal(&field_title);
+        let field_description = get_description(&field.attrs)?;
         let field_description = optional_literal(&field_description);
         let validators = field.validator.clone().unwrap_or_default();
         let validators_checker =
@@ -155,10 +154,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let has_default = field.default.is_some();
         let field_meta_default = match &field.default {
             Some(DefaultValue::Default) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default())))
+                quote!(#crate_name::types::ToJSON::to_json(&<#field_ty as ::std::default::Default>::default()))
             }
             Some(DefaultValue::Function(func_name)) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&#func_name())))
+                quote!(#crate_name::types::ToJSON::to_json(&#func_name()))
             }
             None => quote!(::std::option::Option::None),
         };
@@ -168,10 +167,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let mut patch_schema = {
                 let mut schema = #crate_name::registry::MetaSchema::ANY;
                 schema.default = #field_meta_default;
-
-                if let ::std::option::Option::Some(title) = #field_title {
-                    schema.title = ::std::option::Option::Some(title);
-                }
 
                 if let ::std::option::Option::Some(field_description) = #field_description {
                     schema.description = ::std::option::Option::Some(field_description);

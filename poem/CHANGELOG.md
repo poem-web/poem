@@ -4,6 +4,99 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.2.59] 2022-2-17
+
+- Add `Response::set_content_type` method.
+- Add `IntoResponse::with_content_type` method.
+
+# [1.2.54] 2022-2-8
+
+- Fix session renew gets overwritten by session change. [#196](https://github.com/poem-web/poem/issues/196)
+
+# [1.2.52] 2022-2-2
+
+- Integrate with `eyre`. [#190](https://github.com/poem-web/poem/pull/190)
+- Bump `tokio-rustls` from `0.22.0` to `0.23.2`.
+- Add default response type to `BoxEndpoint`.
+
+# [1.2.51] 2022-1-31
+
+- Replace `SystemTime` with `Instant` in tracing middleware. [#187](https://github.com/poem-web/poem/pull/187)
+
+# [1.2.49] 2022-1-29
+
+- Make the `StaticFileRequest::create_response` method correctly return `Err(StaticFileError::NotFound)` when the specified file does not exist.
+
+# [1.2.48] 2022-1-27
+
+- The `Content-Type` header of the `Html` response was changed from `text/html` to `text/html; charset=utf8`.
+
+# [1.2.47] 2022-1-26
+
+- Add `TestJsonValue::assert_not_null` method.
+
+# [1.2.46] 2022-1-26
+
+- Add `TestRequestBuilder::typed_header` method.
+
+# [1.2.45] 2022-1-25
+
+- Changed the return error type of multipart related methods from `IoError` to `ParseMultipartError`.
+- Add `TestRequestBuilder::form` method.
+- Add more examples to `poem::test`.
+
+# [1.2.44] 2022-1-22
+
+- `Redirect` parameter type changed to `impl Display`. [#176](https://github.com/poem-web/poem/issues/176)
+
+# [1.2.42] 2022-1-22
+
+- Fix crash caused by invalid request URI. [#174](https://github.com/poem-web/poem/issues/174)
+
+# [1.2.41] 2022-1-21
+
+- Add `Body::into_bytes_limit` method.
+
+# [1.2.39] 2022-1-20
+
+- Add `TestJsonArray::get_opt` and `TestJsonObject::get_opt` methods.
+
+# [1.2.37] 2022-1-18
+
+- Add `EndpointExt::to_response` method.
+
+# [1.2.34] 2022-1-14
+
+- Add `TcpAcceptor::from_std` and `UnixAcceptor::from_std` methods.
+- Add support for multipart tests.
+
+# [1.2.31] 2022-1-12
+
+- Add `I18NArgs::set` method.
+
+# [1.2.30] 2022-1-11
+
+- Change the behavior of the `TestClient::query` method to add a KV pair.
+
+# [1.2.29] 2022-1-11
+
+- Add `SensitiveHeader` middleware.
+
+# [1.2.28] 2022-1-8
+
+- Add support handling `Range` header for the `StaticFile` extractor.
+- Add `ResponseError::as_response` method.
+
+# [1.2.27] 2022-1-7
+
+- Rename `poem::endpoint::StaticFiles` to `poem::endpoint::StaticFilesEndpoint`.
+- Rename `poem::endpoint::StaticFile` to `poem::endpoint::StaticFileEndpoint`.
+- Add `poem::web::StaticFileRequest` extractor.
+
+# [1.2.26] 2022-1-6
+
+- Add I18N support with [`fluent`](https://crates.io/crates/fluent).
+
 # [1.2.22] 2022-1-4
 
 - Add test utilities.

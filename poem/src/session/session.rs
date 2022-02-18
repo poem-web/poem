@@ -78,11 +78,12 @@ impl Session {
     /// Sets a key-value pair into the session.
     pub fn set(&self, name: &str, value: impl Serialize) {
         let mut inner = self.inner.write();
-
         if inner.status != SessionStatus::Purged {
             if let Ok(value) = serde_json::to_value(&value) {
                 inner.entries.insert(name.to_string(), value);
-                inner.status = SessionStatus::Changed;
+                if inner.status != SessionStatus::Renewed {
+                    inner.status = SessionStatus::Changed;
+                }
             }
         }
     }
@@ -92,7 +93,9 @@ impl Session {
         let mut inner = self.inner.write();
         if inner.status != SessionStatus::Purged {
             inner.entries.remove(name);
-            inner.status = SessionStatus::Changed;
+            if inner.status != SessionStatus::Renewed {
+                inner.status = SessionStatus::Changed;
+            }
         }
     }
 
@@ -114,14 +117,18 @@ impl Session {
         let mut inner = self.inner.write();
         if inner.status != SessionStatus::Purged {
             inner.entries.clear();
-            inner.status = SessionStatus::Changed;
+            if inner.status != SessionStatus::Renewed {
+                inner.status = SessionStatus::Changed;
+            }
         }
     }
 
     /// Renews the session key, assigning existing session state to new key.
     pub fn renew(&self) {
         let mut inner = self.inner.write();
-        inner.status = SessionStatus::Renewed;
+        if inner.status != SessionStatus::Purged {
+            inner.status = SessionStatus::Renewed;
+        }
     }
 
     /// Removes session both client and server side.
@@ -147,5 +154,82 @@ impl<'a> FromRequest<'a> for &'a Session {
             .extensions()
             .get::<Session>()
             .expect("To use the `Session` extractor, the `CookieSession` middleware is required."))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_session() {
+        let session = Session::default();
+        session.set("a", 1);
+
+        assert_eq!(session.status(), SessionStatus::Changed);
+        assert_eq!(
+            session.entries().into_iter().collect::<Vec<_>>(),
+            vec![("a".to_string(), 1.into())]
+        );
+
+        session.set("b", 2);
+        assert_eq!(session.status(), SessionStatus::Changed);
+        assert_eq!(
+            session.entries().into_iter().collect::<Vec<_>>(),
+            vec![("a".to_string(), 1.into()), ("b".to_string(), 2.into())]
+        );
+
+        session.renew();
+        session.set("c", 3);
+        assert_eq!(session.status(), SessionStatus::Renewed);
+        assert_eq!(
+            session.entries().into_iter().collect::<Vec<_>>(),
+            vec![
+                ("a".to_string(), 1.into()),
+                ("b".to_string(), 2.into()),
+                ("c".to_string(), 3.into())
+            ]
+        );
+
+        session.remove("c");
+        assert_eq!(session.status(), SessionStatus::Renewed);
+        assert_eq!(
+            session.entries().into_iter().collect::<Vec<_>>(),
+            vec![("a".to_string(), 1.into()), ("b".to_string(), 2.into()),]
+        );
+
+        session.clear();
+        assert_eq!(session.status(), SessionStatus::Renewed);
+        assert_eq!(session.entries().into_iter().collect::<Vec<_>>(), vec![]);
+    }
+
+    #[test]
+    fn purge_session() {
+        let session = Session::default();
+
+        session.set("a", 1);
+        session.set("b", 2);
+        assert_eq!(session.status(), SessionStatus::Changed);
+        assert_eq!(
+            session.entries().into_iter().collect::<Vec<_>>(),
+            vec![("a".to_string(), 1.into()), ("b".to_string(), 2.into())]
+        );
+
+        session.purge();
+        session.set("c", 3);
+        assert_eq!(session.status(), SessionStatus::Purged);
+        assert_eq!(session.entries().into_iter().collect::<Vec<_>>(), vec![]);
+
+        session.clear();
+        assert_eq!(session.status(), SessionStatus::Purged);
+        assert_eq!(session.entries().into_iter().collect::<Vec<_>>(), vec![]);
+
+        session.set("d", 4);
+        assert_eq!(session.status(), SessionStatus::Purged);
+        assert_eq!(session.entries().into_iter().collect::<Vec<_>>(), vec![]);
+
+        session.remove("d");
+        assert_eq!(session.status(), SessionStatus::Purged);
+        assert_eq!(session.entries().into_iter().collect::<Vec<_>>(), vec![]);
     }
 }

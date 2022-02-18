@@ -39,7 +39,8 @@ impl Type for Uuid {
 }
 
 impl ParseFromJSON for Uuid {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::String(value) = value {
             Ok(value.parse()?)
         } else {
@@ -65,8 +66,8 @@ impl ParseFromMultipartField for Uuid {
 }
 
 impl ToJSON for Uuid {
-    fn to_json(&self) -> Value {
-        Value::String(self.to_string())
+    fn to_json(&self) -> Option<Value> {
+        Some(Value::String(self.to_string()))
     }
 }
 

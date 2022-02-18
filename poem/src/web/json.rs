@@ -123,7 +123,7 @@ impl<T: Serialize + Send> IntoResponse for Json<T> {
             }
         };
         Response::builder()
-            .header(header::CONTENT_TYPE, "application/json")
+            .header(header::CONTENT_TYPE, "application/json; charset=utf8")
             .body(data)
     }
 }

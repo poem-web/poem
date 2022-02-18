@@ -46,9 +46,7 @@ impl ParsePayload for PlainText<String> {
 
 impl<T: Into<String> + Send> IntoResponse for PlainText<T> {
     fn into_response(self) -> Response {
-        Response::builder()
-            .content_type(Self::CONTENT_TYPE)
-            .body(self.0.into())
+        self.0.into().into_response()
     }
 }
 

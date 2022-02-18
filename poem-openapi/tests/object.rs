@@ -1,7 +1,7 @@
 use poem_openapi::{
-    registry::{MetaSchema, MetaSchemaRef, Registry},
+    registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    Enum, Object,
+    Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
 
@@ -103,17 +103,17 @@ fn read_only_all() {
 
     assert_eq!(
         Obj { id: 99, value: 100 }.to_json(),
-        serde_json::json!({
-            "id": 99,
-            "value": 100,
-        })
-    );
-
-    assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Some(serde_json::json!({
             "id": 99,
             "value": 100,
         }))
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(serde_json::json!({
+            "id": 99,
+            "value": 100,
+        })))
         .unwrap_err()
         .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
@@ -138,15 +138,18 @@ fn write_only_all() {
     assert!(field_value_schema.write_only);
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        }))
+        })))
         .unwrap(),
         Obj { id: 99, value: 100 }
     );
 
-    assert_eq!(Obj { id: 99, value: 100 }.to_json(), serde_json::json!({}));
+    assert_eq!(
+        Obj { id: 99, value: 100 }.to_json(),
+        Some(serde_json::json!({}))
+    );
 }
 
 #[test]
@@ -162,18 +165,18 @@ fn field_skip() {
     assert_eq!(meta.properties.len(), 1);
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 10,
-        }))
+        })))
         .unwrap(),
         Obj { a: 10, b: 0 }
     );
 
     assert_eq!(
         Obj { a: 10, b: 0 }.to_json(),
-        json!({
+        Some(json!({
             "a": 10,
-        })
+        }))
     );
 }
 
@@ -230,8 +233,7 @@ fn description() {
     }
 
     let meta = get_meta::<Obj>();
-    assert_eq!(meta.title, Some("A"));
-    assert_eq!(meta.description, Some("AB\nCDE"));
+    assert_eq!(meta.description, Some("A\n\nAB\nCDE"));
 }
 
 #[test]
@@ -247,8 +249,7 @@ fn field_description() {
 
     let meta = get_meta::<Obj>();
     let field_meta = meta.properties[0].1.unwrap_inline();
-    assert_eq!(field_meta.title, Some("A"));
-    assert_eq!(field_meta.description, Some("AB\nCDE"));
+    assert_eq!(field_meta.description, Some("A\n\nAB\nCDE"));
 }
 
 #[test]
@@ -283,9 +284,9 @@ fn field_default() {
     assert_eq!(field_meta.default, Some(json!(200)));
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 1,
-        }))
+        })))
         .unwrap(),
         Obj {
             a: 1,
@@ -295,7 +296,7 @@ fn field_default() {
     );
 
     assert_eq!(
-        Obj::parse_from_json(json!({})).unwrap(),
+        Obj::parse_from_json(Some(json!({}))).unwrap(),
         Obj {
             a: 0,
             b: 100,
@@ -304,11 +305,11 @@ fn field_default() {
     );
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 33,
             "b": 44,
             "c": 55,
-        }))
+        })))
         .unwrap(),
         Obj {
             a: 33,
@@ -325,9 +326,9 @@ fn serde() {
         a: i32,
     }
 
-    assert_eq!(Obj { a: 10 }.to_json(), json!({ "a": 10 }));
+    assert_eq!(Obj { a: 10 }.to_json(), Some(json!({ "a": 10 })));
     assert_eq!(
-        Obj::parse_from_json(json!({ "a": 10 })).unwrap(),
+        Obj::parse_from_json(Some(json!({ "a": 10 }))).unwrap(),
         Obj { a: 10 }
     );
 }
@@ -340,9 +341,9 @@ fn serde_generic() {
         a: T,
     }
 
-    assert_eq!(Obj::<i32> { a: 10 }.to_json(), json!({ "a": 10 }));
+    assert_eq!(Obj::<i32> { a: 10 }.to_json(), Some(json!({ "a": 10 })));
     assert_eq!(
-        <Obj<i32>>::parse_from_json(json!({ "a": 10 })).unwrap(),
+        <Obj<i32>>::parse_from_json(Some(json!({ "a": 10 }))).unwrap(),
         Obj { a: 10 }
     );
 }
@@ -361,26 +362,26 @@ fn read_only() {
     assert!(meta.properties[0].1.unwrap_inline().read_only);
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "value": 100,
-        }))
+        })))
         .unwrap(),
         Obj { id: 0, value: 100 }
     );
 
     assert_eq!(
         Obj { id: 99, value: 100 }.to_json(),
-        serde_json::json!({
-            "id": 99,
-            "value": 100,
-        })
-    );
-
-    assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Some(serde_json::json!({
             "id": 99,
             "value": 100,
         }))
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(serde_json::json!({
+            "id": 99,
+            "value": 100,
+        })))
         .unwrap_err()
         .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
@@ -401,19 +402,19 @@ fn write_only() {
     assert!(meta.properties[1].1.unwrap_inline().write_only);
 
     assert_eq!(
-        Obj::parse_from_json(serde_json::json!({
+        Obj::parse_from_json(Some(serde_json::json!({
             "id": 99,
             "value": 100,
-        }))
+        })))
         .unwrap(),
         Obj { id: 99, value: 100 }
     );
 
     assert_eq!(
         Obj { id: 99, value: 100 }.to_json(),
-        serde_json::json!({
+        Some(serde_json::json!({
             "id": 99,
-        })
+        }))
     );
 }
 
@@ -464,7 +465,7 @@ fn inline_fields() {
     assert_eq!(
         meta_inner_obj.all_of[1],
         MetaSchemaRef::Inline(Box::new(MetaSchema {
-            title: Some("Inner Obj"),
+            description: Some("Inner Obj"),
             default: Some(serde_json::json!({
                 "v": 100,
             })),
@@ -480,7 +481,7 @@ fn inline_fields() {
     assert_eq!(
         meta_inner_enum.all_of[1],
         MetaSchemaRef::Inline(Box::new(MetaSchema {
-            title: Some("Inner Enum"),
+            description: Some("Inner Enum"),
             default: Some(serde_json::json!("B")),
             ..MetaSchema::ANY
         }))
@@ -616,20 +617,20 @@ fn deny_unknown_fields() {
     }
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 1,
             "b": 2,
-        }))
+        })))
         .unwrap(),
         Obj { a: 1, b: 2 }
     );
 
     assert_eq!(
-        Obj::parse_from_json(json!({
+        Obj::parse_from_json(Some(json!({
             "a": 1,
             "b": 2,
             "c": 3,
-        }))
+        })))
         .unwrap_err()
         .into_message(),
         "failed to parse \"Obj\": unknown field `c`."
@@ -648,4 +649,122 @@ fn required_fields() {
 
     let meta = get_meta::<Obj>();
     assert_eq!(meta.required, vec!["a"]);
+}
+
+#[tokio::test]
+async fn external_docs() {
+    #[derive(Object)]
+    #[oai(
+        external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+    )]
+    struct Obj {
+        a: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(
+        meta.external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
+    );
+}
+
+#[test]
+fn issue_171() {
+    #[derive(NewType)]
+    #[oai(from_parameter = false, to_header = false, from_multipart = false)]
+    pub struct Schema(Vec<SchemaItem>);
+
+    #[derive(Object)]
+    #[oai(rename_all = "snake_case")]
+    pub struct SchemaItem {
+        pub properties: Option<Schema>,
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn a(&self, _item: poem_openapi::payload::Json<SchemaItem>) {}
+    }
+
+    let _ = poem_openapi::OpenApiService::new(Api, "a", "1.0").spec();
+}
+
+#[test]
+fn flatten_field() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct Obj1 {
+        a: i32,
+        b: i32,
+    }
+
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct Obj {
+        #[oai(flatten)]
+        obj1: Obj1,
+        c: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.required, vec!["a", "b", "c"]);
+
+    assert_eq!(meta.properties[0].0, "a");
+    assert_eq!(meta.properties[1].0, "b");
+    assert_eq!(meta.properties[2].0, "c");
+
+    let obj = Obj {
+        obj1: Obj1 { a: 100, b: 200 },
+        c: 300,
+    };
+
+    assert_eq!(obj.to_json(), Some(json!({"a": 100, "b": 200, "c": 300})));
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({"a": 100, "b": 200, "c": 300}))).unwrap(),
+        obj
+    );
+}
+
+#[test]
+fn remote() {
+    mod remote {
+        #[derive(Debug, Eq, PartialEq)]
+        pub struct InternalMyObj {
+            pub a: i32,
+            pub b: String,
+        }
+    }
+
+    #[derive(Debug, Object, Eq, PartialEq)]
+    #[oai(remote = "remote::InternalMyObj")]
+    struct MyObj {
+        a: i32,
+        b: String,
+    }
+
+    assert_eq!(
+        Into::<MyObj>::into(remote::InternalMyObj {
+            a: 100,
+            b: "abc".to_string()
+        }),
+        MyObj {
+            a: 100,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Into::<remote::InternalMyObj>::into(MyObj {
+            a: 100,
+            b: "abc".to_string()
+        }),
+        remote::InternalMyObj {
+            a: 100,
+            b: "abc".to_string()
+        }
+    );
 }

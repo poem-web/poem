@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    common_args::{APIMethod, DefaultValue},
+    common_args::{APIMethod, DefaultValue, ExternalDocument},
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
@@ -39,6 +39,8 @@ struct APIOperation {
     transform: Option<Ident>,
     #[darling(default)]
     operation_id: Option<String>,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 #[derive(FromMeta, Default)]
@@ -166,6 +168,7 @@ fn generate_operation(
         tags,
         transform,
         operation_id,
+        external_docs,
     } = args;
     let http_method = method.to_http_method();
     let fn_ident = &item_method.sig.ident;
@@ -260,10 +263,10 @@ fn generate_operation(
         let has_default = operation_param.default.is_some();
         let param_meta_default = match &operation_param.default {
             Some(DefaultValue::Default) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&<#arg_ty as ::std::default::Default>::default())))
+                quote!(#crate_name::types::ToJSON::to_json(&<#arg_ty as ::std::default::Default>::default()))
             }
             Some(DefaultValue::Function(func_name)) => {
-                quote!(::std::option::Option::Some(#crate_name::types::ToJSON::to_json(&#func_name())))
+                quote!(#crate_name::types::ToJSON::to_json(&#func_name()))
             }
             None => quote!(::std::option::Option::None),
         };
@@ -380,6 +383,13 @@ fn generate_operation(
         tag_names.push(quote!(#crate_name::Tags::name(&#tag)));
     }
     let operation_id = optional_literal(&operation_id);
+    let external_docs = match external_docs {
+        Some(external_docs) => {
+            let s = external_docs.to_token_stream(crate_name);
+            quote!(::std::option::Option::Some(#s))
+        }
+        None => quote!(::std::option::Option::None),
+    };
 
     ctx.operations.entry(oai_path).or_default().push(quote! {
         #crate_name::registry::MetaOperation {
@@ -387,7 +397,8 @@ fn generate_operation(
             method: #crate_name::__private::poem::http::Method::#http_method,
             summary: #summary,
             description: #description,
-            params:  {
+            external_docs: #external_docs,
+            params: {
                 let mut params = ::std::vec::Vec::new();
                 #(#params_meta)*
                 params

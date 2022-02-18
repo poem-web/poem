@@ -55,13 +55,13 @@ impl<T: ParseFromJSON> ParseFromMultipartField for JsonField<T> {
             None => Value::Null,
         };
         Ok(Self(
-            T::parse_from_json(value).map_err(ParseError::propagate)?,
+            T::parse_from_json(Some(value)).map_err(ParseError::propagate)?,
         ))
     }
 }
 
 impl<T: ToJSON> ToJSON for JsonField<T> {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         self.0.to_json()
     }
 }

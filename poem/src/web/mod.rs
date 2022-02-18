@@ -17,6 +17,8 @@ mod redirect;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
+#[cfg(feature = "static-files")]
+mod static_file;
 #[cfg(feature = "tempfile")]
 mod tempfile;
 #[doc(inline)]
@@ -30,27 +32,30 @@ pub mod websocket;
 
 use std::{convert::Infallible, fmt::Debug};
 
-pub use addr::{LocalAddr, RemoteAddr};
 use bytes::Bytes;
-#[cfg(feature = "compression")]
-pub use compress::{Compress, CompressionAlgo};
-#[cfg(feature = "csrf")]
-pub use csrf::{CsrfToken, CsrfVerifier};
-pub use data::Data;
-pub use form::Form;
-pub use json::Json;
-#[cfg(feature = "multipart")]
-pub use multipart::{Field, Multipart};
-pub use path::Path;
-pub(crate) use path::PathDeserializer;
-pub use query::Query;
-pub use redirect::Redirect;
-#[cfg(feature = "template")]
-pub use template::{HtmlTemplate, Template};
-pub use typed_header::TypedHeader;
+use http::header;
 
+#[cfg(feature = "compression")]
+pub use self::compress::{Compress, CompressionAlgo};
+#[cfg(feature = "csrf")]
+pub use self::csrf::{CsrfToken, CsrfVerifier};
+#[cfg(feature = "multipart")]
+pub use self::multipart::{Field, Multipart};
+pub(crate) use self::path::PathDeserializer;
+#[cfg(feature = "static-files")]
+pub use self::static_file::{StaticFileRequest, StaticFileResponse};
 #[cfg(feature = "tempfile")]
 pub use self::tempfile::TempFile;
+pub use self::{
+    addr::{LocalAddr, RemoteAddr},
+    data::Data,
+    form::Form,
+    json::Json,
+    path::Path,
+    query::Query,
+    redirect::Redirect,
+    typed_header::TypedHeader,
+};
 use crate::{
     body::Body,
     error::{ReadBodyError, Result},
@@ -218,7 +223,17 @@ impl RequestBody {
 ///    Ready to accept a websocket [`WebSocket`](websocket::WebSocket)
 /// connection.
 ///
-/// # Create you own extractor
+/// - **Locale**
+///
+///    Extracts the [`Locale`](crate::i18n::Locale) from the incoming
+/// request.
+///
+/// - **StaticFileRequest**
+///
+///     Ready to accept a static file request
+/// [`StaticFileRequest`](static_file::StaticFileRequest).
+///
+/// # Create your own extractor
 ///
 /// The following is an example of a custom token extractor, which extracts the
 /// token from the `MyToken` header.
@@ -447,6 +462,29 @@ pub trait IntoResponse: Send {
         }
     }
 
+    /// Wrap an `impl IntoResponse` to with a new content type.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{http::HeaderValue, IntoResponse};
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = "hello".with_content_type("text/abc").into_response();
+    /// assert_eq!(resp.content_type(), Some("text/abc"));
+    /// # });
+    /// ```
+    fn with_content_type<V>(self, content_type: V) -> WithContentType<Self>
+    where
+        V: TryInto<HeaderValue>,
+        Self: Sized,
+    {
+        WithContentType {
+            inner: self,
+            content_type: content_type.try_into().ok(),
+        }
+    }
+
     /// Wrap an `impl IntoResponse` to set a status code.
     ///
     /// # Example
@@ -517,6 +555,23 @@ impl<T: IntoResponse> IntoResponse for WithHeader<T> {
     }
 }
 
+/// Returned by [`with_content_type`](IntoResponse::with_content_type) method.
+pub struct WithContentType<T> {
+    inner: T,
+    content_type: Option<HeaderValue>,
+}
+
+impl<T: IntoResponse> IntoResponse for WithContentType<T> {
+    fn into_response(self) -> Response {
+        let mut resp = self.inner.into_response();
+        if let Some(content_type) = self.content_type {
+            resp.headers_mut()
+                .insert(header::CONTENT_TYPE, content_type);
+        }
+        resp
+    }
+}
+
 /// Returned by [`with_header`](IntoResponse::with_status) method.
 pub struct WithStatus<T> {
     inner: T,
@@ -553,13 +608,17 @@ impl IntoResponse for Response {
 
 impl IntoResponse for String {
     fn into_response(self) -> Response {
-        Response::builder().content_type("text/plain").body(self)
+        Response::builder()
+            .content_type("text/plain; charset=utf8")
+            .body(self)
     }
 }
 
 impl IntoResponse for &'static str {
     fn into_response(self) -> Response {
-        Response::builder().content_type("text/plain").body(self)
+        Response::builder()
+            .content_type("text/plain; charset=utf8")
+            .body(self)
     }
 }
 
@@ -637,7 +696,7 @@ pub struct Html<T>(pub T);
 impl<T: Into<String> + Send> IntoResponse for Html<T> {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/html")
+            .content_type("text/html; charset=utf8")
             .body(self.0.into())
     }
 }
@@ -822,13 +881,13 @@ mod tests {
         // Html
         let resp = Html("abc").into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("text/html"));
+        assert_eq!(resp.content_type(), Some("text/html; charset=utf8"));
         assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
 
         // Json
         let resp = Json(serde_json::json!({ "a": 1, "b": 2})).into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("application/json"));
+        assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
         assert_eq!(
             resp.into_body().into_string().await.unwrap(),
             r#"{"a":1,"b":2}"#

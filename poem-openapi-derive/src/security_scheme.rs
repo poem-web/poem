@@ -433,7 +433,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     if fields.style == Style::Tuple && fields.fields.len() != 1 {
         return Err(Error::new_spanned(
             ident,
-            "Only one unnamed field is allowed in the SecurityScheme structure.",
+            "Only one unnamed field is allowed in the SecurityScheme struct.",
         )
         .into());
     }

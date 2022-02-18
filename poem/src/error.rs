@@ -7,6 +7,7 @@ use std::{
     string::FromUtf8Error,
 };
 
+use headers::{ContentRange, HeaderMapExt};
 use http::Method;
 
 use crate::{http::StatusCode, IntoResponse, Response};
@@ -28,12 +29,24 @@ macro_rules! define_http_error {
 pub trait ResponseError {
     /// The status code of this error.
     fn status(&self) -> StatusCode;
+
+    /// Convert this error to a HTTP response.
+    fn as_response(&self) -> Response
+    where
+        Self: StdError + Send + Sync + 'static,
+    {
+        Response::builder()
+            .status(self.status())
+            .body(self.to_string())
+    }
 }
 
 enum ErrorSource {
     BoxedError(Box<dyn StdError + Send + Sync>),
     #[cfg(feature = "anyhow")]
     Anyhow(anyhow::Error),
+    #[cfg(feature = "eyre06")]
+    Eyre06(eyre06::Report),
 }
 
 impl Debug for ErrorSource {
@@ -42,6 +55,36 @@ impl Debug for ErrorSource {
             ErrorSource::BoxedError(err) => Debug::fmt(err, f),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => Debug::fmt(err, f),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => Debug::fmt(err, f),
+        }
+    }
+}
+
+type BoxAsResponseFn = Box<dyn Fn(&Error) -> Response + Send + Sync + 'static>;
+
+enum AsResponse {
+    Status(StatusCode),
+    Fn(BoxAsResponseFn),
+}
+
+impl AsResponse {
+    #[inline]
+    fn from_status(status: StatusCode) -> Self {
+        AsResponse::Status(status)
+    }
+
+    fn from_type<T: ResponseError + StdError + Send + Sync + 'static>() -> Self {
+        AsResponse::Fn(Box::new(|err| {
+            let err = err.downcast_ref::<T>().expect("valid error");
+            err.as_response()
+        }))
+    }
+
+    fn as_response(&self, err: &Error) -> Response {
+        match self {
+            AsResponse::Status(status) => Response::builder().status(*status).body(err.to_string()),
+            AsResponse::Fn(f) => f(err),
         }
     }
 }
@@ -62,7 +105,7 @@ impl Debug for ErrorSource {
 /// # Create you own error type
 ///
 /// ```
-/// use poem::{error::ResponseError, handler, http::StatusCode, Result};
+/// use poem::{error::ResponseError, handler, http::StatusCode, Endpoint, Request, Result};
 ///
 /// #[derive(Debug, thiserror::Error)]
 /// #[error("my error")]
@@ -75,17 +118,65 @@ impl Debug for ErrorSource {
 /// }
 ///
 /// fn do_something() -> Result<(), MyError> {
-///     todo!()
+///     Err(MyError)
 /// }
 ///
 /// #[handler]
 /// async fn index() -> Result<()> {
 ///     Ok(do_something()?)
 /// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = index.get_response(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+/// assert_eq!(resp.into_body().into_string().await.unwrap(), "my error");
+/// # });
+/// ```
+///
+/// # Custom error response
+///
+/// ```
+/// use poem::{error::ResponseError, handler, http::StatusCode, Response, Result, Request, Body, Endpoint};
+///
+/// #[derive(Debug, thiserror::Error)]
+/// #[error("my error")]
+/// struct MyError;
+///
+/// impl ResponseError for MyError {
+///     fn status(&self) -> StatusCode {
+///         StatusCode::BAD_GATEWAY
+///     }
+///
+///     fn as_response(&self) -> Response {
+///         let body = Body::from_json(serde_json::json!({
+///             "code": 1000,
+///             "message": self.to_string(),
+///         })).unwrap();
+///         Response::builder().status(self.status()).body(body)
+///     }
+/// }
+///
+/// fn do_something() -> Result<(), MyError> {
+///     Err(MyError)
+/// }
+///
+/// #[handler]
+/// async fn index() -> Result<()> {
+///     Ok(do_something()?)
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = index.get_response(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+/// assert_eq!(resp.into_body().into_json::<serde_json::Value>().await.unwrap(),
+/// serde_json::json!({
+///     "code": 1000,
+///     "message": "my error",
+/// }));
+/// # });
 /// ```
 ///
 /// # Downcast the error to concrete error type
-///
 /// ```
 /// use poem::{error::NotFoundError, Error};
 ///
@@ -94,10 +185,17 @@ impl Debug for ErrorSource {
 /// assert!(err.is::<NotFoundError>());
 /// assert_eq!(err.downcast_ref::<NotFoundError>(), Some(&NotFoundError));
 /// ```
-#[derive(Debug)]
 pub struct Error {
-    status: StatusCode,
+    as_response: AsResponse,
     source: ErrorSource,
+}
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Error")
+            .field("source", &self.source)
+            .finish()
+    }
 }
 
 impl Display for Error {
@@ -106,6 +204,8 @@ impl Display for Error {
             ErrorSource::BoxedError(err) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => Display::fmt(err, f),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => Display::fmt(err, f),
         }
     }
 }
@@ -118,24 +218,23 @@ impl From<Infallible> for Error {
 
 impl<T: ResponseError + StdError + Send + Sync + 'static> From<T> for Error {
     fn from(err: T) -> Self {
-        let status = err.status();
-        Error::new(err, status)
+        Error {
+            as_response: AsResponse::from_type::<T>(),
+            source: ErrorSource::BoxedError(Box::new(err)),
+        }
     }
 }
 
 impl From<Box<dyn StdError + Send + Sync>> for Error {
     fn from(err: Box<dyn StdError + Send + Sync>) -> Self {
-        Error {
-            status: StatusCode::INTERNAL_SERVER_ERROR,
-            source: ErrorSource::BoxedError(err),
-        }
+        (StatusCode::INTERNAL_SERVER_ERROR, err).into()
     }
 }
 
 impl From<(StatusCode, Box<dyn StdError + Send + Sync>)> for Error {
     fn from((status, err): (StatusCode, Box<dyn StdError + Send + Sync>)) -> Self {
         Error {
-            status,
+            as_response: AsResponse::from_status(status),
             source: ErrorSource::BoxedError(err),
         }
     }
@@ -145,8 +244,18 @@ impl From<(StatusCode, Box<dyn StdError + Send + Sync>)> for Error {
 impl From<anyhow::Error> for Error {
     fn from(err: anyhow::Error) -> Self {
         Error {
-            status: StatusCode::INTERNAL_SERVER_ERROR,
+            as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
             source: ErrorSource::Anyhow(err),
+        }
+    }
+}
+
+#[cfg(feature = "eyre06")]
+impl From<eyre06::Error> for Error {
+    fn from(err: eyre06::Error) -> Self {
+        Error {
+            as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
+            source: ErrorSource::Eyre06(err),
         }
     }
 }
@@ -155,8 +264,18 @@ impl From<anyhow::Error> for Error {
 impl From<(StatusCode, anyhow::Error)> for Error {
     fn from((status, err): (StatusCode, anyhow::Error)) -> Self {
         Error {
-            status,
+            as_response: AsResponse::from_status(status),
             source: ErrorSource::Anyhow(err),
+        }
+    }
+}
+
+#[cfg(feature = "eyre06")]
+impl From<(StatusCode, eyre06::Report)> for Error {
+    fn from((status, err): (StatusCode, eyre06::Report)) -> Self {
+        Error {
+            as_response: AsResponse::from_status(status),
+            source: ErrorSource::Eyre06(err),
         }
     }
 }
@@ -173,7 +292,7 @@ impl Error {
     #[inline]
     pub fn new<T: StdError + Send + Sync + 'static>(err: T, status: StatusCode) -> Self {
         Self {
-            status,
+            as_response: AsResponse::from_status(status),
             source: ErrorSource::BoxedError(Box::new(err)),
         }
     }
@@ -203,12 +322,6 @@ impl Error {
         Self::new(StringError(msg.into()), status)
     }
 
-    /// Returns the status code of this error.
-    #[inline]
-    pub fn status(&self) -> StatusCode {
-        self.status
-    }
-
     /// Downcast this error object by reference.
     #[inline]
     pub fn downcast_ref<T: StdError + Send + Sync + 'static>(&self) -> Option<&T> {
@@ -216,19 +329,21 @@ impl Error {
             ErrorSource::BoxedError(err) => err.downcast_ref::<T>(),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => err.downcast_ref::<T>(),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => err.downcast_ref::<T>(),
         }
     }
 
     /// Attempts to downcast the error to a concrete error type.
     #[inline]
     pub fn downcast<T: StdError + Send + Sync + 'static>(self) -> Result<T, Error> {
-        let status = self.status;
+        let as_response = self.as_response;
 
         match self.source {
             ErrorSource::BoxedError(err) => match err.downcast::<T>() {
                 Ok(err) => Ok(*err),
                 Err(err) => Err(Error {
-                    status,
+                    as_response,
                     source: ErrorSource::BoxedError(err),
                 }),
             },
@@ -236,8 +351,16 @@ impl Error {
             ErrorSource::Anyhow(err) => match err.downcast::<T>() {
                 Ok(err) => Ok(err),
                 Err(err) => Err(Error {
-                    status,
+                    as_response,
                     source: ErrorSource::Anyhow(err),
+                }),
+            },
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => match err.downcast::<T>() {
+                Ok(err) => Ok(err),
+                Err(err) => Err(Error {
+                    as_response,
+                    source: ErrorSource::Eyre06(err),
                 }),
             },
         }
@@ -250,17 +373,14 @@ impl Error {
             ErrorSource::BoxedError(err) => err.is::<T>(),
             #[cfg(feature = "anyhow")]
             ErrorSource::Anyhow(err) => err.is::<T>(),
+            #[cfg(feature = "eyre06")]
+            ErrorSource::Eyre06(err) => err.is::<T>(),
         }
     }
 
     /// Consumes this to return a response object.
     pub fn as_response(&self) -> Response {
-        let msg = match &self.source {
-            ErrorSource::BoxedError(err) => err.to_string(),
-            #[cfg(feature = "anyhow")]
-            ErrorSource::Anyhow(err) => err.to_string(),
-        };
-        Response::builder().status(self.status).body(msg)
+        self.as_response.as_response(self)
     }
 }
 
@@ -428,6 +548,10 @@ pub enum ReadBodyError {
     #[error("parse utf8: {0}")]
     Utf8(#[from] FromUtf8Error),
 
+    /// Payload too large
+    #[error("payload too large")]
+    PayloadTooLarge,
+
     /// Io error.
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
@@ -439,6 +563,7 @@ impl ResponseError for ReadBodyError {
             ReadBodyError::BodyHasBeenTaken => StatusCode::INTERNAL_SERVER_ERROR,
             ReadBodyError::Utf8(_) => StatusCode::BAD_REQUEST,
             ReadBodyError::Io(_) => StatusCode::BAD_REQUEST,
+            ReadBodyError::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
         }
     }
 }
@@ -498,8 +623,8 @@ pub enum ParseFormError {
 impl ResponseError for ParseFormError {
     fn status(&self) -> StatusCode {
         match self {
-            ParseFormError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
-            ParseFormError::ContentTypeRequired => StatusCode::BAD_REQUEST,
+            ParseFormError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseFormError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             ParseFormError::UrlDecode(_) => StatusCode::BAD_REQUEST,
         }
     }
@@ -543,15 +668,25 @@ pub enum ParseMultipartError {
     /// Parse error.
     #[error("parse: {0}")]
     Multipart(#[from] multer::Error),
+
+    /// Body is not a valid utf8 string.
+    #[error("parse utf8: {0}")]
+    Utf8(#[from] FromUtf8Error),
+
+    /// Io error
+    #[error("io: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 #[cfg(feature = "multipart")]
 impl ResponseError for ParseMultipartError {
     fn status(&self) -> StatusCode {
         match self {
-            ParseMultipartError::InvalidContentType(_) => StatusCode::BAD_REQUEST,
-            ParseMultipartError::ContentTypeRequired => StatusCode::BAD_REQUEST,
+            ParseMultipartError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseMultipartError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             ParseMultipartError::Multipart(_) => StatusCode::BAD_REQUEST,
+            ParseMultipartError::Utf8(_) => StatusCode::BAD_REQUEST,
+            ParseMultipartError::Io(_) => StatusCode::BAD_REQUEST,
         }
     }
 }
@@ -635,8 +770,19 @@ pub enum StaticFileError {
     Forbidden(String),
 
     /// File not found
-    #[error("not found: {0}")]
-    NotFound(String),
+    #[error("not found")]
+    NotFound,
+
+    /// Precondition failed
+    #[error("precondition failed")]
+    PreconditionFailed,
+
+    /// Range not satisfiable
+    #[error("range not satisfiable")]
+    RangeNotSatisfiable {
+        /// Content length
+        size: u64,
+    },
 
     /// Io error
     #[error("io: {0}")]
@@ -649,9 +795,22 @@ impl ResponseError for StaticFileError {
             StaticFileError::MethodNotAllowed(_) => StatusCode::METHOD_NOT_ALLOWED,
             StaticFileError::InvalidPath => StatusCode::BAD_REQUEST,
             StaticFileError::Forbidden(_) => StatusCode::FORBIDDEN,
-            StaticFileError::NotFound(_) => StatusCode::NOT_FOUND,
+            StaticFileError::NotFound => StatusCode::NOT_FOUND,
+            StaticFileError::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
+            StaticFileError::RangeNotSatisfiable { .. } => StatusCode::RANGE_NOT_SATISFIABLE,
             StaticFileError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
+    }
+
+    fn as_response(&self) -> Response {
+        let mut resp = Response::builder()
+            .status(self.status())
+            .body(self.to_string());
+        if let StaticFileError::RangeNotSatisfiable { size } = self {
+            resp.headers_mut()
+                .typed_insert(ContentRange::unsatisfied_bytes(*size));
+        }
+        resp
     }
 }
 
@@ -701,6 +860,45 @@ impl ResponseError for RouteError {
     }
 }
 
+/// A possible error value occurred when load i18n resources.
+#[cfg(feature = "i18n")]
+#[derive(Debug, thiserror::Error)]
+pub enum I18NError {
+    /// Fluent error.
+    #[error("fluent: {}", .0[0])]
+    Fluent(Vec<fluent::FluentError>),
+
+    /// Fluent FTL parser error.
+    #[error("fluent parser: {}", .0[0])]
+    FluentParser(Vec<fluent_syntax::parser::ParserError>),
+
+    /// There is no value in the message.
+    #[error("no value")]
+    FluentNoValue,
+
+    /// Message id was not found.
+    #[error("msg not found: `{id}`")]
+    FluentMessageNotFound {
+        /// Message id
+        id: String,
+    },
+
+    /// Invalid language id.
+    #[error("invalid language id: {0}")]
+    LanguageIdentifier(#[from] unic_langid::LanguageIdentifierError),
+
+    /// Io error
+    #[error("io: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+#[cfg(feature = "i18n")]
+impl ResponseError for I18NError {
+    fn status(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::{Error as IoError, ErrorKind};
@@ -727,12 +925,12 @@ mod tests {
             IoError::new(ErrorKind::AlreadyExists, "aaa"),
             StatusCode::BAD_GATEWAY,
         );
-        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
         assert!(err.is::<IoError>());
         assert_eq!(
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
         );
+        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
     }
 
     #[test]
@@ -740,12 +938,12 @@ mod tests {
         let boxed_err: Box<dyn StdError + Send + Sync> =
             Box::new(IoError::new(ErrorKind::AlreadyExists, "aaa"));
         let err: Error = Error::from((StatusCode::BAD_GATEWAY, boxed_err));
-        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
         assert!(err.is::<IoError>());
         assert_eq!(
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
         );
+        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
     }
 
     #[cfg(feature = "anyhow")]
@@ -753,11 +951,52 @@ mod tests {
     fn test_anyhow_error() {
         let anyhow_err: anyhow::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
         let err: Error = Error::from((StatusCode::BAD_GATEWAY, anyhow_err));
-        assert_eq!(err.status(), StatusCode::BAD_GATEWAY);
         assert!(err.is::<IoError>());
         assert_eq!(
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
+        );
+        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[cfg(feature = "eyre6")]
+    #[test]
+    fn test_eyre6_error() {
+        let eyre6_err: eyre6::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
+        let err: Error = Error::from((StatusCode::BAD_GATEWAY, eyre6_err));
+        assert!(err.is::<IoError>());
+        assert_eq!(
+            err.downcast_ref::<IoError>().unwrap().kind(),
+            ErrorKind::AlreadyExists
+        );
+        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[tokio::test]
+    async fn test_custom_as_response() {
+        #[derive(Debug, thiserror::Error)]
+        #[error("my error")]
+        struct MyError;
+
+        impl ResponseError for MyError {
+            fn status(&self) -> StatusCode {
+                StatusCode::BAD_GATEWAY
+            }
+
+            fn as_response(&self) -> Response {
+                Response::builder()
+                    .status(self.status())
+                    .body("my error message")
+            }
+        }
+
+        let err = Error::from(MyError);
+        let resp = err.as_response();
+
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(
+            resp.into_body().into_string().await.unwrap(),
+            "my error message"
         );
     }
 }

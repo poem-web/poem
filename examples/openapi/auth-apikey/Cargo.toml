@@ -5,7 +5,11 @@ edition = "2021"
 publish = false
 
 [dependencies]
+jwt = "0.15.0"
 poem = { path = "../../../poem" }
 poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
 tokio = { version = "1.12.0", features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = "0.2.24"
+hmac = "0.11"
+sha2 = "0.9"
+serde = { version = "1.0.133", features = ["derive"] }

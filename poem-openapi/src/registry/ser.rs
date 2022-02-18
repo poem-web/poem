@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
 
-use serde::{
-    ser::{SerializeMap, SerializeStruct},
-    Serialize, Serializer,
-};
+use serde::{ser::SerializeMap, Serialize, Serializer};
 
 use crate::registry::{
     MetaApi, MetaExternalDocument, MetaInfo, MetaPath, MetaResponses, MetaSchema, MetaSchemaRef,
@@ -17,8 +14,8 @@ impl<'a> Serialize for MetaSchemaRef {
         match self {
             MetaSchemaRef::Inline(schema) => schema.serialize(serializer),
             MetaSchemaRef::Reference(name) => {
-                let mut s = serializer.serialize_struct("MetaSchemaRef", 1)?;
-                s.serialize_field("$ref", &format!("#/components/schemas/{}", name))?;
+                let mut s = serializer.serialize_map(None)?;
+                s.serialize_entry("$ref", &format!("#/components/schemas/{}", name))?;
                 s.end()
             }
         }
@@ -81,7 +78,7 @@ pub(crate) struct Document<'a> {
     pub(crate) servers: &'a [MetaServer],
     pub(crate) apis: &'a [MetaApi],
     pub(crate) webhooks: &'a [MetaWebhook],
-    pub(crate) registry: &'a Registry,
+    pub(crate) registry: &'a mut Registry,
     pub(crate) external_document: Option<&'a MetaExternalDocument>,
 }
 
@@ -95,24 +92,27 @@ impl<'a> Serialize for Document<'a> {
             security_schemes: &'a BTreeMap<&'static str, MetaSecurityScheme>,
         }
 
-        let mut s = serializer.serialize_struct("OpenAPI", 6)?;
+        let mut s = serializer.serialize_map(None)?;
 
-        s.serialize_field("openapi", OPENAPI_VERSION)?;
-        s.serialize_field("info", &self.info)?;
-        s.serialize_field("servers", self.servers)?;
-        s.serialize_field("tags", &self.registry.tags)?;
+        s.serialize_entry("openapi", OPENAPI_VERSION)?;
+        s.serialize_entry("info", &self.info)?;
+        s.serialize_entry("servers", self.servers)?;
+        s.serialize_entry("tags", &self.registry.tags)?;
         if !self.webhooks.is_empty() {
-            s.serialize_field("webhooks", &WebhookMap(self.webhooks))?;
+            s.serialize_entry("webhooks", &WebhookMap(self.webhooks))?;
         }
-        s.serialize_field("paths", &PathMap(self.apis))?;
-        s.serialize_field(
+        s.serialize_entry("paths", &PathMap(self.apis))?;
+        s.serialize_entry(
             "components",
             &Components {
                 schemas: &self.registry.schemas,
                 security_schemes: &self.registry.security_schemes,
             },
         )?;
-        s.serialize_field("externalDocs", &self.external_document)?;
+
+        if let Some(external_document) = self.external_document {
+            s.serialize_entry("externalDocs", &external_document)?;
+        }
 
         s.end()
     }

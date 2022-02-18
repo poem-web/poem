@@ -317,3 +317,16 @@ async fn item_content_type() {
         serde_json::json!(200)
     );
 }
+
+#[tokio::test]
+async fn header_deprecated() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    #[allow(dead_code)]
+    pub enum Resp {
+        #[oai(status = 200)]
+        A(Json<i32>, #[oai(header = "A", deprecated = true)] String),
+    }
+
+    let meta: MetaResponses = Resp::meta();
+    assert_eq!(meta.responses[0].headers[0].deprecated, true);
+}

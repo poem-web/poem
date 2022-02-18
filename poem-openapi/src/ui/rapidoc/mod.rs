@@ -26,6 +26,7 @@ const RAPIDOC_TEMPLATE: &str = r#"
         regular-font="Open Sans"
         mono-font = "Roboto Mono"
         font-size = "large"
+        schema-description-expanded = "true"	
     >
     </rapi-doc>
     <script>

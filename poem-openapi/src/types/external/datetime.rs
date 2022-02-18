@@ -41,7 +41,8 @@ macro_rules! impl_datetime_types {
         }
 
         impl ParseFromJSON for $ty {
-            fn parse_from_json(value: Value) -> ParseResult<Self> {
+            fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+                let value = value.unwrap_or_default();
                 if let Value::String(value) = value {
                     Ok(value.parse()?)
                 } else {
@@ -67,8 +68,8 @@ macro_rules! impl_datetime_types {
         }
 
         impl ToJSON for $ty {
-            fn to_json(&self) -> Value {
-                Value::String(self.to_rfc3339())
+            fn to_json(&self) -> Option<Value> {
+                Some(Value::String(self.to_rfc3339()))
             }
         }
     };

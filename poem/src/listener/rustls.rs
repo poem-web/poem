@@ -8,8 +8,10 @@ use http::uri::Scheme;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, NoClientAuth,
-        RootCertStore, ServerConfig,
+        server::{
+            AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, NoClientAuth,
+        },
+        Certificate, PrivateKey, RootCertStore, ServerConfig,
     },
     server::TlsStream,
 };
@@ -88,23 +90,23 @@ impl RustlsConfig {
     }
 
     fn create_server_config(&self) -> IoResult<ServerConfig> {
-        let cert = tokio_rustls::rustls::internal::pemfile::certs(&mut self.cert.as_slice())
+        let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
+            .map(|mut certs| certs.drain(..).map(Certificate).collect())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
+
         let key = {
-            let mut pkcs8 = tokio_rustls::rustls::internal::pemfile::pkcs8_private_keys(
-                &mut self.key.as_slice(),
-            )
-            .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
-            if !pkcs8.is_empty() {
-                pkcs8.remove(0)
-            } else {
-                let mut rsa = tokio_rustls::rustls::internal::pemfile::rsa_private_keys(
-                    &mut self.key.as_slice(),
-                )
+            let mut pkcs8 = rustls_pemfile::pkcs8_private_keys(&mut self.key.as_slice())
                 .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
+            if !pkcs8.is_empty() {
+                PrivateKey(pkcs8.remove(0))
+            } else {
+                let mut rsa =
+                    rustls_pemfile::rsa_private_keys(&mut self.key.as_slice()).map_err(|_| {
+                        IoError::new(ErrorKind::Other, "failed to parse tls private keys")
+                    })?;
 
                 if !rsa.is_empty() {
-                    rsa.remove(0)
+                    PrivateKey(rsa.remove(0))
                 } else {
                     return Err(IoError::new(
                         ErrorKind::Other,
@@ -113,18 +115,6 @@ impl RustlsConfig {
                 }
             }
         };
-
-        fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
-            let mut store = RootCertStore::empty();
-            if let Ok((0, _)) | Err(()) = store.add_pem_file(&mut trust_anchor) {
-                Err(IoError::new(
-                    ErrorKind::Other,
-                    "failed to parse tls trust anchor",
-                ))
-            } else {
-                Ok(store)
-            }
-        }
 
         let client_auth = match &self.client_auth {
             TlsClientAuth::Off => NoClientAuth::new(),
@@ -136,14 +126,26 @@ impl RustlsConfig {
             }
         };
 
-        let mut server_config = ServerConfig::new(client_auth);
-        server_config
-            .set_single_cert_with_ocsp_and_sct(cert, key, self.ocsp_resp.clone(), Vec::new())
+        let mut server_config = ServerConfig::builder()
+            .with_safe_defaults()
+            .with_client_cert_verifier(client_auth)
+            .with_single_cert_with_ocsp_and_sct(cert, key, self.ocsp_resp.clone(), Vec::new())
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
-        server_config.set_protocols(&["h2".into(), "http/1.1".into()]);
+        server_config.alpn_protocols = vec!["h2".into(), "http/1.1".into()];
 
         Ok(server_config)
     }
+}
+
+fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
+    let mut store = RootCertStore::empty();
+    let ders = rustls_pemfile::certs(&mut trust_anchor)?;
+    for der in ders {
+        store
+            .add(&Certificate(der))
+            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+    }
+    Ok(store)
 }
 
 impl<T> IntoTlsConfigStream<RustlsConfig> for T
@@ -280,7 +282,7 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
-    use tokio_rustls::rustls::ClientConfig;
+    use tokio_rustls::rustls::{ClientConfig, ServerName};
 
     use super::*;
     use crate::listener::TcpListener;
@@ -296,14 +298,15 @@ mod tests {
         let local_addr = acceptor.local_addr().pop().unwrap();
 
         tokio::spawn(async move {
-            let mut config = ClientConfig::new();
-            config
-                .root_store
-                .add_pem_file(&mut include_bytes!("certs/chain1.pem").as_ref())
-                .unwrap();
+            let config = ClientConfig::builder()
+                .with_safe_defaults()
+                .with_root_certificates(
+                    read_trust_anchor(include_bytes!("certs/chain1.pem")).unwrap(),
+                )
+                .with_no_client_auth();
 
             let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
-            let domain = webpki::DNSNameRef::try_from_ascii_str("testserver.com").unwrap();
+            let domain = ServerName::try_from("testserver.com").unwrap();
             let stream = TcpStream::connect(*local_addr.as_socket_addr().unwrap())
                 .await
                 .unwrap();

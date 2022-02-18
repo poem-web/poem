@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.2.25"
+version = "1.2.59"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -20,11 +20,11 @@ categories = [
 [features]
 default = []
 websocket = ["tokio-tungstenite", "sha1", "base64"]
-multipart = ["multer"]
-rustls = ["tokio-rustls"]
+multipart = ["multer", "mime"]
+rustls = ["tokio-rustls", "rustls-pemfile"]
 native-tls = ["tokio-native-tls"]
 sse = []
-static-files = ["httpdate"]
+static-files = ["httpdate", "mime", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
@@ -32,30 +32,29 @@ session = ["cookie", "rand", "priority-queue"]
 redis-session = ["session", "redis"]
 opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
-tempfile = ["libtempfile"]
+tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
-test = ["sse", "sse-codec", "tokio-util/compat"]
+test = ["sse", "sse-codec", "tokio-util/compat", "mime"]
+i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
 
 [dependencies]
-poem-derive = { path = "../poem-derive", version = "1.2.25" }
+poem-derive = { path = "../poem-derive", version = "1.2.59" }
 
 async-trait = "0.1.51"
 bytes = "1.1.0"
 futures-util = { version = "0.3.17", features = ["sink"] }
 http = "0.2.5"
-hyper = { version = "0.14.13", features = ["http1", "http2", "server", "runtime", "stream"] }
-mime = "0.3.16"
-tokio = { version = "1.12.0", features = ["sync", "rt", "net", "fs", "time", "macros"] }
-tokio-util = { version = "0.6.8", features = ["io"] }
+hyper = { version = "0.14.17", features = ["http1", "http2", "server", "runtime", "stream"] }
+tokio = { version = "1.17.0", features = ["sync", "rt", "net", "time", "macros"] }
+tokio-util = { version = "0.6.9", features = ["io"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
 serde_urlencoded = "0.7.0"
 tokio-stream = "0.1.7"
-parking_lot = "0.11.2"
+parking_lot = "0.12.0"
 pin-project-lite = "0.2.7"
 percent-encoding = "2.1.0"
 regex = "1.5.4"
-mime_guess = "2.0.3"
 smallvec = "1.6.1"
 tracing = "0.1.29"
 headers = "0.3.4"
@@ -64,11 +63,14 @@ thiserror = "1.0.30"
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.15.0", optional = true }
-tokio-rustls = { version = "0.22.0", optional = true }
+tokio-rustls = { version = "0.23.2", optional = true }
+rustls-pemfile = { version = "0.2.1", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
 chrono = { version = "0.4.19", optional = true }
 time = { version = "0.3", optional = true }
+mime = { version = "0.3.16", optional = true }
+mime_guess = { version = "2.0.3", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
 redis = { version = "0.21.2", optional = true, features = ["aio", "tokio-comp", "connection-manager"] }
@@ -86,14 +88,19 @@ base64 = { version = "0.13.0", optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
 sse-codec = { version = "0.3.2", optional = true }
+fluent = { version = "0.16.0", optional = true }
+fluent-langneg = { version = "0.13.0", optional = true }
+fluent-syntax = { version = "0.11.0", optional = true }
+unic-langid = { version = "0.9.0", optional = true, features = ["macros"] }
+intl-memoizer = { version = "0.5.1", optional = true }
 
 # Feature optional dependencies
 anyhow = { version = "1.0.0", optional = true }
+eyre06 = { package = "eyre", version = "0.6", optional = true }
 
 [dev-dependencies]
 async-stream = "0.3.2"
 tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
-webpki = "0.21.4"
 
 [package.metadata.docs.rs]
 all-features = true

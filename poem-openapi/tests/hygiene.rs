@@ -65,9 +65,9 @@ impl Api {
     #[allow(unused_variables)]
     async fn create_user(
         &self,
-        /// api key
-        key: poem_openapi::param::Query<::std::string::String>,
-        #[oai(name = "X-API-TOKEN", deprecated)] api_token: poem_openapi::param::Header<
+        /// api key key: poem_openapi::param::Query<::std::string::String>,
+        #[oai(name = "X-API-TOKEN", deprecated)]
+        api_token: poem_openapi::param::Header<
             ::std::option::Option<::std::string::String>,
         >,
         req: CreateUserRequest,
@@ -121,9 +121,15 @@ struct B1 {
     v3: f32,
 }
 
-#[derive(::poem_openapi::OneOf, Debug, PartialEq)]
-#[oai(property_name = "type")]
-enum MyOneOf {
+#[derive(::poem_openapi::Union, Debug, PartialEq)]
+#[oai(discriminator_name = "type")]
+enum MyAnyOf1 {
+    A(A1),
+    B(B1),
+}
+
+#[derive(::poem_openapi::Union, Debug, PartialEq)]
+enum MyAnyOf2 {
     A(A1),
     B(B1),
 }

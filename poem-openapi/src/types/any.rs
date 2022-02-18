@@ -39,16 +39,16 @@ impl<T: Send + Sync> Type for Any<T> {
 }
 
 impl<T: DeserializeOwned + Send + Sync> ParseFromJSON for Any<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         Ok(Self(
-            serde_json::from_value(value).map_err(ParseError::custom)?,
+            serde_json::from_value(value.unwrap_or_default()).map_err(ParseError::custom)?,
         ))
     }
 }
 
 impl<T: Serialize + Send + Sync> ToJSON for Any<T> {
-    fn to_json(&self) -> Value {
-        serde_json::to_value(&self.0).unwrap_or_default()
+    fn to_json(&self) -> Option<Value> {
+        Some(serde_json::to_value(&self.0).unwrap_or_default())
     }
 }
 
@@ -79,13 +79,13 @@ impl Type for Value {
 }
 
 impl ParseFromJSON for Value {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
-        Ok(value)
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        Ok(value.unwrap_or_default())
     }
 }
 
 impl ToJSON for Value {
-    fn to_json(&self) -> Value {
-        self.clone()
+    fn to_json(&self) -> Option<Value> {
+        Some(self.clone())
     }
 }

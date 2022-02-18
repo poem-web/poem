@@ -241,6 +241,8 @@
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |websocket         | Support for WebSocket          |
 //! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
+//! | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate. |
+//! | i18n          | Support for internationalization |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
@@ -251,6 +253,9 @@
 
 pub mod endpoint;
 pub mod error;
+#[cfg(feature = "i18n")]
+#[cfg_attr(docsrs, doc(cfg(feature = "i18n")))]
+pub mod i18n;
 pub mod listener;
 pub mod middleware;
 #[cfg(feature = "session")]

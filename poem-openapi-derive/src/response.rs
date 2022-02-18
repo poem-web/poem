@@ -20,6 +20,8 @@ struct ResponseField {
 
     #[darling(default)]
     header: Option<String>,
+    #[darling(default)]
+    deprecated: bool,
 }
 
 #[derive(FromVariant)]
@@ -70,17 +72,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let item_ident = &variant.ident;
         let item_description = get_description(&variant.attrs)?;
         let item_description = optional_literal(&item_description);
-        let (values, headers) = parse_fields(&variant.fields);
+        let (values, headers) = parse_fields(&variant.fields)?;
 
         let mut match_headers = Vec::new();
         let mut with_headers = Vec::new();
         let mut meta_headers = Vec::new();
 
+        // headers
         for (idx, header) in headers.iter().enumerate() {
             let ident = quote::format_ident!("__p{}", idx);
             let header_name = header.header.as_ref().unwrap().to_uppercase();
             let header_ty = &header.ty;
             let header_desc = optional_literal(&get_description(&header.attrs)?);
+            let deprecated = header.deprecated;
 
             with_headers.push(quote! {{
                 if let Some(header) = #crate_name::types::ToHeader::to_header(&#ident) {
@@ -93,43 +97,50 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     name: #header_name,
                     description: #header_desc,
                     required: <#header_ty as #crate_name::types::Type>::IS_REQUIRED,
+                    deprecated: #deprecated,
                     schema: <#header_ty as #crate_name::types::Type>::schema_ref(),
                 }
             });
         }
 
-        fn update_content(
+        fn update_content_type(
             crate_name: &TokenStream,
             content_type: Option<&str>,
-            payload_ty: &Type,
         ) -> (TokenStream, TokenStream) {
-            let content_type_value = match content_type {
-                Some(content_type) => quote!(#content_type),
-                None => quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
+            let update_response_content_type = match content_type {
+                Some(content_type) => {
+                    quote! {
+                        resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
+                            #crate_name::__private::poem::http::HeaderValue::from_static(#content_type));
+                    }
+                }
+                None => quote!(),
             };
-            let update_content_type = match content_type {
+
+            let update_meta_content_type = match content_type {
                 Some(content_type) => quote! {
-                    resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
-                        #crate_name::__private::poem::http::HeaderValue::from_static(#content_type));
+                    if let Some(mt) = content.get_mut(0) {
+                        mt.content_type = #content_type;
+                    }
                 },
                 None => quote!(),
             };
-            (content_type_value, update_content_type)
+
+            (update_response_content_type, update_meta_content_type)
         }
 
         match values.len() {
             2 => {
-                // #[oai(default)]
-                // Item(StatusCode, payload)
-                let payload_ty = &values[1].ty;
-                let (content_type, update_content_type) =
-                    update_content(&crate_name, variant.content_type.as_deref(), payload_ty);
+                // Item(StatusCode, media)
+                let media_ty = &values[1].ty;
+                let (update_response_content_type, update_meta_content_type) =
+                    update_content_type(&crate_name, variant.content_type.as_deref());
                 into_responses.push(quote! {
-                    #ident::#item_ident(status, payload, #(#match_headers),*) => {
-                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(payload);
+                    #ident::#item_ident(status, media, #(#match_headers),*) => {
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(media);
                         resp.set_status(status);
                         #(#with_headers)*
-                        #update_content_type
+                        #update_response_content_type
                         resp
                     }
                 });
@@ -137,28 +148,29 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::None,
-                        content: ::std::vec![#crate_name::registry::MetaMediaType {
-                            content_type: #content_type,
-                            schema: <#payload_ty as #crate_name::payload::Payload>::schema_ref(),
-                        }],
+                        content: {
+                            let mut content = <#media_ty as #crate_name::ResponseContent>::media_types();
+                            #update_meta_content_type
+                            content
+                        },
                         headers: ::std::vec![#(#meta_headers),*],
                     }
                 });
-                schemas.push(payload_ty);
+                schemas.push(media_ty);
             }
             1 => {
                 // #[oai(status = 200)]
-                // Item(payload)
-                let payload_ty = &values[0].ty;
-                let (content_type, update_content_type) =
-                    update_content(&crate_name, variant.content_type.as_deref(), payload_ty);
+                // Item(media)
+                let media_ty = &values[0].ty;
                 let status = get_status(variant.ident.span(), variant.status)?;
+                let (update_response_content_type, update_meta_content_type) =
+                    update_content_type(&crate_name, variant.content_type.as_deref());
                 into_responses.push(quote! {
-                    #ident::#item_ident(payload, #(#match_headers),*) => {
-                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(payload);
+                    #ident::#item_ident(media, #(#match_headers),*) => {
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(media);
                         resp.set_status(#crate_name::__private::poem::http::StatusCode::from_u16(#status).unwrap());
                         #(#with_headers)*
-                        #update_content_type
+                        #update_response_content_type
                         resp
                     }
                 });
@@ -166,14 +178,15 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
-                        content: ::std::vec![#crate_name::registry::MetaMediaType {
-                            content_type: #content_type,
-                            schema: <#payload_ty as #crate_name::payload::Payload>::schema_ref(),
-                        }],
+                        content: {
+                            let mut content = <#media_ty as #crate_name::ResponseContent>::media_types();
+                            #update_meta_content_type
+                            content
+                        },
                         headers: ::std::vec![#(#meta_headers),*],
                     }
                 });
-                schemas.push(payload_ty);
+                schemas.push(media_ty);
             }
             0 => {
                 // #[oai(status = 200)]
@@ -241,12 +254,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 fn meta() -> #crate_name::registry::MetaResponses {
                     #crate_name::registry::MetaResponses {
-                        responses: ::std::vec![#(#responses_meta),*],
+                        responses: ::std::vec![#(#responses_meta),*]
                     }
                 }
 
                 fn register(registry: &mut #crate_name::registry::Registry) {
-                    #(<#schemas as #crate_name::payload::Payload>::register(registry);)*
+                    #(<#schemas as #crate_name::ResponseContent>::register(registry);)*
                 }
 
                 #bad_request_handler
@@ -269,7 +282,9 @@ fn get_status(span: Span, status: Option<u16>) -> GeneratorResult<TokenStream> {
     Ok(quote!(#status))
 }
 
-fn parse_fields(fields: &Fields<ResponseField>) -> (Vec<&ResponseField>, Vec<&ResponseField>) {
+fn parse_fields(
+    fields: &Fields<ResponseField>,
+) -> syn::Result<(Vec<&ResponseField>, Vec<&ResponseField>)> {
     let mut values = Vec::new();
     let mut headers = Vec::new();
 
@@ -281,5 +296,5 @@ fn parse_fields(fields: &Fields<ResponseField>) -> (Vec<&ResponseField>, Vec<&Re
         }
     }
 
-    (values, headers)
+    Ok((values, headers))
 }

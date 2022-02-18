@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error};
 
 use crate::{
-    common_args::{RenameRule, RenameRuleExt},
+    common_args::{ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };
@@ -22,6 +22,8 @@ struct TagItem {
 
     #[darling(default)]
     rename: Option<String>,
+    #[darling(default)]
+    external_docs: Option<ExternalDocument>,
 }
 
 #[derive(FromDeriveInput)]
@@ -68,10 +70,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             .unwrap_or_else(|| args.rename_all.rename(item_ident.unraw().to_string()));
         let description = get_description(&variant.attrs)?;
         let description = optional_literal(&description);
+        let external_docs = match &variant.external_docs {
+            Some(external_docs) => {
+                let s = external_docs.to_token_stream(&crate_name);
+                quote!(::std::option::Option::Some(#s))
+            }
+            None => quote!(::std::option::Option::None),
+        };
 
         meta_items.push(quote!(#crate_name::registry::MetaTag {
             name: #oai_item_name,
             description: #description,
+            external_docs: #external_docs,
         }));
         to_names.push(quote!(Self::#item_ident => #oai_item_name));
     }

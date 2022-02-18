@@ -5,6 +5,7 @@ mod base64_type;
 mod binary;
 mod error;
 mod external;
+mod maybe_undefined;
 mod string_types;
 
 pub mod multipart;
@@ -15,6 +16,7 @@ pub use any::Any;
 pub use base64_type::Base64;
 pub use binary::Binary;
 pub use error::{ParseError, ParseResult};
+pub use maybe_undefined::MaybeUndefined;
 use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
 #[cfg(feature = "email")]
@@ -65,7 +67,13 @@ pub trait Type: Send + Sync {
 /// Represents a type that can parsing from JSON.
 pub trait ParseFromJSON: Sized + Type {
     /// Parse from [`serde_json::Value`].
-    fn parse_from_json(value: Value) -> ParseResult<Self>;
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self>;
+
+    /// Parse from JSON string.
+    fn parse_from_json_string(s: &str) -> ParseResult<Self> {
+        let value = serde_json::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
+        Self::parse_from_json(value)
+    }
 }
 
 /// Represents a type that can parsing from parameter. (header, query, path,
@@ -101,7 +109,12 @@ pub trait ParseFromMultipartField: Sized + Type {
 /// Represents a type that can converted to JSON value.
 pub trait ToJSON: Type {
     /// Convert this value to [`Value`].
-    fn to_json(&self) -> Value;
+    fn to_json(&self) -> Option<Value>;
+
+    /// Convert this value to JSON string.
+    fn to_json_string(&self) -> String {
+        serde_json::to_string(&self.to_json()).unwrap_or_default()
+    }
 }
 
 /// Represents a type that can converted to HTTP header.
@@ -141,7 +154,7 @@ impl<T: Type> Type for &T {
 }
 
 impl<T: ToJSON> ToJSON for &T {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         T::to_json(self)
     }
 }
@@ -183,7 +196,7 @@ impl<T: Type> Type for Arc<T> {
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Arc<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         T::parse_from_json(value)
             .map_err(ParseError::propagate)
             .map(Arc::new)
@@ -205,7 +218,7 @@ impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
 }
 
 impl<T: ToJSON> ToJSON for Arc<T> {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         self.as_ref().to_json()
     }
 }
@@ -247,7 +260,7 @@ impl<T: Type> Type for Box<T> {
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Box<T> {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         T::parse_from_json(value)
             .map_err(ParseError::propagate)
             .map(Box::new)
@@ -286,7 +299,7 @@ impl<T: ParseFromMultipartField> ParseFromMultipartField for Box<T> {
 }
 
 impl<T: ToJSON> ToJSON for Box<T> {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         self.as_ref().to_json()
     }
 }
@@ -307,14 +320,18 @@ mod tests {
         assert_eq!(Arc::<i32>::name(), "integer(int32)");
         assert_eq!(Arc::new(100).as_raw_value(), Some(&100));
 
-        let value: Arc<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
+        let value: Arc<i32> =
+            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
         assert_eq!(value, Arc::new(100));
 
         let value: Arc<i32> =
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Arc::new(100));
 
-        assert_eq!(ToJSON::to_json(&Arc::new(100)), Value::Number(100.into()));
+        assert_eq!(
+            ToJSON::to_json(&Arc::new(100)),
+            Some(Value::Number(100.into()))
+        );
     }
 
     #[test]
@@ -323,16 +340,21 @@ mod tests {
         assert_eq!(Box::<i32>::name(), "integer(int32)");
         assert_eq!(Box::new(100).as_raw_value(), Some(&100));
 
-        let value: Box<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
+        let value: Box<i32> =
+            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
         assert_eq!(value, Box::new(100));
 
-        let value: Box<i32> = ParseFromJSON::parse_from_json(Value::Number(100.into())).unwrap();
+        let value: Box<i32> =
+            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
         assert_eq!(value, Box::new(100));
 
         let value: Box<i32> =
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Box::new(100));
 
-        assert_eq!(ToJSON::to_json(&Box::new(100)), Value::Number(100.into()));
+        assert_eq!(
+            ToJSON::to_json(&Box::new(100)),
+            Some(Value::Number(100.into()))
+        );
     }
 }

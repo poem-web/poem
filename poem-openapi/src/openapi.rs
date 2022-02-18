@@ -297,20 +297,21 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
 
         let webhooks = W::meta();
 
-        let doc = Document {
+        let mut doc = Document {
             info: &self.info,
             servers: &self.servers,
             apis: &metadata,
             webhooks: &webhooks,
-            registry: &registry,
+            registry: &mut registry,
             external_document: self.external_document.as_ref(),
         };
+        doc.remove_unused_schemas();
         serde_json::to_string_pretty(&doc).unwrap()
     }
 }
 
 impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
-    type Endpoint = BoxEndpoint<'static, Response>;
+    type Endpoint = BoxEndpoint<'static>;
 
     fn into_endpoint(self) -> Self::Endpoint {
         async fn extract_query(mut req: Request) -> Result<Request> {

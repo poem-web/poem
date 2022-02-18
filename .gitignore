@@ -1,6 +1,7 @@
 /target
 Cargo.lock
 .idea
+.vscode
 .DS_Store
 docs/gh-pages
 docs/book

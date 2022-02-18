@@ -8,9 +8,10 @@ Define a OpenAPI Tags.
 
 # Item parameters
 
-| Attribute   |     | description               | Type     | Optional |
-|-------------|:----|---------------------------|----------|----------|
-| rename      |     | Rename the tag name       | string   | Y        |
+| Attribute     |                                                        | description         | Type   | Optional |
+|---------------|:-------------------------------------------------------|---------------------|--------|----------|
+| rename        |                                                        | Rename the tag name | string | Y        |
+| external_docs | Specify a external resource for extended documentation | string              | Y      |
 
 # Examples
 

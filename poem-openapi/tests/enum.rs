@@ -1,5 +1,5 @@
 use poem_openapi::{
-    registry::{MetaSchemaRef, Registry},
+    registry::{MetaExternalDocument, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
     Enum,
 };
@@ -48,22 +48,22 @@ fn rename_all() {
     }
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("createUser".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("createUser".to_string()))).unwrap(),
         MyEnum::CreateUser
     );
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("deleteUser".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("deleteUser".to_string()))).unwrap(),
         MyEnum::DeleteUser
     );
 
     assert_eq!(
         MyEnum::CreateUser.to_json(),
-        Value::String("createUser".to_string())
+        Some(Value::String("createUser".to_string()))
     );
     assert_eq!(
         MyEnum::DeleteUser.to_json(),
-        Value::String("deleteUser".to_string())
+        Some(Value::String("deleteUser".to_string()))
     );
 }
 
@@ -77,22 +77,22 @@ fn rename_item() {
     }
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("CreateUser".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("CreateUser".to_string()))).unwrap(),
         MyEnum::CreateUser
     );
 
     assert_eq!(
-        MyEnum::parse_from_json(Value::String("delete_user".to_string())).unwrap(),
+        MyEnum::parse_from_json(Some(Value::String("delete_user".to_string()))).unwrap(),
         MyEnum::DeleteUser
     );
 
     assert_eq!(
         MyEnum::CreateUser.to_json(),
-        Value::String("CreateUser".to_string())
+        Some(Value::String("CreateUser".to_string()))
     );
     assert_eq!(
         MyEnum::DeleteUser.to_json(),
-        Value::String("delete_user".to_string())
+        Some(Value::String("delete_user".to_string()))
     );
 }
 
@@ -169,8 +169,7 @@ fn description() {
     let mut registry = Registry::new();
     MyEnum::register(&mut registry);
     let meta = registry.schemas.remove("MyEnum").unwrap();
-    assert_eq!(meta.title, Some("A"));
-    assert_eq!(meta.description, Some("AB\nCDE"));
+    assert_eq!(meta.description, Some("A\n\nAB\nCDE"));
 }
 
 #[test]
@@ -195,4 +194,27 @@ fn deprecated() {
     MyEnumB::register(&mut registry);
     let meta = registry.schemas.remove("MyEnumB").unwrap();
     assert!(meta.deprecated);
+}
+
+#[tokio::test]
+async fn external_docs() {
+    #[derive(Enum)]
+    #[oai(
+        external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+    )]
+    enum MyEnumB {
+        A,
+    }
+
+    let mut registry = Registry::new();
+    MyEnumB::register(&mut registry);
+    let meta = registry.schemas.remove("MyEnumB").unwrap();
+    assert_eq!(
+        meta.external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
+    );
 }

@@ -1,5 +1,5 @@
 use poem_openapi::{
-    payload::{Binary, Json, PlainText},
+    payload::{Json, PlainText},
     registry::{MetaMediaType, MetaRequest, MetaSchema, MetaSchemaRef},
     types::ParseFromJSON,
     ApiExtractor, ApiRequest, Object,
@@ -111,7 +111,7 @@ async fn generic() {
 async fn item_content_type() {
     #[derive(Debug, ApiRequest, Eq, PartialEq)]
     enum Req {
-        #[oai(content_type = "application/json2")]
+        #[oai(content_type = "application/json+abc")]
         Create(Json<i32>),
     }
 
@@ -120,7 +120,7 @@ async fn item_content_type() {
         MetaRequest {
             description: None,
             content: vec![MetaMediaType {
-                content_type: "application/json2",
+                content_type: "application/json+abc",
                 schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
                     "integer", "int32"
                 ))),
@@ -130,7 +130,7 @@ async fn item_content_type() {
     );
 
     let request = poem::Request::builder()
-        .content_type("application/json2")
+        .content_type("application/json+abc")
         .body("100".to_string());
     let (request, mut body) = request.split();
     assert_eq!(
@@ -138,92 +138,5 @@ async fn item_content_type() {
             .await
             .unwrap(),
         Req::Create(Json(100))
-    );
-}
-
-#[tokio::test]
-async fn match_essence() {
-    #[derive(Debug, ApiRequest, Eq, PartialEq)]
-    enum Req {
-        Create(Json<i32>),
-    }
-
-    let request = poem::Request::builder()
-        .content_type("application/json; charset=utf8")
-        .body("100".to_string());
-    let (request, mut body) = request.split();
-    assert_eq!(
-        Req::from_request(&request, &mut body, Default::default())
-            .await
-            .unwrap(),
-        Req::Create(Json(100))
-    );
-}
-
-#[tokio::test]
-async fn match_star() {
-    #[derive(Debug, ApiRequest, Eq, PartialEq)]
-    enum Req {
-        #[oai(content_type = "image/jpeg")]
-        Jpeg(Binary<Vec<u8>>),
-        #[oai(content_type = "image/*")]
-        Other(Binary<Vec<u8>>),
-        #[oai(content_type = "image/png")]
-        Png(Binary<Vec<u8>>),
-    }
-
-    let request = poem::Request::builder().content_type("image/jpeg").finish();
-    let (request, mut body) = request.split();
-    assert_eq!(
-        Req::from_request(&request, &mut body, Default::default())
-            .await
-            .unwrap(),
-        Req::Jpeg(Binary(Vec::new()))
-    );
-
-    let request = poem::Request::builder().content_type("image/png").finish();
-    let (request, mut body) = request.split();
-    assert_eq!(
-        Req::from_request(&request, &mut body, Default::default())
-            .await
-            .unwrap(),
-        Req::Png(Binary(Vec::new()))
-    );
-
-    let request = poem::Request::builder().content_type("image/gif").finish();
-    let (request, mut body) = request.split();
-    assert_eq!(
-        Req::from_request(&request, &mut body, Default::default())
-            .await
-            .unwrap(),
-        Req::Other(Binary(Vec::new()))
-    );
-
-    assert_eq!(
-        Req::request_meta().unwrap(),
-        MetaRequest {
-            description: None,
-            content: vec![
-                MetaMediaType {
-                    content_type: "image/jpeg",
-                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
-                        "string", "binary"
-                    ))),
-                },
-                MetaMediaType {
-                    content_type: "image/*",
-                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
-                        "string", "binary"
-                    ))),
-                },
-                MetaMediaType {
-                    content_type: "image/png",
-                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
-                        "string", "binary"
-                    ))),
-                },
-            ],
-            required: true
-        }
     );
 }

@@ -3,7 +3,8 @@ use poem_openapi::{
     param::{Path, Query},
     payload::Json,
     registry::{
-        MetaMediaType, MetaOperationParam, MetaParamIn, MetaRequest, MetaResponse, MetaResponses,
+        MetaExternalDocument, MetaMediaType, MetaOperationParam, MetaParamIn, MetaRequest,
+        MetaResponse, MetaResponses,
     },
     types::Type,
     OpenApiService, Tags, Webhook,
@@ -185,4 +186,25 @@ async fn create() {
     }
 
     let _ = OpenApiService::new((), "Test", "1.0").webhooks::<dyn MyWebhooks>();
+}
+
+#[tokio::test]
+async fn external_docs() {
+    #[Webhook]
+    trait MyWebhooks: Sync {
+        #[oai(
+            method = "post",
+            external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+        )]
+        async fn test(&self);
+    }
+
+    assert_eq!(
+        <&dyn MyWebhooks>::meta()[0].operation.external_docs,
+        Some(MetaExternalDocument {
+            url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
+                .to_string(),
+            description: None
+        })
+    );
 }

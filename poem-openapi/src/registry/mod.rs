@@ -1,3 +1,4 @@
+mod clean_unused;
 mod ser;
 
 use std::{
@@ -10,6 +11,8 @@ use poem::http::Method;
 pub(crate) use ser::Document;
 use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::Value;
+
+use crate::types::Type;
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 #[inline]
@@ -50,9 +53,11 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<&'static str>,
+    pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default: Option<Value>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -70,6 +75,8 @@ pub struct MetaSchema {
     pub enum_items: Vec<Value>,
     #[serde(skip_serializing_if = "is_false")]
     pub deprecated: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub any_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub one_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -129,6 +136,7 @@ impl MetaSchema {
         format: None,
         title: None,
         description: None,
+        external_docs: None,
         default: None,
         required: vec![],
         properties: vec![],
@@ -136,6 +144,7 @@ impl MetaSchema {
         additional_properties: None,
         enum_items: vec![],
         deprecated: false,
+        any_of: vec![],
         one_of: vec![],
         all_of: vec![],
         discriminator: None,
@@ -182,8 +191,10 @@ impl MetaSchema {
             write_only,
             title,
             description,
+            external_docs,
             items,
             additional_properties,
+            example,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -217,6 +228,8 @@ impl MetaSchema {
             default,
             title,
             description,
+            external_docs,
+            example,
             multiple_of,
             maximum,
             exclusive_maximum,
@@ -242,7 +255,7 @@ impl MetaSchema {
                     }
                     MetaSchemaRef::Reference(_) => {
                         self.items = Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            one_of: vec![*self_items, items],
+                            any_of: vec![*self_items, items],
                             ..MetaSchema::ANY
                         }))));
                     }
@@ -265,7 +278,7 @@ impl MetaSchema {
                     MetaSchemaRef::Reference(_) => {
                         self.additional_properties =
                             Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
-                                one_of: vec![*self_additional_properties, additional_properties],
+                                any_of: vec![*self_additional_properties, additional_properties],
                                 ..MetaSchema::ANY
                             }))));
                     }
@@ -391,6 +404,7 @@ pub struct MetaResponses {
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaHeader {
     #[serde(skip)]
     pub name: &'static str,
@@ -398,6 +412,7 @@ pub struct MetaHeader {
     pub description: Option<&'static str>,
     #[serde(skip_serializing_if = "is_false")]
     pub required: bool,
+    pub deprecated: bool,
     pub schema: MetaSchemaRef,
 }
 
@@ -447,6 +462,8 @@ pub struct MetaOperation {
     pub summary: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
     #[serde(rename = "parameters", skip_serializing_if = "Vec::is_empty")]
     pub params: Vec<MetaOperationParam>,
     #[serde(rename = "requestBody", skip_serializing_if = "Option::is_none")]
@@ -497,7 +514,7 @@ pub struct MetaServer {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MetaExternalDocument {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -505,10 +522,13 @@ pub struct MetaExternalDocument {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaTag {
     pub name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<MetaExternalDocument>,
 }
 
 impl PartialEq for MetaTag {
@@ -645,6 +665,19 @@ impl Registry {
                 let mut meta_schema = f(self);
                 meta_schema.rust_typename = Some(std::any::type_name::<T>());
                 *self.schemas.get_mut(name).unwrap() = meta_schema;
+            }
+        }
+    }
+
+    pub fn create_fake_schema<T: Type>(&mut self) -> MetaSchema {
+        match T::schema_ref() {
+            MetaSchemaRef::Inline(schema) => *schema,
+            MetaSchemaRef::Reference(name) => {
+                T::register(self);
+                self.schemas
+                    .get(name)
+                    .cloned()
+                    .expect("You definitely encountered a bug!")
             }
         }
     }

@@ -50,6 +50,10 @@ impl<T: Stream<Item = E> + Send + 'static, E: Type + ToJSON> Payload for EventSt
             ..MetaSchema::new_with_format("array", "event-stream")
         }))
     }
+
+    fn register(registry: &mut Registry) {
+        E::register(registry);
+    }
 }
 
 impl<T: Stream<Item = E> + Send + 'static, E: Type + ToJSON> IntoResponse for EventStream<T> {

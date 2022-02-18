@@ -29,10 +29,7 @@ impl<T: ToSocketAddrs + Send> Listener for TcpListener<T> {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         let listener = TokioTcpListener::bind(self.addr).await?;
-        let local_addr = listener
-            .local_addr()
-            .map(|addr| LocalAddr(addr.into()))
-            .unwrap_or_default();
+        let local_addr = listener.local_addr().map(|addr| LocalAddr(addr.into()))?;
         Ok(TcpAcceptor {
             local_addr,
             listener,
@@ -44,6 +41,17 @@ impl<T: ToSocketAddrs + Send> Listener for TcpListener<T> {
 pub struct TcpAcceptor {
     local_addr: LocalAddr,
     listener: TokioTcpListener,
+}
+
+impl TcpAcceptor {
+    /// Creates new `TcpAcceptor` from a `std::net::TcpListener`.
+    pub fn from_std(listener: std::net::TcpListener) -> Result<Self> {
+        let local_addr = listener.local_addr().map(|addr| LocalAddr(addr.into()))?;
+        Ok(Self {
+            local_addr,
+            listener: TokioTcpListener::from_std(listener)?,
+        })
+    }
 }
 
 #[async_trait::async_trait]

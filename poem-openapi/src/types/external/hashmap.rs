@@ -50,14 +50,15 @@ where
     K::Err: Display,
     V: ParseFromJSON,
 {
-    fn parse_from_json(value: Value) -> ParseResult<Self> {
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        let value = value.unwrap_or_default();
         if let Value::Object(value) = value {
             let mut obj = HashMap::new();
             for (key, value) in value {
                 let key = key
                     .parse()
                     .map_err(|err| ParseError::custom(format!("object key: {}", err)))?;
-                let value = V::parse_from_json(value).map_err(ParseError::propagate)?;
+                let value = V::parse_from_json(Some(value)).map_err(ParseError::propagate)?;
                 obj.insert(key, value);
             }
             Ok(obj)
@@ -72,12 +73,14 @@ where
     K: ToString + FromStr + Eq + Hash + Sync + Send,
     V: ToJSON,
 {
-    fn to_json(&self) -> Value {
+    fn to_json(&self) -> Option<Value> {
         let mut map = serde_json::Map::new();
         for (name, value) in self {
-            map.insert(name.to_string(), value.to_json());
+            if let Some(value) = value.to_json() {
+                map.insert(name.to_string(), value);
+            }
         }
-        Value::Object(map)
+        Some(Value::Object(map))
     }
 }
 
