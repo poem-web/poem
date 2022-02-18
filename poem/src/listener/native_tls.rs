@@ -12,7 +12,6 @@ use crate::{
 };
 
 /// Native TLS Config.
-#[derive()]
 #[cfg_attr(docsrs, doc(cfg(feature = "native-tls")))]
 pub struct NativeTlsConfig {
     pkcs12: Vec<u8>,

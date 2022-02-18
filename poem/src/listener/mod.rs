@@ -1,5 +1,8 @@
 //! Commonly used listeners.
 
+#[cfg(feature = "acme")]
+#[cfg_attr(docsrs, doc(cfg(feature = "acme")))]
+pub mod acme;
 mod combined;
 #[cfg(any(feature = "native-tls", feature = "rustls"))]
 mod handshake_stream;
@@ -23,6 +26,8 @@ use std::{
 use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
+#[cfg(feature = "acme")]
+use self::acme::{AutoCert, AutoCertListener};
 #[cfg(any(feature = "native-tls", feature = "rustls"))]
 pub use self::handshake_stream::HandshakeStream;
 #[cfg(feature = "native-tls")]
@@ -158,6 +163,34 @@ pub trait Listener: Send {
         Self: Sized,
     {
         NativeTlsListener::new(self, config_stream)
+    }
+
+    /// Consume this listener and return a new ACME listener.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::listener::{
+    ///     acme::{AutoCert, LETS_ENCRYPT_PRODUCTION},
+    ///     Listener, TcpListener,
+    /// };
+    ///
+    /// let listener = TcpListener::bind("0.0.0.0:443").acme(
+    ///     AutoCert::builder()
+    ///         .directory_url(LETS_ENCRYPT_PRODUCTION)
+    ///         .domain("poem.rs")
+    ///         .build()
+    ///         .unwrap(),
+    /// );
+    /// ```
+    #[cfg(feature = "acme")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "acme")))]
+    #[must_use]
+    fn acme(self, auto_cert: AutoCert) -> AutoCertListener<Self>
+    where
+        Self: Sized,
+    {
+        AutoCertListener::new(self, auto_cert)
     }
 }
 
