@@ -1,5 +1,6 @@
 mod ast;
 mod error;
+mod input_source;
 mod lexer;
 mod span;
 
