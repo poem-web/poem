@@ -76,7 +76,7 @@ pub trait AcceptorExt: Acceptor {
         Combined::new(self, other)
     }
 
-    /// Wrap the acceptor in a Box.
+    /// Wrap the acceptor in a `Box`.
     fn boxed(self) -> BoxAcceptor
     where
         Self: Sized + 'static,
@@ -192,7 +192,19 @@ pub trait Listener: Send {
     {
         AutoCertListener::new(self, auto_cert)
     }
+
+    /// Wrap the listener in a `Box`.
+    fn boxed(self) -> BoxListener
+    where
+        Self: Sized + 'static,
+    {
+        Box::new(WrappedListener(self))
+    }
 }
+
+/// An owned dynamically typed Listener for use in cases where you can’t
+/// statically type your result or need to add some indirection.
+pub type BoxListener = Box<dyn Listener<Acceptor = BoxAcceptor>>;
 
 #[async_trait::async_trait]
 impl Listener for Infallible {
@@ -274,6 +286,20 @@ impl AsyncWrite for BoxIo {
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         let this = &mut *self;
         Pin::new(&mut this.writer).poll_shutdown(cx)
+    }
+}
+
+struct WrappedListener<T: Listener>(T);
+
+#[async_trait::async_trait]
+impl<T: Listener> Listener for WrappedListener<T>
+where
+    T::Acceptor: 'static,
+{
+    type Acceptor = BoxAcceptor;
+
+    async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
+        self.0.into_acceptor().await.map(AcceptorExt::boxed)
     }
 }
 
