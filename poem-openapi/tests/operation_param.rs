@@ -396,3 +396,133 @@ async fn required_params() {
     assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
     assert_eq!(meta.paths[0].operations[0].params[1].required, true);
 }
+
+#[tokio::test]
+async fn query_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn query(&self, #[oai(name = "fooBar")] foo_bar: Query<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "fooBar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/abc?fooBar=10"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn path_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc/:fooBar", method = "get")]
+        async fn query(&self, #[oai(name = "fooBar")] foo_bar: Path<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "fooBar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Path
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/abc/10"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn header_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn query(&self, #[oai(name = "foo-bar")] foo_bar: Header<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "foo-bar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Header
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/abc"))
+                .header("foo-bar", "10")
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn cookie_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn query(&self, #[oai(name = "fooBar")] foo_bar: ParamCookie<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "fooBar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Cookie
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/abc"))
+                .header(header::COOKIE, "fooBar=10")
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
