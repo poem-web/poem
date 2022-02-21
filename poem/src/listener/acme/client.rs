@@ -16,6 +16,7 @@ use crate::{
             CsrRequest, Directory, FetchAuthorizationResponse, Identifier, NewAccountRequest,
             NewOrderRequest, NewOrderResponse,
         },
+        ChallengeType,
     },
     Body,
 };
@@ -98,8 +99,18 @@ impl AcmeClient {
         Ok(resp)
     }
 
-    pub(crate) async fn trigger_challenge(&self, domain: &str, url: &Uri) -> IoResult<()> {
-        tracing::debug!(auth_uri = %url, domain = domain, "trigger challenge");
+    pub(crate) async fn trigger_challenge(
+        &self,
+        domain: &str,
+        challenge_type: ChallengeType,
+        url: &Uri,
+    ) -> IoResult<()> {
+        tracing::debug!(
+            auth_uri = %url,
+            domain = domain,
+            challenge_type = %challenge_type,
+            "trigger challenge",
+        );
 
         let nonce = get_nonce(&self.client, &self.directory).await?;
         jose::request(

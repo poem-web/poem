@@ -44,7 +44,7 @@ impl<T: Type> Payload for Json<T> {
 
 #[poem::async_trait]
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
-    const IS_REQUIRED: bool = T::IS_REQUIRED;
+    const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
         let data: Vec<u8> = FromRequest::from_request(request, body).await?;

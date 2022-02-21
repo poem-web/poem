@@ -5,12 +5,13 @@ use std::{
     sync::Arc,
 };
 
-use crate::listener::acme::{keypair::KeyPair, AutoCert, LETS_ENCRYPT_PRODUCTION};
+use crate::listener::acme::{keypair::KeyPair, AutoCert, ChallengeType, LETS_ENCRYPT_PRODUCTION};
 
 /// ACME configuration builder
 pub struct AutoCertBuilder {
     directory_url: String,
     domains: HashSet<String>,
+    challenge_type: ChallengeType,
     cache_path: Option<PathBuf>,
 }
 
@@ -19,6 +20,7 @@ impl AutoCertBuilder {
         Self {
             directory_url: LETS_ENCRYPT_PRODUCTION.to_string(),
             domains: HashSet::new(),
+            challenge_type: ChallengeType::TlsAlpn01,
             cache_path: None,
         }
     }
@@ -39,6 +41,17 @@ impl AutoCertBuilder {
     pub fn domain(mut self, domain: impl Into<String>) -> Self {
         self.domains.insert(domain.into());
         self
+    }
+
+    /// Sets the challenge type
+    ///
+    /// Defaults to [`ChallengeType::TlsAlpn01`]
+    #[must_use]
+    pub fn challenge_type(self, challenge_type: ChallengeType) -> Self {
+        Self {
+            challenge_type,
+            ..self
+        }
     }
 
     /// Sets the cache path for caching certificates.
@@ -87,6 +100,11 @@ impl AutoCertBuilder {
             directory_url,
             domains: self.domains.into_iter().collect(),
             key_pair: Arc::new(KeyPair::generate()?),
+            challenge_type: self.challenge_type,
+            keys_for_http01: match self.challenge_type {
+                ChallengeType::Http01 => Some(Default::default()),
+                ChallengeType::TlsAlpn01 => None,
+            },
             cache_path: self.cache_path,
             cache_key,
             cache_cert,

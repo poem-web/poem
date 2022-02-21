@@ -49,7 +49,7 @@ impl ResolvesServerCert for ResolveServerCert {
                 None => None,
                 Some(domain) => {
                     tracing::debug!(domain = domain, "load acme key");
-                    match self.acme_keys.read().get(domain.into()).cloned() {
+                    match self.acme_keys.read().get(domain).cloned() {
                         Some(cert) => Some(cert),
                         None => {
                             tracing::error!(domain = domain, "acme key not found");
@@ -60,10 +60,6 @@ impl ResolvesServerCert for ResolveServerCert {
             };
         };
 
-        if let Some(ks) = self.cert.read().as_ref() {
-            Some(ks.clone())
-        } else {
-            None
-        }
+        self.cert.read().as_ref().cloned()
     }
 }

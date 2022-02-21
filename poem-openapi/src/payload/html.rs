@@ -37,7 +37,7 @@ impl<T: Send> Payload for Html<T> {
 
 #[poem::async_trait]
 impl ParsePayload for Html<String> {
-    const IS_REQUIRED: bool = false;
+    const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
         Ok(Self(String::from_request(request, body).await?))
