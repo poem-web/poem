@@ -86,7 +86,7 @@ impl AutoCertBuilder {
             let pkey_path = cache_path.join("key.pem");
             if pkey_path.exists() {
                 tracing::debug!(path = %pkey_path.display(), "load private key from cache path");
-                cache_key = Some(std::fs::read(cache_path)?);
+                cache_key = Some(std::fs::read(pkey_path)?);
             }
 
             let cert_path = cache_path.join("cert.pem");
