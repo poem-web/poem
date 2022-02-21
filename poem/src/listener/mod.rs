@@ -23,6 +23,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures_util::{future::BoxFuture, FutureExt, TryFutureExt};
 use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
@@ -198,13 +199,9 @@ pub trait Listener: Send {
     where
         Self: Sized + 'static,
     {
-        Box::new(WrappedListener(self))
+        BoxListener::new(self)
     }
 }
-
-/// An owned dynamically typed Listener for use in cases where you can’t
-/// statically type your result or need to add some indirection.
-pub type BoxListener = Box<dyn Listener<Acceptor = BoxAcceptor>>;
 
 #[async_trait::async_trait]
 impl Listener for Infallible {
@@ -212,6 +209,15 @@ impl Listener for Infallible {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         unreachable!()
+    }
+}
+
+#[async_trait::async_trait]
+impl<T: Listener + Sized> Listener for Box<T> {
+    type Acceptor = T::Acceptor;
+
+    async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
+        (*self).into_acceptor().await
     }
 }
 
@@ -289,17 +295,22 @@ impl AsyncWrite for BoxIo {
     }
 }
 
-struct WrappedListener<T: Listener>(T);
+/// An owned dynamically typed Listener for use in cases where you can’t
+/// statically type your result or need to add some indirection.
+pub struct BoxListener(BoxFuture<'static, IoResult<BoxAcceptor>>);
+
+impl BoxListener {
+    fn new<T: Listener + 'static>(listener: T) -> Self {
+        BoxListener(listener.into_acceptor().map_ok(AcceptorExt::boxed).boxed())
+    }
+}
 
 #[async_trait::async_trait]
-impl<T: Listener> Listener for WrappedListener<T>
-where
-    T::Acceptor: 'static,
-{
+impl Listener for BoxListener {
     type Acceptor = BoxAcceptor;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
-        self.0.into_acceptor().await.map(AcceptorExt::boxed)
+        self.0.await
     }
 }
 
