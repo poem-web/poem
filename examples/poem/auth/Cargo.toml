@@ -7,5 +7,5 @@ publish = false
 [dependencies]
 poem = { path = "../../../poem", features = ["session"] }
 serde = { version = "1.0.130", features = ["derive"] }
-tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = "0.2.24"

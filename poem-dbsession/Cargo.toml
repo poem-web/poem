@@ -72,4 +72,4 @@ tokio = { version = "1.17.0", features = ["time"] }
 tracing = "0.1.29"
 
 [dev-dependencies]
-tokio = { version = "1.14.0", features = ["macros"] }
+tokio = { version = "1.17.0", features = ["macros"] }
