@@ -8,4 +8,4 @@ publish = false
 poem = { path = "../../../poem" }
 tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
 serde = { version = "1.0.130", features = ["derive"] }
-tracing-subscriber = "0.2.24"
+tracing-subscriber = "0.3.9"

@@ -9,7 +9,7 @@ poem = { path = "../../../poem", features = ["tower-compat"] }
 tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
 prost = "0.8.0"
 tonic = "0.5.2"
-tracing-subscriber = "0.2.24"
+tracing-subscriber = "0.3.9"
 
 [build-dependencies]
 tonic-build = "0.5.2"
