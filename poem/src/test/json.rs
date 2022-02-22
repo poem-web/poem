@@ -205,6 +205,11 @@ impl<'a> TestJsonArray<'a> {
     pub fn assert_len(&self, len: usize) {
         assert_eq!(self.len(), len);
     }
+
+    /// Asserts the array is empty.
+    pub fn assert_is_empty(&self) {
+        assert!(self.is_empty());
+    }
 }
 
 /// A JSON object.
@@ -243,5 +248,10 @@ impl<'a> TestJsonObject<'a> {
     /// Asserts the object length is equals to `len`.
     pub fn assert_len(&self, len: usize) {
         assert_eq!(self.len(), len);
+    }
+
+    /// Asserts the object is empty.
+    pub fn assert_is_empty(&self) {
+        assert!(self.is_empty());
     }
 }
