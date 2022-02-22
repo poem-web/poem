@@ -11,6 +11,7 @@ use crate::listener::acme::{keypair::KeyPair, AutoCert, ChallengeType, LETS_ENCR
 pub struct AutoCertBuilder {
     directory_url: String,
     domains: HashSet<String>,
+    contacts: HashSet<String>,
     challenge_type: ChallengeType,
     cache_path: Option<PathBuf>,
 }
@@ -20,6 +21,7 @@ impl AutoCertBuilder {
         Self {
             directory_url: LETS_ENCRYPT_PRODUCTION.to_string(),
             domains: HashSet::new(),
+            contacts: Default::default(),
             challenge_type: ChallengeType::TlsAlpn01,
             cache_path: None,
         }
@@ -40,6 +42,13 @@ impl AutoCertBuilder {
     #[must_use]
     pub fn domain(mut self, domain: impl Into<String>) -> Self {
         self.domains.insert(domain.into());
+        self
+    }
+
+    /// Add a contact email for the ACME account.
+    #[must_use]
+    pub fn contact(mut self, email: impl Into<String>) -> Self {
+        self.contacts.insert(email.into());
         self
     }
 
@@ -99,6 +108,7 @@ impl AutoCertBuilder {
         Ok(AutoCert {
             directory_url,
             domains: self.domains.into_iter().collect(),
+            contacts: self.contacts.into_iter().collect(),
             key_pair: Arc::new(KeyPair::generate()?),
             challenge_type: self.challenge_type,
             keys_for_http01: match self.challenge_type {
