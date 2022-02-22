@@ -49,7 +49,7 @@ impl From<tokio_tungstenite::tungstenite::Message> for Message {
             Binary(data) => Message::Binary(data),
             Ping(data) => Message::Ping(data),
             Pong(data) => Message::Pong(data),
-            Frame(_) => unimplemented!("frame is not supported"),
+            Frame(_) => unreachable!(),
             Close(cf) => Message::Close(cf.map(|cf| (cf.code.into(), cf.reason.to_string()))),
         }
     }
