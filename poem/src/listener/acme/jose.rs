@@ -176,8 +176,12 @@ where
         .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {}", err)))
 }
 
-pub(crate) fn key_authorization_sha256(key: &KeyPair, token: &str) -> IoResult<impl AsRef<[u8]>> {
+pub(crate) fn key_authorization(key: &KeyPair, token: &str) -> IoResult<String> {
     let jwk = Jwk::new(key);
     let key_authorization = format!("{}.{}", token, jwk.thumb_sha256_base64()?);
-    Ok(sha256(key_authorization.as_bytes()))
+    Ok(key_authorization)
+}
+
+pub(crate) fn key_authorization_sha256(key: &KeyPair, token: &str) -> IoResult<impl AsRef<[u8]>> {
+    Ok(sha256(key_authorization(key, token)?.as_bytes()))
 }

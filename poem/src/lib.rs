@@ -288,6 +288,7 @@ pub use request::{OnUpgrade, Request, RequestBuilder, RequestParts, Upgraded};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{
     connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,
+    RouteScheme,
 };
 pub use server::Server;
 pub use web::{FromRequest, IntoResponse, RequestBody};

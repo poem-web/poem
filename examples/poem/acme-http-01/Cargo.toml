@@ -1,0 +1,10 @@
+[package]
+name = "example-acme-http-01"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+poem = { path = "../../../poem", features = ["acme"] }
+tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = "0.2.24"

@@ -23,6 +23,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures_util::{future::BoxFuture, FutureExt, TryFutureExt};
 use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
@@ -76,7 +77,7 @@ pub trait AcceptorExt: Acceptor {
         Combined::new(self, other)
     }
 
-    /// Wrap the acceptor in a Box.
+    /// Wrap the acceptor in a `Box`.
     fn boxed(self) -> BoxAcceptor
     where
         Self: Sized + 'static,
@@ -192,6 +193,14 @@ pub trait Listener: Send {
     {
         AutoCertListener::new(self, auto_cert)
     }
+
+    /// Wrap the listener in a `Box`.
+    fn boxed(self) -> BoxListener
+    where
+        Self: Sized + 'static,
+    {
+        BoxListener::new(self)
+    }
 }
 
 #[async_trait::async_trait]
@@ -200,6 +209,15 @@ impl Listener for Infallible {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         unreachable!()
+    }
+}
+
+#[async_trait::async_trait]
+impl<T: Listener + Sized> Listener for Box<T> {
+    type Acceptor = T::Acceptor;
+
+    async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
+        (*self).into_acceptor().await
     }
 }
 
@@ -274,6 +292,25 @@ impl AsyncWrite for BoxIo {
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         let this = &mut *self;
         Pin::new(&mut this.writer).poll_shutdown(cx)
+    }
+}
+
+/// An owned dynamically typed Listener for use in cases where you can’t
+/// statically type your result or need to add some indirection.
+pub struct BoxListener(BoxFuture<'static, IoResult<BoxAcceptor>>);
+
+impl BoxListener {
+    fn new<T: Listener + 'static>(listener: T) -> Self {
+        BoxListener(listener.into_acceptor().map_ok(AcceptorExt::boxed).boxed())
+    }
+}
+
+#[async_trait::async_trait]
+impl Listener for BoxListener {
+    type Acceptor = BoxAcceptor;
+
+    async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
+        self.0.await
     }
 }
 

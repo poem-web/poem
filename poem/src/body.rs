@@ -128,6 +128,12 @@ impl Body {
         Self(hyper::Body::empty())
     }
 
+    /// Returns `true` if this body is empty.
+    pub fn is_empty(&self) -> bool {
+        let size_hint = hyper::body::HttpBody::size_hint(&self.0);
+        size_hint.lower() == 0 && size_hint.upper() == Some(0)
+    }
+
     /// Consumes this body object to return a [`Bytes`] that contains all data.
     pub async fn into_bytes(self) -> Result<Bytes, ReadBodyError> {
         Ok(hyper::body::to_bytes(self.0)

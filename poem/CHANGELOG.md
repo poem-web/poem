@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.3.4] 2022-2-21
+
+- Fixed `AutoCert` loading cached certificates with incorrect paths.
+
+# [1.3.3] 2022-2-21
+
+- Implement `Listener` for `BoxListener`.
+
+# [1.3.2] 2022-2-21
+
+- Add `ListenerExt::boxed` method.
+
+# [1.3.1] 2022-2-21
+
+- Add `Body::is_empty` method.
+- Add `RouteScheme` for scheme routing.
+- Add support `HTTP-01` challenge for ACME.
+
 # [1.3.0] 2022-2-20
 
 - Add support for ACME(Automatic Certificate Management Environment).

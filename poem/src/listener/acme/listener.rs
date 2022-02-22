@@ -22,9 +22,8 @@ use crate::{
         acme::{
             client::AcmeClient,
             jose,
-            protocol::CHALLENGE_TYPE_TLS_ALPN_01,
             resolver::{ResolveServerCert, ACME_TLS_ALPN_NAME},
-            AutoCert,
+            AutoCert, ChallengeType,
         },
         Acceptor, HandshakeStream, Listener,
     },
@@ -98,11 +97,15 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             .with_safe_defaults()
             .with_no_client_auth()
             .with_cert_resolver(cert_resolver);
-        server_config.alpn_protocols = vec![
-            b"h2".to_vec(),
-            b"http/1.1".to_vec(),
-            ACME_TLS_ALPN_NAME.to_vec(),
-        ];
+
+        server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+
+        if self.auto_cert.challenge_type == ChallengeType::TlsAlpn01 {
+            server_config
+                .alpn_protocols
+                .push(ACME_TLS_ALPN_NAME.to_vec());
+        }
+
         let acceptor = TlsAcceptor::from(Arc::new(server_config));
         let auto_cert = self.auto_cert;
 
@@ -187,20 +190,38 @@ async fn issue_cert(
             all_valid = false;
 
             if resp.status == "pending" {
-                let challenge = resp.find_challenge(CHALLENGE_TYPE_TLS_ALPN_01)?;
+                let challenge = resp.find_challenge(auto_cert.challenge_type)?;
 
-                let key_authorization_sha256 =
-                    jose::key_authorization_sha256(&auto_cert.key_pair, &challenge.token)?;
-                let auth_key =
-                    gen_acme_cert(&resp.identifier.value, key_authorization_sha256.as_ref())?;
+                match auto_cert.challenge_type {
+                    ChallengeType::Http01 => {
+                        if let Some(keys) = &auto_cert.keys_for_http01 {
+                            let mut keys = keys.write();
+                            let key_authorization =
+                                jose::key_authorization(&auto_cert.key_pair, &challenge.token)?;
+                            keys.insert(challenge.token.to_string(), key_authorization);
+                        }
+                    }
+                    ChallengeType::TlsAlpn01 => {
+                        let key_authorization_sha256 =
+                            jose::key_authorization_sha256(&auto_cert.key_pair, &challenge.token)?;
+                        let auth_key = gen_acme_cert(
+                            &resp.identifier.value,
+                            key_authorization_sha256.as_ref(),
+                        )?;
 
-                resolver
-                    .acme_keys
-                    .write()
-                    .insert(resp.identifier.value.to_string(), Arc::new(auth_key));
+                        resolver
+                            .acme_keys
+                            .write()
+                            .insert(resp.identifier.value.to_string(), Arc::new(auth_key));
+                    }
+                }
 
                 client
-                    .trigger_challenge(&resp.identifier.value, &challenge.url)
+                    .trigger_challenge(
+                        &resp.identifier.value,
+                        auto_cert.challenge_type,
+                        &challenge.url,
+                    )
                     .await?;
             } else if resp.status == "invalid" {
                 return Err(IoError::new(
