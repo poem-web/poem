@@ -256,7 +256,7 @@ async fn create_acme_account(
         Some(NewAccountRequest {
             only_return_existing: false,
             terms_of_service_agreed: true,
-            contact,
+            contacts,
         }),
     )
     .await?;

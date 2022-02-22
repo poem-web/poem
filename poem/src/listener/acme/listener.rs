@@ -50,6 +50,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         let client = AcmeClient::try_new(
             &self.auto_cert.directory_url,
             self.auto_cert.key_pair.clone(),
+            self.auto_cert.contacts.clone(),
         )
         .await?;
 

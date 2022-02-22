@@ -210,6 +210,24 @@ impl<'a> TestJsonArray<'a> {
     pub fn assert_is_empty(&self) {
         assert!(self.is_empty());
     }
+
+    /// Asserts the array contains values that satisfies a predicate.
+    pub fn assert_contains(&self, f: impl FnMut(TestJsonValue<'_>) -> bool) {
+        assert!(self.0.iter().map(TestJsonValue).any(f));
+    }
+
+    /// Asserts the array contains exactly one value that satisfies a
+    /// predicate.
+    pub fn assert_contains_exactly_one(&self, f: impl Fn(TestJsonValue<'_>) -> bool) {
+        assert_eq!(
+            self.0
+                .iter()
+                .map(TestJsonValue)
+                .filter(|value| f(*value))
+                .count(),
+            1
+        );
+    }
 }
 
 /// A JSON object.
