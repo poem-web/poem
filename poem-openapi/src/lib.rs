@@ -40,7 +40,7 @@
 //!
 //! main.rs
 //!
-//! ```ignore
+//! ```no_run
 //! use poem::{listener::TcpListener, Route, Server};
 //! use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
 //!
