@@ -81,6 +81,7 @@ impl IntoResponse for SSE {
 
         Response::builder()
             .content_type("text/event-stream")
+            .header("X-Accel-Buffering", "no")
             .body(Body::from_async_read(tokio_util::io::StreamReader::new(
                 stream,
             )))
