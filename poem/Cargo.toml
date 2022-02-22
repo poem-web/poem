@@ -19,7 +19,7 @@ categories = [
 
 [features]
 default = []
-websocket = ["tokio-tungstenite", "sha1", "base64"]
+websocket = ["tokio-tungstenite", "base64"]
 multipart = ["multer", "mime"]
 rustls = ["tokio-rustls", "rustls-pemfile"]
 native-tls = ["tokio-native-tls"]
@@ -84,7 +84,6 @@ libopentelemetry = { package = "opentelemetry", version = "0.16.0", features = [
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
-sha1 = { version = "0.10.1", optional = true }
 base64 = { version = "0.13.0", optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
