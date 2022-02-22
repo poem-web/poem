@@ -1,7 +1,6 @@
 use std::io::{Error as IoError, ErrorKind};
 
-use tokio_tungstenite::tungstenite::protocol::CloseFrame;
-use tokio_tungstenite::tungstenite::handshake::derive_accept_key;
+use tokio_tungstenite::tungstenite::{handshake::derive_accept_key, protocol::CloseFrame};
 
 use super::{CloseCode, Message};
 use crate::http::header::HeaderValue;
