@@ -50,6 +50,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         let client = AcmeClient::try_new(
             &self.auto_cert.directory_url,
             self.auto_cert.key_pair.clone(),
+            self.auto_cert.contacts.clone(),
         )
         .await?;
 
@@ -177,7 +178,7 @@ async fn issue_cert(
     // trigger challenge
     let mut valid = false;
 
-    for _ in 0..10 {
+    for i in 1..5 {
         let mut all_valid = true;
 
         for auth_url in &order_resp.authorizations {
@@ -243,7 +244,7 @@ async fn issue_cert(
             break;
         }
 
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(i * 10)).await;
     }
 
     if !valid {

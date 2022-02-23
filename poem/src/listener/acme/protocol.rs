@@ -48,7 +48,7 @@ pub(crate) struct Directory {
 pub(crate) struct NewAccountRequest {
     pub(crate) only_return_existing: bool,
     pub(crate) terms_of_service_agreed: bool,
-    pub(crate) contact: Vec<String>,
+    pub(crate) contacts: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -16,6 +16,7 @@ use crate::listener::acme::{
 pub struct AutoCert {
     pub(crate) directory_url: Uri,
     pub(crate) domains: Vec<String>,
+    pub(crate) contacts: Vec<String>,
     pub(crate) key_pair: Arc<KeyPair>,
     pub(crate) challenge_type: ChallengeType,
     pub(crate) keys_for_http01: Option<Arc<RwLock<HashMap<String, String>>>>,

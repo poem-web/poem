@@ -29,7 +29,11 @@ pub(crate) struct AcmeClient {
 }
 
 impl AcmeClient {
-    pub(crate) async fn try_new(directory_url: &Uri, key_pair: Arc<KeyPair>) -> IoResult<Self> {
+    pub(crate) async fn try_new(
+        directory_url: &Uri,
+        key_pair: Arc<KeyPair>,
+        contacts: Vec<String>,
+    ) -> IoResult<Self> {
         let client = Client::builder().build(
             HttpsConnectorBuilder::new()
                 .with_native_roots()
@@ -38,7 +42,7 @@ impl AcmeClient {
                 .build(),
         );
         let directory = get_directory(&client, directory_url).await?;
-        let kid = create_acme_account(&client, &directory, &key_pair).await?;
+        let kid = create_acme_account(&client, &directory, &key_pair, contacts).await?;
         Ok(Self {
             client,
             directory,
@@ -238,6 +242,7 @@ async fn create_acme_account(
     client: &Client<HttpsConnector<HttpConnector>>,
     directory: &Directory,
     key_pair: &KeyPair,
+    contacts: Vec<String>,
 ) -> IoResult<String> {
     tracing::debug!("creating acme account");
 
@@ -251,7 +256,7 @@ async fn create_acme_account(
         Some(NewAccountRequest {
             only_return_existing: false,
             terms_of_service_agreed: true,
-            contact: vec![],
+            contacts,
         }),
     )
     .await?;

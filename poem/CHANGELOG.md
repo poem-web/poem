@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.3.5] 2022-2-22
 
 - Add `X-Accel-Buffering: no` header to SSE response.
+- Add `AutoCertBuilder::contact` method to add a contact email for ACME account.
+- Add `TestJsonArray::assert_is_empty` and `TestJsonObject::assert_is_empty` methods.
+- Add `TestJsonArray::assert_contains` and `TestJsonObject::assert_contains_exactly_one` methods.
 
 # [1.3.4] 2022-2-21
 
