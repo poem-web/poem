@@ -37,6 +37,7 @@ csrf = ["cookie", "base64", "libcsrf"]
 test = ["sse", "sse-codec", "tokio-util/compat"]
 i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
 acme = ["hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser"]
+cache = ["lru"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.3.16" }
@@ -98,6 +99,7 @@ hyper-rustls = { version = "0.23.0", optional = true }
 rcgen = { version = "0.9.1", optional = true }
 x509-parser = { version = "0.13.0", optional = true }
 tokio-metrics = { version = "0.1.0", optional = true }
+lru = { version = "0.7.2", optional = true }
 
 # Feature optional dependencies
 anyhow = { version = "1.0.0", optional = true }

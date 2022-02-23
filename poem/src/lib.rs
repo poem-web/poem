@@ -257,6 +257,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
+#[cfg(feature = "cache")]
+#[cfg_attr(docsrs, doc(cfg(feature = "cache")))]
+pub mod cache;
 pub mod endpoint;
 pub mod error;
 #[cfg(feature = "i18n")]
