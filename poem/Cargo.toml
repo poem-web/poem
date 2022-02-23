@@ -19,7 +19,7 @@ categories = [
 
 [features]
 default = []
-websocket = ["tokio-tungstenite", "sha1", "base64"]
+websocket = ["tokio-tungstenite", "base64"]
 multipart = ["multer", "mime"]
 rustls = ["tokio-rustls", "rustls-pemfile"]
 native-tls = ["tokio-native-tls"]
@@ -63,9 +63,9 @@ thiserror = "1.0.30"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
-tokio-tungstenite = { version = "0.15.0", optional = true }
+tokio-tungstenite = { version = "0.17.1", optional = true }
 tokio-rustls = { version = "0.23.2", optional = true }
-rustls-pemfile = { version = "0.2.1", optional = true }
+rustls-pemfile = { version = "0.3.0", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
 chrono = { version = "0.4.19", optional = true }
@@ -84,7 +84,6 @@ libopentelemetry = { package = "opentelemetry", version = "0.16.0", features = [
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
-sha1 = { version = "0.6.0", optional = true }
 base64 = { version = "0.13.0", optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
@@ -97,7 +96,7 @@ intl-memoizer = { version = "0.5.1", optional = true }
 ring = { version = "0.16.20", optional = true }
 hyper-rustls = { version = "0.23.0", optional = true }
 rcgen = { version = "0.9.1", optional = true }
-x509-parser = { version = "0.12.0", optional = true }
+x509-parser = { version = "0.13.0", optional = true }
 
 # Feature optional dependencies
 anyhow = { version = "1.0.0", optional = true }
