@@ -609,7 +609,7 @@ impl IntoResponse for Response {
 impl IntoResponse for String {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/plain; charset=utf8")
+            .content_type("text/plain; charset=utf-8")
             .body(self)
     }
 }
@@ -617,7 +617,7 @@ impl IntoResponse for String {
 impl IntoResponse for &'static str {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/plain; charset=utf8")
+            .content_type("text/plain; charset=utf-8")
             .body(self)
     }
 }
@@ -696,7 +696,7 @@ pub struct Html<T>(pub T);
 impl<T: Into<String> + Send> IntoResponse for Html<T> {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/html; charset=utf8")
+            .content_type("text/html; charset=utf-8")
             .body(self.0.into())
     }
 }
@@ -881,13 +881,13 @@ mod tests {
         // Html
         let resp = Html("abc").into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("text/html; charset=utf8"));
+        assert_eq!(resp.content_type(), Some("text/html; charset=utf-8"));
         assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
 
         // Json
         let resp = Json(serde_json::json!({ "a": 1, "b": 2})).into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
+        assert_eq!(resp.content_type(), Some("application/json; charset=utf-8"));
         assert_eq!(
             resp.into_body().into_string().await.unwrap(),
             r#"{"a":1,"b":2}"#

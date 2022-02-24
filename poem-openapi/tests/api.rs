@@ -336,7 +336,7 @@ async fn response() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
-    assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("application/json; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "409");
 
     let mut resp = ep
@@ -349,7 +349,7 @@ async fn response() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 404");
 }
 
@@ -392,7 +392,7 @@ async fn bad_request_handler() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 200");
 
     let mut resp = ep
@@ -405,7 +405,7 @@ async fn bad_request_handler() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
         r#"!!! failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#
@@ -454,7 +454,7 @@ async fn bad_request_handler_for_validator() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 50");
 
     let mut resp = ep
@@ -467,7 +467,7 @@ async fn bad_request_handler_for_validator() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
         r#"!!! failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#
