@@ -34,9 +34,19 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let app = Route::new().nest_no_strip(
-        format!("/{}", GreeterServer::<MyGreeter>::NAME),
-        GreeterServer::new(MyGreeter).compat(),
+        "/",
+        tonic::transport::Server::builder()
+            .add_service(GreeterServer::new(MyGreeter))
+            .into_service()
+            .compat(),
     );
+
+    tokio::spawn(
+        tonic::transport::Server::builder()
+            .add_service(GreeterServer::new(MyGreeter))
+            .serve("127.0.0.1:3001".parse().unwrap()),
+    );
+
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(app)
         .await
