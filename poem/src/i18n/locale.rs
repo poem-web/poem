@@ -87,8 +87,7 @@ impl<'a> FromRequest<'a> for Locale {
         let resources = req
             .extensions()
             .get::<I18NResources>()
-            .expect("To use the `Locale` extractor, the `I18NResources` data is required.")
-            .clone();
+            .expect("To use the `Locale` extractor, the `I18NResources` data is required.");
 
         let accept_languages = req
             .headers()
