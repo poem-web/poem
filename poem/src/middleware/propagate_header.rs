@@ -56,7 +56,7 @@ impl<E: Endpoint> Endpoint for PropagateHeaderEndpoint<E> {
 
         for header in &self.headers {
             for value in req.headers().get_all(header) {
-                headers.append(header.clone(), value.clone());
+                headers.append(header, value.clone());
             }
         }
 
