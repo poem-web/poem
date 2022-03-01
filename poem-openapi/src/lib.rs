@@ -102,6 +102,7 @@
 //! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
 //! | url        | Integrate with the [`url` crate](https://crates.io/crates/url) |
 //! | bson        | Integrate with the [`bson` crate](https://crates.io/crates/bson) |
+//! | rust_decimal | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
 //! | static-files | Support for static file response |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
