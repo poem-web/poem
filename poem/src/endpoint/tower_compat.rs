@@ -1,10 +1,10 @@
 use std::{error::Error as StdError, future::Future};
 
 use bytes::Bytes;
-use hyper::body::HttpBody;
+use hyper::body::{HttpBody, Sender};
 use tower::{Service, ServiceExt};
 
-use crate::{body::BodyStream, Endpoint, Error, Request, Response, Result};
+use crate::{Endpoint, Error, Request, Response, Result};
 
 /// Extension trait for tower service compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
@@ -70,8 +70,47 @@ where
             .map_err(Into::into)?;
 
         Ok(hyper_resp
-            .map(|body| hyper::Body::wrap_stream(BodyStream::new(body)))
+            .map(|body| {
+                let (sender, new_body) = hyper::Body::channel();
+                tokio::spawn(copy_body(body, sender));
+                new_body
+            })
             .into())
+    }
+}
+
+async fn copy_body<T>(body: T, mut sender: Sender)
+where
+    T: HttpBody + Send + 'static,
+    T::Data: Into<Bytes> + Send + 'static,
+    T::Error: StdError + Send + Sync + 'static,
+{
+    tokio::pin!(body);
+
+    loop {
+        match body.data().await {
+            Some(Ok(data)) => {
+                if sender.send_data(data.into()).await.is_err() {
+                    break;
+                }
+            }
+            Some(Err(_)) => break,
+            None => {}
+        }
+
+        match body.trailers().await {
+            Ok(Some(trailers)) => {
+                if sender.send_trailers(trailers).await.is_err() {
+                    break;
+                }
+            }
+            Ok(None) => {}
+            Err(_) => break,
+        }
+
+        if body.is_end_stream() {
+            break;
+        }
     }
 }
 
