@@ -69,13 +69,17 @@ where
             .await
             .map_err(Into::into)?;
 
-        Ok(hyper_resp
-            .map(|body| {
-                let (sender, new_body) = hyper::Body::channel();
-                tokio::spawn(copy_body(body, sender));
-                new_body
-            })
-            .into())
+        if !hyper_resp.body().is_end_stream() {
+            Ok(hyper_resp
+                .map(|body| {
+                    let (sender, new_body) = hyper::Body::channel();
+                    tokio::spawn(copy_body(body, sender));
+                    new_body
+                })
+                .into())
+        } else {
+            Ok(hyper_resp.map(|_| hyper::Body::empty()).into())
+        }
     }
 }
 
