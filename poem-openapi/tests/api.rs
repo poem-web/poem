@@ -617,3 +617,46 @@ async fn external_docs() {
         })
     );
 }
+
+#[tokio::test]
+async fn generic() {
+    trait MyApiPort: Send + Sync + 'static {
+        fn test(&self) -> String;
+    }
+
+    struct MyApiA;
+
+    impl MyApiPort for MyApiA {
+        fn test(&self) -> String {
+            "test".to_string()
+        }
+    }
+
+    struct MyOpenApi<MyApi> {
+        api: MyApi,
+    }
+
+    #[OpenApi]
+    impl<MyApi: MyApiPort> MyOpenApi<MyApi> {
+        #[oai(path = "/some_call", method = "get")]
+        async fn some_call(&self) -> Json<String> {
+            Json(self.api.test())
+        }
+    }
+
+    let ep = OpenApiService::new(MyOpenApi { api: MyApiA }, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/some_call"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(
+        resp.into_body().into_json::<String>().await.unwrap(),
+        "test"
+    );
+}
