@@ -30,6 +30,7 @@ impl<T> OpenTelemetryTracing<T> {
 impl<T, E> Middleware<E> for OpenTelemetryTracing<T>
 where
     T: Tracer + Send + Sync,
+    T::Span: Send + Sync + 'static,
     E: Endpoint,
 {
     type Output = OpenTelemetryTracingEndpoint<T, E>;
@@ -53,6 +54,7 @@ pub struct OpenTelemetryTracingEndpoint<T, E> {
 impl<T, E> Endpoint for OpenTelemetryTracingEndpoint<T, E>
 where
     T: Tracer + Send + Sync,
+    T::Span: Send + Sync + 'static,
     E: Endpoint,
 {
     type Output = Response;
@@ -76,8 +78,7 @@ where
             .span_builder(format!("{} {}", req.method(), req.uri()))
             .with_kind(SpanKind::Server)
             .with_attributes(attributes)
-            .with_parent_context(parent_cx)
-            .start(&*self.tracer);
+            .start_with_context(&*self.tracer, &parent_cx);
 
         span.add_event("request.started".to_string(), vec![]);
 
