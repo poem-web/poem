@@ -35,6 +35,10 @@ impl Type for String {
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.as_raw_value().into_iter())
     }
+
+    fn is_empty(&self) -> bool {
+        String::is_empty(self)
+    }
 }
 
 impl ParseFromJSON for String {

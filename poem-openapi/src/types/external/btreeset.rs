@@ -42,6 +42,10 @@ impl<T: Type> Type for BTreeSet<T> {
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.iter().filter_map(|item| item.as_raw_value()))
     }
+
+    fn is_empty(&self) -> bool {
+        BTreeSet::is_empty(self)
+    }
 }
 
 impl<T: ParseFromJSON + Ord> ParseFromJSON for BTreeSet<T> {

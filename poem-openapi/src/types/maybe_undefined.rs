@@ -316,6 +316,14 @@ impl<T: Type> Type for MaybeUndefined<T> {
             _ => Box::new(std::iter::empty()),
         }
     }
+
+    #[inline]
+    fn is_none(&self) -> bool {
+        match self {
+            MaybeUndefined::Undefined | MaybeUndefined::Null => true,
+            MaybeUndefined::Value(_) => false,
+        }
+    }
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for MaybeUndefined<T> {

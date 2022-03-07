@@ -1,4 +1,9 @@
-use poem::{handler, listener::TcpListener, get, web::{Multipart, Html}, Route, Server};
+use poem::{
+    get, handler,
+    listener::TcpListener,
+    web::{Html, Multipart},
+    Route, Server,
+};
 
 #[handler]
 async fn index() -> Html<&'static str> {
@@ -16,7 +21,7 @@ async fn index() -> Html<&'static str> {
             </form>
         </body>
         </html>
-        "###
+        "###,
     )
 }
 

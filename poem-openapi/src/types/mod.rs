@@ -62,6 +62,24 @@ pub trait Type: Send + Sync {
     fn raw_element_iter<'a>(
         &'a self,
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a>;
+
+    /// Returns `true` if this value is empty.
+    ///
+    /// If the object's field has the `skip_serializing_if_is_empty` attribute,
+    /// call this method to test that the value is empty.
+    #[inline]
+    fn is_empty(&self) -> bool {
+        false
+    }
+
+    /// Returns `true` if this value is none.
+    ///
+    /// If the object's field has the `skip_serializing_if_is_none` attribute,
+    /// call this method to test that the value is none.
+    #[inline]
+    fn is_none(&self) -> bool {
+        false
+    }
 }
 
 /// Represents a type that can parsing from JSON.

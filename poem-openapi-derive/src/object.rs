@@ -36,6 +36,12 @@ struct ObjectField {
     validator: Option<Validators>,
     #[darling(default)]
     flatten: bool,
+    #[darling(default)]
+    skip_serializing_if_is_none: bool,
+    #[darling(default)]
+    skip_serializing_if_is_empty: bool,
+    #[darling(default)]
+    skip_serializing_if: Option<Path>,
 }
 
 #[derive(FromDeriveInput)]
@@ -70,6 +76,10 @@ struct ObjectArgs {
     external_docs: Option<ExternalDocument>,
     #[darling(default)]
     remote: Option<Path>,
+    #[darling(default)]
+    skip_serializing_if_is_none: bool,
+    #[darling(default)]
+    skip_serializing_if_is_empty: bool,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -118,6 +128,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let field_ty = &field.ty;
         let read_only = args.read_only_all || field.read_only;
         let write_only = args.write_only_all || field.write_only;
+        let skip_serializing_if_is_none =
+            field.skip_serializing_if_is_none || args.skip_serializing_if_is_none;
+        let skip_serializing_if_is_empty =
+            field.skip_serializing_if_is_empty || args.skip_serializing_if_is_empty;
+        let skip_serializing_if = &field.skip_serializing_if;
 
         if field.skip {
             deserialize_fields.push(quote! {
@@ -205,9 +220,27 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         if !field.flatten {
             if !write_only {
+                let check_is_none = if skip_serializing_if_is_none {
+                    quote!(!#crate_name::types::Type::is_none(&self.#field_ident))
+                } else {
+                    quote!(true)
+                };
+                let check_is_empty = if skip_serializing_if_is_empty {
+                    quote!(!#crate_name::types::Type::is_empty(&self.#field_ident))
+                } else {
+                    quote!(true)
+                };
+                let check_if = if let Some(p) = skip_serializing_if {
+                    quote!(!#p(&self.#field_ident))
+                } else {
+                    quote!(true)
+                };
+
                 serialize_fields.push(quote! {
-                    if let ::std::option::Option::Some(value) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
-                        object.insert(::std::string::ToString::to_string(#field_name), value);
+                    if #check_is_none && #check_is_empty && #check_if {
+                        if let ::std::option::Option::Some(value) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                            object.insert(::std::string::ToString::to_string(#field_name), value);
+                        }
                     }
                 });
             }

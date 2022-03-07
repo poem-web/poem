@@ -38,6 +38,10 @@ impl<T: Type> Type for &[T] {
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.iter().filter_map(|item| item.as_raw_value()))
     }
+
+    fn is_empty(&self) -> bool {
+        <[T]>::is_empty(self)
+    }
 }
 
 impl<T: ToJSON> ToJSON for &[T] {

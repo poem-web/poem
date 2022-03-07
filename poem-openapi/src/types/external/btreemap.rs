@@ -42,6 +42,10 @@ where
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.values().filter_map(|item| item.as_raw_value()))
     }
+
+    fn is_empty(&self) -> bool {
+        BTreeMap::is_empty(self)
+    }
 }
 
 impl<K, V> ParseFromJSON for BTreeMap<K, V>
