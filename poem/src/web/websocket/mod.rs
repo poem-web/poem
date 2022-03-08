@@ -77,6 +77,11 @@ mod tests {
                 http::Request::builder()
                     .uri(format!("ws://{}", addr))
                     .header(header::SEC_WEBSOCKET_PROTOCOL, protocol)
+                    .header(header::SEC_WEBSOCKET_KEY, "test_key")
+                    .header(header::UPGRADE, "websocket")
+                    .header(header::HOST, "localhost")
+                    .header(header::CONNECTION, "upgrade")
+                    .header(header::SEC_WEBSOCKET_VERSION, "13")
                     .body(())
                     .unwrap(),
             )

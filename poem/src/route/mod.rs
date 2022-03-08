@@ -4,6 +4,7 @@ mod internal;
 mod router;
 mod router_domain;
 mod router_method;
+mod router_scheme;
 
 pub(crate) use internal::radix_tree::PathParams;
 #[allow(unreachable_pub)]
@@ -14,6 +15,8 @@ pub use router_domain::RouteDomain;
 pub use router_method::{
     connect, delete, get, head, options, patch, post, put, trace, RouteMethod,
 };
+#[allow(unreachable_pub)]
+pub use router_scheme::RouteScheme;
 
 use crate::error::RouteError;
 

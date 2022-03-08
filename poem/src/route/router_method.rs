@@ -60,7 +60,7 @@ impl RouteMethod {
         Default::default()
     }
 
-    /// Sets the endpoint for specified `method`.
+    /// Sets the endpoint for the specified `method`.
     #[must_use]
     pub fn method<E>(mut self, method: Method, ep: E) -> Self
     where

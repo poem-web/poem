@@ -64,6 +64,11 @@ macro_rules! impl_string_types {
             ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
                 Box::new(self.as_raw_value().into_iter())
             }
+
+            #[inline]
+            fn is_empty(&self) -> bool {
+                self.0.is_empty()
+            }
         }
 
         impl ParseFromJSON for $ty {

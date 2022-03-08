@@ -768,3 +768,86 @@ fn remote() {
         }
     );
 }
+
+#[test]
+fn skip_serializing_if_is_none() {
+    #[derive(Debug, Object, Eq, PartialEq)]
+    #[oai(skip_serializing_if_is_none)]
+    struct MyObj1 {
+        a: i32,
+        b: Option<i32>,
+        c: Option<i32>,
+    }
+
+    let obj = MyObj1 {
+        a: 100,
+        b: None,
+        c: Some(200),
+    };
+    assert_eq!(obj.to_json(), Some(json!({"a": 100, "c": 200})));
+
+    #[derive(Debug, Object, Eq, PartialEq)]
+    struct MyObj2 {
+        #[oai(skip_serializing_if_is_none)]
+        a: i32,
+        #[oai(skip_serializing_if_is_none)]
+        b: Option<i32>,
+        #[oai(skip_serializing_if_is_none)]
+        c: Option<i32>,
+    }
+
+    let obj = MyObj2 {
+        a: 100,
+        b: None,
+        c: Some(200),
+    };
+    assert_eq!(obj.to_json(), Some(json!({"a": 100, "c": 200})));
+}
+
+#[test]
+fn skip_serializing_if_is_empty() {
+    #[derive(Debug, Object, Eq, PartialEq)]
+    #[oai(skip_serializing_if_is_empty)]
+    struct MyObj1 {
+        a: Vec<i32>,
+        b: Vec<i32>,
+    }
+
+    let obj = MyObj1 {
+        a: vec![1, 2, 3],
+        b: vec![],
+    };
+    assert_eq!(obj.to_json(), Some(json!({"a": [1, 2, 3]})));
+
+    #[derive(Debug, Object, Eq, PartialEq)]
+    struct MyObj2 {
+        #[oai(skip_serializing_if_is_empty)]
+        a: Vec<i32>,
+        #[oai(skip_serializing_if_is_empty)]
+        b: Vec<i32>,
+    }
+
+    let obj = MyObj2 {
+        a: vec![1, 2, 3],
+        b: vec![],
+    };
+    assert_eq!(obj.to_json(), Some(json!({"a": [1, 2, 3]})));
+}
+
+#[test]
+fn skip_serializing_if() {
+    fn check_i32(n: &i32) -> bool {
+        *n == 100
+    }
+
+    #[derive(Debug, Object, Eq, PartialEq)]
+    struct MyObj {
+        #[oai(skip_serializing_if = "check_i32")]
+        a: i32,
+        #[oai(skip_serializing_if = "check_i32")]
+        b: i32,
+    }
+
+    let obj = MyObj { a: 100, b: 200 };
+    assert_eq!(obj.to_json(), Some(json!({"b": 200})));
+}

@@ -254,54 +254,6 @@ async fn payload_request() {
 }
 
 #[tokio::test]
-async fn optional_payload_request() {
-    struct Api;
-
-    #[OpenApi]
-    impl Api {
-        #[oai(path = "/", method = "post")]
-        async fn test(&self, req: Json<Option<i32>>) -> PlainText<String> {
-            PlainText(req.0.unwrap_or(999).to_string())
-        }
-    }
-
-    let meta: MetaApi = Api::meta().remove(0);
-    let meta_request = meta.paths[0].operations[0].request.as_ref().unwrap();
-    assert!(!meta_request.required);
-
-    assert_eq!(meta_request.content[0].content_type, "application/json");
-    assert_eq!(meta_request.content[0].schema, i32::schema_ref());
-
-    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = ep
-        .call(
-            poem::Request::builder()
-                .method(Method::POST)
-                .uri(Uri::from_static("/"))
-                .content_type("application/json")
-                .body("100"),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
-
-    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = ep
-        .call(
-            poem::Request::builder()
-                .method(Method::POST)
-                .uri(Uri::from_static("/"))
-                .content_type("application/json")
-                .finish(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.into_body().into_string().await.unwrap(), "999");
-}
-
-#[tokio::test]
 async fn response() {
     #[derive(ApiResponse)]
     enum MyResponse {
@@ -384,7 +336,7 @@ async fn response() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
-    assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("application/json; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "409");
 
     let mut resp = ep
@@ -397,7 +349,7 @@ async fn response() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 404");
 }
 
@@ -440,7 +392,7 @@ async fn bad_request_handler() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 200");
 
     let mut resp = ep
@@ -453,7 +405,7 @@ async fn bad_request_handler() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
         r#"!!! failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#
@@ -502,7 +454,7 @@ async fn bad_request_handler_for_validator() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(resp.take_body().into_string().await.unwrap(), "code: 50");
 
     let mut resp = ep
@@ -515,7 +467,7 @@ async fn bad_request_handler_for_validator() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(resp.content_type(), Some("text/plain; charset=utf8"));
+    assert_eq!(resp.content_type(), Some("text/plain; charset=utf-8"));
     assert_eq!(
         resp.take_body().into_string().await.unwrap(),
         r#"!!! failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#
@@ -663,5 +615,48 @@ async fn external_docs() {
                 .to_string(),
             description: None
         })
+    );
+}
+
+#[tokio::test]
+async fn generic() {
+    trait MyApiPort: Send + Sync + 'static {
+        fn test(&self) -> String;
+    }
+
+    struct MyApiA;
+
+    impl MyApiPort for MyApiA {
+        fn test(&self) -> String {
+            "test".to_string()
+        }
+    }
+
+    struct MyOpenApi<MyApi> {
+        api: MyApi,
+    }
+
+    #[OpenApi]
+    impl<MyApi: MyApiPort> MyOpenApi<MyApi> {
+        #[oai(path = "/some_call", method = "get")]
+        async fn some_call(&self) -> Json<String> {
+            Json(self.api.test())
+        }
+    }
+
+    let ep = OpenApiService::new(MyOpenApi { api: MyApiA }, "test", "1.0").into_endpoint();
+    let resp = ep
+        .call(
+            poem::Request::builder()
+                .method(Method::GET)
+                .uri(Uri::from_static("/some_call"))
+                .finish(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(
+        resp.into_body().into_json::<String>().await.unwrap(),
+        "test"
     );
 }

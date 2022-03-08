@@ -57,8 +57,8 @@
 //!
 //! let api_service =
 //!     OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000");
-//! let docs = api_service.swagger_ui();
-//! let app = Route::new().nest("/", api_service).nest("/docs", docs);
+//! let ui = api_service.swagger_ui();
+//! let app = Route::new().nest("/", api_service).nest("/docs", ui);
 //!
 //! # tokio::runtime::Runtime::new().unwrap().block_on(async {
 //! Server::new(TcpListener::bind("127.0.0.1:3000"))
@@ -102,6 +102,7 @@
 //! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
 //! | url        | Integrate with the [`url` crate](https://crates.io/crates/url) |
 //! | bson        | Integrate with the [`bson` crate](https://crates.io/crates/bson) |
+//! | rust_decimal | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
 //! | static-files | Support for static file response |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]

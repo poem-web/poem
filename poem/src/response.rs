@@ -155,6 +155,7 @@ impl Response {
     }
 
     /// Sets the `Content-Type` header on the response.
+    #[must_use]
     pub fn set_content_type(mut self, content_type: impl AsRef<str>) -> Self {
         if let Ok(value) = content_type.as_ref().try_into() {
             self.headers.insert(header::CONTENT_TYPE, value);

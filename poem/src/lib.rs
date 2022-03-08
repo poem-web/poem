@@ -243,6 +243,7 @@
 //! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
 //! | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate. |
 //! | i18n          | Support for internationalization |
+//! | acme | Support for ACME(Automatic Certificate Management Environment) |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
@@ -287,6 +288,7 @@ pub use request::{OnUpgrade, Request, RequestBuilder, RequestParts, Upgraded};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{
     connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,
+    RouteScheme,
 };
 pub use server::Server;
 pub use web::{FromRequest, IntoResponse, RequestBody};

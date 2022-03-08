@@ -76,6 +76,7 @@ pub(crate) fn generate(
     };
     let crate_name = get_crate_name(api_args.internal);
     let ident = item_impl.self_ty.clone();
+    let (impl_generics, _, where_clause) = item_impl.generics.split_for_impl();
     let mut ctx = Context {
         add_routes: Default::default(),
         operations: Default::default(),
@@ -133,7 +134,7 @@ pub(crate) fn generate(
     let expanded = quote! {
         #item_impl
 
-        impl #crate_name::OpenApi for #ident {
+        impl #impl_generics #crate_name::OpenApi for #ident #where_clause {
             fn meta() -> ::std::vec::Vec<#crate_name::registry::MetaApi> {
                 ::std::vec![#crate_name::registry::MetaApi {
                     paths: ::std::vec![#(#paths),*],

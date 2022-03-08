@@ -57,13 +57,13 @@ impl Upload {
 
     /// Consumes this body object to return a [`String`] that contains all data.
     pub async fn into_string(self) -> Result<String, IoError> {
-        Ok(String::from_utf8(
+        String::from_utf8(
             self.into_vec()
                 .await
                 .map_err(|err| IoError::new(ErrorKind::Other, err))?
                 .to_vec(),
         )
-        .map_err(|err| IoError::new(ErrorKind::Other, err))?)
+        .map_err(|err| IoError::new(ErrorKind::Other, err))
     }
 
     /// Consumes this body object to return a reader.

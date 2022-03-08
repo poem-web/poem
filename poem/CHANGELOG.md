@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.3.8] 2022-3-4
+
+- Fix Poem with Tonic doesn't return GRPC status header when rpc handler returns an error. [#212](https://github.com/poem-web/poem/issues/212)
+
+# [1.3.7] 2022-3-1
+
+- Fix Poem with Tonic doesn't return GRPC status header. [#212](https://github.com/poem-web/poem/issues/212)
+
+# [1.3.6] 2022-2-22
+
+- Change charset from `utf8` to `utf-8`. [#213](https://github.com/poem-web/poem/pull/213)
+
+# [1.3.5] 2022-2-22
+
+- Add `X-Accel-Buffering: no` header to SSE response.
+- Add `AutoCertBuilder::contact` method to add a contact email for ACME account.
+- Add `TestJsonArray::assert_is_empty` and `TestJsonObject::assert_is_empty` methods.
+- Add `TestJsonArray::assert_contains` and `TestJsonObject::assert_contains_exactly_one` methods.
+
+# [1.3.4] 2022-2-21
+
+- Fixed `AutoCert` loading cached certificates with incorrect paths.
+
+# [1.3.3] 2022-2-21
+
+- Implement `Listener` for `BoxListener`.
+
+# [1.3.2] 2022-2-21
+
+- Add `ListenerExt::boxed` method.
+
+# [1.3.1] 2022-2-21
+
+- Add `Body::is_empty` method.
+- Add `RouteScheme` for scheme routing.
+- Add support `HTTP-01` challenge for ACME.
+
+# [1.3.0] 2022-2-20
+
+- Add support for ACME(Automatic Certificate Management Environment).
+
 # [1.2.59] 2022-2-17
 
 - Add `Response::set_content_type` method.

@@ -45,6 +45,11 @@ impl<T: Type> Type for Option<T> {
             None => Box::new(std::iter::empty()),
         }
     }
+
+    #[inline]
+    fn is_none(&self) -> bool {
+        <Option<T>>::is_none(self)
+    }
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Option<T> {

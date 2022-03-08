@@ -131,10 +131,10 @@ impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
         for action in &self.actions {
             match action {
                 Action::Override(name, value) => {
-                    headers.insert(name.clone(), value.clone());
+                    headers.insert(name, value.clone());
                 }
                 Action::Append(name, value) => {
-                    headers.append(name.clone(), value.clone());
+                    headers.append(name, value.clone());
                 }
             }
         }
