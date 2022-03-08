@@ -1,7 +1,4 @@
-use poem::{
-    http::{StatusCode, Uri},
-    Endpoint, Error, IntoEndpoint, Request,
-};
+use poem::{http::StatusCode, test::TestClient, Error};
 use poem_openapi::{
     param::Query,
     payload::{Json, Response},
@@ -39,30 +36,18 @@ async fn response_wrapper() {
         }
     }
 
-    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
 
-    let resp = ep
-        .call(Request::builder().uri(Uri::from_static("/a")).finish())
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.header("myheader"), Some("abc"));
+    let resp = cli.get("/a").send().await;
+    resp.assert_status_is_ok();
+    resp.assert_header("myheader", "abc");
 
-    let resp = ep
-        .call(
-            Request::builder()
-                .uri(Uri::from_static("/b?p1=qwe"))
-                .finish(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.header("myheader"), Some("qwe"));
+    let resp = cli.get("/b").query("p1", &"qwe").send().await;
+    resp.assert_status_is_ok();
+    resp.assert_header("myheader", "qwe");
 
-    let resp = ep
-        .call(Request::builder().uri(Uri::from_static("/b")).finish())
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(resp.header("MY-HEADER1"), Some("def"));
+    let resp = cli.get("/b").send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_header("MY-HEADER1", "def");
 }

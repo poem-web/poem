@@ -24,6 +24,7 @@ use crate::{
 ///     http::{header, Method, StatusCode},
 ///     middleware::Csrf,
 ///     post,
+///     test::TestClient,
 ///     web::{cookie::Cookie, CsrfToken, CsrfVerifier},
 ///     Endpoint, EndpointExt, Error, Request, Result, Route,
 /// };
@@ -51,31 +52,26 @@ use crate::{
 /// let app = Route::new()
 ///     .at("/", get(login_ui).post(login))
 ///     .with(Csrf::new());
+/// let cli = TestClient::new(app);
 ///
-/// let resp = app.call(Request::default()).await.unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// let cookie = resp.headers().get(header::SET_COOKIE).unwrap();
+/// let resp = cli.get("/").send().await;
+/// resp.assert_status_is_ok();
+///
+/// let cookie = resp.0.headers().get(header::SET_COOKIE).unwrap();
 /// let cookie = Cookie::parse(cookie.to_str().unwrap()).unwrap();
-/// let csrf_token = resp.into_body().into_string().await.unwrap();
+/// let csrf_token = resp.0.into_body().into_string().await.unwrap();
 ///
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .method(Method::POST)
-///             .header("X-CSRF-Token", csrf_token)
-///             .header(
-///                 header::COOKIE,
-///                 format!("{}={}", cookie.name(), cookie.value_str()),
-///             )
-///             .finish(),
+/// let resp = cli
+///     .post("/")
+///     .header("X-CSRF-Token", csrf_token)
+///     .header(
+///         header::COOKIE,
+///         format!("{}={}", cookie.name(), cookie.value_str()),
 ///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(
-///     resp.into_body().into_string().await.unwrap(),
-///     "login success"
-/// );
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("login success").await;
 /// # });
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]

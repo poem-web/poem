@@ -25,6 +25,7 @@ use crate::{
 /// use poem::{
 ///     get, handler,
 ///     http::{StatusCode, Uri},
+///     test::TestClient,
 ///     web::Path,
 ///     Endpoint, Request, Route,
 /// };
@@ -56,44 +57,22 @@ use crate::{
 ///     .at("/e/:name<\\d+>", get(a));
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let cli = TestClient::new(app);
+///
 /// // /a/b
-/// let resp = app
-///     .call(Request::builder().uri(Uri::from_static("/a/b")).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
+/// cli.get("/a/b").send().await.assert_status_is_ok();
 ///
 /// // /b/:group/:name
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/b/foo/bar"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
+/// cli.get("/b/foo/bar").send().await.assert_status_is_ok();
 ///
 /// // /c/*path
-/// let resp = app
-///     .call(Request::builder().uri(Uri::from_static("/c/d/e")).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
+/// cli.get("/c/d/e").send().await.assert_status_is_ok();
 ///
 /// // /d/<\\d>
-/// let resp = app
-///     .call(Request::builder().uri(Uri::from_static("/d/123")).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
+/// cli.get("/d/123").send().await.assert_status_is_ok();
 ///
 /// // /e/:name<\\d>
-/// let resp = app
-///     .call(Request::builder().uri(Uri::from_static("/e/123")).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
+/// cli.get("/e/123").send().await.assert_status_is_ok();
 /// # });
 /// ```
 ///
@@ -103,6 +82,7 @@ use crate::{
 /// use poem::{
 ///     handler,
 ///     http::{StatusCode, Uri},
+///     test::TestClient,
 ///     Endpoint, Request, Route,
 /// };
 ///
@@ -112,18 +92,12 @@ use crate::{
 /// }
 ///
 /// let app = Route::new().nest("/foo", Route::new().at("/bar", index));
+/// let cli = TestClient::new(app);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/foo/bar"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+/// let resp = cli.get("/foo/bar").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("hello").await;
 /// # });
 /// ```
 ///
@@ -133,6 +107,7 @@ use crate::{
 /// use poem::{
 ///     handler,
 ///     http::{StatusCode, Uri},
+///     test::TestClient,
 ///     Endpoint, Request, Route,
 /// };
 ///
@@ -142,18 +117,12 @@ use crate::{
 /// }
 ///
 /// let app = Route::new().nest_no_strip("/foo", Route::new().at("/foo/bar", index));
+/// let cli = TestClient::new(app);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/foo/bar"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+/// let resp = cli.get("/foo/bar").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("hello").await;
 /// # });
 /// ```
 #[derive(Default)]

@@ -828,7 +828,10 @@ pub enum SizedLimitError {
 
 impl ResponseError for SizedLimitError {
     fn status(&self) -> StatusCode {
-        StatusCode::BAD_REQUEST
+        match self {
+            SizedLimitError::MissingContentLength => StatusCode::BAD_REQUEST,
+            SizedLimitError::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
+        }
     }
 }
 

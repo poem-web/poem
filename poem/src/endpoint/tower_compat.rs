@@ -128,6 +128,7 @@ mod tests {
     use futures_util::future::Ready;
 
     use super::*;
+    use crate::test::TestClient;
 
     #[tokio::test]
     async fn test_tower_compat() {
@@ -149,7 +150,8 @@ mod tests {
         }
 
         let ep = MyTowerService.compat();
-        let resp = ep.call(Request::builder().body("abc")).await.unwrap();
-        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+        let resp = TestClient::new(ep).get("/").body("abc").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_text("abc").await;
     }
 }

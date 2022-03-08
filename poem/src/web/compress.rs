@@ -139,7 +139,7 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{handler, Endpoint, EndpointExt, Request};
+    use crate::{handler, test::TestClient, EndpointExt};
 
     async fn decompress_data(algo: CompressionAlgo, data: &[u8]) -> String {
         let mut output = Vec::new();
@@ -157,18 +157,16 @@ mod tests {
             DATA
         }
 
-        let mut resp = index
-            .and_then(move |resp| async move { Ok(Compress::new(resp, algo)) })
-            .call(Request::default())
-            .await
-            .unwrap()
-            .into_response();
+        let resp = TestClient::new(
+            index.and_then(move |resp| async move { Ok(Compress::new(resp, algo)) }),
+        )
+        .get("/")
+        .send()
+        .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::CONTENT_ENCODING, algo.as_str());
         assert_eq!(
-            resp.headers().get(header::CONTENT_ENCODING),
-            Some(&HeaderValue::from_static(algo.as_str()))
-        );
-        assert_eq!(
-            decompress_data(algo, &resp.take_body().into_bytes().await.unwrap()).await,
+            decompress_data(algo, &resp.0.into_body().into_bytes().await.unwrap()).await,
             DATA
         );
     }

@@ -52,20 +52,22 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{handler, Endpoint};
+    use crate::{handler, test::TestClient};
 
     #[tokio::test]
     async fn test_tempfile_extractor() {
         #[handler(internal)]
-        async fn index123(mut file: TempFile) {
+        async fn index(mut file: TempFile) {
             let mut s = String::new();
             file.read_to_string(&mut s).await.unwrap();
             assert_eq!(s, "abcdef");
         }
 
-        index123
-            .call(Request::builder().body("abcdef"))
+        let cli = TestClient::new(index);
+        cli.get("/")
+            .body("abcdef")
+            .send()
             .await
-            .unwrap();
+            .assert_status_is_ok();
     }
 }

@@ -11,6 +11,41 @@ use crate::{
 /// A response type wrapper.
 ///
 /// Use it to modify the status code and HTTP headers.
+///
+/// # Examples
+///
+/// ```
+/// use poem::{
+///     error::BadRequest,
+///     http::{Method, StatusCode, Uri},
+///     test::TestClient,
+///     Body, IntoEndpoint, Request, Result,
+/// };
+/// use poem_openapi::{
+///     payload::{Json, Response},
+///     OpenApi, OpenApiService,
+/// };
+/// use tokio::io::AsyncReadExt;
+///
+/// struct MyApi;
+///
+/// #[OpenApi]
+/// impl MyApi {
+///     #[oai(path = "/test", method = "get")]
+///     async fn test(&self) -> Response<Json<i32>> {
+///         Response::new(Json(100)).header("foo", "bar")
+///     }
+/// }
+///
+/// let api = OpenApiService::new(MyApi, "Demo", "0.1.0");
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = TestClient::new(api).get("/test").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_header("foo", "bar");
+/// resp.assert_text("100").await;
+/// # });
+/// ```
 pub struct Response<T> {
     inner: T,
     status: Option<StatusCode>,

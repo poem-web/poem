@@ -170,7 +170,7 @@ impl Multipart {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, http::StatusCode, Endpoint};
+    use crate::{handler, http::StatusCode, test::TestClient};
 
     #[tokio::test]
     async fn test_multipart_extractor_content_type() {
@@ -179,18 +179,14 @@ mod tests {
             todo!()
         }
 
-        let err = index
-            .call(
-                Request::builder()
-                    .header("content-type", "multipart/json; boundary=X-BOUNDARY")
-                    .body(()),
-            )
-            .await
-            .unwrap_err();
-        match err.downcast_ref::<ParseMultipartError>().unwrap() {
-            ParseMultipartError::InvalidContentType(ct) if ct == "multipart/json" => {}
-            _ => panic!(),
-        }
+        let cli = TestClient::new(index);
+        let resp = cli
+            .post("/")
+            .header("content-type", "multipart/json; boundary=X-BOUNDARY")
+            .body(())
+            .send()
+            .await;
+        resp.assert_status(StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 
     #[tokio::test]
@@ -212,14 +208,14 @@ mod tests {
         }
 
         let data = "--X-BOUNDARY\r\nContent-Disposition: form-data; name=\"my_text_field\"\r\n\r\nabcd\r\n--X-BOUNDARY\r\nContent-Disposition: form-data; name=\"my_file_field\"; filename=\"a-text-file.txt\"\r\nContent-Type: text/plain\r\n\r\nHello world\nHello\r\nWorld\rAgain\r\n--X-BOUNDARY--\r\n";
-        let resp = index
-            .call(
-                Request::builder()
-                    .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
-                    .body(data),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        let cli = TestClient::new(index);
+
+        let resp = cli
+            .post("/")
+            .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
+            .body(data)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
     }
 }

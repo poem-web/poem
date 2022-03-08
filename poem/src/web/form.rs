@@ -31,6 +31,7 @@ use crate::{
 /// use poem::{
 ///     get, handler,
 ///     http::{Method, StatusCode, Uri},
+///     test::TestClient,
 ///     web::Form,
 ///     Endpoint, Request, Route,
 /// };
@@ -47,32 +48,26 @@ use crate::{
 ///     format!("{}:{}", title, content)
 /// }
 ///
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let app = Route::new().at("/", get(index).post(index));
+/// let cli = TestClient::new(app);
 ///
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/?title=foo&content=bar"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = cli
+///     .get("/")
+///     .query("title", &"foo")
+///     .query("content", &"bar")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("foo:bar").await;
 ///
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .method(Method::POST)
-///             .uri(Uri::from_static("/"))
-///             .content_type("application/x-www-form-urlencoded")
-///             .body("title=foo&content=bar"),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
+/// let resp = cli
+///     .post("/")
+///     .form(&[("title", "foo"), ("content", "bar")])
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("foo:bar").await;
 /// # });
 /// ```
 pub struct Form<T>(pub T);
@@ -123,10 +118,11 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
 
 #[cfg(test)]
 mod tests {
+    use http::StatusCode;
     use serde::Deserialize;
 
     use super::*;
-    use crate::{handler, http::Uri, Endpoint};
+    use crate::{handler, test::TestClient};
 
     #[tokio::test]
     async fn test_form_extractor() {
@@ -142,34 +138,26 @@ mod tests {
             assert_eq!(form.value, 100);
         }
 
-        index
-            .call(
-                Request::builder()
-                    .uri(Uri::from_static("/?name=abc&value=100"))
-                    .finish(),
-            )
-            .await
-            .unwrap();
+        let cli = TestClient::new(index);
 
-        index
-            .call(
-                Request::builder()
-                    .method(Method::POST)
-                    .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-                    .body("name=abc&value=100"),
-            )
+        cli.get("/")
+            .query("name", &"abc")
+            .query("value", &"100")
+            .send()
             .await
-            .unwrap();
+            .assert_status_is_ok();
 
-        assert!(index
-            .call(
-                Request::builder()
-                    .method(Method::POST)
-                    .header(header::CONTENT_TYPE, "application/json")
-                    .body("name=abc&value=100"),
-            )
+        cli.post("/")
+            .form(&[("name", "abc"), ("value", "100")])
+            .send()
             .await
-            .unwrap_err()
-            .is::<ParseFormError>());
+            .assert_status_is_ok();
+
+        cli.post("/")
+            .content_type("application/json")
+            .body("name=abc&value=100")
+            .send()
+            .await
+            .assert_status(StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 }

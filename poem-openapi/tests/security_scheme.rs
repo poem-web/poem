@@ -1,7 +1,7 @@
 use poem::{
-    http::{header, Uri},
-    web::cookie::Cookie,
-    Endpoint, IntoEndpoint,
+    http::header,
+    test::TestClient,
+    web::{cookie::Cookie, headers},
 };
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
@@ -9,7 +9,8 @@ use poem_openapi::{
     registry::{MetaOAuthFlow, MetaOAuthFlows, MetaOAuthScope, MetaSecurityScheme, Registry},
     ApiExtractor, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
-use typed_headers::{http::StatusCode, Token68};
+
+use crate::headers::Authorization;
 
 #[test]
 fn rename() {
@@ -105,23 +106,14 @@ async fn basic_auth() {
         }
     }
 
-    let service = OpenApiService::new(MyApi, "test", "1.0").into_endpoint();
-    let mut resp = service
-        .call(
-            poem::Request::builder()
-                .uri(Uri::from_static("/test"))
-                .header(
-                    header::AUTHORIZATION,
-                    typed_headers::Credentials::basic("abc", "123456")
-                        .unwrap()
-                        .to_string(),
-                )
-                .finish(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.take_body().into_string().await.unwrap(), "abc/123456");
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let resp = TestClient::new(service)
+        .get("/test")
+        .typed_header(Authorization::basic("abc", "123456"))
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("abc/123456").await;
 }
 
 #[tokio::test]
@@ -156,21 +148,14 @@ async fn bearer_auth() {
         }
     }
 
-    let service = OpenApiService::new(MyApi, "test", "1.0").into_endpoint();
-    let mut resp = service
-        .call(
-            poem::Request::builder()
-                .uri(Uri::from_static("/test"))
-                .header(
-                    header::AUTHORIZATION,
-                    typed_headers::Credentials::bearer(Token68::new("abcdef").unwrap()).to_string(),
-                )
-                .finish(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let resp = TestClient::new(service)
+        .get("/test")
+        .typed_header(headers::Authorization::bearer("abcdef").unwrap())
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("abcdef").await;
 }
 
 #[tokio::test]
@@ -263,44 +248,31 @@ async fn api_key_auth() {
         }
     }
 
-    let service = OpenApiService::new(MyApi, "test", "1.0").into_endpoint();
-    let mut resp = service
-        .call(
-            poem::Request::builder()
-                .uri(Uri::from_static("/header"))
-                .header("X-API-Key", "abcdef")
-                .finish(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let cli = TestClient::new(service);
 
-    let mut resp = service
-        .call(
-            poem::Request::builder()
-                .uri(Uri::from_static("/query?key=abcdef"))
-                .finish(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
+    let resp = cli
+        .get("/header")
+        .header("X-API-Key", "abcdef")
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("abcdef").await;
 
-    let mut resp = service
-        .call(
-            poem::Request::builder()
-                .uri(Uri::from_static("/cookie"))
-                .header(
-                    header::COOKIE,
-                    Cookie::new_with_str("key", "abcdef").to_string(),
-                )
-                .finish(),
+    let resp = cli.get("/query").query("key", &"abcdef").send().await;
+    resp.assert_status_is_ok();
+    resp.assert_text("abcdef").await;
+
+    let resp = cli
+        .get("/cookie")
+        .header(
+            header::COOKIE,
+            Cookie::new_with_str("key", "abcdef").to_string(),
         )
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(resp.take_body().into_string().await.unwrap(), "abcdef");
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("abcdef").await;
 }
 
 #[tokio::test]
