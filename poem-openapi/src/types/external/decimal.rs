@@ -67,12 +67,12 @@ impl ParseFromMultipartField for Decimal {
 
 impl ToJSON for Decimal {
     fn to_json(&self) -> Option<Value> {
-        Some(Value::String(self.to_string()))
+        Some(Value::String(self.normalize().to_string()))
     }
 }
 
 impl ToHeader for Decimal {
     fn to_header(&self) -> Option<HeaderValue> {
-        HeaderValue::from_str(&self.to_string()).ok()
+        HeaderValue::from_str(&self.normalize().to_string()).ok()
     }
 }
