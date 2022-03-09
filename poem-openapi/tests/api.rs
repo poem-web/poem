@@ -660,3 +660,61 @@ async fn generic() {
         "test"
     );
 }
+
+#[tokio::test]
+async fn extra_headers_on_operation() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(
+            path = "/",
+            method = "get",
+            header(name = "A1", type = "String", description = "abc"),
+            header(name = "a2", type = "i32", deprecated = true)
+        )]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+
+    let header = &meta.paths[0].operations[0].responses.responses[0].headers[0];
+    assert_eq!(header.name, "A1");
+    assert_eq!(header.description.as_deref(), Some("abc"));
+    assert_eq!(header.deprecated, false);
+    assert_eq!(header.schema, String::schema_ref());
+
+    let header = &meta.paths[0].operations[0].responses.responses[0].headers[1];
+    assert_eq!(header.name, "A2");
+    assert_eq!(header.description, None);
+    assert_eq!(header.deprecated, true);
+    assert_eq!(header.schema, i32::schema_ref());
+}
+
+#[tokio::test]
+async fn extra_headers_on_api() {
+    struct Api;
+
+    #[OpenApi(
+        header(name = "A1", type = "String", description = "abc"),
+        header(name = "a2", type = "i32", deprecated = true)
+    )]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+
+    let header = &meta.paths[0].operations[0].responses.responses[0].headers[0];
+    assert_eq!(header.name, "A1");
+    assert_eq!(header.description.as_deref(), Some("abc"));
+    assert_eq!(header.deprecated, false);
+    assert_eq!(header.schema, String::schema_ref());
+
+    let header = &meta.paths[0].operations[0].responses.responses[0].headers[1];
+    assert_eq!(header.name, "A2");
+    assert_eq!(header.description, None);
+    assert_eq!(header.deprecated, true);
+    assert_eq!(header.schema, i32::schema_ref());
+}

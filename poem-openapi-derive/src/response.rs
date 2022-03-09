@@ -8,8 +8,9 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
+    common_args::ExtraHeader,
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{get_crate_name, get_description, optional_literal, optional_literal_string},
 };
 
 #[derive(FromField)]
@@ -35,6 +36,8 @@ struct ResponseItem {
     status: Option<u16>,
     #[darling(default)]
     content_type: Option<String>,
+    #[darling(default, multiple, rename = "header")]
+    headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromDeriveInput)]
@@ -48,6 +51,8 @@ struct ResponseArgs {
     internal: bool,
     #[darling(default)]
     bad_request_handler: Option<Path>,
+    #[darling(default, multiple, rename = "header")]
+    headers: Vec<ExtraHeader>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -83,7 +88,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let ident = quote::format_ident!("__p{}", idx);
             let header_name = header.header.as_ref().unwrap().to_uppercase();
             let header_ty = &header.ty;
-            let header_desc = optional_literal(&get_description(&header.attrs)?);
+            let header_desc = optional_literal_string(&get_description(&header.attrs)?);
             let deprecated = header.deprecated;
 
             with_headers.push(quote! {{
@@ -94,11 +99,32 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             match_headers.push(ident);
             meta_headers.push(quote! {
                 #crate_name::registry::MetaHeader {
-                    name: #header_name,
+                    name: ::std::string::ToString::to_string(#header_name),
                     description: #header_desc,
                     required: <#header_ty as #crate_name::types::Type>::IS_REQUIRED,
                     deprecated: #deprecated,
                     schema: <#header_ty as #crate_name::types::Type>::schema_ref(),
+                }
+            });
+        }
+
+        // extra headers
+        for header in args.headers.iter().chain(&variant.headers) {
+            let name = header.name.to_uppercase();
+            let description = optional_literal_string(&header.description);
+            let ty = match syn::parse_str::<Type>(&header.ty) {
+                Ok(ty) => ty,
+                Err(_) => return Err(Error::new(header.ty.span(), "Invalid type").into()),
+            };
+            let deprecated = header.deprecated;
+
+            meta_headers.push(quote! {
+                #crate_name::registry::MetaHeader {
+                    name: ::std::string::ToString::to_string(#name),
+                    description: #description,
+                    required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
+                    deprecated: #deprecated,
+                    schema: <#ty as #crate_name::types::Type>::schema_ref(),
                 }
             });
         }

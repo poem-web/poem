@@ -4,10 +4,11 @@ Define a OpenAPI.
 
 These are attributes that can be added to the `#[OpenApi]` attribute.
 
-| Attribute   | description                                                                                                      | Type   | Optional |
-|-------------|------------------------------------------------------------------------------------------------------------------|--------|----------|
-| prefix_path | Define the prefix for all operation paths. May contain shared path parameters.                                   | string | Y        |
-| tag         | Define a tag for all operations. This must be the name of an in-scope variant of an enum which implements `Tags` | Tags   | Y        |
+| Attribute   | description                                                                                                      | Type                                                       | Optional |
+|-------------|------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|----------|
+| prefix_path | Define the prefix for all operation paths. May contain shared path parameters.                                   | string                                                     | Y        |
+| tag         | Define a tag for all operations. This must be the name of an in-scope variant of an enum which implements `Tags` | Tags                                                       | Y        |
+| header      | Add an extra header to all operations.                                                                           | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 
 ## Example
 
@@ -41,15 +42,16 @@ impl Api {
 
 Parameters that can be passed into the `#[oai()]` attribute above each operation function within an `OpenApi`.
 
-| Attribute     | description                                                                                                          | Type   | Optional |
-|---------------|----------------------------------------------------------------------------------------------------------------------|--------|----------|
-| path          | URI path optionally containing path parameters (e.g., "/:name/hello")                                                | string | N        |
-| method        | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string | N        |
-| deprecated    | Operation deprecated                                                                                                 | bool   | Y        |
-| external_docs | Specify a external resource for extended documentation                                                               | string | Y        |
-| tag           | Tag to use for an operation. Must be a variant of an enum which implements `Tags`                                    | Tags   | Y        |
-| operation_id  | Unique string used to identify the operation.                                                                        | string | Y        |
-| transform     | Use a function to transform the API endpoint.                                                                        | string | Y        |
+| Attribute     | description                                                                                                          | Type                                                       | Optional |
+|---------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|----------|
+| path          | URI path optionally containing path parameters (e.g., "/:name/hello")                                                | string                                                     | N        |
+| method        | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string                                                     | N        |
+| deprecated    | Operation deprecated                                                                                                 | bool                                                       | Y        |
+| external_docs | Specify a external resource for extended documentation                                                               | string                                                     | Y        |
+| tag           | Tag to use for an operation. Must be a variant of an enum which implements `Tags`                                    | Tags                                                       | Y        |
+| operation_id  | Unique string used to identify the operation.                                                                        | string                                                     | Y        |
+| transform     | Use a function to transform the API endpoint.                                                                        | string                                                     | Y        |
+| header        | Add an extra header to the operation.                                                                                | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 
 ## Example
 

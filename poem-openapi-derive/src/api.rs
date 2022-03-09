@@ -4,15 +4,16 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
     ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
-    ItemImpl, Pat, Path, ReturnType,
+    ItemImpl, Pat, Path, ReturnType, Type,
 };
 
 use crate::{
-    common_args::{APIMethod, DefaultValue, ExternalDocument},
+    common_args::{APIMethod, DefaultValue, ExternalDocument, ExtraHeader},
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
-        optional_literal, parse_oai_attrs, remove_description, remove_oai_attrs, RemoveLifetime,
+        optional_literal, optional_literal_string, parse_oai_attrs, remove_description,
+        remove_oai_attrs, RemoveLifetime,
     },
     validators::Validators,
 };
@@ -25,6 +26,8 @@ struct APIArgs {
     prefix_path: Option<SpannedValue<String>>,
     #[darling(default, multiple, rename = "tag")]
     common_tags: Vec<Path>,
+    #[darling(default, multiple, rename = "header")]
+    headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromMeta)]
@@ -41,6 +44,8 @@ struct APIOperation {
     operation_id: Option<String>,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
+    #[darling(default, multiple, rename = "header")]
+    headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromMeta, Default)]
@@ -170,6 +175,7 @@ fn generate_operation(
         transform,
         operation_id,
         external_docs,
+        headers,
     } = args;
     let http_method = method.to_http_method();
     let fn_ident = &item_method.sig.ident;
@@ -392,6 +398,29 @@ fn generate_operation(
         None => quote!(::std::option::Option::None),
     };
 
+    let mut update_extra_headers = Vec::new();
+    for (idx, header) in api_args.headers.iter().chain(&headers).enumerate() {
+        let name = header.name.to_uppercase();
+        let description = optional_literal_string(&header.description);
+        let ty = match syn::parse_str::<Type>(&header.ty) {
+            Ok(ty) => ty,
+            Err(_) => return Err(Error::new(header.ty.span(), "Invalid type").into()),
+        };
+        let deprecated = header.deprecated;
+
+        update_extra_headers.push(quote! {
+            for resp in &mut meta.responses {
+                resp.headers.insert(#idx, #crate_name::registry::MetaHeader {
+                    name: ::std::string::ToString::to_string(#name),
+                    description: #description,
+                    required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
+                    deprecated: #deprecated,
+                    schema: <#ty as #crate_name::types::Type>::schema_ref(),
+                });
+            }
+        });
+    }
+
     ctx.operations.entry(oai_path).or_default().push(quote! {
         #crate_name::registry::MetaOperation {
             tags: ::std::vec![#(#tag_names),*],
@@ -409,7 +438,11 @@ fn generate_operation(
                 #(#request_meta)*
                 request
             },
-            responses: <#res_ty as #crate_name::ApiResponse>::meta(),
+            responses: {
+                let mut meta = <#res_ty as #crate_name::ApiResponse>::meta();
+                #(#update_extra_headers)*
+                meta
+            },
             deprecated: #deprecated,
             security: {
                 let mut security = ::std::vec![];

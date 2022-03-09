@@ -407,9 +407,9 @@ pub struct MetaResponses {
 #[serde(rename_all = "camelCase")]
 pub struct MetaHeader {
     #[serde(skip)]
-    pub name: &'static str,
+    pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<&'static str>,
+    pub description: Option<String>,
     #[serde(skip_serializing_if = "is_false")]
     pub required: bool,
     pub deprecated: bool,

@@ -9,7 +9,11 @@ use poem::{
 
 use crate::{
     base::UrlQuery,
-    registry::{Document, MetaExternalDocument, MetaInfo, MetaLicense, MetaServer, Registry},
+    registry::{
+        Document, MetaExternalDocument, MetaHeader, MetaInfo, MetaLicense, MetaSchemaRef,
+        MetaServer, Registry,
+    },
+    types::Type,
     OpenApi, Webhook,
 };
 
@@ -119,6 +123,47 @@ impl ExternalDocumentObject {
     }
 }
 
+/// An extra header
+pub struct ExtraHeader {
+    name: String,
+    description: Option<String>,
+    deprecated: bool,
+}
+
+impl<T: AsRef<str>> From<T> for ExtraHeader {
+    fn from(name: T) -> Self {
+        Self::new(name)
+    }
+}
+
+impl ExtraHeader {
+    /// Create a extra header object by name.
+    pub fn new(name: impl AsRef<str>) -> ExtraHeader {
+        Self {
+            name: name.as_ref().to_uppercase(),
+            description: None,
+            deprecated: false,
+        }
+    }
+
+    /// Sets a description of the extra header.
+    #[must_use]
+    pub fn description(self, description: impl Into<String>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
+        }
+    }
+
+    /// Specifies this header is deprecated.
+    pub fn deprecated(self) -> Self {
+        Self {
+            deprecated: true,
+            ..self
+        }
+    }
+}
+
 /// An OpenAPI service for Poem.
 pub struct OpenApiService<T, W: ?Sized> {
     api: T,
@@ -127,6 +172,7 @@ pub struct OpenApiService<T, W: ?Sized> {
     external_document: Option<MetaExternalDocument>,
     servers: Vec<MetaServer>,
     cookie_key: Option<CookieKey>,
+    extra_headers: Vec<(ExtraHeader, MetaSchemaRef, bool)>,
 }
 
 impl<T> OpenApiService<T, ()> {
@@ -147,6 +193,7 @@ impl<T> OpenApiService<T, ()> {
             external_document: None,
             servers: Vec::new(),
             cookie_key: None,
+            extra_headers: vec![],
         }
     }
 }
@@ -161,6 +208,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
             external_document: self.external_document,
             servers: self.servers,
             cookie_key: self.cookie_key,
+            extra_headers: self.extra_headers,
         }
     }
 
@@ -228,6 +276,19 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         self
     }
 
+    /// Add extra header
+    #[must_use]
+    pub fn extra_header<HT, H>(mut self, header: H) -> Self
+    where
+        HT: Type,
+        H: Into<ExtraHeader>,
+    {
+        let extra_header = header.into();
+        self.extra_headers
+            .push((extra_header, HT::schema_ref(), HT::IS_REQUIRED));
+        self
+    }
+
     /// Sets the cookie key.
     #[must_use]
     pub fn cookie_key(self, key: CookieKey) -> Self {
@@ -284,14 +345,35 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         })
     }
 
-    /// Returns the OAS specification file.
-    pub fn spec(&self) -> String
+    fn document(&self) -> Document<'_>
     where
         T: OpenApi,
         W: Webhook,
     {
         let mut registry = Registry::new();
-        let metadata = T::meta();
+        let mut apis = T::meta();
+
+        // update extra headers
+        for resp in apis
+            .iter_mut()
+            .flat_map(|meta_api| meta_api.paths.iter_mut())
+            .flat_map(|path| path.operations.iter_mut())
+            .flat_map(|operation| operation.responses.responses.iter_mut())
+        {
+            for (idx, (header, schema_ref, is_required)) in self.extra_headers.iter().enumerate() {
+                resp.headers.insert(
+                    idx,
+                    MetaHeader {
+                        name: header.name.clone(),
+                        description: header.description.clone(),
+                        required: *is_required,
+                        deprecated: header.deprecated,
+                        schema: schema_ref.clone(),
+                    },
+                );
+            }
+        }
+
         T::register(&mut registry);
         W::register(&mut registry);
 
@@ -300,12 +382,23 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         let mut doc = Document {
             info: &self.info,
             servers: &self.servers,
-            apis: &metadata,
-            webhooks: &webhooks,
-            registry: &mut registry,
+            apis,
+            webhooks,
+            registry,
             external_document: self.external_document.as_ref(),
         };
         doc.remove_unused_schemas();
+
+        doc
+    }
+
+    /// Returns the OAS specification file.
+    pub fn spec(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        let doc = self.document();
         serde_json::to_string_pretty(&doc).unwrap()
     }
 }
@@ -345,5 +438,44 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
             .before(extract_query)
             .map_to_response()
             .boxed()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{types::Type, OpenApi};
+
+    #[test]
+    fn extra_headers() {
+        struct Api;
+
+        #[OpenApi(internal)]
+        impl Api {
+            #[oai(path = "/", method = "get")]
+            async fn test(&self) {}
+        }
+
+        let api_service = OpenApiService::new(Api, "demo", "1.0")
+            .extra_header::<i32, _>("a1")
+            .extra_header::<String, _>(ExtraHeader::new("A2").description("abc"))
+            .extra_header::<f32, _>(ExtraHeader::new("A3").deprecated());
+        let doc = api_service.document();
+        let headers = &doc.apis[0].paths[0].operations[0].responses.responses[0].headers;
+
+        assert_eq!(headers[0].name, "A1");
+        assert_eq!(headers[0].description, None);
+        assert_eq!(headers[0].deprecated, false);
+        assert_eq!(headers[0].schema, i32::schema_ref());
+
+        assert_eq!(headers[1].name, "A2");
+        assert_eq!(headers[1].description.as_deref(), Some("abc"));
+        assert_eq!(headers[1].deprecated, false);
+        assert_eq!(headers[1].schema, String::schema_ref());
+
+        assert_eq!(headers[2].name, "A3");
+        assert_eq!(headers[2].description, None);
+        assert_eq!(headers[2].deprecated, true);
+        assert_eq!(headers[2].schema, f32::schema_ref());
     }
 }
