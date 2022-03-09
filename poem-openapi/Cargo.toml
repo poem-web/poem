@@ -33,7 +33,7 @@ base64 = "0.13.0"
 serde = { version = "1.0.130", features = ["derive"] }
 derive_more = "0.99.16"
 num-traits = "0.2.14"
-regex = "1.5.4"
+regex = "1.5.5"
 typed-headers = "0.2.0"
 mime = "0.3.16"
 thiserror = "1.0.30"
