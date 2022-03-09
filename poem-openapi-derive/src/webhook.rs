@@ -14,7 +14,8 @@ use crate::{
     error::GeneratorResult,
     utils::{
         get_crate_name, get_description, get_summary_and_description, optional_literal,
-        parse_oai_attrs, remove_description, remove_oai_attrs, RemoveLifetime,
+        optional_literal_string, parse_oai_attrs, remove_description, remove_oai_attrs,
+        RemoveLifetime,
     },
     validators::Validators,
 };
@@ -219,7 +220,7 @@ fn generate_operation(
             .name
             .clone()
             .unwrap_or_else(|| arg_ident.unraw().to_string());
-        let param_desc = optional_literal(&param_description);
+        let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
@@ -233,7 +234,7 @@ fn generate_operation(
                 };
 
                 let meta_param = #crate_name::registry::MetaOperationParam {
-                    name: #param_name,
+                    name: ::std::string::ToString::to_string(#param_name),
                     schema: original_schema.merge(patch_schema),
                     in_type: <#arg_ty as #crate_name::ApiExtractor>::param_in().unwrap(),
                     description: #param_desc,

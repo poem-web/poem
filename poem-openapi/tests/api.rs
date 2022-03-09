@@ -6,7 +6,7 @@ use poem::{
 use poem_openapi::{
     param::Query,
     payload::{Binary, Json, PlainText},
-    registry::{MetaApi, MetaExternalDocument, MetaSchema},
+    registry::{MetaApi, MetaExternalDocument, MetaParamIn, MetaSchema},
     types::Type,
     ApiRequest, ApiResponse, OpenApi, OpenApiService, Tags,
 };
@@ -662,7 +662,7 @@ async fn generic() {
 }
 
 #[tokio::test]
-async fn extra_headers_on_operation() {
+async fn extra_response_headers_on_operation() {
     struct Api;
 
     #[OpenApi]
@@ -670,8 +670,8 @@ async fn extra_headers_on_operation() {
         #[oai(
             path = "/",
             method = "get",
-            header(name = "A1", type = "String", description = "abc"),
-            header(name = "a2", type = "i32", deprecated = true)
+            response_header(name = "A1", type = "String", description = "abc"),
+            response_header(name = "a2", type = "i32", deprecated = true)
         )]
         async fn test(&self) {}
     }
@@ -692,12 +692,12 @@ async fn extra_headers_on_operation() {
 }
 
 #[tokio::test]
-async fn extra_headers_on_api() {
+async fn extra_response_headers_on_api() {
     struct Api;
 
     #[OpenApi(
-        header(name = "A1", type = "String", description = "abc"),
-        header(name = "a2", type = "i32", deprecated = true)
+        response_header(name = "A1", type = "String", description = "abc"),
+        response_header(name = "a2", type = "i32", deprecated = true)
     )]
     impl Api {
         #[oai(path = "/", method = "get")]
@@ -717,4 +717,70 @@ async fn extra_headers_on_api() {
     assert_eq!(header.description, None);
     assert_eq!(header.deprecated, true);
     assert_eq!(header.schema, i32::schema_ref());
+}
+
+#[tokio::test]
+async fn extra_request_headers_on_operation() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(
+            path = "/",
+            method = "get",
+            request_header(name = "A1", type = "String", description = "abc"),
+            request_header(name = "a2", type = "i32", deprecated = true)
+        )]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+
+    let params = &meta.paths[0].operations[0].params[0];
+    assert_eq!(params.name, "A1");
+    assert_eq!(params.schema, String::schema_ref());
+    assert_eq!(params.in_type, MetaParamIn::Header);
+    assert_eq!(params.description.as_deref(), Some("abc"));
+    assert_eq!(params.required, true);
+    assert_eq!(params.deprecated, false);
+
+    let params = &meta.paths[0].operations[0].params[1];
+    assert_eq!(params.name, "A2");
+    assert_eq!(params.schema, i32::schema_ref());
+    assert_eq!(params.in_type, MetaParamIn::Header);
+    assert_eq!(params.description, None);
+    assert_eq!(params.required, true);
+    assert_eq!(params.deprecated, true);
+}
+
+#[tokio::test]
+async fn extra_request_headers_on_api() {
+    struct Api;
+
+    #[OpenApi(
+        request_header(name = "A1", type = "String", description = "abc"),
+        request_header(name = "a2", type = "i32", deprecated = true)
+    )]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+
+    let params = &meta.paths[0].operations[0].params[0];
+    assert_eq!(params.name, "A1");
+    assert_eq!(params.schema, String::schema_ref());
+    assert_eq!(params.in_type, MetaParamIn::Header);
+    assert_eq!(params.description.as_deref(), Some("abc"));
+    assert_eq!(params.required, true);
+    assert_eq!(params.deprecated, false);
+
+    let params = &meta.paths[0].operations[0].params[1];
+    assert_eq!(params.name, "A2");
+    assert_eq!(params.schema, i32::schema_ref());
+    assert_eq!(params.in_type, MetaParamIn::Header);
+    assert_eq!(params.description, None);
+    assert_eq!(params.required, true);
+    assert_eq!(params.deprecated, true);
 }

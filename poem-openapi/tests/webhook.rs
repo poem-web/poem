@@ -113,7 +113,7 @@ async fn parameters() {
         <&dyn MyWebhooks>::meta()[0].operation.params,
         vec![
             MetaOperationParam {
-                name: "a",
+                name: "a".to_string(),
                 schema: i32::schema_ref(),
                 in_type: MetaParamIn::Query,
                 description: None,
@@ -121,7 +121,7 @@ async fn parameters() {
                 deprecated: false
             },
             MetaOperationParam {
-                name: "b",
+                name: "b".to_string(),
                 schema: String::schema_ref(),
                 in_type: MetaParamIn::Path,
                 description: None,

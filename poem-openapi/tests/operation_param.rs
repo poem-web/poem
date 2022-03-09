@@ -332,7 +332,7 @@ async fn desc() {
     );
     assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
     assert_eq!(
-        meta.paths[0].operations[0].params[0].description,
+        meta.paths[0].operations[0].params[0].description.as_deref(),
         Some("ABC")
     );
 }

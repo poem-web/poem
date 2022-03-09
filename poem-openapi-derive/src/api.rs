@@ -26,8 +26,10 @@ struct APIArgs {
     prefix_path: Option<SpannedValue<String>>,
     #[darling(default, multiple, rename = "tag")]
     common_tags: Vec<Path>,
-    #[darling(default, multiple, rename = "header")]
-    headers: Vec<ExtraHeader>,
+    #[darling(default, multiple, rename = "response_header")]
+    response_headers: Vec<ExtraHeader>,
+    #[darling(default, multiple, rename = "request_header")]
+    request_headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromMeta)]
@@ -44,8 +46,10 @@ struct APIOperation {
     operation_id: Option<String>,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
-    #[darling(default, multiple, rename = "header")]
-    headers: Vec<ExtraHeader>,
+    #[darling(default, multiple, rename = "response_header")]
+    response_headers: Vec<ExtraHeader>,
+    #[darling(default, multiple, rename = "request_header")]
+    request_headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromMeta, Default)]
@@ -175,7 +179,8 @@ fn generate_operation(
         transform,
         operation_id,
         external_docs,
-        headers,
+        response_headers,
+        request_headers,
     } = args;
     let http_method = method.to_http_method();
     let fn_ident = &item_method.sig.ident;
@@ -311,7 +316,7 @@ fn generate_operation(
         });
 
         // param meta
-        let param_desc = optional_literal(&param_description);
+        let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
@@ -325,7 +330,7 @@ fn generate_operation(
                 };
 
                 let meta_param = #crate_name::registry::MetaOperationParam {
-                    name: #param_name,
+                    name: ::std::string::ToString::to_string(#param_name),
                     schema: original_schema.merge(patch_schema),
                     in_type: <#arg_ty as #crate_name::ApiExtractor>::param_in().unwrap(),
                     description: #param_desc,
@@ -398,8 +403,9 @@ fn generate_operation(
         None => quote!(::std::option::Option::None),
     };
 
-    let mut update_extra_headers = Vec::new();
-    for (idx, header) in api_args.headers.iter().chain(&headers).enumerate() {
+    // extra request headers
+    let mut update_extra_request_headers = Vec::new();
+    for header in api_args.request_headers.iter().chain(&request_headers) {
         let name = header.name.to_uppercase();
         let description = optional_literal_string(&header.description);
         let ty = match syn::parse_str::<Type>(&header.ty) {
@@ -408,7 +414,35 @@ fn generate_operation(
         };
         let deprecated = header.deprecated;
 
-        update_extra_headers.push(quote! {
+        update_extra_request_headers.push(quote! {
+            params.push(#crate_name::registry::MetaOperationParam {
+                name: ::std::string::ToString::to_string(#name),
+                schema: <#ty as #crate_name::types::Type>::schema_ref(),
+                in_type: #crate_name::registry::MetaParamIn::Header,
+                description: #description,
+                required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
+                deprecated: #deprecated,
+            });
+        });
+    }
+
+    // extra response headers
+    let mut update_extra_response_headers = Vec::new();
+    for (idx, header) in api_args
+        .response_headers
+        .iter()
+        .chain(&response_headers)
+        .enumerate()
+    {
+        let name = header.name.to_uppercase();
+        let description = optional_literal_string(&header.description);
+        let ty = match syn::parse_str::<Type>(&header.ty) {
+            Ok(ty) => ty,
+            Err(_) => return Err(Error::new(header.ty.span(), "Invalid type").into()),
+        };
+        let deprecated = header.deprecated;
+
+        update_extra_response_headers.push(quote! {
             for resp in &mut meta.responses {
                 resp.headers.insert(#idx, #crate_name::registry::MetaHeader {
                     name: ::std::string::ToString::to_string(#name),
@@ -430,6 +464,7 @@ fn generate_operation(
             external_docs: #external_docs,
             params: {
                 let mut params = ::std::vec::Vec::new();
+                #(#update_extra_request_headers)*
                 #(#params_meta)*
                 params
             },
@@ -440,7 +475,7 @@ fn generate_operation(
             },
             responses: {
                 let mut meta = <#res_ty as #crate_name::ApiResponse>::meta();
-                #(#update_extra_headers)*
+                #(#update_extra_response_headers)*
                 meta
             },
             deprecated: #deprecated,

@@ -358,12 +358,12 @@ pub enum MetaParamIn {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct MetaOperationParam {
-    pub name: &'static str,
+    pub name: String,
     pub schema: MetaSchemaRef,
     #[serde(rename = "in")]
     pub in_type: MetaParamIn,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<&'static str>,
+    pub description: Option<String>,
     pub required: bool,
     pub deprecated: bool,
 }
