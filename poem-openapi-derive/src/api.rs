@@ -35,7 +35,8 @@ struct APIArgs {
 #[derive(FromMeta)]
 struct APIOperation {
     path: SpannedValue<String>,
-    method: SpannedValue<APIMethod>,
+    #[darling(default, multiple, rename = "method")]
+    methods: Vec<SpannedValue<APIMethod>>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default, multiple, rename = "tag")]
@@ -173,7 +174,7 @@ fn generate_operation(
 ) -> GeneratorResult<()> {
     let APIOperation {
         path,
-        method,
+        methods,
         deprecated,
         tags,
         transform,
@@ -182,7 +183,13 @@ fn generate_operation(
         response_headers,
         request_headers,
     } = args;
-    let http_method = method.to_http_method();
+    if methods.is_empty() {
+        return Err(Error::new_spanned(
+            &item_method.sig.ident,
+            "At least one HTTP method is required",
+        )
+        .into());
+    }
     let fn_ident = &item_method.sig.ident;
     let (summary, description) = get_summary_and_description(&item_method.attrs)?;
     let summary = optional_literal(&summary);
@@ -368,24 +375,27 @@ fn generate_operation(
         }
     });
 
-    if ctx.add_routes.entry(new_path).or_default().insert(*method, quote! {
-        method(#crate_name::__private::poem::http::Method::#http_method, {
-            let api_obj = ::std::clone::Clone::clone(&api_obj);
-            let ep = #crate_name::__private::poem::endpoint::make(move |request| {
+    for method in &methods {
+        let http_method = method.to_http_method();
+        if ctx.add_routes.entry(new_path.clone()).or_default().insert(**method, quote! {
+            method(#crate_name::__private::poem::http::Method::#http_method, {
                 let api_obj = ::std::clone::Clone::clone(&api_obj);
-                async move {
-                    let (request, mut body) = request.split();
-                    #(#parse_args)*
-                    let res = api_obj.#fn_ident(#(#use_args),*).await;
-                    let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
-                    ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
-                }
-            });
-            #transform
-            ep
-        })
-    }).is_some() {
-        return Err(Error::new(method.span(), "duplicate method").into());
+                let ep = #crate_name::__private::poem::endpoint::make(move |request| {
+                    let api_obj = ::std::clone::Clone::clone(&api_obj);
+                    async move {
+                        let (request, mut body) = request.split();
+                        #(#parse_args)*
+                        let res = api_obj.#fn_ident(#(#use_args),*).await;
+                        let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                        ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
+                    }
+                });
+                #transform
+                ep
+            })
+        }).is_some() {
+            return Err(Error::new(method.span(), "duplicate method").into());
+        }
     }
 
     let mut tag_names = Vec::new();
@@ -455,38 +465,44 @@ fn generate_operation(
         });
     }
 
-    ctx.operations.entry(oai_path).or_default().push(quote! {
-        #crate_name::registry::MetaOperation {
-            tags: ::std::vec![#(#tag_names),*],
-            method: #crate_name::__private::poem::http::Method::#http_method,
-            summary: #summary,
-            description: #description,
-            external_docs: #external_docs,
-            params: {
-                let mut params = ::std::vec::Vec::new();
-                #(#update_extra_request_headers)*
-                #(#params_meta)*
-                params
-            },
-            request: {
-                let mut request = ::std::option::Option::None;
-                #(#request_meta)*
-                request
-            },
-            responses: {
-                let mut meta = <#res_ty as #crate_name::ApiResponse>::meta();
-                #(#update_extra_response_headers)*
-                meta
-            },
-            deprecated: #deprecated,
-            security: {
-                let mut security = ::std::vec![];
-                #(#security)*
-                security
-            },
-            operation_id: #operation_id,
-        }
-    });
+    for method in &methods {
+        let http_method = method.to_http_method();
+        ctx.operations
+            .entry(oai_path.clone())
+            .or_default()
+            .push(quote! {
+                #crate_name::registry::MetaOperation {
+                    tags: ::std::vec![#(#tag_names),*],
+                    method: #crate_name::__private::poem::http::Method::#http_method,
+                    summary: #summary,
+                    description: #description,
+                    external_docs: #external_docs,
+                    params: {
+                        let mut params = ::std::vec::Vec::new();
+                        #(#update_extra_request_headers)*
+                        #(#params_meta)*
+                        params
+                    },
+                    request: {
+                        let mut request = ::std::option::Option::None;
+                        #(#request_meta)*
+                        request
+                    },
+                    responses: {
+                        let mut meta = <#res_ty as #crate_name::ApiResponse>::meta();
+                        #(#update_extra_response_headers)*
+                        meta
+                    },
+                    deprecated: #deprecated,
+                    security: {
+                        let mut security = ::std::vec![];
+                        #(#security)*
+                        security
+                    },
+                    operation_id: #operation_id,
+                }
+            });
+    }
 
     Ok(())
 }

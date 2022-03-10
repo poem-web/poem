@@ -648,3 +648,25 @@ async fn extra_request_headers_on_api() {
     assert_eq!(params.required, true);
     assert_eq!(params.deprecated, true);
 }
+
+#[tokio::test]
+async fn multiple_methods() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "post", method = "put")]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/abc");
+    assert_eq!(meta.paths[0].operations[0].method, Method::POST);
+    assert_eq!(meta.paths[0].operations[1].method, Method::PUT);
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    cli.post("/abc").send().await.assert_status_is_ok();
+    cli.put("/abc").send().await.assert_status_is_ok();
+}
