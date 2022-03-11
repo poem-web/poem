@@ -402,6 +402,8 @@ impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2), (T4, 3));
 impl_openapi_for_tuple!((T1, 0), (T2, 1), (T3, 2));
 #[rustfmt::skip]
 impl_openapi_for_tuple!((T1, 0), (T2, 1));
+#[rustfmt::skip]
+impl_openapi_for_tuple!((T1, 0));
 
 impl OpenApi for () {
     fn meta() -> Vec<MetaApi> {
