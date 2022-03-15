@@ -1141,12 +1141,12 @@ mod tests {
             assert_eq!(tree.matches(path), res);
         }
     }
-    
+
     #[test]
     fn test_match_priority() {
         let mut tree = RadixTree::default();
         tree.add("/a/bc", 1).unwrap();
-        tree.add("/a/*123", 2).unwrap();
+        tree.add("/a/*id", 2).unwrap();
 
         let matches = tree.matches("/a/123");
         assert_eq!(matches.unwrap().data, &2);
