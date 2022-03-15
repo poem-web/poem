@@ -4,8 +4,10 @@ use http::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    error::ParseJsonError, http::header, web::RequestBody, FromRequest, IntoResponse, Request,
-    Response, Result,
+    error::{MissingJsonContentTypeError, ParseJsonError},
+    http::header,
+    web::RequestBody,
+    FromRequest, IntoResponse, Request, Response, Result,
 };
 
 /// JSON extractor and response.
@@ -100,9 +102,28 @@ impl<T> DerefMut for Json<T> {
 
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
-    async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        let data = body.take()?.into_bytes().await?;
-        Ok(Self(serde_json::from_slice(&data).map_err(ParseJsonError)?))
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        if is_json_content_type(req) {
+            let data = body.take()?.into_bytes().await?;
+            Ok(Self(serde_json::from_slice(&data).map_err(ParseJsonError)?))
+        } else {
+            Err(MissingJsonContentTypeError.into())
+        }
+    }
+}
+
+fn is_json_content_type(req: &Request) -> bool {
+    if let Some(value) = req.header(header::CONTENT_TYPE) {
+        if let Ok(content_type) = value.parse::<mime::Mime>() {
+            // the content-type should be `application/[prefix+]json`
+            content_type.type_() == "application"
+                && (content_type.subtype() == "json"
+                    || content_type.suffix().map_or(false, |v| v == "json"))
+        } else {
+            false
+        }
+    } else {
+        false
     }
 }
 
@@ -146,11 +167,29 @@ mod tests {
 
         let cli = TestClient::new(index);
         cli.post("/")
-            .header(header::CONTENT_TYPE, "application/json")
-            .body_json(&json!({"name": "abc", "value": 100}))
+            .body_json(&json!({"name": "abc", "value": 100})) // body_json has already set request with `application/json` content type
             .send()
             .await
             .assert_status_is_ok();
+    }
+    #[tokio::test]
+    async fn test_json_extractor_fail() {
+        #[handler(internal)]
+        async fn index(query: Json<CreateResource>) {
+            assert_eq!(query.name, "abc");
+            assert_eq!(query.value, 100);
+        }
+        let create_resource = CreateResource {
+            name: "abc".to_string(),
+            value: 100,
+        };
+        let cli = TestClient::new(index);
+        cli.post("/")
+            // .header(header::CONTENT_TYPE, "application/json")
+            .body(serde_json::to_string(&create_resource).expect("Invalid json"))
+            .send()
+            .await
+            .assert_status(StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 
     #[tokio::test]
