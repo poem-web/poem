@@ -287,8 +287,7 @@ impl From<StatusCode> for Error {
 }
 
 impl Error {
-    /// Create a new error object from any error type with `503
-    /// INTERNAL_SERVER_ERROR` status code.
+    /// Create a new error object from any error type with a status code.
     #[inline]
     pub fn new<T: StdError + Send + Sync + 'static>(err: T, status: StatusCode) -> Self {
         Self {
@@ -312,8 +311,7 @@ impl Error {
         StatusError(status).into()
     }
 
-    /// Create a new error object from string with `503 INTERNAL_SERVER_ERROR`
-    /// status code.
+    /// Create a new error object from a string with a status code.
     pub fn from_string(msg: impl Into<String>, status: StatusCode) -> Self {
         #[derive(Debug, thiserror::Error)]
         #[error("{0}")]
