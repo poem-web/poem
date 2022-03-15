@@ -20,11 +20,11 @@ categories = [
 [features]
 default = []
 websocket = ["tokio-tungstenite", "base64"]
-multipart = ["multer", "mime"]
+multipart = ["multer"]
 rustls = ["tokio-rustls", "rustls-pemfile"]
 native-tls = ["tokio-native-tls"]
 sse = []
-static-files = ["httpdate", "mime", "mime_guess", "tokio/io-util", "tokio/fs"]
+static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression", "typed-headers"]
 tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
@@ -34,7 +34,7 @@ opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semant
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
-test = ["sse", "sse-codec", "tokio-util/compat", "mime"]
+test = ["sse", "sse-codec", "tokio-util/compat"]
 i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
 acme = ["hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser"]
 
@@ -70,7 +70,7 @@ async-compression = { version = "0.3.8", optional = true, features = ["tokio", "
 tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
 chrono = { version = "0.4.19", optional = true }
 time = { version = "0.3", optional = true }
-mime = { version = "0.3.16", optional = true }
+mime = { version = "0.3.16"}
 mime_guess = { version = "2.0.3", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
