@@ -23,7 +23,7 @@ use crate::{
 /// ```
 /// use poem::{
 ///     handler,
-///     http::{Method, StatusCode},
+///     http::{Method, StatusCode,header},
 ///     post,
 ///     test::TestClient,
 ///     web::Json,
@@ -45,7 +45,10 @@ use crate::{
 /// let cli = TestClient::new(app);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = cli.post("/").body(r#"{"name": "foo"}"#).send().await;
+/// let resp = cli.post("/")
+///     .header(header::CONTENT_TYPE, "application/json")
+///     .body(r#"{"name": "foo"}"#)
+///     .send().await;
 /// resp.assert_status_is_ok();
 /// resp.assert_text("welcome foo!").await;
 /// # });
