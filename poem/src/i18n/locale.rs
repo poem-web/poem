@@ -22,6 +22,7 @@ type LanguageArray = SmallVec<[LanguageIdentifier; 8]>;
 ///     handler,
 ///     http::header,
 ///     i18n::{I18NResources, Locale},
+///     test::TestClient,
 ///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
@@ -39,22 +40,24 @@ type LanguageArray = SmallVec<[LanguageIdentifier; 8]>;
 /// }
 ///
 /// let app = Route::new().at("/", index).data(resources);
+/// let cli = TestClient::new(app);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let req = Request::builder()
+/// let resp = cli
+///     .get("/")
 ///     .header(header::ACCEPT_LANGUAGE, "en-US")
-///     .finish();
-/// let resp = app.get_response(req).await;
-/// assert_eq!(
-///     resp.into_body().into_string().await.unwrap(),
-///     "hello world!"
-/// );
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("hello world!").await;
 ///
-/// let req = Request::builder()
+/// let resp = cli
+///     .get("/")
 ///     .header(header::ACCEPT_LANGUAGE, "zh-CN")
-///     .finish();
-/// let resp = app.get_response(req).await;
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "你好世界！");
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("你好世界！").await;
 /// # });
 /// ```
 pub struct Locale {

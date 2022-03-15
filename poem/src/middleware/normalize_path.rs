@@ -34,6 +34,7 @@ impl Default for TrailingSlash {
 ///     get, handler,
 ///     http::{StatusCode, Uri},
 ///     middleware::{NormalizePath, TrailingSlash},
+///     test::TestClient,
 ///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
@@ -45,18 +46,12 @@ impl Default for TrailingSlash {
 /// let app = Route::new()
 ///     .at("/foo/bar", get(index))
 ///     .with(NormalizePath::new(TrailingSlash::Trim));
+/// let cli = TestClient::new(app);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/foo/bar/"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+/// let resp = cli.get("/foo/bar/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("hello").await;
 /// # });
 /// ```
 pub struct NormalizePath(TrailingSlash);
@@ -133,7 +128,7 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{endpoint::make_sync, error::NotFoundError, http::StatusCode, EndpointExt, Route};
+    use crate::{endpoint::make_sync, http::StatusCode, test::TestClient, EndpointExt, Route};
 
     #[tokio::test]
     async fn trim_trailing_slashes() {
@@ -150,6 +145,7 @@ mod tests {
                 }),
             )
             .with(NormalizePath::new(TrailingSlash::Trim));
+        let cli = TestClient::new(ep);
 
         let test_uris = [
             "/",
@@ -167,9 +163,8 @@ mod tests {
         ];
 
         for uri in test_uris {
-            let req = Request::builder().uri(Uri::from_str(uri).unwrap()).finish();
-            let res = ep.call(req).await.unwrap();
-            assert!(res.status().is_success(), "Failed uri: {}", uri);
+            let resp = cli.get(uri).send().await;
+            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
         }
     }
 
@@ -186,13 +181,12 @@ mod tests {
                 }),
             )
             .with(NormalizePath::new(TrailingSlash::Trim));
-
+        let cli = TestClient::new(ep);
         let test_uris = ["/?query=test", "//?query=test", "///?query=test"];
 
         for uri in test_uris {
-            let req = Request::builder().uri(Uri::from_str(uri).unwrap()).finish();
-            let res = ep.call(req).await.unwrap();
-            assert!(res.status().is_success(), "Failed uri: {}", uri);
+            let resp = cli.get(uri).send().await;
+            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
         }
     }
 
@@ -211,6 +205,7 @@ mod tests {
                 }),
             )
             .with(NormalizePath::new(TrailingSlash::Always));
+        let cli = TestClient::new(ep);
 
         let test_uris = [
             "/",
@@ -228,9 +223,8 @@ mod tests {
         ];
 
         for uri in test_uris {
-            let req = Request::builder().uri(Uri::from_str(uri).unwrap()).finish();
-            let res = ep.call(req).await.unwrap();
-            assert!(res.status().is_success(), "Failed uri: {}", uri);
+            let resp = cli.get(uri).send().await;
+            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
         }
     }
 
@@ -247,13 +241,13 @@ mod tests {
                 }),
             )
             .with(NormalizePath::new(TrailingSlash::Always));
+        let cli = TestClient::new(ep);
 
         let test_uris = ["/?query=test", "//?query=test", "///?query=test"];
 
         for uri in test_uris {
-            let req = Request::builder().uri(Uri::from_str(uri).unwrap()).finish();
-            let res = ep.call(req).await.unwrap();
-            assert!(res.status().is_success(), "Failed uri: {}", uri);
+            let resp = cli.get(uri).send().await;
+            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
         }
     }
 
@@ -273,6 +267,7 @@ mod tests {
                 }),
             )
             .with(NormalizePath::new(TrailingSlash::MergeOnly));
+        let cli = TestClient::new(ep);
 
         let test_uris = [
             ("/", true), // root paths should still work
@@ -293,14 +288,14 @@ mod tests {
         ];
 
         for (uri, success) in test_uris {
-            let req = Request::builder().uri(Uri::from_str(uri).unwrap()).finish();
-            let res = ep.call(req).await;
+            let resp = cli.get(uri).send().await;
 
             if success {
-                assert_eq!(res.unwrap().status(), StatusCode::OK, "Failed uri: {}", uri);
+                assert_eq!(resp.0.status(), StatusCode::OK, "Failed uri: {}", uri);
             } else {
-                assert!(
-                    res.unwrap_err().is::<NotFoundError>(),
+                assert_eq!(
+                    resp.0.status(),
+                    StatusCode::NOT_FOUND,
                     "Failed uri: {}",
                     uri
                 );

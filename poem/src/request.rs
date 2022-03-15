@@ -273,6 +273,7 @@ impl Request {
     /// use poem::{
     ///     handler,
     ///     http::{StatusCode, Uri},
+    ///     test::TestClient,
     ///     Endpoint, Request, Result, Route,
     /// };
     ///
@@ -283,18 +284,12 @@ impl Request {
     /// }
     ///
     /// let app = Route::new().at("/:a/:b", index);
+    /// let cli = TestClient::new(app);
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = app
-    ///     .call(
-    ///         Request::builder()
-    ///             .uri(Uri::from_static("/100/abc"))
-    ///             .finish(),
-    ///     )
-    ///     .await
-    ///     .unwrap();
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
+    /// let resp = cli.get("/100/abc").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("100:abc").await;
     /// # });
     /// ```
     pub fn path_params<T: DeserializeOwned>(&self) -> Result<T, ParsePathError> {
@@ -312,6 +307,7 @@ impl Request {
     /// use poem::{
     ///     handler,
     ///     http::{StatusCode, Uri},
+    ///     test::TestClient,
     ///     Endpoint, Request, Result, Route,
     /// };
     /// use serde::Deserialize;
@@ -329,18 +325,17 @@ impl Request {
     /// }
     ///
     /// let app = Route::new().at("/", index);
+    /// let cli = TestClient::new(app);
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = app
-    ///     .call(
-    ///         Request::builder()
-    ///             .uri(Uri::from_static("/?a=100&b=abc"))
-    ///             .finish(),
-    ///     )
-    ///     .await
-    ///     .unwrap();
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:abc");
+    /// let resp = cli
+    ///     .get("/")
+    ///     .query("a", &100)
+    ///     .query("b", &"abc")
+    ///     .send()
+    ///     .await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("100:abc").await;
     /// # });
     /// ```
     pub fn params<T: DeserializeOwned>(&self) -> Result<T, ParseQueryError> {

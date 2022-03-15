@@ -275,13 +275,13 @@ mod tests {
     use crate::{
         handler,
         http::{Method, StatusCode},
-        Request,
+        test::TestClient,
     };
 
     #[tokio::test]
     async fn method_not_allowed() {
-        let resp = RouteMethod::new().get_response(Request::default()).await;
-        assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+        let resp = TestClient::new(RouteMethod::new()).get("/").send().await;
+        resp.assert_status(StatusCode::METHOD_NOT_ALLOWED);
     }
 
     #[tokio::test]
@@ -303,22 +303,21 @@ mod tests {
             Method::TRACE,
         ] {
             let route = RouteMethod::new().method(method.clone(), index).post(index);
-            let resp = route
-                .get_response(Request::builder().method(method.clone()).finish())
+            let resp = TestClient::new(route)
+                .request(method.clone(), "/")
+                .send()
                 .await;
-            assert_eq!(resp.status(), StatusCode::OK);
-            assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+            resp.assert_status_is_ok();
+            resp.assert_text("hello").await;
         }
 
         macro_rules! test_method {
             ($(($id:ident, $method:ident)),*) => {
                 $(
                 let route = RouteMethod::new().$id(index).post(index);
-                let resp = route
-                    .get_response(Request::builder().method(Method::$method).finish())
-                    .await;
-                assert_eq!(resp.status(), StatusCode::OK);
-                assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+                let resp = TestClient::new(route).request(Method::$method, "/").send().await;
+                resp.assert_status_is_ok();
+                resp.assert_text("hello").await;
                 )*
             };
         }
@@ -344,10 +343,8 @@ mod tests {
         }
 
         let route = RouteMethod::new().get(index);
-        let resp = route
-            .get_response(Request::builder().method(Method::HEAD).finish())
-            .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert!(resp.into_body().into_vec().await.unwrap().is_empty());
+        let resp = TestClient::new(route).head("/").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_text("").await;
     }
 }

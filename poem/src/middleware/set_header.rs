@@ -20,6 +20,7 @@ enum Action {
 ///     get, handler,
 ///     http::{HeaderValue, StatusCode},
 ///     middleware::SetHeader,
+///     test::TestClient,
 ///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
@@ -37,22 +38,10 @@ enum Action {
 /// );
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app.call(Request::default()).await.unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(
-///     resp.headers()
-///         .get_all("MyHeader1")
-///         .iter()
-///         .collect::<Vec<_>>(),
-///     vec![HeaderValue::from_static("a"), HeaderValue::from_static("b")]
-/// );
-/// assert_eq!(
-///     resp.headers()
-///         .get_all("MyHeader2")
-///         .iter()
-///         .collect::<Vec<_>>(),
-///     vec![HeaderValue::from_static("b")]
-/// );
+/// let resp = TestClient::new(app).get("/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_header_all("MyHeader1", ["a", "b"]);
+/// resp.assert_header_all("MyHeader2", ["b"]);
 /// # });
 /// ```
 #[derive(Default)]
@@ -146,41 +135,27 @@ impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, EndpointExt};
+    use crate::{handler, test::TestClient, EndpointExt};
 
     #[tokio::test]
     async fn test_set_header() {
         #[handler(internal)]
         fn index() {}
 
-        let resp = index
-            .with(
+        let cli = TestClient::new(
+            index.with(
                 SetHeader::new()
                     .overriding("custom-a", "a")
                     .overriding("custom-a", "b")
                     .appending("custom-b", "a")
                     .appending("custom-b", "b"),
-            )
-            .call(Request::default())
-            .await
-            .unwrap();
-
-        assert_eq!(
-            resp.headers()
-                .get_all("custom-a")
-                .into_iter()
-                .filter_map(|value| value.to_str().ok())
-                .collect::<Vec<_>>(),
-            vec!["b"]
+            ),
         );
 
-        assert_eq!(
-            resp.headers()
-                .get_all("custom-b")
-                .into_iter()
-                .filter_map(|value| value.to_str().ok())
-                .collect::<Vec<_>>(),
-            vec!["a", "b"]
-        );
+        let resp = cli.get("/").send().await;
+
+        resp.assert_status_is_ok();
+        resp.assert_header_all("custom-a", ["b"]);
+        resp.assert_header_all("custom-b", ["a", "b"]);
     }
 }

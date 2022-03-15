@@ -63,57 +63,38 @@ mod tests {
     use super::*;
     use crate::{
         endpoint::{make_sync, EndpointExt},
-        IntoResponse,
+        test::TestClient,
     };
 
     #[tokio::test]
     async fn size_limit() {
         let ep = make_sync(|_| ()).with(SizeLimit::new(5));
+        let cli = TestClient::new(ep);
 
-        assert_eq!(
-            ep.call(Request::builder().body(&b"123456"[..]))
-                .await
-                .unwrap_err()
-                .downcast_ref::<SizedLimitError>(),
-            Some(&SizedLimitError::MissingContentLength)
-        );
-
-        assert_eq!(
-            ep.call(
-                Request::builder()
-                    .header("content-length", 6)
-                    .body(&b"123456"[..])
-            )
+        cli.post("/")
+            .send()
             .await
-            .unwrap_err()
-            .downcast_ref::<SizedLimitError>(),
-            Some(&SizedLimitError::PayloadTooLarge)
-        );
+            .assert_status(StatusCode::BAD_REQUEST);
 
-        assert_eq!(
-            ep.call(
-                Request::builder()
-                    .header("content-length", 4)
-                    .body(&b"1234"[..])
-            )
+        cli.post("/")
+            .header("content-length", 6)
+            .body(&b"123456"[..])
+            .send()
             .await
-            .unwrap()
-            .into_response()
-            .status(),
-            StatusCode::OK
-        );
+            .assert_status(StatusCode::PAYLOAD_TOO_LARGE);
 
-        assert_eq!(
-            ep.call(
-                Request::builder()
-                    .header("content-length", 5)
-                    .body(&b"12345"[..])
-            )
+        cli.post("/")
+            .header("content-length", 4)
+            .body(&b"1234"[..])
+            .send()
             .await
-            .unwrap()
-            .into_response()
-            .status(),
-            StatusCode::OK
-        );
+            .assert_status_is_ok();
+
+        cli.post("/")
+            .header("content-length", 5)
+            .body(&b"12345"[..])
+            .send()
+            .await
+            .assert_status_is_ok();
     }
 }

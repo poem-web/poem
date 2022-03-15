@@ -400,7 +400,11 @@ mod tests {
     use http::StatusCode;
 
     use super::*;
-    use crate::{endpoint::make_sync, EndpointExt, Error};
+    use crate::{
+        endpoint::make_sync,
+        test::{TestClient, TestRequestBuilder},
+        EndpointExt, Error,
+    };
 
     const ALLOW_ORIGIN: &str = "https://example.com";
     const ALLOW_HEADER: &str = "X-Token";
@@ -415,312 +419,185 @@ mod tests {
             .allow_credentials(true)
     }
 
-    fn opt_request() -> Request {
-        Request::builder()
-            .method(Method::OPTIONS)
+    fn opt_request<T: Endpoint>(cli: &TestClient<T>) -> TestRequestBuilder<'_, T> {
+        cli.options("/")
             .header(header::ORIGIN, ALLOW_ORIGIN)
             .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
             .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
-            .finish()
     }
 
-    fn get_request() -> Request {
-        Request::builder()
-            .method(Method::GET)
-            .header(header::ORIGIN, ALLOW_ORIGIN)
-            .finish()
+    fn get_request<T: Endpoint>(cli: &TestClient<T>) -> TestRequestBuilder<'_, T> {
+        cli.get("/").header(header::ORIGIN, ALLOW_ORIGIN)
     }
 
     #[tokio::test]
     async fn preflight_request() {
         let ep = make_sync(|_| "hello").with(cors());
-        let resp = ep.map_to_response().call(opt_request()).await.unwrap();
+        let cli = TestClient::new(ep);
 
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
-                .unwrap(),
-            ALLOW_ORIGIN
+        let resp = opt_request(&cli).send().await;
+
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header_csv(
+            header::ACCESS_CONTROL_ALLOW_METHODS,
+            ["DELETE", "GET", "OPTIONS", "POST"],
         );
-        let allow_methods = resp
-            .headers()
-            .get(header::ACCESS_CONTROL_ALLOW_METHODS)
-            .and_then(|value| value.to_str().ok())
-            .map(|value| value.split(',').map(|s| s.trim()).collect::<HashSet<_>>());
-        assert_eq!(
-            allow_methods,
-            Some(
-                vec!["DELETE", "GET", "OPTIONS", "POST"]
-                    .into_iter()
-                    .collect::<HashSet<_>>()
-            ),
-        );
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
-                .unwrap(),
-            "x-token"
-        );
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_EXPOSE_HEADERS)
-                .unwrap(),
-            "x-my-custom-header"
-        );
-        assert_eq!(
-            resp.headers().get(header::ACCESS_CONTROL_MAX_AGE).unwrap(),
-            "86400"
-        );
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_CREDENTIALS)
-                .unwrap(),
-            "true"
-        );
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_HEADERS, "x-token");
+        resp.assert_header(header::ACCESS_CONTROL_EXPOSE_HEADERS, "x-my-custom-header");
+        resp.assert_header(header::ACCESS_CONTROL_MAX_AGE, "86400");
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
     }
 
     #[tokio::test]
     async fn default_cors() {
-        let ep = make_sync(|_| "hello").with(Cors::new()).map_to_response();
-        let resp = ep
-            .call(
-                Request::builder()
-                    .method(Method::OPTIONS)
-                    .header(header::ORIGIN, ALLOW_ORIGIN)
-                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
-                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
-                    .finish(),
-            )
-            .await
-            .unwrap();
+        let ep = make_sync(|_| "hello").with(Cors::new());
+        let cli = TestClient::new(ep);
 
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
-                .unwrap(),
-            ALLOW_ORIGIN
-        );
-        let allow_methods = resp
-            .headers()
-            .get(header::ACCESS_CONTROL_ALLOW_METHODS)
-            .and_then(|value| value.to_str().ok())
-            .map(|value| value.split(',').map(|s| s.trim()).collect::<HashSet<_>>());
-        assert_eq!(
-            allow_methods,
-            Some(
-                vec![
-                    "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "CONNECT", "PATCH", "TRACE"
-                ]
-                .into_iter()
-                .collect::<HashSet<_>>()
-            ),
-        );
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
-                .unwrap(),
-            "X-Token"
-        );
-        assert_eq!(
-            resp.headers().get(header::ACCESS_CONTROL_MAX_AGE).unwrap(),
-            "86400"
-        );
+        let resp = cli
+            .options("/")
+            .header(header::ORIGIN, ALLOW_ORIGIN)
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
+            .send()
+            .await;
 
-        let resp = ep
-            .call(
-                Request::builder()
-                    .method(Method::GET)
-                    .header(header::ORIGIN, ALLOW_ORIGIN)
-                    .finish(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
-            Some(&HeaderValue::from_static(ALLOW_ORIGIN))
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header_csv(
+            header::ACCESS_CONTROL_ALLOW_METHODS,
+            [
+                "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "CONNECT", "PATCH", "TRACE",
+            ],
         );
-        assert_eq!(
-            resp.headers().get(header::VARY),
-            Some(&HeaderValue::from_static("Origin"))
-        );
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_HEADERS, "X-Token");
+        resp.assert_header(header::ACCESS_CONTROL_MAX_AGE, "86400");
+
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, ALLOW_ORIGIN)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header(header::VARY, "Origin");
     }
 
     #[tokio::test]
     async fn allow_origins_fn_1() {
-        let ep = make_sync(|_| "hello")
-            .with(Cors::new().allow_origins_fn(|_| true))
-            .map_to_response();
+        let ep = make_sync(|_| "hello").with(Cors::new().allow_origins_fn(|_| true));
+        let cli = TestClient::new(ep);
 
-        let resp = ep
-            .call(
-                Request::builder()
-                    .method(Method::GET)
-                    .header(header::ORIGIN, ALLOW_ORIGIN)
-                    .finish(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
-            Some(&HeaderValue::from_static(ALLOW_ORIGIN))
-        );
-        assert_eq!(
-            resp.headers().get(header::VARY),
-            Some(&HeaderValue::from_static("Origin"))
-        );
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, ALLOW_ORIGIN)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header(header::VARY, "Origin");
     }
 
     #[tokio::test]
     async fn allow_origins_fn_2() {
-        let ep = make_sync(|_| "hello")
-            .with(
-                Cors::new()
-                    .allow_origin(ALLOW_ORIGIN)
-                    .allow_origins_fn(|_| true),
-            )
-            .map_to_response();
+        let ep = make_sync(|_| "hello").with(
+            Cors::new()
+                .allow_origin(ALLOW_ORIGIN)
+                .allow_origins_fn(|_| true),
+        );
+        let cli = TestClient::new(ep);
 
-        let resp = ep
-            .call(
-                Request::builder()
-                    .method(Method::GET)
-                    .header(header::ORIGIN, ALLOW_ORIGIN)
-                    .finish(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
-            Some(&HeaderValue::from_static(ALLOW_ORIGIN))
-        );
-        assert!(resp.headers().get(header::VARY).is_none());
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, ALLOW_ORIGIN)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header_is_not_exist(header::VARY);
 
-        let resp = ep
-            .call(
-                Request::builder()
-                    .method(Method::GET)
-                    .header(header::ORIGIN, "https://abc.com")
-                    .finish(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers().get(header::ACCESS_CONTROL_ALLOW_ORIGIN,),
-            Some(&HeaderValue::from_static("https://abc.com"))
-        );
-        assert_eq!(
-            resp.headers().get(header::VARY),
-            Some(&HeaderValue::from_static("Origin"))
-        );
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, "https://abc.com")
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "https://abc.com");
+        resp.assert_header(header::VARY, "Origin");
     }
 
     #[tokio::test]
     async fn allow_origins_fn_3() {
-        let ep = make_sync(|_| "hello")
-            .with(Cors::new().allow_origins_fn(|_| false))
-            .map_to_response();
+        let ep = make_sync(|_| "hello").with(Cors::new().allow_origins_fn(|_| false));
+        let cli = TestClient::new(ep);
 
-        assert!(ep
-            .call(
-                Request::builder()
-                    .method(Method::GET)
-                    .header(header::ORIGIN, ALLOW_ORIGIN)
-                    .finish(),
-            )
-            .await
-            .unwrap_err()
-            .is::<CorsError>());
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, ALLOW_ORIGIN)
+            .send()
+            .await;
+        resp.assert_status(StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
     async fn default_cors_middleware() {
-        let ep = make_sync(|_| "hello").with(Cors::new()).map_to_response();
-        let resp = ep.call(get_request()).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
-                .unwrap(),
-            "https://example.com"
-        );
+        let ep = make_sync(|_| "hello").with(Cors::new());
+        let cli = TestClient::new(ep);
+
+        let resp = get_request(&cli).send().await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
     }
 
     #[tokio::test]
     async fn unauthorized_origin() {
-        let ep = make_sync(|_| "hello").with(cors()).map_to_response();
-        assert!(ep
-            .call(
-                Request::builder()
-                    .method(Method::GET)
-                    .header(header::ORIGIN, "https://foo.com")
-                    .finish(),
-            )
-            .await
-            .unwrap_err()
-            .is::<CorsError>());
+        let ep = make_sync(|_| "hello").with(cors());
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, "https://foo.com")
+            .send()
+            .await;
+        resp.assert_status(StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
     async fn unauthorized_options() {
-        let ep = make_sync(|_| "hello").with(cors()).map_to_response();
+        let ep = make_sync(|_| "hello").with(cors());
+        let cli = TestClient::new(ep);
 
-        assert!(ep
-            .call(
-                Request::builder()
-                    .method(Method::OPTIONS)
-                    .header(header::ORIGIN, "https://abc.com")
-                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
-                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
-                    .finish(),
-            )
+        cli.options("/")
+            .header(header::ORIGIN, "https://abc.com")
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
+            .send()
             .await
-            .unwrap_err()
-            .is::<CorsError>());
+            .assert_status(StatusCode::UNAUTHORIZED);
 
-        assert!(ep
-            .call(
-                Request::builder()
-                    .method(Method::OPTIONS)
-                    .header(header::ORIGIN, "https://example.com")
-                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "TRACE")
-                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
-                    .finish(),
-            )
+        cli.options("/")
+            .header(header::ORIGIN, "https://example.com")
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "TRACE")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
+            .send()
             .await
-            .unwrap_err()
-            .is::<CorsError>());
+            .assert_status(StatusCode::UNAUTHORIZED);
 
-        assert!(ep
-            .call(
-                Request::builder()
-                    .method(Method::OPTIONS)
-                    .header(header::ORIGIN, "https://example.com")
-                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
-                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-ABC")
-                    .finish(),
-            )
+        cli.options("/")
+            .header(header::ORIGIN, "https://example.com")
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Abc")
+            .send()
             .await
-            .unwrap_err()
-            .is::<CorsError>());
+            .assert_status(StatusCode::UNAUTHORIZED);
 
-        let resp = ep
-            .call(
-                Request::builder()
-                    .method(Method::OPTIONS)
-                    .header(header::ORIGIN, "https://example.com")
-                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
-                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
-                    .finish(),
-            )
+        cli.options("/")
+            .header(header::ORIGIN, "https://example.com")
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
+            .send()
             .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+            .assert_status_is_ok();
     }
 
     #[cfg(feature = "cookie")]
@@ -731,51 +608,43 @@ mod tests {
             middleware::CookieJarManager,
             web::cookie::{Cookie, CookieJar},
         };
+
         #[handler(internal)]
         async fn index(cookie_jar: &CookieJar) {
             cookie_jar.add(Cookie::new_with_str("foo", "bar"));
         }
 
         let ep = index.with(CookieJarManager::new()).with(cors());
-        let resp = ep.map_to_response().call(get_request()).await.unwrap();
+        let cli = TestClient::new(ep);
 
-        assert_eq!(resp.headers().get(header::SET_COOKIE).unwrap(), "foo=bar");
+        let resp = get_request(&cli).send().await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::SET_COOKIE, "foo=bar");
     }
 
     #[tokio::test]
     async fn set_cors_headers_to_error_responses() {
         let ep =
             make_sync(|_| Err::<(), _>(Error::from_status(StatusCode::BAD_REQUEST))).with(cors());
-        let resp = ep.map_to_response().get_response(get_request()).await;
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
-                .unwrap(),
-            ALLOW_ORIGIN
-        );
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_EXPOSE_HEADERS)
-                .and_then(|value| value.to_str().ok())
-                .unwrap(),
-            EXPOSE_HEADER.to_lowercase()
+        let cli = TestClient::new(ep);
+
+        let resp = get_request(&cli).send().await;
+        resp.assert_status(StatusCode::BAD_REQUEST);
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header(
+            header::ACCESS_CONTROL_EXPOSE_HEADERS,
+            EXPOSE_HEADER.to_lowercase(),
         );
     }
 
     #[tokio::test]
     async fn no_cors_requests() {
         let ep = make_sync(|_| "hello").with(Cors::new().allow_origin(ALLOW_ORIGIN));
-        let resp = ep
-            .map_to_response()
-            .call(Request::builder().method(Method::GET).finish())
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert!(resp
-            .headers()
-            .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
-            .is_none());
+        let cli = TestClient::new(ep);
+
+        let resp = cli.get("/").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_header_is_not_exist(header::ACCESS_CONTROL_ALLOW_ORIGIN);
     }
 
     #[tokio::test]
@@ -785,24 +654,16 @@ mod tests {
                 .allow_origin(ALLOW_ORIGIN)
                 .allow_method(Method::GET),
         );
-        let resp = ep
-            .map_to_response()
-            .call(
-                Request::builder()
-                    .method(Method::OPTIONS)
-                    .header(header::ORIGIN, ALLOW_ORIGIN)
-                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
-                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "content-type")
-                    .finish(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers()
-                .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
-                .unwrap(),
-            "content-type"
-        )
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .options("/")
+            .header(header::ORIGIN, ALLOW_ORIGIN)
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "content-type")
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_HEADERS, "content-type");
     }
 }

@@ -101,10 +101,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use http::StatusCode;
 
     use super::*;
-    use crate::{endpoint::make_sync, EndpointExt};
+    use crate::{endpoint::make_sync, test::TestClient, EndpointExt};
 
     #[tokio::test]
     async fn test_tower_layer() {
@@ -140,7 +139,7 @@ mod tests {
         }
 
         let ep = make_sync(|_| ()).with(MyServiceLayer.compat());
-        let resp = ep.call(Request::default()).await.unwrap().into_response();
-        assert_eq!(resp.status(), StatusCode::OK);
+        let cli = TestClient::new(ep);
+        cli.get("/").send().await.assert_status_is_ok();
     }
 }

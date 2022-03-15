@@ -23,6 +23,7 @@ use crate::{
 ///     handler,
 ///     http::{Method, StatusCode},
 ///     post,
+///     test::TestClient,
 ///     web::Json,
 ///     Endpoint, Request, Route,
 /// };
@@ -38,21 +39,13 @@ use crate::{
 ///     format!("welcome {}!", user.name)
 /// }
 ///
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let app = Route::new().at("/", post(index));
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .method(Method::POST)
-///             .body(r#"{"name": "foo"}"#),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(
-///     resp.into_body().into_string().await.unwrap(),
-///     "welcome foo!"
-/// );
+/// let cli = TestClient::new(app);
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = cli.post("/").body(r#"{"name": "foo"}"#).send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("welcome foo!").await;
 /// # });
 /// ```
 ///
@@ -62,7 +55,9 @@ use crate::{
 /// [`serde::Serialize`].
 ///
 /// ```
-/// use poem::{get, handler, http::StatusCode, web::Json, Endpoint, Request, Route};
+/// use poem::{
+///     get, handler, http::StatusCode, test::TestClient, web::Json, Endpoint, Request, Route,
+/// };
 /// use serde::Serialize;
 ///
 /// #[derive(Serialize)]
@@ -77,14 +72,13 @@ use crate::{
 ///     })
 /// }
 ///
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let app = Route::new().at("/", get(index));
-/// let resp = app.call(Request::default()).await.unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(
-///     resp.into_body().into_string().await.unwrap(),
-///     r#"{"name":"foo"}"#
-/// )
+/// let cli = TestClient::new(app);
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = cli.get("/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text(r#"{"name":"foo"}"#).await;
 /// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
@@ -131,13 +125,10 @@ impl<T: Serialize + Send> IntoResponse for Json<T> {
 #[cfg(test)]
 mod tests {
     use serde::{Deserialize, Serialize};
+    use serde_json::json;
 
     use super::*;
-    use crate::{
-        handler,
-        http::{Method, StatusCode},
-        Endpoint,
-    };
+    use crate::{handler, test::TestClient};
 
     #[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
     struct CreateResource {
@@ -153,22 +144,13 @@ mod tests {
             assert_eq!(query.value, 100);
         }
 
-        index
-            .call(
-                Request::builder()
-                    .method(Method::POST)
-                    .header(header::CONTENT_TYPE, "application/json")
-                    .body(
-                        r#"
-                    {
-                        "name": "abc",
-                        "value": 100
-                    }
-                    "#,
-                    ),
-            )
+        let cli = TestClient::new(index);
+        cli.post("/")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body_json(&json!({"name": "abc", "value": 100}))
+            .send()
             .await
-            .unwrap();
+            .assert_status_is_ok();
     }
 
     #[tokio::test]
@@ -181,15 +163,13 @@ mod tests {
             })
         }
 
-        let mut resp = index.call(Request::default()).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            serde_json::from_str::<CreateResource>(&resp.take_body().into_string().await.unwrap())
-                .unwrap(),
-            CreateResource {
-                name: "abc".to_string(),
-                value: 100,
-            }
-        );
+        let cli = TestClient::new(index);
+        let resp = cli.get("/").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_json(&CreateResource {
+            name: "abc".to_string(),
+            value: 100,
+        })
+        .await;
     }
 }

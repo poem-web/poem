@@ -14,6 +14,7 @@ use crate::{Body, IntoResponse, Response};
 /// use poem::{
 ///     handler,
 ///     http::StatusCode,
+///     test::TestClient,
 ///     web::sse::{Event, SSE},
 ///     Endpoint, Request,
 /// };
@@ -27,13 +28,12 @@ use crate::{Body, IntoResponse, Response};
 ///     ]))
 /// }
 ///
+/// let cli = TestClient::new(index);
+///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let mut resp = index.call(Request::default()).await.unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(
-///     resp.take_body().into_string().await.unwrap(),
-///     "data: a\n\ndata: b\n\ndata: c\n\n"
-/// );
+/// let resp = cli.get("/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("data: a\n\ndata: b\n\ndata: c\n\n").await;
 /// # });
 /// ```
 pub struct SSE {

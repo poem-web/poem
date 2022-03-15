@@ -39,7 +39,10 @@
 //! The [`handler`] macro is used to convert a function into an endpoint.
 //!
 //! ```
-//! use poem::{error::NotFoundError, handler, Endpoint, Request, Result};
+//! use poem::{
+//!     error::NotFoundError, handler, http::StatusCode, test::TestClient, Endpoint, Request,
+//!     Result,
+//! };
 //!
 //! #[handler]
 //! fn return_str() -> &'static str {
@@ -52,11 +55,12 @@
 //! }
 //!
 //! # tokio::runtime::Runtime::new().unwrap().block_on(async {
-//! let resp = return_str.call(Request::default()).await.unwrap();
-//! assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+//! let resp = TestClient::new(return_str).get("/").send().await;
+//! resp.assert_status_is_ok();
+//! resp.assert_text("hello").await;
 //!
-//! let err = return_err.call(Request::default()).await.unwrap_err();
-//! assert!(err.is::<NotFoundError>());
+//! let resp = TestClient::new(return_err).get("/").send().await;
+//! resp.assert_status(StatusCode::NOT_FOUND);
 //! # });
 //! ```
 //!

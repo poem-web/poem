@@ -82,7 +82,7 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{handler, EndpointExt, Request};
+    use crate::{handler, test::TestClient, EndpointExt};
 
     const DATA: &str = "abcdefghijklmnopqrstuvwxyz1234567890";
     const DATA_REV: &str = "0987654321zyxwvutsrqponmlkjihgfedcba";
@@ -94,25 +94,21 @@ mod tests {
 
     async fn test_algo(algo: CompressionAlgo) {
         let ep = index.with(Compression);
-        let mut resp = ep
-            .call(
-                Request::builder()
-                    .header("Content-Encoding", algo.as_str())
-                    .header("Accept-Encoding", algo.as_str())
-                    .body(Body::from_async_read(algo.compress(DATA.as_bytes()))),
-            )
-            .await
-            .unwrap();
+        let cli = TestClient::new(ep);
 
-        assert_eq!(
-            resp.headers()
-                .get("Content-Encoding")
-                .and_then(|value| value.to_str().ok()),
-            Some(algo.as_str())
-        );
+        let resp = cli
+            .post("/")
+            .header("Content-Encoding", algo.as_str())
+            .header("Accept-Encoding", algo.as_str())
+            .body(Body::from_async_read(algo.compress(DATA.as_bytes())))
+            .send()
+            .await;
+
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", algo.as_str());
 
         let mut data = Vec::new();
-        let mut reader = algo.decompress(resp.take_body().into_async_read());
+        let mut reader = algo.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }
@@ -127,24 +123,19 @@ mod tests {
     #[tokio::test]
     async fn test_negotiate() {
         let ep = index.with(Compression);
-        let mut resp = ep
-            .call(
-                Request::builder()
-                    .header("Accept-Encoding", "identity; q=0.5, gzip;q=1.0, br;q=0.3")
-                    .body(DATA),
-            )
-            .await
-            .unwrap();
+        let cli = TestClient::new(ep);
 
-        assert_eq!(
-            resp.headers()
-                .get("Content-Encoding")
-                .and_then(|value| value.to_str().ok()),
-            Some("gzip")
-        );
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "identity; q=0.5, gzip;q=1.0, br;q=0.3")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", "gzip");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::GZIP.decompress(resp.take_body().into_async_read());
+        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }
@@ -152,24 +143,19 @@ mod tests {
     #[tokio::test]
     async fn test_star() {
         let ep = index.with(Compression);
-        let mut resp = ep
-            .call(
-                Request::builder()
-                    .header("Accept-Encoding", "identity; q=0.5, *;q=1.0, br;q=0.3")
-                    .body(DATA),
-            )
-            .await
-            .unwrap();
+        let cli = TestClient::new(ep);
 
-        assert_eq!(
-            resp.headers()
-                .get("Content-Encoding")
-                .and_then(|value| value.to_str().ok()),
-            Some("gzip")
-        );
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "identity; q=0.5, *;q=1.0, br;q=0.3")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", "gzip");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::GZIP.decompress(resp.take_body().into_async_read());
+        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }

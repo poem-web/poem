@@ -16,6 +16,7 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 /// use poem::{
 ///     get, handler,
 ///     http::{Method, StatusCode, Uri},
+///     test::TestClient,
 ///     web::Query,
 ///     Endpoint, Request, Route,
 /// };
@@ -34,17 +35,16 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let app = Route::new().at("/", get(index).post(index));
+/// let cli = TestClient::new(app);
 ///
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/?title=foo&content=bar"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:bar");
+/// let resp = cli
+///     .get("/")
+///     .query("title", &"foo")
+///     .query("content", &"bar")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("foo:bar").await;
 /// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
@@ -82,7 +82,7 @@ mod tests {
     use serde::Deserialize;
 
     use super::*;
-    use crate::{handler, http::Uri, Endpoint};
+    use crate::{handler, test::TestClient};
 
     #[tokio::test]
     async fn test_query_extractor() {
@@ -98,13 +98,12 @@ mod tests {
             assert_eq!(query.value, 100);
         }
 
-        index
-            .call(
-                Request::builder()
-                    .uri(Uri::from_static("/?name=abc&value=100"))
-                    .finish(),
-            )
+        let cli = TestClient::new(index);
+        cli.get("/")
+            .query("name", &"abc")
+            .query("value", &100)
+            .send()
             .await
-            .unwrap();
+            .assert_status_is_ok();
     }
 }

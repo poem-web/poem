@@ -4,15 +4,16 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
     ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
-    ItemImpl, Pat, Path, ReturnType,
+    ItemImpl, Pat, Path, ReturnType, Type,
 };
 
 use crate::{
-    common_args::{APIMethod, DefaultValue, ExternalDocument},
+    common_args::{APIMethod, DefaultValue, ExternalDocument, ExtraHeader},
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
-        optional_literal, parse_oai_attrs, remove_description, remove_oai_attrs, RemoveLifetime,
+        optional_literal, optional_literal_string, parse_oai_attrs, remove_description,
+        remove_oai_attrs, RemoveLifetime,
     },
     validators::Validators,
 };
@@ -25,12 +26,17 @@ struct APIArgs {
     prefix_path: Option<SpannedValue<String>>,
     #[darling(default, multiple, rename = "tag")]
     common_tags: Vec<Path>,
+    #[darling(default, multiple, rename = "response_header")]
+    response_headers: Vec<ExtraHeader>,
+    #[darling(default, multiple, rename = "request_header")]
+    request_headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromMeta)]
 struct APIOperation {
     path: SpannedValue<String>,
-    method: SpannedValue<APIMethod>,
+    #[darling(default, multiple, rename = "method")]
+    methods: Vec<SpannedValue<APIMethod>>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default, multiple, rename = "tag")]
@@ -41,6 +47,10 @@ struct APIOperation {
     operation_id: Option<String>,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
+    #[darling(default, multiple, rename = "response_header")]
+    response_headers: Vec<ExtraHeader>,
+    #[darling(default, multiple, rename = "request_header")]
+    request_headers: Vec<ExtraHeader>,
 }
 
 #[derive(FromMeta, Default)]
@@ -164,14 +174,22 @@ fn generate_operation(
 ) -> GeneratorResult<()> {
     let APIOperation {
         path,
-        method,
+        methods,
         deprecated,
         tags,
         transform,
         operation_id,
         external_docs,
+        response_headers,
+        request_headers,
     } = args;
-    let http_method = method.to_http_method();
+    if methods.is_empty() {
+        return Err(Error::new_spanned(
+            &item_method.sig.ident,
+            "At least one HTTP method is required",
+        )
+        .into());
+    }
     let fn_ident = &item_method.sig.ident;
     let (summary, description) = get_summary_and_description(&item_method.attrs)?;
     let summary = optional_literal(&summary);
@@ -305,7 +323,7 @@ fn generate_operation(
         });
 
         // param meta
-        let param_desc = optional_literal(&param_description);
+        let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
@@ -319,7 +337,7 @@ fn generate_operation(
                 };
 
                 let meta_param = #crate_name::registry::MetaOperationParam {
-                    name: #param_name,
+                    name: ::std::string::ToString::to_string(#param_name),
                     schema: original_schema.merge(patch_schema),
                     in_type: <#arg_ty as #crate_name::ApiExtractor>::param_in().unwrap(),
                     description: #param_desc,
@@ -357,24 +375,27 @@ fn generate_operation(
         }
     });
 
-    if ctx.add_routes.entry(new_path).or_default().insert(*method, quote! {
-        method(#crate_name::__private::poem::http::Method::#http_method, {
-            let api_obj = ::std::clone::Clone::clone(&api_obj);
-            let ep = #crate_name::__private::poem::endpoint::make(move |request| {
+    for method in &methods {
+        let http_method = method.to_http_method();
+        if ctx.add_routes.entry(new_path.clone()).or_default().insert(**method, quote! {
+            method(#crate_name::__private::poem::http::Method::#http_method, {
                 let api_obj = ::std::clone::Clone::clone(&api_obj);
-                async move {
-                    let (request, mut body) = request.split();
-                    #(#parse_args)*
-                    let res = api_obj.#fn_ident(#(#use_args),*).await;
-                    let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
-                    ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
-                }
-            });
-            #transform
-            ep
-        })
-    }).is_some() {
-        return Err(Error::new(method.span(), "duplicate method").into());
+                let ep = #crate_name::__private::poem::endpoint::make(move |request| {
+                    let api_obj = ::std::clone::Clone::clone(&api_obj);
+                    async move {
+                        let (request, mut body) = request.split();
+                        #(#parse_args)*
+                        let res = api_obj.#fn_ident(#(#use_args),*).await;
+                        let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                        ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
+                    }
+                });
+                #transform
+                ep
+            })
+        }).is_some() {
+            return Err(Error::new(method.span(), "duplicate method").into());
+        }
     }
 
     let mut tag_names = Vec::new();
@@ -392,33 +413,96 @@ fn generate_operation(
         None => quote!(::std::option::Option::None),
     };
 
-    ctx.operations.entry(oai_path).or_default().push(quote! {
-        #crate_name::registry::MetaOperation {
-            tags: ::std::vec![#(#tag_names),*],
-            method: #crate_name::__private::poem::http::Method::#http_method,
-            summary: #summary,
-            description: #description,
-            external_docs: #external_docs,
-            params: {
-                let mut params = ::std::vec::Vec::new();
-                #(#params_meta)*
-                params
-            },
-            request: {
-                let mut request = ::std::option::Option::None;
-                #(#request_meta)*
-                request
-            },
-            responses: <#res_ty as #crate_name::ApiResponse>::meta(),
-            deprecated: #deprecated,
-            security: {
-                let mut security = ::std::vec![];
-                #(#security)*
-                security
-            },
-            operation_id: #operation_id,
-        }
-    });
+    // extra request headers
+    let mut update_extra_request_headers = Vec::new();
+    for header in api_args.request_headers.iter().chain(&request_headers) {
+        let name = header.name.to_uppercase();
+        let description = optional_literal_string(&header.description);
+        let ty = match syn::parse_str::<Type>(&header.ty) {
+            Ok(ty) => ty,
+            Err(_) => return Err(Error::new(header.ty.span(), "Invalid type").into()),
+        };
+        let deprecated = header.deprecated;
+
+        update_extra_request_headers.push(quote! {
+            params.push(#crate_name::registry::MetaOperationParam {
+                name: ::std::string::ToString::to_string(#name),
+                schema: <#ty as #crate_name::types::Type>::schema_ref(),
+                in_type: #crate_name::registry::MetaParamIn::Header,
+                description: #description,
+                required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
+                deprecated: #deprecated,
+            });
+        });
+    }
+
+    // extra response headers
+    let mut update_extra_response_headers = Vec::new();
+    for (idx, header) in api_args
+        .response_headers
+        .iter()
+        .chain(&response_headers)
+        .enumerate()
+    {
+        let name = header.name.to_uppercase();
+        let description = optional_literal_string(&header.description);
+        let ty = match syn::parse_str::<Type>(&header.ty) {
+            Ok(ty) => ty,
+            Err(_) => return Err(Error::new(header.ty.span(), "Invalid type").into()),
+        };
+        let deprecated = header.deprecated;
+
+        update_extra_response_headers.push(quote! {
+            for resp in &mut meta.responses {
+                resp.headers.insert(#idx, #crate_name::registry::MetaHeader {
+                    name: ::std::string::ToString::to_string(#name),
+                    description: #description,
+                    required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
+                    deprecated: #deprecated,
+                    schema: <#ty as #crate_name::types::Type>::schema_ref(),
+                });
+            }
+        });
+    }
+
+    for method in &methods {
+        let http_method = method.to_http_method();
+        ctx.operations
+            .entry(oai_path.clone())
+            .or_default()
+            .push(quote! {
+                #crate_name::registry::MetaOperation {
+                    tags: ::std::vec![#(#tag_names),*],
+                    method: #crate_name::__private::poem::http::Method::#http_method,
+                    summary: #summary,
+                    description: #description,
+                    external_docs: #external_docs,
+                    params: {
+                        let mut params = ::std::vec::Vec::new();
+                        #(#update_extra_request_headers)*
+                        #(#params_meta)*
+                        params
+                    },
+                    request: {
+                        let mut request = ::std::option::Option::None;
+                        #(#request_meta)*
+                        request
+                    },
+                    responses: {
+                        let mut meta = <#res_ty as #crate_name::ApiResponse>::meta();
+                        #(#update_extra_response_headers)*
+                        meta
+                    },
+                    deprecated: #deprecated,
+                    security: {
+                        let mut security = ::std::vec![];
+                        #(#security)*
+                        security
+                    },
+                    operation_id: #operation_id,
+                }
+            });
+    }
 
     Ok(())
 }

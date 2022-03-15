@@ -74,6 +74,16 @@ pub(crate) fn optional_literal(s: &Option<impl AsRef<str>>) -> TokenStream {
     }
 }
 
+pub(crate) fn optional_literal_string(s: &Option<impl AsRef<str>>) -> TokenStream {
+    match s {
+        Some(s) => {
+            let s = s.as_ref();
+            quote!(::std::option::Option::Some(::std::string::ToString::to_string(#s)))
+        }
+        None => quote!(::std::option::Option::None),
+    }
+}
+
 pub(crate) fn remove_oai_attrs(attrs: &mut Vec<Attribute>) {
     if let Some((idx, _)) = attrs
         .iter()

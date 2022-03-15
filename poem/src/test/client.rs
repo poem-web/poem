@@ -1,6 +1,6 @@
 use http::{header, header::HeaderName, HeaderMap, HeaderValue, Method};
 
-use crate::{test::TestRequestBuilder, Endpoint};
+use crate::{test::TestRequestBuilder, Endpoint, IntoEndpoint};
 
 macro_rules! impl_methods {
     ($($(#[$docs:meta])* ($name:ident, $method:ident)),*) => {
@@ -21,9 +21,12 @@ pub struct TestClient<E> {
 
 impl<E: Endpoint> TestClient<E> {
     /// Create a new client for the specified endpoint.
-    pub fn new(ep: E) -> Self {
-        Self {
-            ep,
+    pub fn new<T>(ep: T) -> TestClient<T::Endpoint>
+    where
+        T: IntoEndpoint<Endpoint = E>,
+    {
+        TestClient {
+            ep: ep.into_endpoint(),
             default_headers: Default::default(),
         }
     }
@@ -72,6 +75,11 @@ impl<E: Endpoint> TestClient<E> {
     #[must_use]
     pub fn default_content_type(self, content_type: impl AsRef<str>) -> Self {
         self.default_header(header::CONTENT_TYPE, content_type.as_ref())
+    }
+
+    /// Create a [`TestRequestBuilder`].
+    pub fn request(&self, method: Method, uri: impl Into<String>) -> TestRequestBuilder<'_, E> {
+        TestRequestBuilder::new(self, method, uri.into())
     }
 
     impl_methods!(
