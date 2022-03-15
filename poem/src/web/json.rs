@@ -23,7 +23,7 @@ use crate::{
 /// ```
 /// use poem::{
 ///     handler,
-///     http::{Method, StatusCode,header},
+///     http::{header, Method, StatusCode},
 ///     post,
 ///     test::TestClient,
 ///     web::Json,
