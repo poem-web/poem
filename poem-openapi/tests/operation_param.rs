@@ -1,7 +1,7 @@
 use poem::{
-    http::{header, Method, StatusCode, Uri},
+    http::header,
+    test::TestClient,
     web::cookie::{Cookie, CookieJar, CookieKey},
-    Endpoint, IntoEndpoint, Request,
 };
 use poem_openapi::{
     param::{Cookie as ParamCookie, CookiePrivate, CookieSigned, Header, Path, Query},
@@ -30,17 +30,13 @@ async fn param_name() {
     let meta: MetaApi = Api::meta().remove(0);
     assert_eq!(meta.paths[0].operations[0].params[0].name, "a");
 
-    let ep = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = ep
-        .call(
-            Request::builder()
-                .method(Method::GET)
-                .uri(Uri::from_static("/abc?a=10"))
-                .finish(),
-        )
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(ep)
+        .get("/abc")
+        .query("a", &10)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -62,12 +58,13 @@ async fn query() {
     );
     assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(Request::builder().uri(Uri::from_static("/?v=10")).finish())
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .query("v", &10)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -96,16 +93,15 @@ async fn query_multiple_values() {
         "array"
     );
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(
-            Request::builder()
-                .uri(Uri::from_static("/?v=10&v=20&v=30"))
-                .finish(),
-        )
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .query("v", &10)
+        .query("v", &20)
+        .query("v", &30)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -135,9 +131,12 @@ async fn query_default() {
         }))
     );
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::default()).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .send()
+        .await
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -152,12 +151,13 @@ async fn header() {
         }
     }
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(Request::builder().header("v", 10).finish())
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .header("v", 10)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -172,18 +172,15 @@ async fn header_multiple_values() {
         }
     }
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(
-            Request::builder()
-                .header("v", 10)
-                .header("v", 20)
-                .header("v", 30)
-                .finish(),
-        )
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .header("v", 10)
+        .header("v", 20)
+        .header("v", 30)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -198,9 +195,12 @@ async fn header_default() {
         }
     }
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::default()).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .send()
+        .await
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -215,12 +215,12 @@ async fn path() {
         }
     }
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(Request::builder().uri(Uri::from_static("/k/10")).finish())
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/k/10")
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -238,9 +238,7 @@ async fn cookie() {
     }
 
     let cookie_key = CookieKey::generate();
-    let api = OpenApiService::new(Api, "test", "1.0")
-        .cookie_key(cookie_key.clone())
-        .into_endpoint();
+    let api = OpenApiService::new(Api, "test", "1.0").cookie_key(cookie_key.clone());
 
     let cookie_jar = CookieJar::default();
     cookie_jar.add(Cookie::new_with_str("v1", "10"));
@@ -257,11 +255,12 @@ async fn cookie() {
         cookie_jar.get("v3").unwrap()
     );
 
-    let resp = api
-        .call(Request::builder().header(header::COOKIE, cookie).finish())
+    TestClient::new(api)
+        .get("/")
+        .header(header::COOKIE, cookie)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -276,9 +275,12 @@ async fn cookie_default() {
         }
     }
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api.call(Request::builder().finish()).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .send()
+        .await
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -332,7 +334,7 @@ async fn desc() {
     );
     assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
     assert_eq!(
-        meta.paths[0].operations[0].params[0].description,
+        meta.paths[0].operations[0].params[0].description.as_deref(),
         Some("ABC")
     );
 }
@@ -362,12 +364,12 @@ async fn default_opt() {
         Some(json!(88))
     );
 
-    let api = OpenApiService::new(Api, "test", "1.0").into_endpoint();
-    let resp = api
-        .call(Request::builder().uri(Uri::from_static("/")).finish())
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -395,4 +397,115 @@ async fn required_params() {
     );
     assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
     assert_eq!(meta.paths[0].operations[0].params[1].required, true);
+}
+
+#[tokio::test]
+async fn query_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn query(&self, #[oai(name = "fooBar")] foo_bar: Query<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "fooBar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(ep)
+        .get("/abc")
+        .query("fooBar", &10)
+        .send()
+        .await
+        .assert_status_is_ok();
+}
+
+#[tokio::test]
+async fn path_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc/:fooBar", method = "get")]
+        async fn query(&self, #[oai(name = "fooBar")] foo_bar: Path<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "fooBar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Path
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(ep)
+        .get("/abc/10")
+        .send()
+        .await
+        .assert_status_is_ok();
+}
+
+#[tokio::test]
+async fn header_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn query(&self, #[oai(name = "foo-bar")] foo_bar: Header<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "foo-bar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Header
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(ep)
+        .get("/abc")
+        .header("foo-bar", "10")
+        .send()
+        .await
+        .assert_status_is_ok();
+}
+
+#[tokio::test]
+async fn cookie_rename() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn query(&self, #[oai(name = "fooBar")] foo_bar: ParamCookie<i32>) {
+            assert_eq!(foo_bar.0, 10);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "fooBar");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Cookie
+    );
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(ep)
+        .get("/abc")
+        .header(header::COOKIE, "fooBar=10")
+        .send()
+        .await
+        .assert_status_is_ok();
 }

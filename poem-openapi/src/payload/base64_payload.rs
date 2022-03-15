@@ -19,6 +19,7 @@ use crate::{
 /// use poem::{
 ///     error::BadRequest,
 ///     http::{Method, StatusCode, Uri},
+///     test::TestClient,
 ///     Body, IntoEndpoint, Request, Result,
 /// };
 /// use poem_openapi::{
@@ -48,33 +49,22 @@ use crate::{
 ///     }
 /// }
 ///
-/// let api = OpenApiService::new(MyApi::default(), "Demo", "0.1.0").into_endpoint();
+/// let api = OpenApiService::new(MyApi::default(), "Demo", "0.1.0");
+/// let cli = TestClient::new(api);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = api
-///     .call(
-///         Request::builder()
-///             .method(Method::POST)
-///             .content_type("text/plain")
-///             .uri(Uri::from_static("/upload"))
-///             .body("YWJjZGVm"),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "6");
+/// let resp = cli
+///     .post("/upload")
+///     .content_type("text/plain")
+///     .body("YWJjZGVm")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("6").await;
 ///
-/// let resp = api
-///     .call(
-///         Request::builder()
-///             .method(Method::GET)
-///             .uri(Uri::from_static("/download"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "YWJjZGVm");
+/// let resp = cli.get("/download").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("YWJjZGVm").await;
 /// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq)]

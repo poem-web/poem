@@ -1,10 +1,10 @@
 use std::{error::Error as StdError, future::Future};
 
 use bytes::Bytes;
-use hyper::body::HttpBody;
+use hyper::body::{HttpBody, Sender};
 use tower::{Service, ServiceExt};
 
-use crate::{body::BodyStream, error::InternalServerError, Endpoint, Request, Response, Result};
+use crate::{Endpoint, Error, Request, Response, Result};
 
 /// Extension trait for tower service compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
@@ -15,7 +15,7 @@ pub trait TowerCompatExt {
         ResBody: HttpBody + Send + 'static,
         ResBody::Data: Into<Bytes> + Send + 'static,
         ResBody::Error: StdError + Send + Sync + 'static,
-        Err: StdError + Send + Sync + 'static,
+        Err: Into<Error>,
         Self: Service<
                 http::Request<hyper::Body>,
                 Response = hyper::Response<ResBody>,
@@ -44,7 +44,7 @@ where
     ResBody: HttpBody + Send + 'static,
     ResBody::Data: Into<Bytes> + Send + 'static,
     ResBody::Error: StdError + Send + Sync + 'static,
-    Err: StdError + Send + Sync + 'static,
+    Err: Into<Error>,
     Svc: Service<
             http::Request<hyper::Body>,
             Response = hyper::Response<ResBody>,
@@ -61,17 +61,60 @@ where
     async fn call(&self, req: Request) -> Result<Self::Output> {
         let mut svc = self.0.clone();
 
-        svc.ready().await.map_err(InternalServerError)?;
+        svc.ready().await.map_err(Into::into)?;
 
         let hyper_req: http::Request<hyper::Body> = req.into();
         let hyper_resp = svc
             .call(hyper_req.map(Into::into))
             .await
-            .map_err(InternalServerError)?;
+            .map_err(Into::into)?;
 
-        Ok(hyper_resp
-            .map(|body| hyper::Body::wrap_stream(BodyStream::new(body)))
-            .into())
+        if !hyper_resp.body().is_end_stream() {
+            Ok(hyper_resp
+                .map(|body| {
+                    let (sender, new_body) = hyper::Body::channel();
+                    tokio::spawn(copy_body(body, sender));
+                    new_body
+                })
+                .into())
+        } else {
+            Ok(hyper_resp.map(|_| hyper::Body::empty()).into())
+        }
+    }
+}
+
+async fn copy_body<T>(body: T, mut sender: Sender)
+where
+    T: HttpBody + Send + 'static,
+    T::Data: Into<Bytes> + Send + 'static,
+    T::Error: StdError + Send + Sync + 'static,
+{
+    tokio::pin!(body);
+
+    loop {
+        match body.data().await {
+            Some(Ok(data)) => {
+                if sender.send_data(data.into()).await.is_err() {
+                    break;
+                }
+            }
+            Some(Err(_)) => break,
+            None => {}
+        }
+
+        match body.trailers().await {
+            Ok(Some(trailers)) => {
+                if sender.send_trailers(trailers).await.is_err() {
+                    break;
+                }
+            }
+            Ok(None) => {}
+            Err(_) => break,
+        }
+
+        if body.is_end_stream() {
+            break;
+        }
     }
 }
 
@@ -85,6 +128,7 @@ mod tests {
     use futures_util::future::Ready;
 
     use super::*;
+    use crate::test::TestClient;
 
     #[tokio::test]
     async fn test_tower_compat() {
@@ -106,7 +150,8 @@ mod tests {
         }
 
         let ep = MyTowerService.compat();
-        let resp = ep.call(Request::builder().body("abc")).await.unwrap();
-        assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
+        let resp = TestClient::new(ep).get("/").body("abc").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_text("abc").await;
     }
 }

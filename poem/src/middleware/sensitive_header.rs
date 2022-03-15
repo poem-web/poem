@@ -127,7 +127,11 @@ fn set_sensitive(headers: &mut HeaderMap, names: &HashSet<HeaderName>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, EndpointExt};
+    use crate::{
+        handler,
+        test::{TestClient, TestRequestBuilder},
+        EndpointExt,
+    };
 
     fn create_middleware() -> SensitiveHeader {
         SensitiveHeader::new()
@@ -137,11 +141,10 @@ mod tests {
             .header("x-api-key4")
     }
 
-    fn create_request() -> Request {
-        Request::builder()
+    fn create_request<T: Endpoint>(cli: &TestClient<T>) -> TestRequestBuilder<'_, T> {
+        cli.get("/")
             .header("x-api-key1", "a")
             .header("x-api-key2", "b")
-            .finish()
     }
 
     #[tokio::test]
@@ -155,13 +158,11 @@ mod tests {
                 .with_header("x-api-key4", "c")
         }
 
-        let resp = index
-            .with(create_middleware().request_only())
-            .get_response(create_request())
-            .await;
+        let cli = TestClient::new(index.with(create_middleware().request_only()));
 
-        assert!(!resp.headers().get("x-api-key3").unwrap().is_sensitive());
-        assert!(!resp.headers().get("x-api-key4").unwrap().is_sensitive());
+        let resp = create_request(&cli).send().await;
+        assert!(!resp.0.headers().get("x-api-key3").unwrap().is_sensitive());
+        assert!(!resp.0.headers().get("x-api-key4").unwrap().is_sensitive());
     }
 
     #[tokio::test]
@@ -175,13 +176,11 @@ mod tests {
                 .with_header("x-api-key4", "c")
         }
 
-        let resp = index
-            .with(create_middleware().response_only())
-            .get_response(create_request())
-            .await;
+        let cli = TestClient::new(index.with(create_middleware().response_only()));
 
-        assert!(resp.headers().get("x-api-key3").unwrap().is_sensitive());
-        assert!(resp.headers().get("x-api-key4").unwrap().is_sensitive());
+        let resp = create_request(&cli).send().await;
+        assert!(resp.0.headers().get("x-api-key3").unwrap().is_sensitive());
+        assert!(resp.0.headers().get("x-api-key4").unwrap().is_sensitive());
     }
 
     #[tokio::test]
@@ -195,12 +194,10 @@ mod tests {
                 .with_header("x-api-key4", "c")
         }
 
-        let resp = index
-            .with(create_middleware())
-            .get_response(create_request())
-            .await;
+        let cli = TestClient::new(index.with(create_middleware()));
+        let resp = create_request(&cli).send().await;
 
-        assert!(resp.headers().get("x-api-key3").unwrap().is_sensitive());
-        assert!(resp.headers().get("x-api-key4").unwrap().is_sensitive());
+        assert!(resp.0.headers().get("x-api-key3").unwrap().is_sensitive());
+        assert!(resp.0.headers().get("x-api-key4").unwrap().is_sensitive());
     }
 }

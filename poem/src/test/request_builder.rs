@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use headers::{Header, HeaderMapExt};
 use http::{header, header::HeaderName, Extensions, HeaderMap, HeaderValue, Method};
 use serde::Serialize;
@@ -15,16 +13,13 @@ pub struct TestRequestBuilder<'a, E> {
     cli: &'a TestClient<E>,
     uri: String,
     method: Method,
-    query: HashMap<String, Value>,
+    query: Vec<(String, Value)>,
     headers: HeaderMap,
     body: Body,
     extensions: Extensions,
 }
 
-impl<'a, E> TestRequestBuilder<'a, E>
-where
-    E: Endpoint,
-{
+impl<'a, E> TestRequestBuilder<'a, E> {
     pub(crate) fn new(cli: &'a TestClient<E>, method: Method, uri: String) -> Self {
         Self {
             cli,
@@ -73,7 +68,7 @@ where
     #[must_use]
     pub fn query(mut self, name: impl Into<String>, value: &impl Serialize) -> Self {
         if let Ok(value) = serde_json::to_value(value) {
-            self.query.insert(name.into(), value);
+            self.query.push((name.into(), value));
         }
         self
     }
@@ -194,7 +189,10 @@ where
     }
 
     /// Send this request to endpoint to get the response.
-    pub async fn send(self) -> TestResponse {
+    pub async fn send(self) -> TestResponse
+    where
+        E: Endpoint,
+    {
         let ep = &self.cli.ep;
         let req = self.make_request();
         let resp = ep.get_response(req).await;

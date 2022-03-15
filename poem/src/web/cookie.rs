@@ -316,6 +316,7 @@ impl<'a> FromRequest<'a> for Cookie {
 ///     get, handler,
 ///     http::{header, StatusCode},
 ///     middleware::CookieJarManager,
+///     test::TestClient,
 ///     web::cookie::{Cookie, CookieJar},
 ///     Endpoint, EndpointExt, Request, Route,
 /// };
@@ -334,17 +335,16 @@ impl<'a> FromRequest<'a> for Cookie {
 /// let app = Route::new()
 ///     .at("/", get(index))
 ///     .with(CookieJarManager::new());
+/// let cli = TestClient::new(app);
 ///
-/// let resp = app.call(Request::default()).await.unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// let cookie = resp.headers().get(header::SET_COOKIE).cloned().unwrap();
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "count: 1");
+/// let resp = cli.get("/").send().await;
+/// resp.assert_status_is_ok();
+/// let cookie = resp.0.headers().get(header::SET_COOKIE).cloned().unwrap();
+/// resp.assert_text("count: 1").await;
 ///
-/// let resp = app
-///     .call(Request::builder().header(header::COOKIE, cookie).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "count: 2");
+/// let resp = cli.get("/").header(header::COOKIE, cookie).send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("count: 2").await;
 /// # });
 /// ```
 #[derive(Default, Clone)]

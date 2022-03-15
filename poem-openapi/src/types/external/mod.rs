@@ -6,6 +6,8 @@ mod btreemap;
 mod btreeset;
 #[cfg(feature = "chrono")]
 mod datetime;
+#[cfg(feature = "rust_decimal")]
+mod decimal;
 mod floats;
 mod hashmap;
 mod hashset;

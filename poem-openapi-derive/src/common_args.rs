@@ -1,4 +1,4 @@
-use darling::FromMeta;
+use darling::{util::SpannedValue, FromMeta};
 use inflector::Inflector;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -167,4 +167,15 @@ impl ExternalDocument {
             }
         }
     }
+}
+
+#[derive(FromMeta)]
+pub(crate) struct ExtraHeader {
+    pub(crate) name: String,
+    #[darling(rename = "type")]
+    pub(crate) ty: SpannedValue<String>,
+    #[darling(default)]
+    pub(crate) description: Option<String>,
+    #[darling(default)]
+    pub(crate) deprecated: bool,
 }

@@ -29,7 +29,7 @@ impl<T> DerefMut for Binary<T> {
     }
 }
 
-impl<T: Send + Sync> Type for Binary<T> {
+impl<T: AsRef<[u8]> + Send + Sync> Type for Binary<T> {
     const IS_REQUIRED: bool = true;
 
     type RawValueType = Self;
@@ -52,6 +52,10 @@ impl<T: Send + Sync> Type for Binary<T> {
         &'a self,
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.as_raw_value().into_iter())
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.as_ref().is_empty()
     }
 }
 

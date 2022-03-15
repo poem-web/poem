@@ -16,6 +16,9 @@
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
   </a>
+  <a href="https://deps.rs/repo/github/poem-web/poem">
+    <img src="https://img.shields.io/librariesio/release/cargo/poem.svg" />
+  </a>
 </div>
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
@@ -24,12 +27,12 @@
 
 This repo contains the following main components:
 
-| Crate                                                     | Description                    | Documentation                        | ChangeLog                                  |
-|-----------------------------------------------------------|--------------------------------|--------------------------------------|--------------------------------------------|
-| [poem](https://crates.io/crates/poem)                     | Poem Web                       | [(README)](poem/README.md)           | [(CHANGELOG)](poem/CHANGELOG.md)           |
-| [poem-lambda](https://crates.io/crates/poem-lambda)       | Poem for AWS Lambda            | [(README)](poem-lambda/README.md)    | [(CHANGELOG)](poem-lambda/CHANGELOG.md)    |
-| [poem-openapi](https://crates.io/crates/poem-openapi)     | OpenAPI for Poem Web           | [(README)](poem-openapi/README.md)   | [(CHANGELOG)](poem-openapi/CHANGELOG.md)   |
-| [poem-dbsession](https://crates.io/crates/poem-dbsession) | Session storage using database | [(README)](poem-dbsession/README.md) | [(CHANGELOG)](poem-dbsession/CHANGELOG.md) |
+| Crate                                                                                                             | Description                    | Documentation                        | ChangeLog                                  |
+|-------------------------------------------------------------------------------------------------------------------|--------------------------------|--------------------------------------|--------------------------------------------|
+| **poem** [![](https://img.shields.io/crates/v/poem)](https://crates.io/crates/poem)                               | Poem Web                       | [(README)](poem/README.md)           | [(CHANGELOG)](poem/CHANGELOG.md)           |
+| **poem-lambda** [![](https://img.shields.io/crates/v/poem-lambda)](https://crates.io/crates/poem-lambda)          | Poem for AWS Lambda            | [(README)](poem-lambda/README.md)    | [(CHANGELOG)](poem-lambda/CHANGELOG.md)    |
+| **poem-openapi** [![](https://img.shields.io/crates/v/poem-openapi)](https://crates.io/crates/poem-openapi)       | OpenAPI for Poem Web           | [(README)](poem-openapi/README.md)   | [(CHANGELOG)](poem-openapi/CHANGELOG.md)   |
+| **poem-dbsession** [![](https://img.shields.io/crates/v/poem-dbsession)](https://crates.io/crates/poem-dbsession) | Session storage using database | [(README)](poem-dbsession/README.md) | [(CHANGELOG)](poem-dbsession/CHANGELOG.md) |
 
 ***
 

@@ -52,7 +52,9 @@ use crate::endpoint::Endpoint;
 /// # Create you own middleware
 ///
 /// ```
-/// use poem::{handler, web::Data, Endpoint, EndpointExt, Middleware, Request, Result};
+/// use poem::{
+///     handler, test::TestClient, web::Data, Endpoint, EndpointExt, Middleware, Request, Result,
+/// };
 ///
 /// /// A middleware that extract token from HTTP headers.
 /// struct TokenMiddleware;
@@ -104,11 +106,13 @@ use crate::endpoint::Endpoint;
 /// let ep = index.with(TokenMiddleware);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let mut resp = ep
-///     .call(Request::builder().header(TOKEN_HEADER, "abc").finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
+/// let mut resp = TestClient::new(ep)
+///     .get("/")
+///     .header(TOKEN_HEADER, "abc")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("abc").await;
 /// # });
 /// ```
 ///
@@ -117,7 +121,9 @@ use crate::endpoint::Endpoint;
 /// ```rust
 /// use std::sync::Arc;
 ///
-/// use poem::{handler, web::Data, Endpoint, EndpointExt, IntoResponse, Request, Result};
+/// use poem::{
+///     handler, test::TestClient, web::Data, Endpoint, EndpointExt, IntoResponse, Request, Result,
+/// };
 /// const TOKEN_HEADER: &str = "X-Token";
 ///
 /// #[handler]
@@ -144,13 +150,12 @@ use crate::endpoint::Endpoint;
 /// }
 ///
 /// let ep = index.around(token_middleware);
+/// let cli = TestClient::new(ep);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let mut resp = ep
-///     .call(Request::builder().header(TOKEN_HEADER, "abc").finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
+/// let resp = cli.get("/").header(TOKEN_HEADER, "abc").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("abc").await;
 /// # });
 /// ```
 pub trait Middleware<E: Endpoint> {
@@ -193,7 +198,8 @@ mod tests {
     use super::*;
     use crate::{
         handler,
-        http::{header::HeaderName, HeaderValue, StatusCode},
+        http::{header::HeaderName, HeaderValue},
+        test::TestClient,
         web::Data,
         EndpointExt, IntoResponse, Request, Response, Result,
     };
@@ -228,14 +234,11 @@ mod tests {
             header: HeaderName::from_static("hello"),
             value: HeaderValue::from_static("world"),
         }));
-        let mut resp = ep.call(Request::default()).await.unwrap();
-        assert_eq!(
-            resp.headers()
-                .get(HeaderName::from_static("hello"))
-                .cloned(),
-            Some(HeaderValue::from_static("world"))
-        );
-        assert_eq!(resp.take_body().into_string().await.unwrap(), "abc");
+        let cli = TestClient::new(ep);
+
+        let resp = cli.get("/").send().await;
+        resp.assert_header("hello", "world");
+        resp.assert_text("abc").await;
     }
 
     #[tokio::test]
@@ -250,17 +253,12 @@ mod tests {
             SetHeader::new().appending("myheader-1", "a"),
             SetHeader::new().appending("myheader-2", "b"),
         ));
+        let cli = TestClient::new(ep);
 
-        let mut resp = ep.call(Request::default()).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            resp.headers().get("myheader-1"),
-            Some(&HeaderValue::from_static("a"))
-        );
-        assert_eq!(
-            resp.headers().get("myheader-2"),
-            Some(&HeaderValue::from_static("b"))
-        );
-        assert_eq!(resp.take_body().into_string().await.unwrap(), "10");
+        let resp = cli.get("/").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_header("myheader-1", "a");
+        resp.assert_header("myheader-2", "b");
+        resp.assert_text("10").await;
     }
 }

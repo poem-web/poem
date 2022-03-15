@@ -69,6 +69,7 @@ which are disabled by default:
 | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.                     |
 | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate.        |
 | i18n          | Support for internationalization                                                          |
+| acme          | Support for ACME(Automatic Certificate Management Environment)                            |
 
 ## Safety
 

@@ -136,12 +136,12 @@ impl CookieConfig {
 
     /// Set the cookie value to `CookieJar`.
     pub fn set_cookie_value(&self, cookie_jar: &CookieJar, value: &str) {
-        let mut cookie = Cookie::new_with_str(self.name.clone(), value);
+        let mut cookie = Cookie::new_with_str(&self.name, value);
 
-        cookie.set_path(self.path.clone());
+        cookie.set_path(&self.path);
 
         if let Some(domain) = &self.domain {
-            cookie.set_domain(domain.clone());
+            cookie.set_domain(domain);
         }
 
         cookie.set_secure(self.secure);

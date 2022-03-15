@@ -42,6 +42,10 @@ impl<T: Type> Type for Vec<T> {
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.iter().filter_map(|item| item.as_raw_value()))
     }
+
+    fn is_empty(&self) -> bool {
+        <Vec<T>>::is_empty(self)
+    }
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for Vec<T> {

@@ -76,18 +76,18 @@ impl<'a> Serialize for WebhookMap<'a> {
 pub(crate) struct Document<'a> {
     pub(crate) info: &'a MetaInfo,
     pub(crate) servers: &'a [MetaServer],
-    pub(crate) apis: &'a [MetaApi],
-    pub(crate) webhooks: &'a [MetaWebhook],
-    pub(crate) registry: &'a mut Registry,
+    pub(crate) apis: Vec<MetaApi>,
+    pub(crate) webhooks: Vec<MetaWebhook>,
+    pub(crate) registry: Registry,
     pub(crate) external_document: Option<&'a MetaExternalDocument>,
 }
 
 impl<'a> Serialize for Document<'a> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
         struct Components<'a> {
             schemas: &'a BTreeMap<&'static str, MetaSchema>,
-            #[serde(rename = "securitySchemes")]
             #[serde(skip_serializing_if = "BTreeMap::is_empty")]
             security_schemes: &'a BTreeMap<&'static str, MetaSecurityScheme>,
         }
@@ -99,9 +99,9 @@ impl<'a> Serialize for Document<'a> {
         s.serialize_entry("servers", self.servers)?;
         s.serialize_entry("tags", &self.registry.tags)?;
         if !self.webhooks.is_empty() {
-            s.serialize_entry("webhooks", &WebhookMap(self.webhooks))?;
+            s.serialize_entry("webhooks", &WebhookMap(&self.webhooks))?;
         }
-        s.serialize_entry("paths", &PathMap(self.apis))?;
+        s.serialize_entry("paths", &PathMap(&self.apis))?;
         s.serialize_entry(
             "components",
             &Components {

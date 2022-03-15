@@ -17,6 +17,7 @@ use crate::{
 /// use poem::{
 ///     error::BadRequest,
 ///     http::{Method, StatusCode, Uri},
+///     test::TestClient,
 ///     Body, IntoEndpoint, Request, Result,
 /// };
 /// use poem_openapi::{
@@ -43,34 +44,27 @@ use crate::{
 ///     }
 /// }
 ///
-/// let api = OpenApiService::new(MyApi, "Demo", "0.1.0").into_endpoint();
+/// let api = OpenApiService::new(MyApi, "Demo", "0.1.0");
+/// let cli = TestClient::new(api);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = api
-///     .call(
-///         Request::builder()
-///             .method(Method::POST)
-///             .content_type("application/octet-stream")
-///             .uri(Uri::from_static("/upload"))
-///             .body("abcdef"),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "6");
+/// let resp = cli
+///     .post("/upload")
+///     .content_type("application/octet-stream")
+///     .body("abcdef")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("6").await;
 ///
-/// let resp = api
-///     .call(
-///         Request::builder()
-///             .method(Method::POST)
-///             .content_type("application/octet-stream")
-///             .uri(Uri::from_static("/upload_stream"))
-///             .body("abcdef"),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "6");
+/// let resp = cli
+///     .post("/upload_stream")
+///     .content_type("application/octet-stream")
+///     .body("abcdef")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("6").await;
 /// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq)]

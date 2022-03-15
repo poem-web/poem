@@ -242,8 +242,8 @@ impl RequestBody {
 /// use std::fmt::{self, Display, Formatter};
 ///
 /// use poem::{
-///     get, handler, http::StatusCode, Endpoint, Error, FromRequest, Request, RequestBody, Result,
-///     Route,
+///     get, handler, http::StatusCode, test::TestClient, Endpoint, Error, FromRequest, Request,
+///     RequestBody, Result, Route,
 /// };
 ///
 /// struct Token(String);
@@ -266,10 +266,14 @@ impl RequestBody {
 /// }
 ///
 /// let app = Route::new().at("/", get(index));
+/// let cli = TestClient::new(app);
+///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let _ = index
-///     .call(Request::builder().header("MyToken", "token123").finish())
-///     .await;
+/// cli.get("/")
+///     .header("MyToken", "token123")
+///     .send()
+///     .await
+///     .assert_status_is_ok();
 /// # });
 /// ```
 #[async_trait::async_trait]
@@ -372,7 +376,9 @@ pub trait FromRequest<'a>: Sized {
 /// # Create you own response
 ///
 /// ```
-/// use poem::{handler, http::Uri, web::Query, Endpoint, IntoResponse, Request, Response};
+/// use poem::{
+///     handler, http::Uri, test::TestClient, web::Query, Endpoint, IntoResponse, Request, Response,
+/// };
 /// use serde::Deserialize;
 ///
 /// struct Hello(Option<String>);
@@ -397,34 +403,16 @@ pub trait FromRequest<'a>: Sized {
 ///     Hello(params.0.name)
 /// }
 ///
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// assert_eq!(
-///     index
-///         .call(
-///             Request::builder()
-///                 .uri(Uri::from_static("/?name=sunli"))
-///                 .finish()
-///         )
-///         .await
-///         .unwrap()
-///         .take_body()
-///         .into_string()
-///         .await
-///         .unwrap(),
-///     "hello sunli"
-/// );
+/// let cli = TestClient::new(index);
 ///
-/// assert_eq!(
-///     index
-///         .call(Request::builder().uri(Uri::from_static("/")).finish())
-///         .await
-///         .unwrap()
-///         .take_body()
-///         .into_string()
-///         .await
-///         .unwrap(),
-///     "hello"
-/// );
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// let resp = cli.get("/").query("name", &"sunli").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("hello sunli").await;
+///
+/// let resp = cli.get("/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("hello").await;
 /// # });
 /// ```
 pub trait IntoResponse: Send {
@@ -549,7 +537,7 @@ impl<T: IntoResponse> IntoResponse for WithHeader<T> {
     fn into_response(self) -> Response {
         let mut resp = self.inner.into_response();
         if let Some((key, value)) = &self.header {
-            resp.headers_mut().append(key.clone(), value.clone());
+            resp.headers_mut().append(key, value.clone());
         }
         resp
     }
@@ -609,7 +597,7 @@ impl IntoResponse for Response {
 impl IntoResponse for String {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/plain; charset=utf8")
+            .content_type("text/plain; charset=utf-8")
             .body(self)
     }
 }
@@ -617,7 +605,7 @@ impl IntoResponse for String {
 impl IntoResponse for &'static str {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/plain; charset=utf8")
+            .content_type("text/plain; charset=utf-8")
             .body(self)
     }
 }
@@ -696,7 +684,7 @@ pub struct Html<T>(pub T);
 impl<T: Into<String> + Send> IntoResponse for Html<T> {
     fn into_response(self) -> Response {
         Response::builder()
-            .content_type("text/html; charset=utf8")
+            .content_type("text/html; charset=utf-8")
             .body(self.0.into())
     }
 }
@@ -881,13 +869,13 @@ mod tests {
         // Html
         let resp = Html("abc").into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("text/html; charset=utf8"));
+        assert_eq!(resp.content_type(), Some("text/html; charset=utf-8"));
         assert_eq!(resp.into_body().into_string().await.unwrap(), "abc");
 
         // Json
         let resp = Json(serde_json::json!({ "a": 1, "b": 2})).into_response();
         assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("application/json; charset=utf8"));
+        assert_eq!(resp.content_type(), Some("application/json; charset=utf-8"));
         assert_eq!(
             resp.into_body().into_string().await.unwrap(),
             r#"{"a":1,"b":2}"#

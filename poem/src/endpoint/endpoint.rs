@@ -27,7 +27,10 @@ pub trait Endpoint: Send + Sync {
     /// # Example
     ///
     /// ```
-    /// use poem::{error::NotFoundError, handler, http::StatusCode, Endpoint, Request, Result};
+    /// use poem::{
+    ///     error::NotFoundError, handler, http::StatusCode, test::TestClient, Endpoint, Request,
+    ///     Result,
+    /// };
     ///
     /// #[handler]
     /// fn index() -> Result<()> {
@@ -35,8 +38,11 @@ pub trait Endpoint: Send + Sync {
     /// }
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = index.get_response(Request::default()).await;
-    /// assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    /// TestClient::new(index)
+    ///     .get("/")
+    ///     .send()
+    ///     .await
+    ///     .assert_status(StatusCode::NOT_FOUND);
     /// # });
     /// ```
     async fn get_response(&self, req: Request) -> Response {
@@ -115,16 +121,15 @@ where
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make_sync, http::Method, Endpoint, Request};
+/// use poem::{endpoint::make_sync, http::Method, test::TestClient, Endpoint, Request};
 ///
 /// let ep = make_sync(|req| req.method().to_string());
+/// let cli = TestClient::new(ep);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = ep
-///     .call(Request::builder().method(Method::GET).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp, "GET");
+/// let resp = cli.get("/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("GET").await;
 /// # });
 /// ```
 pub fn make_sync<F, T, R>(f: F) -> impl Endpoint<Output = T>
@@ -146,16 +151,15 @@ where
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make, http::Method, Endpoint, Request};
+/// use poem::{endpoint::make, http::Method, test::TestClient, Endpoint, Request};
 ///
 /// let ep = make(|req| async move { req.method().to_string() });
+/// let app = TestClient::new(ep);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = ep
-///     .call(Request::builder().method(Method::GET).finish())
-///     .await
-///     .unwrap();
-/// assert_eq!(resp, "GET");
+/// let resp = app.get("/").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("GET").await;
 /// # });
 /// ```
 pub fn make<F, Fut, T, R>(f: F) -> impl Endpoint<Output = T>
@@ -218,8 +222,8 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     get, handler, http::StatusCode, middleware::AddData, web::Data, Endpoint, EndpointExt,
-    ///     Request, Route,
+    ///     get, handler, http::StatusCode, middleware::AddData, test::TestClient, web::Data, Endpoint,
+    ///     EndpointExt, Request, Route,
     /// };
     ///
     /// #[handler]
@@ -228,10 +232,12 @@ pub trait EndpointExt: IntoEndpoint {
     /// }
     ///
     /// let app = Route::new().at("/", get(index)).with(AddData::new(100i32));
+    /// let cli = TestClient::new(app);
+    ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = app.call(Request::default()).await.unwrap();
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+    /// let resp = cli.get("/").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("100").await;
     /// # });
     /// ```
     fn with<T>(self, middleware: T) -> T::Output
@@ -251,6 +257,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///     get, handler,
     ///     http::{StatusCode, Uri},
     ///     middleware::AddData,
+    ///     test::TestClient,
     ///     web::Data,
     ///     Endpoint, EndpointExt, Request, Route,
     /// };
@@ -266,21 +273,16 @@ pub trait EndpointExt: IntoEndpoint {
     /// let app = Route::new()
     ///     .at("/a", get(index).with_if(true, AddData::new(100i32)))
     ///     .at("/b", get(index).with_if(false, AddData::new(100i32)));
+    /// let cli = TestClient::new(app);
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let resp = app
-    ///     .call(Request::builder().uri(Uri::from_static("/a")).finish())
-    ///     .await
-    ///     .unwrap();
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+    /// let resp = cli.get("/a").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("100").await;
     ///
-    /// let resp = app
-    ///     .call(Request::builder().uri(Uri::from_static("/b")).finish())
-    ///     .await
-    ///     .unwrap();
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.into_body().into_string().await.unwrap(), "none");
+    /// let resp = cli.get("/b").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("none").await;
     /// # });
     /// ```
     fn with_if<T>(self, enable: bool, middleware: T) -> EitherEndpoint<Self, T::Output>
@@ -300,7 +302,9 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, http::StatusCode, web::Data, Endpoint, EndpointExt, Request};
+    /// use poem::{
+    ///     handler, http::StatusCode, test::TestClient, web::Data, Endpoint, EndpointExt, Request,
+    /// };
     ///
     /// #[handler]
     /// async fn index(data: Data<&i32>) -> String {
@@ -308,9 +312,9 @@ pub trait EndpointExt: IntoEndpoint {
     /// }
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-    /// let mut resp = index.data(100i32).call(Request::default()).await.unwrap();
-    /// assert_eq!(resp.status(), StatusCode::OK);
-    /// assert_eq!(resp.take_body().into_string().await.unwrap(), "100");
+    /// let resp = TestClient::new(index.data(100i32)).get("/").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("100").await;
     /// # });
     /// ```
     fn data<T>(self, data: T) -> AddDataEndpoint<Self::Endpoint, T>
@@ -326,7 +330,9 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result};
+    /// use poem::{
+    ///     handler, http::StatusCode, test::TestClient, Endpoint, EndpointExt, Error, Request, Result,
+    /// };
     ///
     /// #[handler]
     /// async fn index(data: String) -> String {

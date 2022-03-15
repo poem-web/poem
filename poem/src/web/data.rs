@@ -50,8 +50,10 @@ impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
 
 #[cfg(test)]
 mod tests {
+    use http::StatusCode;
+
     use super::*;
-    use crate::{handler, middleware::AddData, Endpoint, EndpointExt};
+    use crate::{handler, middleware::AddData, test::TestClient, EndpointExt};
 
     #[tokio::test]
     async fn test_data_extractor() {
@@ -61,7 +63,11 @@ mod tests {
         }
 
         let app = index.with(AddData::new(100i32));
-        app.call(Request::default()).await.unwrap();
+        TestClient::new(app)
+            .get("/")
+            .send()
+            .await
+            .assert_status_is_ok();
     }
 
     #[tokio::test]
@@ -71,14 +77,11 @@ mod tests {
             todo!()
         }
 
-        let app = index;
-        assert_eq!(
-            app.call(Request::default())
-                .await
-                .unwrap_err()
-                .downcast_ref::<GetDataError>(),
-            Some(&GetDataError("i32"))
-        );
+        TestClient::new(index)
+            .get("/")
+            .send()
+            .await
+            .assert_status(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     #[tokio::test]
@@ -88,7 +91,10 @@ mod tests {
             assert_eq!(value.to_uppercase(), "ABC");
         }
 
-        let app = index.with(AddData::new("abc".to_string()));
-        app.call(Request::default()).await.unwrap();
+        TestClient::new(index.with(AddData::new("abc".to_string())))
+            .get("/")
+            .send()
+            .await
+            .assert_status_is_ok();
     }
 }

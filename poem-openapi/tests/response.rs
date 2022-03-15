@@ -7,7 +7,7 @@ use poem::{
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
-    types::ToJSON,
+    types::{ToJSON, Type},
     ApiResponse, Object,
 };
 use serde_json::Value;
@@ -126,7 +126,7 @@ async fn headers() {
     let header2 = &meta.responses[1].headers[1];
 
     assert_eq!(header1.name, "MY-HEADER1");
-    assert_eq!(header1.description, Some("header1"));
+    assert_eq!(header1.description.as_deref(), Some("header1"));
     assert_eq!(header1.required, true);
     assert_eq!(
         header1.schema,
@@ -329,4 +329,68 @@ async fn header_deprecated() {
 
     let meta: MetaResponses = Resp::meta();
     assert_eq!(meta.responses[0].headers[0].deprecated, true);
+}
+
+#[tokio::test]
+async fn extra_headers_on_response() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    #[oai(
+        header(name = "A1", type = "String"),
+        header(name = "a2", type = "i32", description = "abc", deprecated = true)
+    )]
+    #[allow(dead_code)]
+    pub enum Resp {
+        #[oai(status = 200)]
+        A(Json<i32>, #[oai(header = "A")] String),
+    }
+
+    let meta: MetaResponses = Resp::meta();
+    assert_eq!(meta.responses[0].headers.len(), 3);
+
+    assert_eq!(meta.responses[0].headers[0].name, "A");
+    assert_eq!(meta.responses[0].headers[0].deprecated, false);
+
+    assert_eq!(meta.responses[0].headers[1].name, "A1");
+    assert_eq!(meta.responses[0].headers[1].description, None);
+    assert_eq!(meta.responses[0].headers[1].deprecated, false);
+    assert_eq!(meta.responses[0].headers[1].schema, String::schema_ref());
+
+    assert_eq!(meta.responses[0].headers[2].name, "A2");
+    assert_eq!(
+        meta.responses[0].headers[2].description.as_deref(),
+        Some("abc")
+    );
+    assert_eq!(meta.responses[0].headers[2].deprecated, true);
+    assert_eq!(meta.responses[0].headers[2].schema, i32::schema_ref());
+}
+
+#[tokio::test]
+async fn extra_headers_on_item() {
+    #[derive(ApiResponse, Debug, Eq, PartialEq)]
+    #[allow(dead_code)]
+    pub enum Resp {
+        #[oai(
+            status = 200,
+            header(name = "A1", type = "String"),
+            header(name = "a2", type = "i32", description = "abc", deprecated = true)
+        )]
+        A(Json<i32>, #[oai(header = "A")] String),
+    }
+
+    let meta: MetaResponses = Resp::meta();
+    assert_eq!(meta.responses[0].headers.len(), 3);
+
+    assert_eq!(meta.responses[0].headers[0].name, "A");
+    assert_eq!(meta.responses[0].headers[0].deprecated, false);
+
+    assert_eq!(meta.responses[0].headers[1].name, "A1");
+    assert_eq!(meta.responses[0].headers[1].description, None);
+    assert_eq!(meta.responses[0].headers[1].deprecated, false);
+
+    assert_eq!(meta.responses[0].headers[2].name, "A2");
+    assert_eq!(
+        meta.responses[0].headers[2].description.as_deref(),
+        Some("abc")
+    );
+    assert_eq!(meta.responses[0].headers[2].deprecated, true);
 }

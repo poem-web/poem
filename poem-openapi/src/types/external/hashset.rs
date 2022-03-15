@@ -42,6 +42,10 @@ impl<T: Type> Type for HashSet<T> {
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         Box::new(self.iter().filter_map(|item| item.as_raw_value()))
     }
+
+    fn is_empty(&self) -> bool {
+        HashSet::is_empty(self)
+    }
 }
 
 impl<T: ParseFromJSON + Hash + Eq> ParseFromJSON for HashSet<T> {

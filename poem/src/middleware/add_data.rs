@@ -50,7 +50,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, EndpointExt};
+    use crate::{handler, test::TestClient, EndpointExt};
 
     #[tokio::test]
     async fn test_add_data() {
@@ -59,7 +59,7 @@ mod tests {
             assert_eq!(req.extensions().get::<i32>(), Some(&100));
         }
 
-        let app = index.with(AddData::new(100i32));
-        app.call(Request::default()).await.unwrap();
+        let cli = TestClient::new(index.with(AddData::new(100i32)));
+        cli.get("/").send().await.assert_status_is_ok();
     }
 }

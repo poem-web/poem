@@ -13,6 +13,7 @@ use crate::{
 /// use poem::{
 ///     get, handler,
 ///     http::{header, HeaderValue, StatusCode, Uri},
+///     test::TestClient,
 ///     web::Redirect,
 ///     Endpoint, Request, Route,
 /// };
@@ -24,12 +25,9 @@ use crate::{
 ///
 /// let app = Route::new().at("/", get(index));
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app.call(Request::default()).await.unwrap();
-/// assert_eq!(resp.status(), StatusCode::MOVED_PERMANENTLY);
-/// assert_eq!(
-///     resp.headers().get(header::LOCATION),
-///     Some(&HeaderValue::from_static("https://www.google.com"))
-/// );
+/// let resp = TestClient::new(app).get("/").send().await;
+/// resp.assert_status(StatusCode::MOVED_PERMANENTLY);
+/// resp.assert_header(header::LOCATION, "https://www.google.com");
 /// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq)]

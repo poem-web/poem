@@ -16,6 +16,7 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 /// use poem::{
 ///     get, handler,
 ///     http::{header, StatusCode},
+///     test::TestClient,
 ///     web::{headers::Host, TypedHeader},
 ///     Endpoint, Request, Route,
 /// };
@@ -26,18 +27,16 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 /// }
 ///
 /// let app = Route::new().at("/", get(index));
+/// let cli = TestClient::new(app);
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .header(header::HOST, "example.com")
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "example.com");
+/// let resp = cli
+///     .get("/")
+///     .header(header::HOST, "example.com")
+///     .send()
+///     .await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("example.com").await;
 /// # });
 /// ```
 #[derive(Debug)]
@@ -78,8 +77,8 @@ mod tests {
     use super::*;
     use crate::{
         handler,
+        test::TestClient,
         web::headers::{ContentLength, Host},
-        Endpoint,
     };
 
     #[tokio::test]
@@ -89,10 +88,14 @@ mod tests {
             assert_eq!(content_length.0 .0, 3);
         }
 
-        index
-            .call(Request::builder().header("content-length", 3).body("abc"))
-            .await
-            .unwrap();
+        let cli = TestClient::new(index);
+        let resp = cli
+            .get("/")
+            .header("content-length", 3)
+            .body("abc")
+            .send()
+            .await;
+        resp.assert_status_is_ok();
     }
 
     #[tokio::test]

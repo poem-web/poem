@@ -20,6 +20,7 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// use poem::{
 ///     get, handler,
 ///     http::{StatusCode, Uri},
+///     test::TestClient,
 ///     web::Path,
 ///     Endpoint, Request, Route,
 /// };
@@ -30,17 +31,12 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// }
 ///
 /// let app = Route::new().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let cli = TestClient::new(app);
+///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/users/100/team/300"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "100:300");
+/// let resp = cli.get("/users/100/team/300").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("100:300").await;
 /// # });
 /// ```
 ///
@@ -50,6 +46,7 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// use poem::{
 ///     get, handler,
 ///     http::{StatusCode, Uri},
+///     test::TestClient,
 ///     web::Path,
 ///     Endpoint, Request, Route,
 /// };
@@ -60,17 +57,12 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// }
 ///
 /// let app = Route::new().at("/users/:user_id", get(user_info));
+/// let cli = TestClient::new(app);
+///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/users/100"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "100");
+/// let resp = cli.get("/users/100").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("100").await;
 /// # });
 /// ```
 ///
@@ -81,6 +73,7 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// use poem::{
 ///     get, handler,
 ///     http::{StatusCode, Uri},
+///     test::TestClient,
 ///     web::Path,
 ///     Endpoint, Request, Route,
 /// };
@@ -98,17 +91,12 @@ use crate::{error::ParsePathError, FromRequest, Request, RequestBody, Result};
 /// }
 ///
 /// let app = Route::new().at("/users/:user_id/team/:team_id", get(users_teams_show));
+/// let cli = TestClient::new(app);
+///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// let resp = app
-///     .call(
-///         Request::builder()
-///             .uri(Uri::from_static("/users/foo/team/100"))
-///             .finish(),
-///     )
-///     .await
-///     .unwrap();
-/// assert_eq!(resp.status(), StatusCode::OK);
-/// assert_eq!(resp.into_body().into_string().await.unwrap(), "foo:100");
+/// let resp = cli.get("/users/foo/team/100").send().await;
+/// resp.assert_status_is_ok();
+/// resp.assert_text("foo:100").await;
 /// # });
 /// ```
 #[derive(Debug, Eq, PartialEq, Clone)]

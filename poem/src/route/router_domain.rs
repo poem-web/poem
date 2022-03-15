@@ -15,7 +15,13 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make_sync, handler, http::header, Endpoint, Request, RouteDomain};
+/// use poem::{
+///     endpoint::make_sync,
+///     handler,
+///     http::header,
+///     test::{TestClient, TestRequestBuilder},
+///     Endpoint, Request, RouteDomain,
+/// };
 ///
 /// let app = RouteDomain::new()
 ///     .at("example.com", make_sync(|_| "1"))
@@ -23,26 +29,23 @@ use crate::{
 ///     .at("*.example.com", make_sync(|_| "3"))
 ///     .at("*", make_sync(|_| "4"));
 ///
-/// fn make_request(host: &str) -> Request {
-///     Request::builder().header(header::HOST, host).finish()
-/// }
-///
-/// async fn do_request(app: &RouteDomain, req: Request) -> String {
-///     app.call(req)
-///         .await
-///         .unwrap()
-///         .into_body()
-///         .into_string()
-///         .await
-///         .unwrap()
+/// async fn check(app: impl Endpoint, domain: Option<&str>, res: &str) {
+///     let cli = TestClient::new(app);
+///     let mut req = cli.get("/");
+///     if let Some(domain) = domain {
+///         req = req.header(header::HOST, domain);
+///     }
+///     let resp = req.send().await;
+///     resp.assert_status_is_ok();
+///     resp.assert_text(res).await;
 /// }
 ///
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// assert_eq!(do_request(&app, make_request("example.com")).await, "1");
-/// assert_eq!(do_request(&app, make_request("www.abc.com")).await, "2");
-/// assert_eq!(do_request(&app, make_request("a.b.example.com")).await, "3");
-/// assert_eq!(do_request(&app, make_request("rust-lang.org")).await, "4");
-/// assert_eq!(do_request(&app, Request::default()).await, "4");
+/// check(&app, Some("example.com"), "1").await;
+/// check(&app, Some("www.abc.com"), "2").await;
+/// check(&app, Some("a.b.example.com"), "3").await;
+/// check(&app, Some("rust-lang.org"), "4").await;
+/// check(&app, None, "4").await;
 /// # });
 /// ```
 #[derive(Default)]
@@ -103,24 +106,20 @@ impl Endpoint for RouteDomain {
 
 #[cfg(test)]
 mod tests {
+    use http::StatusCode;
+
     use super::*;
-    use crate::{endpoint::make_sync, handler, http::HeaderMap};
+    use crate::{endpoint::make_sync, handler, http::HeaderMap, test::TestClient};
 
     async fn check(r: &RouteDomain, host: &str, value: &str) {
-        let mut req = Request::builder();
+        let cli = TestClient::new(r);
+        let mut req = cli.get("/");
         if !host.is_empty() {
             req = req.header(header::HOST, host);
         }
-        assert_eq!(
-            r.call(req.finish())
-                .await
-                .unwrap()
-                .into_body()
-                .into_string()
-                .await
-                .unwrap(),
-            value
-        );
+        let resp = req.send().await;
+        resp.assert_status_is_ok();
+        resp.assert_text(value).await;
     }
 
     #[tokio::test]
@@ -156,22 +155,18 @@ mod tests {
             .at("www.example.com", make_sync(|_| "2"))
             .at("www.+.com", make_sync(|_| "3"))
             .at("*.com", make_sync(|_| "4"));
+        let cli = TestClient::new(r);
 
-        assert!(r
-            .call(
-                Request::builder()
-                    .header(header::HOST, "rust-lang.org")
-                    .finish()
-            )
+        cli.get("/")
+            .header(header::HOST, "rust-lang.org")
+            .send()
             .await
-            .unwrap_err()
-            .is::<NotFoundError>());
+            .assert_status(StatusCode::NOT_FOUND);
 
-        assert!(r
-            .call(Request::default())
+        cli.get("/")
+            .send()
             .await
-            .unwrap_err()
-            .is::<NotFoundError>());
+            .assert_status(StatusCode::NOT_FOUND);
     }
 
     #[handler(internal)]

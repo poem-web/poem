@@ -3,7 +3,7 @@ use hello_world::{
     HelloReply, HelloRequest,
 };
 use poem::{endpoint::TowerCompatExt, listener::TcpListener, Route, Server};
-use tonic::{transport::NamedService, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
 pub mod hello_world {
     tonic::include_proto!("helloworld");
@@ -17,8 +17,6 @@ impl Greeter for MyGreeter {
         &self,
         request: Request<HelloRequest>,
     ) -> Result<Response<HelloReply>, Status> {
-        println!("Got a request from {:?}", request.remote_addr());
-
         let reply = HelloReply {
             message: format!("Hello {}!", request.into_inner().name),
         };
@@ -34,9 +32,13 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let app = Route::new().nest_no_strip(
-        format!("/{}", GreeterServer::<MyGreeter>::NAME),
-        GreeterServer::new(MyGreeter).compat(),
+        "/",
+        tonic::transport::Server::builder()
+            .add_service(GreeterServer::new(MyGreeter))
+            .into_service()
+            .compat(),
     );
+
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(app)
         .await

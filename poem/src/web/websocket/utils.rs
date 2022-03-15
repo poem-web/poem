@@ -1,16 +1,12 @@
 use std::io::{Error as IoError, ErrorKind};
 
-use sha1::Sha1;
-use tokio_tungstenite::tungstenite::protocol::CloseFrame;
+use tokio_tungstenite::tungstenite::{handshake::derive_accept_key, protocol::CloseFrame};
 
 use super::{CloseCode, Message};
 use crate::http::header::HeaderValue;
 
 pub(crate) fn sign(key: &[u8]) -> HeaderValue {
-    let mut sha1 = Sha1::default();
-    sha1.update(key);
-    sha1.update(&b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"[..]);
-    base64::encode(sha1.digest().bytes()).try_into().unwrap()
+    derive_accept_key(key).try_into().unwrap()
 }
 
 pub(crate) fn tungstenite_error_to_io_error(
@@ -50,6 +46,7 @@ impl From<tokio_tungstenite::tungstenite::Message> for Message {
             Ping(data) => Message::Ping(data),
             Pong(data) => Message::Pong(data),
             Close(cf) => Message::Close(cf.map(|cf| (cf.code.into(), cf.reason.to_string()))),
+            Frame(_) => unreachable!(),
         }
     }
 }

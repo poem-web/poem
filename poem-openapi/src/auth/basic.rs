@@ -1,5 +1,7 @@
-use poem::{Request, Result};
-use typed_headers::{AuthScheme, Authorization, HeaderMapExt};
+use poem::{
+    web::headers::{Authorization, HeaderMapExt},
+    Request, Result,
+};
 
 use crate::{auth::BasicAuthorization, error::AuthorizationError};
 
@@ -14,24 +16,14 @@ pub struct Basic {
 
 impl BasicAuthorization for Basic {
     fn from_request(req: &Request) -> Result<Self> {
-        if let Some(auth) = req.headers().typed_get::<Authorization>().ok().flatten() {
-            if auth.0.scheme() == &AuthScheme::BASIC {
-                if let Some(token68) = auth.token68() {
-                    if let Ok(value) = base64::decode(token68.as_str()) {
-                        if let Ok(value) = String::from_utf8(value) {
-                            let mut s = value.split(':');
-                            if let (Some(username), Some(password), None) =
-                                (s.next(), s.next(), s.next())
-                            {
-                                return Ok(Basic {
-                                    username: username.to_string(),
-                                    password: password.to_string(),
-                                });
-                            }
-                        }
-                    }
-                }
-            }
+        if let Some(auth) = req
+            .headers()
+            .typed_get::<Authorization<poem::web::headers::authorization::Basic>>()
+        {
+            return Ok(Basic {
+                username: auth.username().to_string(),
+                password: auth.password().to_string(),
+            });
         }
 
         Err(AuthorizationError.into())

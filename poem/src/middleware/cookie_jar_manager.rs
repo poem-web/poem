@@ -70,7 +70,7 @@ impl<E: Endpoint> Endpoint for CookieJarManagerEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, http::StatusCode, web::cookie::Cookie, EndpointExt};
+    use crate::{handler, test::TestClient, web::cookie::Cookie, EndpointExt};
 
     #[tokio::test]
     async fn test_cookie_jar_manager() {
@@ -80,11 +80,12 @@ mod tests {
         }
 
         let ep = index.with(CookieJarManager::new());
-        let resp = ep
-            .call(Request::builder().header("Cookie", "value=88").finish())
+        let cli = TestClient::new(ep);
+        cli.get("/")
+            .header("Cookie", "value=88")
+            .send()
             .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+            .assert_status_is_ok();
     }
 
     #[tokio::test]
@@ -99,8 +100,8 @@ mod tests {
         }
 
         let key = CookieKey::generate();
+        let cli = TestClient::new(index.with(CookieJarManager::with_key(key.clone())));
 
-        let ep = index.with(CookieJarManager::with_key(key.clone()));
         let cookie_jar = CookieJar::default();
         cookie_jar
             .private_with_key(&key)
@@ -108,21 +109,18 @@ mod tests {
         cookie_jar
             .signed_with_key(&key)
             .add(Cookie::new_with_str("value2", "99"));
-        let resp = ep
-            .call(
-                Request::builder()
-                    .header(
-                        "Cookie",
-                        &format!(
-                            "value1={}; value2={}",
-                            cookie_jar.get("value1").unwrap().value_str(),
-                            cookie_jar.get("value2").unwrap().value_str()
-                        ),
-                    )
-                    .finish(),
+
+        cli.get("/")
+            .header(
+                "cookie",
+                format!(
+                    "value1={}; value2={}",
+                    cookie_jar.get("value1").unwrap().value_str(),
+                    cookie_jar.get("value2").unwrap().value_str()
+                ),
             )
+            .send()
             .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+            .assert_status_is_ok();
     }
 }

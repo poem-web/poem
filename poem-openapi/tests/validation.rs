@@ -4,10 +4,7 @@ use std::{
     ops::Range,
 };
 
-use poem::{
-    http::{StatusCode, Uri},
-    Endpoint, IntoEndpoint, Request, Result,
-};
+use poem::{http::StatusCode, test::TestClient, Result};
 use poem_openapi::{
     param::Query,
     payload::Payload,
@@ -299,15 +296,15 @@ async fn param_validator() {
         }
     }
 
-    let api = OpenApiService::new(Api, "test1", "1.0").into_endpoint();
-    let err = api
-        .call(Request::builder().uri(Uri::from_static("/?v=999")).finish())
-        .await
-        .unwrap_err();
-    assert_eq!(
-        err.to_string(),
-        "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
-    );
+    let api = OpenApiService::new(Api, "test1", "1.0");
+    let cli = TestClient::new(api);
+
+    let resp = cli.get("/").query("v", &999).send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_text(
+        "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)",
+    )
+    .await;
 
     let meta: MetaApi = Api::meta().remove(0);
     assert_eq!(
@@ -325,34 +322,24 @@ async fn param_validator() {
         Some(true)
     );
 
-    let resp = api
-        .call(Request::builder().uri(Uri::from_static("/?v=50")).finish())
+    cli.get("/")
+        .query("v", &50)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 
-    let err = api
-        .call(
-            Request::builder()
-                .uri(Uri::from_static("/test2?v=101"))
-                .finish(),
-        )
-        .await
-        .unwrap_err();
-    assert_eq!(
-        err.to_string(),
-        "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)"
-    );
+    let resp = cli.get("/test2").query("v", &101).send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_text(
+        "failed to parse parameter `v`: verification failed. maximum(100, exclusive: true)",
+    )
+    .await;
 
-    let resp = api
-        .call(
-            Request::builder()
-                .uri(Uri::from_static("/test2?v=50"))
-                .finish(),
-        )
+    cli.get("/test2")
+        .query("v", &50)
+        .send()
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+        .assert_status_is_ok();
 }
 
 #[test]
