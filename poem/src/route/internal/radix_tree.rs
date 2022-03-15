@@ -1141,4 +1141,26 @@ mod tests {
             assert_eq!(tree.matches(path), res);
         }
     }
+
+    #[test]
+    fn test_match_priority() {
+        let mut tree = RadixTree::default();
+        tree.add("/a/bc", 1).unwrap();
+        tree.add("/a/*id", 2).unwrap();
+
+        let matches = tree.matches("/a/123");
+        assert_eq!(matches.unwrap().data, &2);
+
+        tree.add("/a/:a1", 3).unwrap();
+        let matches = tree.matches("/a/123");
+        assert_eq!(matches.unwrap().data, &3);
+
+        tree.add("/a/:name<\\d+>", 4).unwrap();
+        let matches = tree.matches("/a/123");
+        assert_eq!(matches.unwrap().data, &4);
+
+        tree.add("/a/123", 5).unwrap();
+        let matches = tree.matches("/a/123");
+        assert_eq!(matches.unwrap().data, &5);
+    }
 }
