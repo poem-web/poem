@@ -639,6 +639,17 @@ impl ResponseError for ParseJsonError {
     }
 }
 
+/// A missing json Content-Type error value when parsing header.
+#[derive(Debug, thiserror::Error)]
+#[error("Missing `Content-Type: application/json`")]
+pub struct MissingJsonContentTypeError;
+
+impl ResponseError for MissingJsonContentTypeError {
+    fn status(&self) -> StatusCode {
+        StatusCode::UNSUPPORTED_MEDIA_TYPE
+    }
+}
+
 /// A possible error value when parsing query.
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
