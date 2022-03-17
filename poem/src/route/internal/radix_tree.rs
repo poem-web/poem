@@ -1146,21 +1146,38 @@ mod tests {
     fn test_match_priority() {
         let mut tree = RadixTree::default();
         tree.add("/a/bc", 1).unwrap();
-        tree.add("/a/*id", 2).unwrap();
+        tree.add("/a/*path", 2).unwrap();
 
         let matches = tree.matches("/a/123");
         assert_eq!(matches.unwrap().data, &2);
 
-        tree.add("/a/:a1", 3).unwrap();
+        tree.add("/a/:id", 3).unwrap();
         let matches = tree.matches("/a/123");
         assert_eq!(matches.unwrap().data, &3);
 
-        tree.add("/a/:name<\\d+>", 4).unwrap();
+        tree.add("/a/:id<\\d+>", 4).unwrap();
         let matches = tree.matches("/a/123");
         assert_eq!(matches.unwrap().data, &4);
 
         tree.add("/a/123", 5).unwrap();
         let matches = tree.matches("/a/123");
         assert_eq!(matches.unwrap().data, &5);
+    }
+
+    #[test]
+    fn test_catch_all_priority_in_sub_path() {
+        let mut tree = RadixTree::default();
+        tree.add("/a/*path", 1).unwrap();
+
+        let matches = tree.matches("/a/b/c/123");
+        assert_eq!(matches.unwrap().data, &1);
+
+        tree.add("/a/b/*path", 2).unwrap();
+        let matches = tree.matches("/a/b/c/123");
+        assert_eq!(matches.unwrap().data, &2);
+
+        tree.add("/a/b/c/*path", 3).unwrap();
+        let matches = tree.matches("/a/b/c/123");
+        assert_eq!(matches.unwrap().data, &3);
     }
 }
