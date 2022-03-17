@@ -297,7 +297,7 @@ pub trait EndpointExt: IntoEndpoint {
         }
     }
 
-    /// A helper function, similar to `with(AddData(T))`.
+    /// Attach a state data to the endpoint, similar to `with(AddData(T))`.
     ///
     /// # Example
     ///
@@ -323,6 +323,21 @@ pub trait EndpointExt: IntoEndpoint {
         Self: Sized,
     {
         self.with(AddData::new(data))
+    }
+
+    /// if `data` is `Some(T)` then attach the value to the endpoint.
+    fn data_opt<T>(
+        self,
+        data: Option<T>,
+    ) -> EitherEndpoint<AddDataEndpoint<Self::Endpoint, T>, Self>
+    where
+        T: Clone + Send + Sync + 'static,
+        Self: Sized,
+    {
+        match data {
+            Some(data) => EitherEndpoint::A(AddData::new(data).transform(self.into_endpoint())),
+            None => EitherEndpoint::B(self),
+        }
     }
 
     /// Maps the request of this endpoint.
@@ -735,9 +750,12 @@ mod test {
 
     use crate::{
         endpoint::{make, make_sync},
+        get, handler,
         http::{Method, StatusCode},
         middleware::SetHeader,
-        *,
+        test::TestClient,
+        web::Data,
+        Endpoint, EndpointExt, Error, IntoEndpoint, Request, Route,
     };
 
     #[tokio::test]
@@ -905,5 +923,26 @@ mod test {
                 .unwrap(),
             "b"
         );
+    }
+
+    #[tokio::test]
+    async fn test_data_opt() {
+        #[handler(internal)]
+        async fn index(data: Option<Data<&i32>>) -> String {
+            match data.as_deref() {
+                Some(value) => format!("{}", value),
+                None => "none".to_string(),
+            }
+        }
+
+        let cli = TestClient::new(index.data_opt(Some(100)));
+        let resp = cli.get("/").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_text("100").await;
+
+        let cli = TestClient::new(index.data_opt(None::<i32>));
+        let resp = cli.get("/").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_text("none").await;
     }
 }
