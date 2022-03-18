@@ -10,7 +10,9 @@
 use std::{io::ErrorKind, ops::Deref, sync::Arc};
 
 pub use lambda_http::lambda_runtime::Error;
-use lambda_http::{handler, lambda_runtime, Body as LambdaBody, Request as LambdaRequest};
+use lambda_http::{
+    lambda_runtime, service_fn, Body as LambdaBody, Request as LambdaRequest, RequestExt,
+};
 use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, RequestBody, Result};
 
 /// The Lambda function execution context.
@@ -58,40 +60,39 @@ impl Deref for Context {
 /// ```
 pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
     let ep = Arc::new(ep.map_to_response().into_endpoint());
-    lambda_http::lambda_runtime::run(handler(
-        move |req: LambdaRequest, ctx: lambda_runtime::Context| {
-            let ep = ep.clone();
-            async move {
-                let mut req: Request = from_lambda_request(req);
-                req.extensions_mut().insert(Context(ctx));
+    lambda_http::run(service_fn(move |req: LambdaRequest| {
+        let ctx = req.lambda_context();
+        let ep = ep.clone();
+        async move {
+            let mut req: Request = from_lambda_request(req);
+            req.extensions_mut().insert(Context(ctx));
 
-                let resp = match ep.call(req).await {
-                    Ok(resp) => resp,
-                    Err(err) => err.as_response(),
-                };
+            let resp = match ep.call(req).await {
+                Ok(resp) => resp,
+                Err(err) => err.as_response(),
+            };
 
-                let (parts, body) = resp.into_parts();
-                let data = body
-                    .into_vec()
-                    .await
-                    .map_err(|_| std::io::Error::new(ErrorKind::Other, "invalid request"))?;
-                let mut lambda_resp = poem::http::Response::new(if data.is_empty() {
-                    LambdaBody::Empty
-                } else {
-                    match String::from_utf8(data) {
-                        Ok(data) => LambdaBody::Text(data),
-                        Err(err) => LambdaBody::Binary(err.into_bytes()),
-                    }
-                });
-                *lambda_resp.status_mut() = parts.status;
-                *lambda_resp.version_mut() = parts.version;
-                *lambda_resp.headers_mut() = parts.headers;
-                *lambda_resp.extensions_mut() = parts.extensions;
+            let (parts, body) = resp.into_parts();
+            let data = body
+                .into_vec()
+                .await
+                .map_err(|_| std::io::Error::new(ErrorKind::Other, "invalid request"))?;
+            let mut lambda_resp = poem::http::Response::new(if data.is_empty() {
+                LambdaBody::Empty
+            } else {
+                match String::from_utf8(data) {
+                    Ok(data) => LambdaBody::Text(data),
+                    Err(err) => LambdaBody::Binary(err.into_bytes()),
+                }
+            });
+            *lambda_resp.status_mut() = parts.status;
+            *lambda_resp.version_mut() = parts.version;
+            *lambda_resp.headers_mut() = parts.headers;
+            *lambda_resp.extensions_mut() = parts.extensions;
 
-                Ok::<_, Error>(lambda_http::IntoResponse::into_response(lambda_resp))
-            }
-        },
-    ))
+            Ok::<_, Error>(lambda_http::IntoResponse::into_response(lambda_resp))
+        }
+    }))
     .await
 }
 
