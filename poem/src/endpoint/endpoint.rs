@@ -581,7 +581,7 @@ pub trait EndpointExt: IntoEndpoint {
         AndThen::new(self.into_endpoint(), f)
     }
 
-    /// Catch the all errors and convert it into a response.
+    /// Catch all errors and convert it into a response.
     ///
     /// # Example
     ///
