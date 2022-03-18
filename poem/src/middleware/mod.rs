@@ -18,9 +18,14 @@ mod propagate_header;
 mod sensitive_header;
 mod set_header;
 mod size_limit;
+#[cfg(feature = "tokio-metrics")]
+mod tokio_metrics_mw;
 #[cfg(feature = "tower-compat")]
 mod tower_compat;
 mod tracing_mw;
+
+#[cfg(feature = "tokio-metrics")]
+pub use tokio_metrics_mw::TokioMetrics;
 
 #[cfg(feature = "compression")]
 pub use self::compression::{Compression, CompressionEndpoint};
