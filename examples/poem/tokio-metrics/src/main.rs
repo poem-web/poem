@@ -2,13 +2,19 @@ use poem::{
     get, handler,
     listener::TcpListener,
     middleware::{TokioMetrics, Tracing},
-    web::Path,
     EndpointExt, Route, Server,
 };
+use std::time::Duration;
 
 #[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
+async fn a() -> &'static str {
+    "a"
+}
+
+#[handler]
+async fn b() -> &'static str {
+    tokio::time::sleep(Duration::from_millis(10)).await;
+    "b"
 }
 
 #[tokio::main]
@@ -18,12 +24,14 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
+    let metrics = TokioMetrics::new();
     let app = Route::new()
-        .at("/hello/:name", get(hello))
-        .with(Tracing)
-        .with(TokioMetrics::new("/metrics"));
+        .at("/a", get(a))
+        .at("/b", get(b))
+        .at("/metrics", metrics.exporter())
+        .with(metrics)
+        .with(Tracing);
     Server::new(TcpListener::bind("127.0.0.1:3000"))
-        .name("hello-world")
         .run(app)
         .await
 }
