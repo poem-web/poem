@@ -13,6 +13,10 @@ use parking_lot::Mutex;
 use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
+#[cfg(feature = "cache")]
+use crate::cache::Cache;
+#[cfg(feature = "session")]
+use crate::session::Session;
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
 use crate::{
@@ -453,6 +457,29 @@ impl Request {
             .lock()
             .take()
             .ok_or(UpgradeError::NoUpgrade)
+    }
+
+    /// Returns the session object.
+    ///
+    /// # Panics
+    ///
+    /// Panic if session middleware is not used.
+    #[cfg(feature = "session")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "session")))]
+    pub fn session(&self) -> &Session {
+        self.data::<Session>().expect("To use the `Session` extractor, the `CookieSession` or `ServerSession` middleware is required.")
+    }
+
+    /// Returns the cache object.
+    ///
+    /// # Panics
+    ///
+    /// Panic if cache middleware is not used.
+    #[cfg(feature = "cache")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "cache")))]
+    pub fn cache(&self) -> &Cache {
+        self.data::<Cache>()
+            .expect("To use the `Cache` extractor, the `CacheManager` middleware is required.")
     }
 }
 

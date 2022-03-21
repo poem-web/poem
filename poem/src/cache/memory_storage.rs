@@ -22,14 +22,20 @@ impl Entry {
 }
 
 pub struct MemoryStorage {
-    lru: Mutex<LruCache<Bytes, Entry>>,
+    lru: Mutex<LruCache<String, Entry>>,
 }
 
 #[async_trait::async_trait]
 impl CacheStorage for MemoryStorage {
-    async fn set(&self, key: Bytes, value: Bytes, expires_in: Option<Duration>) -> Result<()> {
+    async fn set(
+        &self,
+        _version: u64,
+        key: &str,
+        value: Bytes,
+        expires_in: Option<Duration>,
+    ) -> Result<()> {
         self.lru.lock().put(
-            key.into(),
+            key.to_string(),
             Entry {
                 value: value.into(),
                 expired_at: expires_in.map(|timeout| Instant::now() + timeout),
@@ -38,32 +44,32 @@ impl CacheStorage for MemoryStorage {
         Ok(())
     }
 
-    async fn get(&self, key: Bytes) -> Result<Option<Bytes>> {
+    async fn get(&self, _version: u64, key: &str) -> Result<Option<Bytes>> {
         Ok(self
             .lru
             .lock()
-            .get(&key)
+            .get(key)
             .filter(|entry| entry.is_expired())
             .map(|entry| entry.value.clone()))
     }
 
-    async fn touch(&self, key: Bytes, expires_in: Option<Duration>) -> Result<()> {
-        if let Some(entry) = self.lru.lock().get_mut(&key) {
+    async fn touch(&self, _version: u64, key: &str, expires_in: Option<Duration>) -> Result<()> {
+        if let Some(entry) = self.lru.lock().get_mut(key) {
             entry.expired_at = expires_in.map(|timeout| Instant::now() + timeout);
         }
         Ok(())
     }
 
-    async fn delete(&self, key: Bytes) -> Result<()> {
-        self.lru.lock().pop(&key);
+    async fn delete(&self, _version: u64, key: &str) -> Result<()> {
+        self.lru.lock().pop(key);
         Ok(())
     }
 
-    async fn contains_key(&self, key: Bytes) -> Result<bool> {
-        Ok(self.lru.lock().contains(&key))
+    async fn contains_key(&self, _version: u64, key: &str) -> Result<bool> {
+        Ok(self.lru.lock().contains(key))
     }
 
-    async fn clear(&self) -> Result<()> {
+    async fn clear(&self, _version: u64) -> Result<()> {
         self.lru.lock().clear();
         Ok(())
     }

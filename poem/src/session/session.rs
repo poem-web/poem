@@ -153,7 +153,7 @@ impl<'a> FromRequest<'a> for &'a Session {
         Ok(req
             .extensions()
             .get::<Session>()
-            .expect("To use the `Session` extractor, the `CookieSession` middleware is required."))
+            .expect("To use the `Session` extractor, the `CookieSession` or `ServerSession` middleware is required."))
     }
 }
 

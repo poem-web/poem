@@ -1,6 +1,5 @@
-use std::{marker::PhantomData, sync::Arc, time::Duration};
-
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use bytes::Bytes;
+use std::{sync::Arc, time::Duration};
 
 use crate::{cache::CacheStorage, FromRequest, Request, RequestBody, Result};
 
@@ -53,50 +52,83 @@ impl CacheGetOptions {
     }
 }
 
-pub struct Cache<K, V> {
+pub struct Cache {
     storage: Arc<dyn CacheStorage>,
-    _mark1: PhantomData<K>,
-    _mark2: PhantomData<V>,
+    version: u64,
 }
 
-impl<K, V> Cache<K, V>
-where
-    K: Serialize,
-    V: Serialize + DeserializeOwned,
-{
-    pub fn set(
+impl Cache {
+    #[inline]
+    pub(crate) fn new(storage: Arc<dyn CacheStorage>, version: u64) -> Self {
+        Self { storage, version }
+    }
+
+    pub async fn set(
         &self,
-        key: &K,
-        value: &V,
+        key: &str,
+        value: impl Into<Bytes>,
         options: impl Into<Option<CacheSetOptions>>,
     ) -> Result<()> {
-        todo!()
+        let options = options.into().unwrap_or_default();
+        let timeout = options.timeout;
+        let version = options.version.unwrap_or(self.version);
+        self.storage.set(version, key, value.into(), timeout).await
     }
 
-    pub fn get(&self, key: &K, options: impl Into<Option<CacheGetOptions>>) -> Result<Option<V>> {
-        todo!()
+    pub async fn get(
+        &self,
+        key: &str,
+        options: impl Into<Option<CacheGetOptions>>,
+    ) -> Result<Option<Bytes>> {
+        let options = options.into().unwrap_or_default();
+        let version = options.version.unwrap_or(self.version);
+        self.storage.get(version, key).await
     }
 
-    pub async fn touch(&self, key: &K, options: impl Into<Option<CacheGetOptions>>) -> Result<()> {
-        todo!()
+    pub async fn touch(
+        &self,
+        key: &str,
+        options: impl Into<Option<CacheSetOptions>>,
+    ) -> Result<()> {
+        let options = options.into().unwrap_or_default();
+        let timeout = options.timeout;
+        let version = options.version.unwrap_or(self.version);
+        self.storage.touch(version, key, timeout).await
     }
 
-    pub async fn delete(&self, key: &K, options: impl Into<Option<CacheGetOptions>>) -> Result<()> {
-        todo!()
+    pub async fn delete(
+        &self,
+        key: &str,
+        options: impl Into<Option<CacheGetOptions>>,
+    ) -> Result<()> {
+        let options = options.into().unwrap_or_default();
+        let version = options.version.unwrap_or(self.version);
+        self.storage.delete(version, key).await
     }
 
-    pub async fn contains_key(&self, key: &K, options: impl Into<Option<CacheGetOptions>>) -> bool {
-        todo!()
+    pub async fn contains_key(
+        &self,
+        key: &str,
+        options: impl Into<Option<CacheGetOptions>>,
+    ) -> Result<bool> {
+        let options = options.into().unwrap_or_default();
+        let version = options.version.unwrap_or(self.version);
+        self.storage.contains_key(version, key).await
     }
 
-    pub fn clear(&self, key: &K, options: impl Into<Option<CacheGetOptions>>) -> Result<()> {
-        todo!()
+    pub async fn clear(&self, options: impl Into<Option<CacheGetOptions>>) -> Result<()> {
+        let options = options.into().unwrap_or_default();
+        let version = options.version.unwrap_or(self.version);
+        self.storage.clear(version).await
     }
 }
 
 #[async_trait::async_trait]
-impl<'a, K, V> FromRequest<'a> for Cache<K, V> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        todo!()
+impl<'a> FromRequest<'a> for &'a Cache {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        Ok(req
+            .extensions()
+            .get::<Cache>()
+            .expect("To use the `Cache` extractor, the `CacheManager` middleware is required."))
     }
 }
