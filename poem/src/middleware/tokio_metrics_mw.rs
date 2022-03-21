@@ -75,6 +75,7 @@ impl<E: Endpoint> Middleware<E> for TokioMetrics {
     }
 }
 
+/// Endpoint for [`tokio-metrics`](https://crates.io/crates/tokio-metrics)
 pub struct TokioMetricsEndpoint<E> {
     inner: E,
     interval: Duration,

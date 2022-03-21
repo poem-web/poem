@@ -25,7 +25,7 @@ mod tower_compat;
 mod tracing_mw;
 
 #[cfg(feature = "tokio-metrics")]
-pub use tokio_metrics_mw::TokioMetrics;
+pub use tokio_metrics_mw::{TokioMetrics, TokioMetricsEndpoint};
 
 #[cfg(feature = "compression")]
 pub use self::compression::{Compression, CompressionEndpoint};
