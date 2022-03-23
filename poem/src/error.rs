@@ -66,6 +66,7 @@ type BoxAsResponseFn = Box<dyn Fn(&Error) -> Response + Send + Sync + 'static>;
 enum AsResponse {
     Status(StatusCode),
     Fn(BoxAsResponseFn),
+    Response(Response),
 }
 
 impl AsResponse {
@@ -79,13 +80,6 @@ impl AsResponse {
             let err = err.downcast_ref::<T>().expect("valid error");
             err.as_response()
         }))
-    }
-
-    fn as_response(&self, err: &Error) -> Response {
-        match self {
-            AsResponse::Status(status) => Response::builder().status(*status).body(err.to_string()),
-            AsResponse::Fn(f) => f(err),
-        }
     }
 }
 
@@ -187,7 +181,7 @@ impl AsResponse {
 /// ```
 pub struct Error {
     as_response: AsResponse,
-    source: ErrorSource,
+    source: Option<ErrorSource>,
 }
 
 impl Debug for Error {
@@ -201,11 +195,12 @@ impl Debug for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self.source {
-            ErrorSource::BoxedError(err) => Display::fmt(err, f),
+            Some(ErrorSource::BoxedError(err)) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
-            ErrorSource::Anyhow(err) => Display::fmt(err, f),
+            Some(ErrorSource::Anyhow(err)) => Display::fmt(err, f),
             #[cfg(feature = "eyre06")]
-            ErrorSource::Eyre06(err) => Display::fmt(err, f),
+            Some(ErrorSource::Eyre06(err)) => Display::fmt(err, f),
+            None => f.write_str("response"),
         }
     }
 }
@@ -220,7 +215,7 @@ impl<T: ResponseError + StdError + Send + Sync + 'static> From<T> for Error {
     fn from(err: T) -> Self {
         Error {
             as_response: AsResponse::from_type::<T>(),
-            source: ErrorSource::BoxedError(Box::new(err)),
+            source: Some(ErrorSource::BoxedError(Box::new(err))),
         }
     }
 }
@@ -235,7 +230,7 @@ impl From<(StatusCode, Box<dyn StdError + Send + Sync>)> for Error {
     fn from((status, err): (StatusCode, Box<dyn StdError + Send + Sync>)) -> Self {
         Error {
             as_response: AsResponse::from_status(status),
-            source: ErrorSource::BoxedError(err),
+            source: Some(ErrorSource::BoxedError(err)),
         }
     }
 }
@@ -245,7 +240,7 @@ impl From<anyhow::Error> for Error {
     fn from(err: anyhow::Error) -> Self {
         Error {
             as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
-            source: ErrorSource::Anyhow(err),
+            source: Some(ErrorSource::Anyhow(err)),
         }
     }
 }
@@ -255,7 +250,7 @@ impl From<eyre06::Error> for Error {
     fn from(err: eyre06::Error) -> Self {
         Error {
             as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
-            source: ErrorSource::Eyre06(err),
+            source: Some(ErrorSource::Eyre06(err)),
         }
     }
 }
@@ -265,7 +260,7 @@ impl From<(StatusCode, anyhow::Error)> for Error {
     fn from((status, err): (StatusCode, anyhow::Error)) -> Self {
         Error {
             as_response: AsResponse::from_status(status),
-            source: ErrorSource::Anyhow(err),
+            source: Some(ErrorSource::Anyhow(err)),
         }
     }
 }
@@ -275,7 +270,7 @@ impl From<(StatusCode, eyre06::Report)> for Error {
     fn from((status, err): (StatusCode, eyre06::Report)) -> Self {
         Error {
             as_response: AsResponse::from_status(status),
-            source: ErrorSource::Eyre06(err),
+            source: Some(ErrorSource::Eyre06(err)),
         }
     }
 }
@@ -292,7 +287,15 @@ impl Error {
     pub fn new<T: StdError + Send + Sync + 'static>(err: T, status: StatusCode) -> Self {
         Self {
             as_response: AsResponse::from_status(status),
-            source: ErrorSource::BoxedError(Box::new(err)),
+            source: Some(ErrorSource::BoxedError(Box::new(err))),
+        }
+    }
+
+    /// Create a new error object from response.
+    pub fn from_response(resp: Response) -> Self {
+        Self {
+            as_response: AsResponse::Response(resp),
+            source: None,
         }
     }
 
@@ -324,11 +327,12 @@ impl Error {
     #[inline]
     pub fn downcast_ref<T: StdError + Send + Sync + 'static>(&self) -> Option<&T> {
         match &self.source {
-            ErrorSource::BoxedError(err) => err.downcast_ref::<T>(),
+            Some(ErrorSource::BoxedError(err)) => err.downcast_ref::<T>(),
             #[cfg(feature = "anyhow")]
-            ErrorSource::Anyhow(err) => err.downcast_ref::<T>(),
+            Some(ErrorSource::Anyhow(err)) => err.downcast_ref::<T>(),
             #[cfg(feature = "eyre06")]
-            ErrorSource::Eyre06(err) => err.downcast_ref::<T>(),
+            Some(ErrorSource::Eyre06(err)) => err.downcast_ref::<T>(),
+            None => None,
         }
     }
 
@@ -338,29 +342,33 @@ impl Error {
         let as_response = self.as_response;
 
         match self.source {
-            ErrorSource::BoxedError(err) => match err.downcast::<T>() {
+            Some(ErrorSource::BoxedError(err)) => match err.downcast::<T>() {
                 Ok(err) => Ok(*err),
                 Err(err) => Err(Error {
                     as_response,
-                    source: ErrorSource::BoxedError(err),
+                    source: Some(ErrorSource::BoxedError(err)),
                 }),
             },
             #[cfg(feature = "anyhow")]
-            ErrorSource::Anyhow(err) => match err.downcast::<T>() {
+            Some(ErrorSource::Anyhow(err)) => match err.downcast::<T>() {
                 Ok(err) => Ok(err),
                 Err(err) => Err(Error {
                     as_response,
-                    source: ErrorSource::Anyhow(err),
+                    source: Some(ErrorSource::Anyhow(err)),
                 }),
             },
             #[cfg(feature = "eyre06")]
-            ErrorSource::Eyre06(err) => match err.downcast::<T>() {
+            Some(ErrorSource::Eyre06(err)) => match err.downcast::<T>() {
                 Ok(err) => Ok(err),
                 Err(err) => Err(Error {
                     as_response,
-                    source: ErrorSource::Eyre06(err),
+                    source: Some(ErrorSource::Eyre06(err)),
                 }),
             },
+            None => Err(Error {
+                as_response,
+                source: None,
+            }),
         }
     }
 
@@ -368,17 +376,22 @@ impl Error {
     #[inline]
     pub fn is<T: StdError + Debug + Send + Sync + 'static>(&self) -> bool {
         match &self.source {
-            ErrorSource::BoxedError(err) => err.is::<T>(),
+            Some(ErrorSource::BoxedError(err)) => err.is::<T>(),
             #[cfg(feature = "anyhow")]
-            ErrorSource::Anyhow(err) => err.is::<T>(),
+            Some(ErrorSource::Anyhow(err)) => err.is::<T>(),
             #[cfg(feature = "eyre06")]
-            ErrorSource::Eyre06(err) => err.is::<T>(),
+            Some(ErrorSource::Eyre06(err)) => err.is::<T>(),
+            None => false,
         }
     }
 
     /// Consumes this to return a response object.
-    pub fn as_response(&self) -> Response {
-        self.as_response.as_response(self)
+    pub fn into_response(self) -> Response {
+        match self.as_response {
+            AsResponse::Status(status) => Response::builder().status(status).body(self.to_string()),
+            AsResponse::Fn(ref f) => f(&self),
+            AsResponse::Response(resp) => resp,
+        }
     }
 }
 
@@ -942,7 +955,7 @@ mod tests {
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
         );
-        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(err.into_response().status(), StatusCode::BAD_GATEWAY);
     }
 
     #[test]
@@ -955,7 +968,7 @@ mod tests {
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
         );
-        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(err.into_response().status(), StatusCode::BAD_GATEWAY);
     }
 
     #[cfg(feature = "anyhow")]
@@ -968,7 +981,7 @@ mod tests {
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
         );
-        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(err.into_response().status(), StatusCode::BAD_GATEWAY);
     }
 
     #[cfg(feature = "eyre6")]
@@ -981,7 +994,7 @@ mod tests {
             err.downcast_ref::<IoError>().unwrap().kind(),
             ErrorKind::AlreadyExists
         );
-        assert_eq!(err.as_response().status(), StatusCode::BAD_GATEWAY);
+        assert_eq!(err.into_response().status(), StatusCode::BAD_GATEWAY);
     }
 
     #[tokio::test]
@@ -1003,7 +1016,7 @@ mod tests {
         }
 
         let err = Error::from(MyError);
-        let resp = err.as_response();
+        let resp = err.into_response();
 
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
         assert_eq!(

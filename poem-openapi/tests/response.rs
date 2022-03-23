@@ -2,23 +2,24 @@ mod request;
 
 use poem::{
     http::{HeaderValue, StatusCode},
+    test::TestClient,
     Error, IntoResponse,
 };
 use poem_openapi::{
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
     types::{ToJSON, Type},
-    ApiResponse, Object,
+    ApiResponse, Object, OpenApi, OpenApiService,
 };
 use serde_json::Value;
 
-#[derive(Object)]
+#[derive(Debug, Object)]
 struct BadRequestResult {
     error_code: i32,
     message: String,
 }
 
-#[derive(ApiResponse)]
+#[derive(Debug, ApiResponse)]
 enum MyResponse {
     /// Ok
     #[oai(status = 200)]
@@ -393,4 +394,26 @@ async fn extra_headers_on_item() {
         Some("abc")
     );
     assert_eq!(meta.responses[0].headers[2].deprecated, true);
+}
+
+#[tokio::test]
+async fn as_error() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "get")]
+        async fn test(&self) -> Result<(), MyResponse> {
+            Err(MyResponse::Default(
+                StatusCode::BAD_GATEWAY,
+                PlainText("abc".to_string()),
+            ))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    let resp = cli.get("/abc").send().await;
+    resp.assert_status(StatusCode::BAD_GATEWAY);
 }

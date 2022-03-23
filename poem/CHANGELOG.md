@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.3.17] 2022-3-23
 
 - Add `server` feature. (enable by default)
+- Change `Error::as_response` to `Error::into_response`.
 
 # [1.3.16] 2022-3-18
 

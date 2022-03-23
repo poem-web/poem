@@ -290,6 +290,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 #bad_request_handler
             }
+
+            impl #impl_generics ::std::convert::From<#ident #ty_generics> for #crate_name::__private::poem::Error #where_clause {
+                fn from(resp: #ident #ty_generics) -> #crate_name::__private::poem::Error {
+                    use #crate_name::__private::poem::IntoResponse;
+                    #crate_name::__private::poem::Error::from_response(resp.into_response())
+                }
+            }
         }
     };
 

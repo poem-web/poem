@@ -67,11 +67,7 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
             let mut req: Request = from_lambda_request(req);
             req.extensions_mut().insert(Context(ctx));
 
-            let resp = match ep.call(req).await {
-                Ok(resp) => resp,
-                Err(err) => err.as_response(),
-            };
-
+            let resp = ep.get_response(req).await;
             let (parts, body) = resp.into_parts();
             let data = body
                 .into_vec()

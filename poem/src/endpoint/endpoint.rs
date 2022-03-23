@@ -49,7 +49,7 @@ pub trait Endpoint: Send + Sync {
         self.call(req)
             .await
             .map(IntoResponse::into_response)
-            .unwrap_or_else(|err| err.as_response())
+            .unwrap_or_else(|err| err.into_response())
     }
 }
 
@@ -475,7 +475,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
     ///
     /// let err = ep2.call(Request::default()).await.unwrap_err();
-    /// assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(err.into_response().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
     fn map_to_response(self) -> MapToResponse<Self::Endpoint>
@@ -566,7 +566,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// assert_eq!(resp, "hello, world!");
     ///
     /// let err: Error = ep2.call(Request::default()).await.unwrap_err();
-    /// assert_eq!(err.as_response().status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(err.into_response().status(), StatusCode::BAD_REQUEST);
     /// # });
     /// ```
     fn and_then<F, Fut, R, R2>(self, f: F) -> AndThen<Self::Endpoint, F>

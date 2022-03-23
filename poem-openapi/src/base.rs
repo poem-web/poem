@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt::Debug, ops::Deref};
 
 use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
@@ -295,7 +295,11 @@ impl ApiResponse for () {
     fn register(_registry: &mut Registry) {}
 }
 
-impl<T: ApiResponse> ApiResponse for Result<T> {
+impl<T, E> ApiResponse for Result<T, E>
+where
+    T: ApiResponse,
+    E: Into<Error> + Debug + Send + Sync + 'static,
+{
     const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER;
 
     fn meta() -> MetaResponses {
