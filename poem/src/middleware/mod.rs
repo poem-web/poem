@@ -24,9 +24,6 @@ mod tokio_metrics_mw;
 mod tower_compat;
 mod tracing_mw;
 
-#[cfg(feature = "tokio-metrics")]
-pub use tokio_metrics_mw::TokioMetrics;
-
 #[cfg(feature = "compression")]
 pub use self::compression::{Compression, CompressionEndpoint};
 #[cfg(feature = "cookie")]
@@ -37,6 +34,8 @@ pub use self::csrf::{Csrf, CsrfEndpoint};
 pub use self::opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
 #[cfg(feature = "opentelemetry")]
 pub use self::opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
+#[cfg(feature = "tokio-metrics")]
+pub use self::tokio_metrics_mw::{TokioMetrics, TokioMetricsEndpoint};
 #[cfg(feature = "tower-compat")]
 pub use self::tower_compat::TowerLayerCompatExt;
 pub use self::{

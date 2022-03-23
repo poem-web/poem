@@ -1,35 +1,18 @@
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use parking_lot::Mutex;
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::Serialize;
 use tokio_metrics::{TaskMetrics, TaskMonitor};
 
 use crate::{
     endpoint::make_sync, Endpoint, IntoResponse, Middleware, Request, Response, Result, RouteMethod,
 };
 
-#[derive(Clone, Default)]
-struct Monitors(Arc<Mutex<BTreeMap<String, (TaskMonitor, Metrics)>>>);
-
-impl Serialize for Monitors {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let monitors = self.0.lock();
-        let mut s = serializer.serialize_map(Some(monitors.len()))?;
-        for (path, (_, metrics)) in monitors.iter() {
-            s.serialize_entry(path, metrics)?;
-        }
-        s.end()
-    }
-}
-
 /// Middleware for metrics with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.
 #[cfg_attr(docsrs, doc(cfg(feature = "tokio-metrics")))]
 pub struct TokioMetrics {
     interval: Duration,
-    monitors: Monitors,
+    metrics: Arc<Mutex<Metrics>>,
 }
 
 impl Default for TokioMetrics {
@@ -43,7 +26,7 @@ impl TokioMetrics {
     pub fn new() -> Self {
         Self {
             interval: Duration::from_secs(5),
-            monitors: Default::default(),
+            metrics: Default::default(),
         }
     }
 
@@ -54,9 +37,9 @@ impl TokioMetrics {
 
     /// Create an endpoint for exporting metrics.
     pub fn exporter(&self) -> impl Endpoint {
-        let monitors = self.monitors.clone();
+        let metrics = self.metrics.clone();
         RouteMethod::new().get(make_sync(move |_| {
-            serde_json::to_string(&monitors)
+            serde_json::to_string(&*metrics.lock())
                 .unwrap()
                 .with_content_type("application/json")
         }))
@@ -67,18 +50,31 @@ impl<E: Endpoint> Middleware<E> for TokioMetrics {
     type Output = TokioMetricsEndpoint<E>;
 
     fn transform(&self, ep: E) -> Self::Output {
-        TokioMetricsEndpoint {
-            inner: ep,
-            interval: self.interval,
-            monitors: self.monitors.clone(),
-        }
+        let monitor = TaskMonitor::new();
+        let interval = self.interval;
+        let metrics = self.metrics.clone();
+
+        tokio::spawn({
+            let monitor = monitor.clone();
+            async move {
+                let mut intervals = monitor.intervals();
+                loop {
+                    tokio::time::sleep(interval).await;
+                    if let Some(m) = intervals.next() {
+                        *metrics.lock() = m.into();
+                    }
+                }
+            }
+        });
+
+        TokioMetricsEndpoint { inner: ep, monitor }
     }
 }
 
+/// Endpoint for TokioMetrics middleware.
 pub struct TokioMetricsEndpoint<E> {
     inner: E,
-    interval: Duration,
-    monitors: Monitors,
+    monitor: TaskMonitor,
 }
 
 #[async_trait::async_trait]
@@ -86,45 +82,8 @@ impl<E: Endpoint> Endpoint for TokioMetricsEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
-        let task_monitor = {
-            let mut monitors = self.monitors.0.lock();
-            let path = req.uri().path();
-
-            match monitors.get(path) {
-                Some((monitor, _)) => monitor.clone(),
-                None => {
-                    let task_monitor = TaskMonitor::new();
-                    let weak_monitors = Arc::downgrade(&self.monitors.0);
-                    let interval = self.interval;
-                    let path = path.to_string();
-
-                    monitors.insert(path.clone(), (task_monitor.clone(), Default::default()));
-                    tokio::spawn({
-                        let task_monitor = task_monitor.clone();
-                        async move {
-                            for current_metrics in task_monitor.intervals() {
-                                match weak_monitors.upgrade() {
-                                    Some(monitors) => {
-                                        let mut monitors = monitors.lock();
-                                        if let Some((_, metrics)) = monitors.get_mut(&path) {
-                                            *metrics = current_metrics.into();
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                    None => break,
-                                }
-                                tokio::time::sleep(interval).await;
-                            }
-                        }
-                    });
-
-                    task_monitor
-                }
-            }
-        };
-
-        Ok(task_monitor
+        Ok(self
+            .monitor
             .instrument(self.inner.call(req))
             .await?
             .into_response())
