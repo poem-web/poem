@@ -230,6 +230,7 @@
 //!
 //! |Feature           |Description                     |
 //! |------------------|--------------------------------|
+//! | server | Server and listener APIs(enable by default) |
 //! |compression  | Support decompress request body and compress response body |
 //! |cookie            | Support for Cookie             |
 //! |csrf | Support for Cross-Site Request Forgery (CSRF) protection |
@@ -262,6 +263,8 @@ pub mod error;
 #[cfg(feature = "i18n")]
 #[cfg_attr(docsrs, doc(cfg(feature = "i18n")))]
 pub mod i18n;
+#[cfg(feature = "server")]
+#[cfg_attr(docsrs, doc(cfg(feature = "server")))]
 pub mod listener;
 pub mod middleware;
 #[cfg(feature = "session")]
@@ -280,6 +283,7 @@ mod body;
 mod request;
 mod response;
 mod route;
+#[cfg(feature = "server")]
 mod server;
 
 pub use addr::Addr;
@@ -295,5 +299,6 @@ pub use route::{
     connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,
     RouteScheme,
 };
+#[cfg(feature = "server")]
 pub use server::Server;
 pub use web::{FromRequest, IntoResponse, RequestBody};

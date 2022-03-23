@@ -18,17 +18,18 @@ categories = [
 ]
 
 [features]
-default = []
-websocket = ["tokio-tungstenite", "base64"]
+default = ["server"]
+server = ["tokio/rt", "tokio/net", "hyper/server", "hyper/runtime"]
+websocket = ["tokio/rt", "tokio-tungstenite", "base64"]
 multipart = ["multer"]
-rustls = ["tokio-rustls", "rustls-pemfile"]
-native-tls = ["tokio-native-tls"]
+rustls = ["server", "tokio-rustls", "rustls-pemfile"]
+native-tls = ["server", "tokio-native-tls"]
 sse = []
 static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression", "typed-headers"]
-tower-compat = ["tower"]
+tower-compat = ["tokio/rt", "tower"]
 cookie = ["libcookie", "chrono", "time"]
-session = ["cookie", "rand", "priority-queue"]
+session = ["tokio/rt", "cookie", "rand", "priority-queue"]
 redis-session = ["session", "redis"]
 opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
@@ -36,7 +37,7 @@ tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
 test = ["sse", "sse-codec", "tokio-util/compat"]
 i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
-acme = ["hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser"]
+acme = ["server", "hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.3.16" }
@@ -45,8 +46,8 @@ async-trait = "0.1.51"
 bytes = "1.1.0"
 futures-util = { version = "0.3.17", features = ["sink"] }
 http = "0.2.5"
-hyper = { version = "0.14.17", features = ["http1", "http2", "server", "runtime", "stream"] }
-tokio = { version = "1.17.0", features = ["sync", "rt", "net", "time", "macros"] }
+hyper = { version = "0.14.17", features = ["http1", "http2", "stream"] }
+tokio = { version = "1.17.0", features = ["sync", "time", "macros"] }
 tokio-util = { version = "0.7.0", features = ["io"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"

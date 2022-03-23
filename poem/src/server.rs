@@ -27,6 +27,7 @@ enum Either<L, A> {
 }
 
 /// An HTTP Server.
+#[cfg_attr(docsrs, doc(cfg(feature = "server")))]
 pub struct Server<L, A> {
     listener: Either<L, A>,
     name: Option<String>,

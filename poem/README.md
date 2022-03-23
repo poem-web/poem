@@ -51,6 +51,7 @@ which are disabled by default:
 
 | Feature       | Description                                                                               |
 |---------------|-------------------------------------------------------------------------------------------|
+| server        | Server and listener APIs(enable by default)                                               |                                                     |
 | compression   | Support decompress request body and compress response body                                |
 | cookie        | Support for Cookie                                                                        |
 | csrf          | Support for Cross-Site Request Forgery (CSRF) protection                                  |
