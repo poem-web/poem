@@ -8,12 +8,13 @@ mod html;
 mod json;
 mod plain_text;
 mod response;
+mod form;
 
 use poem::{Request, RequestBody, Result};
 
 pub use self::{
     attachment::Attachment, base64_payload::Base64, binary::Binary, event_stream::EventStream,
-    html::Html, json::Json, plain_text::PlainText, response::Response,
+    html::Html, json::Json, plain_text::PlainText, response::Response, form::Form,
 };
 use crate::registry::{MetaSchemaRef, Registry};
 
