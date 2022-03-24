@@ -1,0 +1,13 @@
+[package]
+name = "sse"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+poem = { path = "../../../../poem", default_features = false, features = ["sse"] }
+poem-wasm = { path = "../../../../poem-wasm" }
+tokio = { version = "1.17.0", features = ["time", "macros", "rt"] }
+tokio-stream = "0.1.8"

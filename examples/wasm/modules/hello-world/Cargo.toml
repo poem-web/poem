@@ -1,0 +1,12 @@
+[package]
+name = "hello-world"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+poem = { path = "../../../../poem", default_features = false }
+poem-wasm = { path = "../../../../poem-wasm" }
+tokio = { version = "1.17", features = ["macros", "rt"] }

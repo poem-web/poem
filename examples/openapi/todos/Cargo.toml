@@ -1,5 +1,5 @@
 [package]
-name = "poem-todos"
+name = "example-openapi-todos"
 version = "0.1.0"
 edition = "2021"
 

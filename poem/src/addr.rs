@@ -9,8 +9,8 @@ pub enum Addr {
     /// Internet socket address
     SocketAddr(std::net::SocketAddr),
     /// Unix domain socket address
-    #[cfg(unix)]
-    #[cfg_attr(docsrs, doc(cfg(unix)))]
+    #[cfg(all(unix, feature = "server"))]
+    #[cfg_attr(docsrs, doc(cfg(unix, feature = "server")))]
     Unix(std::sync::Arc<tokio::net::unix::SocketAddr>),
     /// Custom address
     Custom(&'static str, Cow<'static, str>),
@@ -26,7 +26,7 @@ impl PartialEq for Addr {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Addr::SocketAddr(addr1), Addr::SocketAddr(addr2)) => addr1 == addr2,
-            #[cfg(unix)]
+            #[cfg(all(unix, feature = "server"))]
             (Addr::Unix(addr1), Addr::Unix(addr2)) => addr1.as_pathname() == addr2.as_pathname(),
             (Addr::Custom(scheme1, addr1), Addr::Custom(scheme2, addr2)) => {
                 scheme1 == scheme2 && addr1 == addr2
@@ -42,7 +42,7 @@ impl From<std::net::SocketAddr> for Addr {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, feature = "server"))]
 impl From<tokio::net::unix::SocketAddr> for Addr {
     fn from(addr: tokio::net::unix::SocketAddr) -> Self {
         Addr::Unix(addr.into())
@@ -56,8 +56,8 @@ impl Addr {
     }
 
     /// Create a unix socket address.
-    #[cfg(unix)]
-    #[cfg_attr(docsrs, doc(cfg(unix)))]
+    #[cfg(all(unix, feature = "server"))]
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "server"))))]
     pub fn unix(addr: tokio::net::unix::SocketAddr) -> Self {
         Self::Unix(addr.into())
     }
@@ -78,8 +78,8 @@ impl Addr {
 
     /// If the address is a unix socket address, returns it. Returns None
     /// otherwise.
-    #[cfg(unix)]
-    #[cfg_attr(docsrs, doc(cfg(unix)))]
+    #[cfg(all(unix, feature = "server"))]
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "server"))))]
     pub fn as_unix_socket_addr(&self) -> Option<&tokio::net::unix::SocketAddr> {
         match self {
             Addr::Unix(addr) => Some(addr),
@@ -92,7 +92,7 @@ impl Display for Addr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Addr::SocketAddr(addr) => write!(f, "socket://{}", addr),
-            #[cfg(unix)]
+            #[cfg(all(unix, feature = "server"))]
             Addr::Unix(addr) => match addr.as_pathname() {
                 Some(path) => write!(f, "unix://{}", path.display()),
                 None => f.write_str("unix://unknown"),
