@@ -7,7 +7,7 @@ use poem::{
 };
 use poem_openapi::{
     payload::{Json, PlainText},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
+    registry::{MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
     types::{ToJSON, Type},
     ApiResponse, Object, OpenApi, OpenApiService,
 };
@@ -398,22 +398,52 @@ async fn extra_headers_on_item() {
 
 #[tokio::test]
 async fn as_error() {
+    #[allow(dead_code)]
+    #[derive(Debug, ApiResponse)]
+    enum OkResponse {
+        /// Ok
+        #[oai(status = 200)]
+        Ok,
+        /// Created
+        #[oai(status = 201)]
+        Created,
+    }
+
+    #[derive(Debug, ApiResponse)]
+    enum ErrResponse {
+        /// Bad gateway
+        #[oai(status = 502)]
+        BadGateway,
+    }
+
     struct Api;
 
     #[OpenApi]
     impl Api {
-        #[oai(path = "/abc", method = "get")]
-        async fn test(&self) -> Result<(), MyResponse> {
-            Err(MyResponse::Default(
-                StatusCode::BAD_GATEWAY,
-                PlainText("abc".to_string()),
-            ))
+        #[oai(path = "/ok", method = "get")]
+        async fn ok(&self) -> Result<OkResponse, ErrResponse> {
+            Ok(OkResponse::Created)
+        }
+
+        #[oai(path = "/err", method = "get")]
+        async fn err(&self) -> Result<OkResponse, ErrResponse> {
+            Err(ErrResponse::BadGateway)
         }
     }
 
     let ep = OpenApiService::new(Api, "test", "1.0");
     let cli = TestClient::new(ep);
 
-    let resp = cli.get("/abc").send().await;
+    let resp = cli.get("/ok").send().await;
+    resp.assert_status(StatusCode::CREATED);
+
+    let resp = cli.get("/err").send().await;
     resp.assert_status(StatusCode::BAD_GATEWAY);
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/ok");
+    let responses = &meta.paths[0].operations[0].responses.responses;
+    assert_eq!(responses[0].status, Some(200));
+    assert_eq!(responses[1].status, Some(201));
+    assert_eq!(responses[2].status, Some(502));
 }

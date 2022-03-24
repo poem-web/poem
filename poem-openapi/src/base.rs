@@ -295,19 +295,32 @@ impl ApiResponse for () {
     fn register(_registry: &mut Registry) {}
 }
 
+impl ApiResponse for Error {
+    fn meta() -> MetaResponses {
+        MetaResponses {
+            responses: Vec::new(),
+        }
+    }
+
+    fn register(_registry: &mut Registry) {}
+}
+
 impl<T, E> ApiResponse for Result<T, E>
 where
     T: ApiResponse,
-    E: Into<Error> + Debug + Send + Sync + 'static,
+    E: ApiResponse + Into<Error> + Send + Sync + 'static,
 {
     const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER;
 
     fn meta() -> MetaResponses {
-        T::meta()
+        let mut meta = T::meta();
+        meta.responses.extend(E::meta().responses);
+        meta
     }
 
     fn register(registry: &mut Registry) {
         T::register(registry);
+        E::register(registry);
     }
 
     fn from_parse_request_error(err: Error) -> Self {

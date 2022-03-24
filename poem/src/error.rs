@@ -502,7 +502,7 @@ pub trait IntoResult<T: IntoResponse> {
 impl<T, E> IntoResult<T> for Result<T, E>
 where
     T: IntoResponse,
-    E: Into<Error> + Debug + Send + Sync + 'static,
+    E: Into<Error> + Send + Sync + 'static,
 {
     #[inline]
     fn into_result(self) -> Result<T> {
