@@ -1,13 +1,10 @@
-use std::{borrow::Cow, pin::Pin};
+use std::borrow::Cow;
 
 use poem::{
     http::{HeaderMap, StatusCode},
-    Request,
+    Request, Result,
 };
-use tokio::{
-    io::AsyncRead,
-    sync::mpsc::{channel, Receiver, Sender},
-};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
 #[derive(Debug)]
@@ -20,16 +17,18 @@ pub(crate) enum ResponseMsg {
 pub(crate) struct ExecState {
     pub(crate) wasi: WasiCtx,
     pub(crate) request: String,
-    pub(crate) request_body: Pin<Box<dyn AsyncRead + Send + Sync>>,
-    pub(crate) response_sender: Sender<ResponseMsg>,
+    pub(crate) request_body: Vec<u8>,
+    pub(crate) response_sender: UnboundedSender<ResponseMsg>,
 }
 
 impl ExecState {
-    pub(crate) fn new(mut request: Request) -> (Self, Receiver<ResponseMsg>) {
+    pub(crate) async fn new(
+        mut request: Request,
+    ) -> Result<(Self, UnboundedReceiver<ResponseMsg>)> {
         let wasi = WasiCtxBuilder::new().inherit_stdout().build();
-        let (tx, rx) = channel(8);
-        let request_body = Box::pin(request.take_body().into_async_read());
-        (
+        let (tx, rx) = unbounded_channel();
+        let request_body = request.take_body().into_vec().await?;
+        Ok((
             Self {
                 wasi,
                 request: build_request_string(&request),
@@ -37,7 +36,7 @@ impl ExecState {
                 response_sender: tx,
             },
             rx,
-        )
+        ))
     }
 }
 

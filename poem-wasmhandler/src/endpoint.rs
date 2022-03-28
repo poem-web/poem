@@ -38,7 +38,7 @@ impl Endpoint for WasmEndpoint {
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
         // create wasm instance
-        let (state, mut body_receiver) = ExecState::new(req);
+        let (state, mut body_receiver) = ExecState::new(req).await?;
         let mut store = Store::new(&self.engine, state);
 
         tracing::debug!("instantiate WASM module");
@@ -97,9 +97,9 @@ impl Endpoint for WasmEndpoint {
 }
 
 fn wrap_body_stream(
-    receiver: mpsc::Receiver<ResponseMsg>,
+    receiver: mpsc::UnboundedReceiver<ResponseMsg>,
 ) -> impl Stream<Item = Result<Vec<u8>, std::io::Error>> {
-    tokio_stream::wrappers::ReceiverStream::new(receiver)
+    tokio_stream::wrappers::UnboundedReceiverStream::new(receiver)
         .filter_map(|msg| match msg {
             ResponseMsg::Body(data) => Some(data),
             _ => None,

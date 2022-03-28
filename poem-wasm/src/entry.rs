@@ -2,11 +2,11 @@ use std::str::FromStr;
 
 use poem::{
     http::{header::HeaderName, HeaderMap, HeaderValue, Method, Uri},
-    Body, Endpoint, Request,
+    Endpoint, Request,
 };
 use tokio::io::AsyncReadExt;
 
-use crate::{ffi, request_body::RequestBodyStream};
+use crate::ffi;
 
 pub async fn run<E: Endpoint>(ep: E) {
     unsafe {
@@ -33,7 +33,7 @@ pub async fn run<E: Endpoint>(ep: E) {
     }
 }
 
-unsafe fn create_request() -> Request {
+unsafe fn get_request_data() -> Vec<u8> {
     let mut data_len = 0u32;
 
     debug_assert_eq!(ffi::request_get(0, 0, &mut data_len as *mut u32 as u32), -1);
@@ -48,7 +48,30 @@ unsafe fn create_request() -> Request {
         0
     );
 
-    let mut iter = std::str::from_utf8_unchecked(&data).split('\n');
+    data
+}
+
+unsafe fn get_request_body() -> Vec<u8> {
+    let mut data_len = 0u32;
+
+    ffi::request_get_body(0, 0, &mut data_len as *mut u32 as u32);
+    let mut data = vec![0u8; data_len as usize];
+
+    debug_assert_eq!(
+        ffi::request_get_body(
+            data.as_mut_ptr() as u32,
+            data.len() as u32,
+            &mut data_len as *mut u32 as u32,
+        ),
+        0
+    );
+
+    data
+}
+
+unsafe fn create_request() -> Request {
+    let request_data = get_request_data();
+    let mut iter = std::str::from_utf8_unchecked(&request_data).split('\n');
     let method_str = iter.next().unwrap();
     let method = method_str.parse::<Method>().unwrap();
     let uri_str = iter.next().unwrap();
@@ -74,7 +97,7 @@ unsafe fn create_request() -> Request {
     request.set_method(method);
     *request.uri_mut() = uri;
     *request.headers_mut() = headers;
-    request.set_body(Body::from_async_read(RequestBodyStream));
+    request.set_body(get_request_body());
 
     request
 }
