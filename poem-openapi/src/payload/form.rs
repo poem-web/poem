@@ -1,9 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{Request, RequestBody, Result};
+use poem::{
+    error::ParseFormError,
+    http::{header, HeaderValue, Method},
+    Request, RequestBody, Result,
+};
 use serde::de::DeserializeOwned;
-use poem::error::ParseFormError;
-use poem::http::{header, HeaderValue, Method};
 
 use crate::{
     payload::{ParsePayload, Payload},
@@ -50,8 +52,8 @@ impl<T: DeserializeOwned> ParsePayload for Form<T> {
         let content_type = req.headers().get(header::CONTENT_TYPE);
         if content_type
             != Some(&HeaderValue::from_static(
-            "application/x-www-form-urlencoded",
-        ))
+                "application/x-www-form-urlencoded",
+            ))
         {
             return match content_type.and_then(|value| value.to_str().ok()) {
                 Some(ty) => Err(ParseFormError::InvalidContentType(ty.to_string()).into()),
