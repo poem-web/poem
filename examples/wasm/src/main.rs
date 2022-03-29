@@ -24,26 +24,30 @@ async fn main() -> Result<(), std::io::Error> {
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
             WasmEndpointBuilder::new(wasm)
-                .udf("env", "udf_add", |a: i32, b: i32| a + b)
-                .udf(
-                    "env",
-                    "udf_touppercase",
-                    |mut caller: Caller<WasmEndpointState>, buf: u32, buf_len: u32| {
-                        let memory = match caller.get_export("memory") {
-                            Some(Extern::Memory(memory)) => memory,
-                            _ => return Err(Trap::new("memory not found")),
-                        };
-                        let memory = memory.data_mut(&mut caller);
-                        let s = std::str::from_utf8_mut(
-                            &mut memory[buf as usize..(buf + buf_len) as usize],
-                        )
-                        .map_err(|err| Trap::new(err.to_string()))?;
-                        s.make_ascii_uppercase();
-                        Ok(())
-                    },
-                )
+                .udf("env", "udf_add", udf_add)
+                .udf("env", "udf_touppercase", udf_toppercase)
                 .build()
                 .unwrap(),
         )
         .await
+}
+
+fn udf_add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+fn udf_toppercase(
+    mut caller: Caller<WasmEndpointState>,
+    buf: u32,
+    buf_len: u32,
+) -> Result<(), Trap> {
+    let memory = match caller.get_export("memory") {
+        Some(Extern::Memory(memory)) => memory,
+        _ => return Err(Trap::new("memory not found")),
+    };
+    let memory = memory.data_mut(&mut caller);
+    let s = std::str::from_utf8_mut(&mut memory[buf as usize..(buf + buf_len) as usize])
+        .map_err(|err| Trap::new(err.to_string()))?;
+    s.make_ascii_uppercase();
+    Ok(())
 }

@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use poem::wasi::IntervalStream;
 use poem::{
     handler,
     web::sse::{Event, SSE},
@@ -11,7 +12,7 @@ use tokio_stream::StreamExt;
 async fn index() -> impl IntoResponse {
     let now = Instant::now();
     SSE::new(
-        poem::wasi::IntervalStream::new(Duration::from_secs(1))
+        IntervalStream::new(Duration::from_secs(1))
             .map(move |_| Event::message(now.elapsed().as_secs().to_string())),
     )
     .keep_alive(Duration::from_secs(5))
