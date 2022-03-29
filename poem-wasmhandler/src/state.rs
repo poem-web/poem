@@ -17,7 +17,7 @@ pub(crate) enum ResponseMsg {
     Body(Vec<u8>),
 }
 
-pub struct WasmEndpointState<State> {
+pub struct WasmEndpointState<State = ()> {
     pub(crate) wasi: WasiCtx,
     pub(crate) user_state: State,
     pub(crate) request: String,
