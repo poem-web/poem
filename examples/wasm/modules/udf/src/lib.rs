@@ -1,5 +1,4 @@
-use poem::web::Query;
-use poem::{handler, IntoResponse, Route};
+use poem::{handler, web::Query, IntoResponse, Route};
 use serde::Deserialize;
 
 extern "C" {
