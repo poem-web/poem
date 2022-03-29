@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 
-use poem::wasi::IntervalStream;
 use poem::{
     handler,
+    wasi::IntervalStream,
     web::sse::{Event, SSE},
     IntoResponse,
 };
