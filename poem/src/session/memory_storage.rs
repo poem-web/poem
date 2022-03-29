@@ -45,7 +45,14 @@ impl Default for MemoryStorage {
             sessions: HashMap::new(),
             timeout_queue: PriorityQueue::new(),
         }));
-        tokio::spawn({
+
+        #[cfg(not(target_os = "wasi"))]
+        let spawner = tokio::spawn;
+
+        #[cfg(target_os = "wasi")]
+        let spawner = crate::wasi::spawn;
+
+        spawner({
             let inner = Arc::downgrade(&inner);
             async move {
                 loop {
@@ -53,7 +60,12 @@ impl Default for MemoryStorage {
                         Some(inner) => inner.lock().cleanup(),
                         None => return,
                     }
+
+                    #[cfg(not(target_os = "wasi"))]
                     tokio::time::sleep(Duration::from_secs(1)).await;
+
+                    #[cfg(target_os = "wasi")]
+                    crate::wasi::sleep(Duration::from_secs(1)).await;
                 }
             }
         });

@@ -1,10 +1,13 @@
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    ops::{Deref, DerefMut},
+};
 
 use poem::{
     http::{HeaderMap, StatusCode},
     Request, Result,
 };
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
 #[derive(Debug)]
@@ -14,23 +17,40 @@ pub(crate) enum ResponseMsg {
     Body(Vec<u8>),
 }
 
-pub(crate) struct ExecState {
+pub struct WasmEndpointState<State> {
     pub(crate) wasi: WasiCtx,
+    pub(crate) user_state: State,
     pub(crate) request: String,
     pub(crate) request_body: Vec<u8>,
-    pub(crate) response_sender: UnboundedSender<ResponseMsg>,
+    pub(crate) response_sender: mpsc::UnboundedSender<ResponseMsg>,
 }
 
-impl ExecState {
+impl<State> Deref for WasmEndpointState<State> {
+    type Target = State;
+
+    fn deref(&self) -> &Self::Target {
+        &self.user_state
+    }
+}
+
+impl<State> DerefMut for WasmEndpointState<State> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.user_state
+    }
+}
+
+impl<State> WasmEndpointState<State> {
     pub(crate) async fn new(
         mut request: Request,
-    ) -> Result<(Self, UnboundedReceiver<ResponseMsg>)> {
+        user_state: State,
+    ) -> Result<(Self, mpsc::UnboundedReceiver<ResponseMsg>)> {
         let wasi = WasiCtxBuilder::new().inherit_stdout().build();
-        let (tx, rx) = unbounded_channel();
+        let (tx, rx) = mpsc::unbounded_channel();
         let request_body = request.take_body().into_vec().await?;
         Ok((
             Self {
                 wasi,
+                user_state,
                 request: build_request_string(&request),
                 request_body,
                 response_sender: tx,

@@ -4,23 +4,24 @@ use poem::{
     http::{header::HeaderName, HeaderMap, HeaderValue, StatusCode},
     Result,
 };
-use wasmtime::{AsContextMut, Caller, Engine, Extern, Linker, Memory, Trap};
+use wasmtime::{AsContextMut, Caller, Extern, Linker, Memory, Trap};
 
 use crate::{
-    state::{ExecState, ResponseMsg},
+    state::{ResponseMsg, WasmEndpointState},
     WasmHandlerError,
 };
 
-pub(crate) fn create_linker(engine: &Engine) -> Result<Linker<ExecState>> {
-    let mut linker = Linker::new(&engine);
-
+pub(crate) fn add_to_linker<State>(linker: &mut Linker<WasmEndpointState<State>>) -> Result<()>
+where
+    State: 'static,
+{
     linker.func_wrap("env", "request_get", request_get)?;
     linker.func_wrap("env", "request_get_body", request_get_body)?;
     linker.func_wrap("env", "response_status", response_status)?;
     linker.func_wrap("env", "response_header_map", response_header_map)?;
     linker.func_wrap("env", "response_body", response_body)?;
 
-    Ok(linker)
+    Ok(())
 }
 
 fn get_memory<T>(caller: &mut Caller<'_, T>) -> Result<Memory, WasmHandlerError> {
@@ -48,8 +49,8 @@ fn set_ret_len(memory: &mut [u8], buf: u32, ret_len: u32) -> Result<(), WasmHand
     Ok(())
 }
 
-fn request_get(
-    mut caller: Caller<'_, ExecState>,
+fn request_get<State>(
+    mut caller: Caller<'_, WasmEndpointState<State>>,
     buf: u32,
     buf_len: u32,
     ret_len: u32,
@@ -68,8 +69,8 @@ fn request_get(
     Ok(0)
 }
 
-fn request_get_body(
-    mut caller: Caller<'_, ExecState>,
+fn request_get_body<State>(
+    mut caller: Caller<'_, WasmEndpointState<State>>,
     buf: u32,
     buf_len: u32,
     ret_len: u32,
@@ -88,13 +89,17 @@ fn request_get_body(
     Ok(0)
 }
 
-pub(crate) fn response_status<'a>(caller: Caller<'a, ExecState>, status: u32) -> Result<(), Trap> {
+pub(crate) fn response_status<State>(
+    caller: Caller<'_, WasmEndpointState<State>>,
+    status: u32,
+) -> Result<(), Trap> {
     if status > u16::MAX as u32 {
         return Err(WasmHandlerError::InvalidStatusCode.into());
     }
 
     let status =
         StatusCode::from_u16(status as u16).map_err(|_| WasmHandlerError::InvalidStatusCode)?;
+
     let _ = caller
         .data()
         .response_sender
@@ -102,8 +107,8 @@ pub(crate) fn response_status<'a>(caller: Caller<'a, ExecState>, status: u32) ->
     Ok(())
 }
 
-pub(crate) fn response_header_map<'a>(
-    mut caller: Caller<'a, ExecState>,
+pub(crate) fn response_header_map<State>(
+    mut caller: Caller<'_, WasmEndpointState<State>>,
     data: u32,
     data_len: u32,
 ) -> Result<(), Trap> {
@@ -136,8 +141,8 @@ pub(crate) fn response_header_map<'a>(
     Ok(())
 }
 
-pub(crate) fn response_body<'a>(
-    mut caller: Caller<'a, ExecState>,
+pub(crate) fn response_body<State>(
+    mut caller: Caller<'_, WasmEndpointState<State>>,
     data: u32,
     data_len: u32,
 ) -> Result<i32, Trap> {

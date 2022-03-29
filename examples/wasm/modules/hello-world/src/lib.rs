@@ -6,7 +6,6 @@ async fn index() -> impl IntoResponse {
 }
 
 #[no_mangle]
-#[tokio::main(flavor = "current_thread")]
-async fn start() {
-    poem_wasm::run(index).await;
+fn start() {
+    poem::wasi::run(index);
 }

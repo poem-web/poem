@@ -1,36 +1,58 @@
 use std::str::FromStr;
 
-use poem::{
-    http::{header::HeaderName, HeaderMap, HeaderValue, Method, Uri},
-    Endpoint, Request,
-};
 use tokio::io::AsyncReadExt;
 
-use crate::ffi;
+use crate::{
+    http::{
+        header::{HeaderName, HeaderValue},
+        HeaderMap, Method, Uri,
+    },
+    wasi::task::block_on as wasi_block_on,
+    Endpoint, Request,
+};
 
-pub async fn run<E: Endpoint>(ep: E) {
-    unsafe {
-        let request = create_request();
+mod ffi {
+    extern "C" {
+        pub(super) fn request_get(buf: u32, buf_len: u32, ret_buf_len: u32) -> i32;
 
-        let resp = ep.get_response(request).await;
-        let headers_str = encode_header_map_string(resp.headers());
+        pub(super) fn request_get_body(buf: u32, buf_len: u32, ret_buf_len: u32) -> i32;
 
-        ffi::response_status(resp.status().as_u16() as u32);
-        ffi::response_header_map(headers_str.as_ptr() as u32, headers_str.len() as u32);
+        pub(super) fn response_status(status: u32);
 
-        let mut reader = resp.into_body().into_async_read();
-        loop {
-            let mut buf = [0; 4096];
-            match reader.read(&mut buf).await {
-                Ok(0) | Err(_) => break,
-                Ok(n) => {
-                    if ffi::response_body(buf.as_ptr() as u32, n as u32) != 0 {
-                        break;
+        pub(super) fn response_header_map(data: u32, data_len: u32);
+
+        pub(super) fn response_body(data: u32, data_len: u32) -> i32;
+    }
+}
+
+pub fn run<E>(ep: E)
+where
+    E: Endpoint + 'static,
+{
+    wasi_block_on(async move {
+        unsafe {
+            let request = create_request();
+
+            let resp = ep.get_response(request).await;
+            let headers_str = encode_header_map_string(resp.headers());
+
+            ffi::response_status(resp.status().as_u16() as u32);
+            ffi::response_header_map(headers_str.as_ptr() as u32, headers_str.len() as u32);
+
+            let mut reader = resp.into_body().into_async_read();
+            loop {
+                let mut buf = [0; 4096];
+                match reader.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => {
+                        if ffi::response_body(buf.as_ptr() as u32, n as u32) != 0 {
+                            break;
+                        }
                     }
                 }
             }
         }
-    }
+    });
 }
 
 unsafe fn get_request_data() -> Vec<u8> {

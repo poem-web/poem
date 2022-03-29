@@ -7,5 +7,4 @@ members = [
     "poem-lambda",
     "poem-dbsession",
     "poem-wasmhandler",
-    "poem-wasm",
 ]

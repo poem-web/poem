@@ -16,10 +16,6 @@
     <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
       alt="docs.rs docs" />
   </a>
-  <a href="https://github.com/rust-secure-code/safety-dance/">
-    <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
-      alt="Unsafe Rust forbidden" />
-  </a>
   <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.56.1.html">
     <img src="https://img.shields.io/badge/rustc-1.56.1+-ab6000.svg"
       alt="rustc 1.56.1+" />

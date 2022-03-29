@@ -13,4 +13,6 @@ tokio = { version = "1.17.0", features = ["sync", "macros", "rt"] }
 tokio-stream = { version = "0.1.8", features = ["sync"] }
 wasmtime = "0.35.1"
 wasmtime-wasi = { version = "0.35.1", features = ["tokio", "sync"] }
+wasi-common = "0.35.1"
 tracing = "0.1.29"
+

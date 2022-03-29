@@ -68,13 +68,18 @@ impl IntoResponse for SSE {
             .boxed();
         if let Some(duration) = self.keep_alive {
             let comment = Bytes::from_static(b":\n\n");
+
+            #[cfg(not(target_os = "wasi"))]
+            let interval_stream = tokio_stream::wrappers::IntervalStream::new(
+                tokio::time::interval_at(tokio::time::Instant::now() + duration, duration),
+            );
+
+            #[cfg(target_os = "wasi")]
+            let interval_stream = crate::wasi::IntervalStream::new(duration);
+
             stream = futures_util::stream::select(
                 stream,
-                tokio_stream::wrappers::IntervalStream::new(tokio::time::interval_at(
-                    tokio::time::Instant::now() + duration,
-                    duration,
-                ))
-                .map(move |_| Ok(comment.clone())),
+                interval_stream.map(move |_| Ok(comment.clone())),
             )
             .boxed();
         }

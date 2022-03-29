@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use poem::{listener::TcpListener, Server};
+use poem_wasmhandler::WasmEndpointBuilder;
 
 #[derive(Parser)]
 struct Options {
@@ -20,7 +21,11 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
-        .name("hello-world")
-        .run(poem_wasmhandler::WasmEndpoint::new(wasm).unwrap())
+        .run(
+            WasmEndpointBuilder::new(wasm)
+                .udf("env", "udf_add", |a: i32, b: i32| a + b)
+                .build()
+                .unwrap(),
+        )
         .await
 }
