@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use poem::{
     error::ParseFormError,
-    http::{header, HeaderValue, Method},
+    http::{header, HeaderValue},
     Request, RequestBody, Result,
 };
 use serde::de::DeserializeOwned;

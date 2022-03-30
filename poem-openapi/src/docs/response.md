@@ -85,3 +85,48 @@ fn bad_request_handler(err: Error) -> CreateUserResponse {
     CreateUserResponse::BadRequest(PlainText(format!("error: {}", err.to_string())))
 }
 ```
+
+# Example as an error type
+
+```rust
+use poem::Error;
+use poem_openapi::{payload::{PlainText, Json}, ApiResponse, Object, OpenApi};
+
+#[derive(Object)]
+struct CreateUserRequest {
+    username: String,
+    nickname: String,
+    email: String,
+}
+
+#[derive(ApiResponse)]
+enum CreateUserResponse {
+    /// Returns when the user is successfully created.
+    #[oai(status = 200)]
+    Ok,
+}
+
+#[derive(ApiResponse)]
+enum CreateUserResponseError {
+    /// Returns when the user already exists.
+    #[oai(status = 409)]
+    UserAlreadyExists,
+    /// Returns when the request parameters is incorrect.
+    #[oai(status = 400)]
+    BadRequest(PlainText<String>),
+}
+
+struct UserApi;
+
+#[OpenApi]
+impl UserApi {
+    /// Create a new user.
+    #[oai(path = "/user", method = "post")]
+    async fn create(
+        &self,
+        user: Json<CreateUserRequest>,
+    ) -> Result<CreateUserResponse, CreateUserResponseError> {
+        todo!()
+    }
+}
+```
