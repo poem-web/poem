@@ -267,6 +267,7 @@ pub mod i18n;
 #[cfg_attr(docsrs, doc(cfg(feature = "server")))]
 pub mod listener;
 pub mod middleware;
+pub mod runtime;
 #[cfg(feature = "session")]
 #[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;
