@@ -274,9 +274,6 @@ pub mod session;
 #[cfg(feature = "test")]
 #[cfg_attr(docsrs, doc(cfg(feature = "test")))]
 pub mod test;
-#[cfg(target_os = "wasi")]
-#[cfg_attr(docsrs, doc(cfg(target_os = "wasi")))]
-pub mod wasi;
 pub mod web;
 
 #[doc(inline)]

@@ -47,7 +47,7 @@ bytes = "1.1.0"
 futures-util = { version = "0.3.17", features = ["sink"] }
 http = "0.2.5"
 hyper = { version = "0.14.17", features = ["http1", "http2", "stream"] }
-tokio = { version = "1.17.0", features = ["sync", "time", "macros"] }
+tokio = { version = "1.17.0", features = ["sync", "macros"] }
 tokio-util = { version = "0.7.0", features = ["io"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
@@ -104,8 +104,11 @@ tokio-metrics = { version = "0.1.0", optional = true }
 anyhow = { version = "1.0.0", optional = true }
 eyre06 = { package = "eyre", version = "0.6", optional = true }
 
+[target.'cfg(not(target_os = "wasi"))'.dependencies]
+tokio = { version = "1.17.0", features = ["time"] }
+
 [target.'cfg(target_os = "wasi")'.dependencies]
-libwasi = { version = "0.11.0", package = "wasi" }
+poem-wasm = { path = "../poem-wasm", version = "0.1.0" }
 async-task = "4.2.0"
 
 [dev-dependencies]

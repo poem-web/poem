@@ -17,6 +17,8 @@ pub enum WasmHandlerError {
     InvalidResponse,
     #[error("incomplete response")]
     IncompleteResponse,
+    #[error("no subscriptions")]
+    NoSubscriptions,
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }

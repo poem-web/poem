@@ -5,13 +5,14 @@ use http::header::HeaderName;
 use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use std::borrow::Cow;
 use std::io::{Error, ErrorKind, Result};
+use std::mem::MaybeUninit;
 use std::str::FromStr;
 
 pub struct Subscription(RawSubscription);
 
 impl Subscription {
     #[inline]
-    pub fn timeout(timestamp: i64) -> Self {
+    pub fn timeout(timestamp: u64) -> Self {
         Self(RawSubscription {
             ty: ffi::SUBSCRIPTION_TYPE_TIMEOUT,
             userdata: 0,
@@ -38,19 +39,30 @@ impl Subscription {
     }
 
     #[inline]
-    pub fn userdata(mut self, data: u32) -> Self {
+    pub fn userdata(self, data: u64) -> Self {
         Self(RawSubscription {
             userdata: data,
             ..self.0
         })
+    }
+
+    #[inline]
+    pub fn get_userdata(&self) -> u64 {
+        self.0.userdata
     }
 }
 
 pub struct Event(RawEvent);
 
 impl Event {
-    pub fn userdata(&self) -> u32 {
+    #[inline]
+    pub fn userdata(&self) -> u64 {
         self.0.userdata
+    }
+
+    #[inline]
+    pub fn errno(&self) -> i32 {
+        self.0.errno
     }
 }
 
@@ -79,20 +91,16 @@ pub fn write_response_body(data: &[u8]) -> Result<usize> {
             data.len() as u32,
             &mut bytes_written as *mut _ as u32,
         ) {
-            ffi::ERRNO_OK => Ok(bytes_read as usize),
+            ffi::ERRNO_OK => Ok(bytes_written as usize),
             ffi::ERRNO_WOULD_BLOCK => Err(Error::new(ErrorKind::WouldBlock, "would block")),
             _ => Err(Error::new(ErrorKind::Other, "other")),
         }
     }
 }
 
-pub fn set_response_status(status: StatusCode) {
-    unsafe { ffi::set_response_status(status.as_u16() as u32) }
-}
-
-pub fn set_response_headers(headers: &HeaderMap) {
+pub fn send_response(status: StatusCode, headers: &HeaderMap) {
     let s = encode_headers(headers);
-    unsafe { ffi::set_response_headers(s.as_ptr() as u32, s.len() as u32) }
+    unsafe { ffi::send_response(status.as_u16() as u32, s.as_ptr() as u32, s.len() as u32) }
 }
 
 pub fn decode_headers(data: &str) -> HeaderMap {
@@ -138,19 +146,19 @@ fn encode_headers(headers: &HeaderMap) -> String {
     s
 }
 
-pub fn poll(subscriptions: &Subscription, events: &mut Vec<Event>) {
+pub fn poll(subscriptions: &[Subscription]) -> Event {
     unsafe {
-        events.reserve(subscriptions.len());
-        let n = ffi::poll(
-            subscriptions as *const _ as u32,
-            subscriptionss.len() as u32,
-            events.as_mut_ptr() as u32,
+        let mut event: MaybeUninit<RawEvent> = MaybeUninit::uninit();
+        ffi::poll(
+            subscriptions.as_ptr() as u32,
+            subscriptions.len() as u32,
+            event.as_mut_ptr() as u32,
         );
-        events.set_len(n as usize);
+        Event(event.assume_init())
     }
 }
 
-pub fn encode_request(method: &Method, uri: &Uri, headers: HeaderMap) -> String {
+pub fn encode_request(method: &Method, uri: &Uri, headers: &HeaderMap) -> String {
     let mut iter = std::iter::once(Cow::Borrowed(method.as_str()))
         .chain(std::iter::once(Cow::Owned(uri.to_string())))
         .chain(
@@ -185,7 +193,7 @@ pub fn get_request() -> (Method, Uri, HeaderMap) {
         let mut data = Vec::new();
 
         ffi::read_request(0, 0, &mut request_len as *mut _ as u32);
-        data.reserve(request_len as size);
+        data.reserve(request_len as usize);
         ffi::read_request(0, 0, &mut request_len as *mut _ as u32);
         data.set_len(request_len as usize);
 

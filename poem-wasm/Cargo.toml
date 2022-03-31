@@ -3,5 +3,8 @@ name = "poem-wasm"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.workspaces]
+independent = true
+
 [dependencies]
 http = "0.2.6"

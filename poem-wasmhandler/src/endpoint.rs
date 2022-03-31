@@ -1,13 +1,8 @@
-use poem::{http::StatusCode, Body, Endpoint, Request, Response, Result};
+use poem::{Body, Endpoint, Request, Response, Result};
 use tokio::sync::mpsc;
-use tokio_stream::{Stream, StreamExt};
-use wasmtime::{Engine, IntoFunc, Linker, Module, Store};
+use wasmtime::{Config, Engine, IntoFunc, Linker, Module, Store};
 
-use crate::{
-    funcs,
-    state::{ResponseMsg, WasmEndpointState},
-    WasmHandlerError,
-};
+use crate::{funcs, state::WasmEndpointState, WasmHandlerError};
 
 pub struct WasmEndpointBuilder<State>
 where
@@ -21,7 +16,7 @@ where
 
 impl WasmEndpointBuilder<()> {
     pub fn new(bytes: impl Into<Vec<u8>>) -> Self {
-        let engine = Engine::default();
+        let engine = Engine::new(&Config::new().async_support(true)).unwrap();
         let linker = Linker::new(&engine);
 
         Self {
@@ -58,7 +53,7 @@ where
     pub fn build(mut self) -> Result<WasmEndpoint<State>> {
         let module = Module::new(&self.engine, self.module)?;
         funcs::add_to_linker(&mut self.linker).unwrap();
-        wasmtime_wasi::add_to_linker(&mut self.linker, |state| &mut state.wasi).unwrap();
+        wasmtime_wasi::add_to_linker(&mut self.linker, |state| &mut state.wasi)?;
 
         Ok(WasmEndpoint {
             engine: self.engine,
@@ -85,16 +80,19 @@ where
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
         // create wasm instance
-        let mut response_receiver = {
+        let (mut response_receiver, response_body_reader) = {
             let user_state = self.user_state.clone();
-            let (state, response_receiver) = WasmEndpointState::new(req, user_state).await?;
+            let (response_sender, response_receiver) = mpsc::unbounded_channel();
+            let (response_body_writer, response_body_reader) = tokio::io::duplex(8192);
+            let state =
+                WasmEndpointState::new(req, response_sender, response_body_writer, user_state);
             let mut store = Store::new(&self.engine, state);
             let linker = self.linker.clone();
             let module = self.module.clone();
 
             // invoke main
-            tokio::task::spawn_blocking(move || {
-                let instance = match linker.instantiate(&mut store, &module) {
+            tokio::spawn(async move {
+                let instance = match linker.instantiate_async(&mut store, &module).await {
                     Ok(instance) => instance,
                     Err(err) => {
                         tracing::error!(error = %err, "wasm instantiate error");
@@ -108,40 +106,22 @@ where
                         return;
                     }
                 };
-                let _ = start_func.call(&mut store, ());
+                let _ = start_func.call_async(&mut store, ()).await;
             });
 
-            response_receiver
+            (response_receiver, response_body_reader)
         };
 
-        // create response
-        let mut status = StatusCode::SERVICE_UNAVAILABLE;
-
-        while let Some(msg) = response_receiver.recv().await {
-            match msg {
-                ResponseMsg::StatusCode(value) => status = value,
-                ResponseMsg::HeaderMap(value) => {
-                    let mut resp = Response::default();
-                    resp.set_status(status);
-                    *resp.headers_mut() = value;
-                    resp.set_body(Body::from_bytes_stream(wrap_body_stream(response_receiver)));
-                    return Ok(resp);
-                }
-                ResponseMsg::Body(_) => return Err(WasmHandlerError::InvalidResponse.into()),
+        // receive response
+        match response_receiver.recv().await {
+            Some((status, headers)) => {
+                let mut resp = Response::default();
+                resp.set_status(status);
+                *resp.headers_mut() = headers;
+                resp.set_body(Body::from_async_read(response_body_reader));
+                Ok(resp)
             }
+            None => Err(WasmHandlerError::IncompleteResponse.into()),
         }
-
-        Err(WasmHandlerError::IncompleteResponse.into())
     }
-}
-
-fn wrap_body_stream(
-    receiver: mpsc::UnboundedReceiver<ResponseMsg>,
-) -> impl Stream<Item = Result<Vec<u8>, std::io::Error>> {
-    tokio_stream::wrappers::UnboundedReceiverStream::new(receiver)
-        .filter_map(|msg| match msg {
-            ResponseMsg::Body(data) => Some(data),
-            _ => None,
-        })
-        .map(Ok)
 }

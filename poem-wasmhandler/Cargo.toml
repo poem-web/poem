@@ -8,11 +8,12 @@ independent = true
 
 [dependencies]
 poem = { path = "../poem", version = "1.3.18", default-features = false, features = ["anyhow"] }
+poem-wasm = { path = "../poem-wasm", version = "0.1.0" }
 thiserror = "1.0.30"
-tokio = { version = "1.17.0", features = ["sync", "macros", "rt"] }
+tokio = { version = "1.17.0", features = ["sync", "macros", "rt", "time"] }
 tokio-stream = { version = "0.1.8", features = ["sync"] }
-wasmtime = "0.35.1"
-wasmtime-wasi = { version = "0.35.1", features = ["tokio", "sync"] }
-wasi-common = "0.35.1"
+wasmtime = { version = "0.35.1", features = ["async"] }
 tracing = "0.1.29"
-
+bytes = "1.1.0"
+futures-util = "0.3.21"
+wasmtime-wasi = "0.35.1"
