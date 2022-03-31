@@ -33,5 +33,5 @@ async fn touppercase(Query(mut params): Query<ToUppercaseParams>) -> impl IntoRe
 
 #[no_mangle]
 fn start() {
-    poem::wasi::run(Route::new().at("/add", add).at("/uppercase", touppercase));
+    poem::runtime::wasi::run(Route::new().at("/add", add).at("/uppercase", touppercase));
 }

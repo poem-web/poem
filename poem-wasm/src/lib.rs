@@ -12,11 +12,11 @@ pub struct Subscription(RawSubscription);
 
 impl Subscription {
     #[inline]
-    pub fn timeout(timestamp: u64) -> Self {
+    pub fn timeout(deadline: u64) -> Self {
         Self(RawSubscription {
             ty: ffi::SUBSCRIPTION_TYPE_TIMEOUT,
             userdata: 0,
-            timeout: timestamp,
+            deadline,
         })
     }
 
@@ -25,7 +25,7 @@ impl Subscription {
         Self(RawSubscription {
             ty: ffi::SUBSCRIPTION_TYPE_REQUEST_READ,
             userdata: 0,
-            timeout: 0,
+            deadline: 0,
         })
     }
 
@@ -34,7 +34,7 @@ impl Subscription {
         Self(RawSubscription {
             ty: ffi::SUBSCRIPTION_TYPE_RESPONSE_WRITE,
             userdata: 0,
-            timeout: 0,
+            deadline: 0,
         })
     }
 
@@ -66,6 +66,7 @@ impl Event {
     }
 }
 
+#[cfg(target_os = "wasi")]
 pub fn read_request_body(data: &mut [u8]) -> Result<usize> {
     let mut bytes_read = 0u32;
 
@@ -82,6 +83,7 @@ pub fn read_request_body(data: &mut [u8]) -> Result<usize> {
     }
 }
 
+#[cfg(target_os = "wasi")]
 pub fn write_response_body(data: &[u8]) -> Result<usize> {
     let mut bytes_written = 0u32;
 
@@ -98,6 +100,7 @@ pub fn write_response_body(data: &[u8]) -> Result<usize> {
     }
 }
 
+#[cfg(target_os = "wasi")]
 pub fn send_response(status: StatusCode, headers: &HeaderMap) {
     let s = encode_headers(headers);
     unsafe { ffi::send_response(status.as_u16() as u32, s.as_ptr() as u32, s.len() as u32) }
@@ -146,6 +149,7 @@ fn encode_headers(headers: &HeaderMap) -> String {
     s
 }
 
+#[cfg(target_os = "wasi")]
 pub fn poll(subscriptions: &[Subscription]) -> Event {
     unsafe {
         let mut event: MaybeUninit<RawEvent> = MaybeUninit::uninit();
@@ -187,6 +191,7 @@ pub fn encode_request(method: &Method, uri: &Uri, headers: &HeaderMap) -> String
     s
 }
 
+#[cfg(target_os = "wasi")]
 pub fn get_request() -> (Method, Uri, HeaderMap) {
     unsafe {
         let mut request_len = 0u32;

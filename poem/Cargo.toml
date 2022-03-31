@@ -109,6 +109,7 @@ tokio = { version = "1.17.0", features = ["time"] }
 
 [target.'cfg(target_os = "wasi")'.dependencies]
 poem-wasm = { path = "../poem-wasm", version = "0.1.0" }
+libwasi = { version = "0.11.0", package = "wasi" }
 async-task = "4.2.0"
 
 [dev-dependencies]

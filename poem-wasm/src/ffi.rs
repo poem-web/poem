@@ -2,7 +2,8 @@ pub const ERRNO_OK: i32 = 0;
 pub const ERRNO_WOULD_BLOCK: i32 = -1;
 pub const ERRNO_UNKNOWN: i32 = -500;
 
-#[link(name = "poem")]
+#[cfg(target_os = "wasi")]
+#[link(wasm_import_module = "poem")]
 extern "C" {
     pub fn read_request(buf: u32, buf_len: u32, request_len: u32);
 
@@ -23,7 +24,7 @@ pub const SUBSCRIPTION_TYPE_RESPONSE_WRITE: u8 = 3;
 pub struct RawSubscription {
     pub ty: u8,
     pub userdata: u64,
-    pub timeout: u64,
+    pub deadline: u64,
 }
 
 #[repr(C)]

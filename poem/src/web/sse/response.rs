@@ -75,7 +75,7 @@ impl IntoResponse for SSE {
             );
 
             #[cfg(target_os = "wasi")]
-            let interval_stream = crate::wasi::IntervalStream::new(duration);
+            let interval_stream = crate::runtime::wasi::IntervalStream::new(duration);
 
             stream = futures_util::stream::select(
                 stream,

@@ -7,24 +7,25 @@ use std::{
 
 use futures_util::Stream;
 use libwasi::CLOCKID_MONOTONIC;
+use poem_wasm::Subscription;
 
-use crate::wasi::reactor::register_timeout;
+use crate::runtime::wasi::reactor;
 
 pub struct Sleep {
     registered: bool,
-    deadline: libwasi::Timestamp,
+    deadline: u64,
 }
 
 #[inline]
-fn get_time() -> libwasi::Timestamp {
-    unsafe { libwasi::clock_time_get(CLOCKID_MONOTONIC, 0).unwrap() }
+fn get_time() -> u64 {
+    unsafe { libwasi::clock_time_get(CLOCKID_MONOTONIC, 0).unwrap() / 1000000 }
 }
 
 #[inline]
 pub fn sleep(delay: Duration) -> Sleep {
     Sleep {
         registered: false,
-        deadline: get_time() + delay.as_nanos() as u64,
+        deadline: get_time() + delay.as_millis() as u64,
     }
 }
 
@@ -36,7 +37,7 @@ impl Future for Sleep {
 
         if !this.registered {
             this.registered = true;
-            register_timeout(this.deadline, cx);
+            reactor::register(Subscription::timeout(this.deadline), cx);
             return Poll::Pending;
         } else {
             if get_time() >= this.deadline {
@@ -51,7 +52,7 @@ impl Future for Sleep {
 pub struct IntervalStream {
     registered: bool,
     period: Duration,
-    deadline: libwasi::Timestamp,
+    deadline: u64,
 }
 
 impl IntervalStream {
@@ -59,7 +60,7 @@ impl IntervalStream {
         Self {
             registered: false,
             period,
-            deadline: get_time() + period.as_nanos() as u64,
+            deadline: get_time() + period.as_millis() as u64,
         }
     }
 }
@@ -72,12 +73,12 @@ impl Stream for IntervalStream {
 
         if !this.registered {
             this.registered = true;
-            register_timeout(this.deadline, cx);
+            reactor::register(Subscription::timeout(this.deadline), cx);
             return Poll::Pending;
         } else {
             if get_time() >= this.deadline {
-                this.deadline = this.deadline + this.period.as_nanos() as u64;
-                register_timeout(this.deadline, cx);
+                this.deadline = this.deadline + this.period.as_millis() as u64;
+                reactor::register(Subscription::timeout(this.deadline), cx);
                 Poll::Ready(Some(Instant::now()))
             } else {
                 Poll::Pending

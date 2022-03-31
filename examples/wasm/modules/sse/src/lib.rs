@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use poem::{
     handler,
-    wasi::IntervalStream,
+    runtime::wasi::IntervalStream,
     web::sse::{Event, SSE},
     IntoResponse,
 };
@@ -20,5 +20,5 @@ async fn index() -> impl IntoResponse {
 
 #[no_mangle]
 fn start() {
-    poem::wasi::run(index);
+    poem::runtime::wasi::run(index);
 }

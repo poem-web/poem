@@ -7,7 +7,7 @@ use std::{
 
 use async_task::{Runnable, Task};
 
-use crate::wasi::reactor::{poll, Events};
+use crate::runtime::wasi::reactor::poll;
 
 thread_local! {
     static QUEUE: RefCell<VecDeque<Runnable>> = RefCell::new(Default::default());
@@ -29,7 +29,6 @@ where
     F: Future<Output = T> + 'static,
     T: 'static,
 {
-    let mut events = Events::default();
     let res: Rc<Cell<Option<T>>> = Rc::new(Cell::new(None));
 
     spawn({
@@ -53,6 +52,6 @@ where
             }
         });
 
-        poll(&mut events);
+        poll();
     }
 }

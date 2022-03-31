@@ -238,14 +238,32 @@ fn poll<'a, State: Send>(
                 let userdata = subscription.userdata;
 
                 if subscription.ty == SUBSCRIPTION_TYPE_TIMEOUT {
+                    let now = state
+                        .wasi
+                        .clocks
+                        .monotonic
+                        .now(wasi_common::sched::Duration::from_millis(0))
+                        .duration_since(state.wasi.clocks.creation_time)
+                        .as_millis() as u64;
+
                     futures.push(
                         async move {
-                            tokio::time::sleep(Duration::from_millis(subscription.timeout as u64))
+                            if now >= subscription.deadline {
+                                RawEvent {
+                                    ty: SUBSCRIPTION_TYPE_TIMEOUT,
+                                    userdata,
+                                    errno: ERRNO_OK,
+                                }
+                            } else {
+                                tokio::time::sleep(Duration::from_millis(
+                                    subscription.deadline - now,
+                                ))
                                 .await;
-                            RawEvent {
-                                ty: SUBSCRIPTION_TYPE_TIMEOUT,
-                                userdata,
-                                errno: ERRNO_OK,
+                                RawEvent {
+                                    ty: SUBSCRIPTION_TYPE_TIMEOUT,
+                                    userdata,
+                                    errno: ERRNO_OK,
+                                }
                             }
                         }
                         .boxed(),
