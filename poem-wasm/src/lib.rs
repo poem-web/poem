@@ -199,7 +199,11 @@ pub fn get_request() -> (Method, Uri, HeaderMap) {
 
         ffi::read_request(0, 0, &mut request_len as *mut _ as u32);
         data.reserve(request_len as usize);
-        ffi::read_request(0, 0, &mut request_len as *mut _ as u32);
+        ffi::read_request(
+            data.as_mut_ptr() as u32,
+            data.capacity() as u32,
+            &mut request_len as *mut _ as u32,
+        );
         data.set_len(request_len as usize);
 
         let mut iter = std::str::from_utf8_unchecked(&data).split('\n');

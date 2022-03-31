@@ -45,7 +45,7 @@ impl<State> WasmEndpointState<State> {
     where
         W: AsyncWrite + Send + Unpin + 'static,
     {
-        let wasi = WasiCtxBuilder::new().build();
+        let wasi = WasiCtxBuilder::new().inherit_stdout().build();
         let request_body_reader = Box::new(request.take_body().into_async_read());
 
         Self {

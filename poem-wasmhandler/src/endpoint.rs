@@ -106,7 +106,10 @@ where
                         return;
                     }
                 };
-                let _ = start_func.call_async(&mut store, ()).await;
+                if let Err(err) = start_func.call_async(&mut store, ()).await {
+                    tracing::error!(error = %err, "wasm error");
+                    return;
+                }
             });
 
             (response_receiver, response_body_reader)
