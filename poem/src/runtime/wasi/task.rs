@@ -38,6 +38,10 @@ where
     .detach();
 
     loop {
+        if let Some(res) = res.take() {
+            return res;
+        }
+
         QUEUE.with(|queue| loop {
             let item = queue.borrow_mut().pop_front();
             match item {
@@ -47,10 +51,6 @@ where
                 None => break,
             }
         });
-
-        if let Some(res) = res.take() {
-            return res;
-        }
 
         poll();
     }
