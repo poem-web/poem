@@ -38,7 +38,7 @@ pub(crate) fn register(subscription: Subscription, cx: &Context<'_>) {
     });
 }
 
-pub(crate) fn poll() {
+pub(crate) fn poll() -> bool {
     REACTOR.with(|reactor| {
         let mut reactor = reactor.borrow_mut();
 
@@ -47,7 +47,7 @@ pub(crate) fn poll() {
             let mut event: MaybeUninit<Event> = MaybeUninit::uninit();
 
             if num_subscriptions == 0 {
-                return;
+                return false;
             }
 
             ffi::poll(
@@ -65,6 +65,8 @@ pub(crate) fn poll() {
                 reactor.subscriptions.swap_remove(idx);
                 reactor.wakers.swap_remove(idx).wake();
             }
+
+            true
         }
     })
 }

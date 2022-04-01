@@ -1,5 +1,6 @@
 use poem::{Body, Endpoint, Request, Response, Result};
 use poem_wasm::ffi::{RESPONSE_BODY_BYTES, RESPONSE_BODY_EMPTY, RESPONSE_BODY_STREAM};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use wasmtime::{Config, Engine, IntoFunc, Linker, Module, Store};
@@ -166,8 +167,18 @@ where
         }
 
         // upgraded
-        if let Some(on_upgrade) = on_upgrade {
-            let upgraded = on_upgrade.await?;
+        if let (Some(on_upgrade), Some((mut upgraded_writer, upgraded_receiver))) =
+            (on_upgrade, upgraded_stub)
+        {
+            let (upgraded_reader, upgraded_writer) = tokio::io::split(on_upgrade.await?);
+            tokio::spawn(tokio::io::copy(&mut upgraded_reader, &mut upgraded_writer));
+            tokio::spawn(async move {
+                while let Some(data) = upgraded_receiver.recv().await {
+                    if upgraded_writer.write(&data).await.is_err() {
+                        break;
+                    }
+                }
+            });
         }
 
         Ok(resp)

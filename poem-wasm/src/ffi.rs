@@ -26,6 +26,7 @@ extern "C" {
 
 pub const SUBSCRIPTION_TYPE_TIMEOUT: u8 = 1;
 pub const SUBSCRIPTION_TYPE_REQUEST_READ: u8 = 2;
+pub const SUBSCRIPTION_TYPE_UPGRADED_READ: u8 = 3;
 
 #[repr(C)]
 pub struct RawSubscription {

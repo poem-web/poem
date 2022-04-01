@@ -24,13 +24,10 @@ where
     task
 }
 
-pub(crate) fn block_on<F: Future, T>(fut: F) -> F::Output
+pub(crate) fn block_on<F: Future, T>(fut: F)
 where
-    F: Future<Output = T> + 'static,
-    T: 'static,
+    F: Future + 'static,
 {
-    let res: Rc<Cell<Option<T>>> = Rc::new(Cell::new(None));
-
     spawn({
         let res = res.clone();
         async move { res.set(Some(fut.await)) }
@@ -38,10 +35,6 @@ where
     .detach();
 
     loop {
-        if let Some(res) = res.take() {
-            return res;
-        }
-
         QUEUE.with(|queue| loop {
             let item = queue.borrow_mut().pop_front();
             match item {
@@ -52,6 +45,8 @@ where
             }
         });
 
-        poll();
+        if !poll() {
+            break;
+        }
     }
 }
