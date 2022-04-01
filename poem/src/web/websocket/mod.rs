@@ -25,6 +25,8 @@
 mod extractor;
 mod message;
 mod stream;
+#[cfg(target_os = "wasi")]
+mod unite_stream;
 mod utils;
 
 pub use extractor::WebSocket;

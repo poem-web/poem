@@ -1,0 +1,11 @@
+[package]
+name = "websocket-chat"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+poem = { path = "../../../../poem", default_features = false, features = ["websocket"] }
+futures-util = "0.3.21"

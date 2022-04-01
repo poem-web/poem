@@ -19,17 +19,17 @@ categories = [
 
 [features]
 default = ["server"]
-server = ["tokio/rt", "tokio/net", "hyper/server", "hyper/runtime"]
-websocket = ["tokio/rt", "tokio-tungstenite", "base64"]
+server = ["tokio/net", "hyper/server", "hyper/runtime"]
+websocket = ["tokio-tungstenite", "base64"]
 multipart = ["multer"]
 rustls = ["server", "tokio-rustls", "rustls-pemfile"]
 native-tls = ["server", "tokio-native-tls"]
 sse = []
 static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression", "typed-headers"]
-tower-compat = ["tokio/rt", "tower"]
+tower-compat = ["tower"]
 cookie = ["libcookie", "chrono", "time"]
-session = ["tokio/rt", "cookie", "rand", "priority-queue"]
+session = ["cookie", "rand", "priority-queue"]
 redis-session = ["session", "redis"]
 opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
@@ -64,7 +64,7 @@ thiserror = "1.0.30"
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
-tokio-tungstenite = { version = "0.17.1", optional = true }
+tokio-tungstenite = { version = "0.17.1", optional = true, default-features = false }
 tokio-rustls = { version = "0.23.2", optional = true }
 rustls-pemfile = { version = "0.3.0", optional = true }
 async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
@@ -105,7 +105,7 @@ anyhow = { version = "1.0.0", optional = true }
 eyre06 = { package = "eyre", version = "0.6", optional = true }
 
 [target.'cfg(not(target_os = "wasi"))'.dependencies]
-tokio = { version = "1.17.0", features = ["time"] }
+tokio = { version = "1.17.0", features = ["time", "rt"] }
 
 [target.'cfg(target_os = "wasi")'.dependencies]
 poem-wasm = { path = "../poem-wasm", version = "0.1.0" }

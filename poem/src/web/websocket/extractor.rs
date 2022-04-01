@@ -10,7 +10,7 @@ use crate::{
         header::{self, HeaderValue},
         Method, StatusCode,
     },
-    Body, FromRequest, IntoResponse, OnUpgrade, Request, RequestBody, Response, Result,
+    Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
 };
 
 /// An extractor that can accept websocket connections.
@@ -20,19 +20,24 @@ use crate::{
 /// - [`WebSocketError`]
 pub struct WebSocket {
     key: HeaderValue,
-    on_upgrade: OnUpgrade,
+    #[cfg(not(target_os = "wasi"))]
+    on_upgrade: hyper::OnUpgrade,
+    #[cfg(target_os = "wasi")]
+    request_body: Body,
     protocols: Option<Box<[Cow<'static, str>]>>,
     sec_websocket_protocol: Option<HeaderValue>,
 }
 
-impl WebSocket {
-    async fn internal_from_request(req: &Request) -> Result<Self, WebSocketError> {
+#[async_trait::async_trait]
+impl<'a> FromRequest<'a> for WebSocket {
+    #[allow(unused_variables)]
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         if req.method() != Method::GET
             || req.headers().get(header::UPGRADE) != Some(&HeaderValue::from_static("websocket"))
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 != Some(&HeaderValue::from_static("13"))
         {
-            return Err(WebSocketError::InvalidProtocol);
+            return Err(WebSocketError::InvalidProtocol.into());
         }
 
         if !matches!(
@@ -41,7 +46,7 @@ impl WebSocket {
                 .map(|connection| connection.contains(header::UPGRADE)),
             Some(true)
         ) {
-            return Err(WebSocketError::InvalidProtocol);
+            return Err(WebSocketError::InvalidProtocol.into());
         }
 
         let key = req
@@ -54,17 +59,13 @@ impl WebSocket {
 
         Ok(Self {
             key,
+            #[cfg(not(target_os = "wasi"))]
             on_upgrade: req.take_upgrade()?,
+            #[cfg(target_os = "wasi")]
+            request_body: body.take()?,
             protocols: None,
             sec_websocket_protocol,
         })
-    }
-}
-
-#[async_trait::async_trait]
-impl<'a> FromRequest<'a> for WebSocket {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
-        Self::internal_from_request(req).await.map_err(Into::into)
     }
 }
 
@@ -166,14 +167,28 @@ where
 
         let resp = builder.body(Body::empty());
 
-        tokio::spawn(async move {
-            let upgraded = match self.websocket.on_upgrade.await {
-                Ok(upgraded) => upgraded,
+        crate::runtime::spawn(async move {
+            #[cfg(not(target_os = "wasi"))]
+            let stream = match self.websocket.on_upgrade.await {
+                Ok(stream) => stream,
                 Err(_) => return,
             };
 
+            #[cfg(target_os = "wasi")]
+            let stream = {
+                let request_body_reader = self.websocket.request_body.into_async_read();
+                let response_body_writer = crate::runtime::wasi::ResponseWriter;
+                super::unite_stream::UniteStream::<
+                    Box<dyn tokio::io::AsyncRead + Send + Unpin>,
+                    Box<dyn tokio::io::AsyncWrite + Send + Unpin>,
+                >::new(
+                    Box::new(request_body_reader),
+                    Box::new(response_body_writer),
+                )
+            };
+
             let stream =
-                tokio_tungstenite::WebSocketStream::from_raw_socket(upgraded, Role::Server, None)
+                tokio_tungstenite::WebSocketStream::from_raw_socket(stream, Role::Server, None)
                     .await;
             (self.callback)(WebSocketStream::new(stream)).await;
         });

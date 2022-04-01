@@ -7,16 +7,24 @@ use std::{
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
 
 use super::{utils::tungstenite_error_to_io_error, Message};
-use crate::Upgraded;
+
+#[cfg(not(target_os = "wasi"))]
+type InnerStream = crate::Upgraded;
+
+#[cfg(target_os = "wasi")]
+type InnerStream = super::unite_stream::UniteStream<
+    Box<dyn tokio::io::AsyncRead + Send + Unpin>,
+    Box<dyn tokio::io::AsyncWrite + Send + Unpin>,
+>;
 
 /// A `WebSocket` stream, which implements [`Stream<Message>`] and
 /// [`Sink<Message>`].
 pub struct WebSocketStream {
-    inner: tokio_tungstenite::WebSocketStream<Upgraded>,
+    inner: tokio_tungstenite::WebSocketStream<InnerStream>,
 }
 
 impl WebSocketStream {
-    pub(crate) fn new(inner: tokio_tungstenite::WebSocketStream<Upgraded>) -> Self {
+    pub(crate) fn new(inner: tokio_tungstenite::WebSocketStream<InnerStream>) -> Self {
         Self { inner }
     }
 }

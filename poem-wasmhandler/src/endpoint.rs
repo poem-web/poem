@@ -81,13 +81,30 @@ where
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
+        let on_upgrade = req.take_upgrade().ok();
+
         // create wasm instance
-        let (mut response_receiver, mut response_body_receiver) = {
+        let (mut response_receiver, mut response_body_receiver, upgraded_stub) = {
             let user_state = self.user_state.clone();
             let (response_sender, response_receiver) = mpsc::unbounded_channel();
-            let (response_body_sender, response_body_receiver) = mpsc::channel(8);
-            let state =
-                WasmEndpointState::new(req, response_sender, response_body_sender, user_state);
+            let (response_body_sender, response_body_receiver) = mpsc::unbounded_channel();
+            let (upgraded, upgraded_stub) = if on_upgrade.is_some() {
+                let (upgraded_reader, upgraded_writer) = tokio::io::duplex(4096);
+                let (upgraded_sender, upgraded_receiver) = mpsc::unbounded_channel();
+                (
+                    Some((upgraded_reader, upgraded_sender)),
+                    Some((upgraded_writer, upgraded_receiver)),
+                )
+            } else {
+                (None, None)
+            };
+            let state = WasmEndpointState::new(
+                req,
+                response_sender,
+                response_body_sender,
+                upgraded,
+                user_state,
+            );
             let mut store = Store::new(&self.engine, state);
             let linker = self.linker.clone();
             let module = self.module.clone();
@@ -114,7 +131,7 @@ where
                 }
             });
 
-            (response_receiver, response_body_receiver)
+            (response_receiver, response_body_receiver, upgraded_stub)
         };
 
         let mut resp = Response::default();
@@ -136,16 +153,23 @@ where
                     }
                     RESPONSE_BODY_STREAM => {
                         resp.set_body(Body::from_bytes_stream(
-                            tokio_stream::wrappers::ReceiverStream::new(response_body_receiver)
-                                .map(Ok::<_, std::io::Error>),
+                            tokio_stream::wrappers::UnboundedReceiverStream::new(
+                                response_body_receiver,
+                            )
+                            .map(Ok::<_, std::io::Error>),
                         ));
                     }
                     _ => unreachable!(),
                 }
-
-                Ok(resp)
             }
-            None => Err(WasmHandlerError::IncompleteResponse.into()),
+            None => return Err(WasmHandlerError::IncompleteResponse.into()),
         }
+
+        // upgraded
+        if let Some(on_upgrade) = on_upgrade {
+            let upgraded = on_upgrade.await?;
+        }
+
+        Ok(resp)
     }
 }

@@ -17,6 +17,10 @@ extern "C" {
 
     pub fn write_response_body(buf: u32, buf_len: u32) -> i32;
 
+    pub fn read_upgraded(buf: u32, buf_len: u32, bytes_read: u32) -> i32;
+
+    pub fn write_upgraded(buf: u32, buf_len: u32) -> i32;
+
     pub fn poll(subscriptions: u32, num_subscriptions: u32, event: u32);
 }
 

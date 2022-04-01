@@ -129,12 +129,7 @@ fn write_response_body<'a, State: Send>(
             let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
 
             let data = get_memory_slice_mut(memory, data, data_len)?;
-            if state
-                .response_body_sender
-                .send(data.to_vec())
-                .await
-                .is_err()
-            {
+            if state.response_body_sender.send(data.to_vec()).is_err() {
                 return Ok(ERRNO_UNKNOWN);
             }
             Ok(ERRNO_OK)
