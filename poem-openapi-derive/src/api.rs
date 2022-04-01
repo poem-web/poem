@@ -272,7 +272,7 @@ fn generate_operation(
         // default value for parameter
         let default_value = match &operation_param.default {
             Some(DefaultValue::Default) => {
-                quote!(::std::option::Option::Some(<#arg_ty as ::std::default::Default>::default))
+                quote!(::std::option::Option::Some(<<#arg_ty as #crate_name::ApiExtractor>::ParamType as std::default::Default>::default))
             }
             Some(DefaultValue::Function(func_name)) => {
                 quote!(::std::option::Option::Some(#func_name))
@@ -282,7 +282,7 @@ fn generate_operation(
         let has_default = operation_param.default.is_some();
         let param_meta_default = match &operation_param.default {
             Some(DefaultValue::Default) => {
-                quote!(#crate_name::types::ToJSON::to_json(&<#arg_ty as ::std::default::Default>::default()))
+                quote!(#crate_name::types::ToJSON::to_json(&<<#arg_ty as #crate_name::ApiExtractor>::ParamType as std::default::Default>::default()))
             }
             Some(DefaultValue::Function(func_name)) => {
                 quote!(#crate_name::types::ToJSON::to_json(&#func_name()))

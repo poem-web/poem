@@ -111,8 +111,13 @@ async fn query_default() {
     #[OpenApi]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(default = "default_i32")] v: Query<i32>) {
+        async fn test(
+            &self,
+            #[oai(default = "default_i32")] v: Query<i32>,
+            #[oai(default)] k: Query<bool>,
+        ) {
             assert_eq!(v.0, 999);
+            assert_eq!(k.0, false);
         }
     }
 
@@ -128,6 +133,19 @@ async fn query_default() {
             format: Some("int32"),
             default: Some(json!(999)),
             ..i32::schema_ref().unwrap_inline().clone()
+        }))
+    );
+
+    assert_eq!(
+        meta.paths[0].operations[0].params[1].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[1].name, "k");
+    assert_eq!(
+        meta.paths[0].operations[0].params[1].schema,
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            default: Some(json!(false)),
+            ..bool::schema_ref().unwrap_inline().clone()
         }))
     );
 
@@ -380,7 +398,13 @@ async fn required_params() {
     #[allow(unused_variables)]
     impl Api {
         #[oai(path = "/", method = "get")]
-        async fn test(&self, #[oai(default = "default_i32")] a: Query<i32>, b: Query<i32>) {}
+        async fn test(
+            &self,
+            #[oai(default = "default_i32")] a: Query<i32>,
+            b: Query<i32>,
+            #[oai(default)] c: Query<bool>,
+        ) {
+        }
     }
 
     let meta: MetaApi = Api::meta().remove(0);
@@ -397,6 +421,13 @@ async fn required_params() {
     );
     assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
     assert_eq!(meta.paths[0].operations[0].params[1].required, true);
+
+    assert_eq!(
+        meta.paths[0].operations[0].params[2].in_type,
+        MetaParamIn::Query
+    );
+    assert_eq!(meta.paths[0].operations[0].params[2].name, "c");
+    assert_eq!(meta.paths[0].operations[0].params[2].required, false);
 }
 
 #[tokio::test]
