@@ -6,9 +6,9 @@ use futures_util::FutureExt;
 use poem::{http::StatusCode, Result};
 use poem_wasm::ffi::{
     RawEvent, RawSubscription, ERRNO_OK, ERRNO_UNKNOWN, ERRNO_WOULD_BLOCK,
-    SUBSCRIPTION_TYPE_REQUEST_READ, SUBSCRIPTION_TYPE_RESPONSE_WRITE, SUBSCRIPTION_TYPE_TIMEOUT,
+    SUBSCRIPTION_TYPE_REQUEST_READ, SUBSCRIPTION_TYPE_TIMEOUT,
 };
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncReadExt;
 use wasmtime::{AsContextMut, Caller, Extern, Linker, Memory, Trap};
 
 use crate::{state::WasmEndpointState, WasmHandlerError};
@@ -20,7 +20,7 @@ where
     linker.func_wrap("poem", "read_request", read_request)?;
     linker.func_wrap("poem", "read_request_body", read_request_body)?;
     linker.func_wrap("poem", "send_response", send_response)?;
-    linker.func_wrap("poem", "write_response_body", write_response_body)?;
+    linker.func_wrap2_async("poem", "write_response_body", write_response_body)?;
     linker.func_wrap3_async("poem", "poll", poll)?;
 
     Ok(())
@@ -118,26 +118,29 @@ fn send_response<State>(
     Ok(())
 }
 
-fn write_response_body<State>(
-    mut caller: Caller<'_, WasmEndpointState<State>>,
+fn write_response_body<'a, State: Send>(
+    mut caller: Caller<'a, WasmEndpointState<State>>,
     data: u32,
     data_len: u32,
-    bytes_written: u32,
-) -> Result<i32, Trap> {
-    let memory = get_memory(&mut caller)?;
-    let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
+) -> Box<dyn Future<Output = Result<i32, Trap>> + Send + 'a> {
+    Box::new(
+        async move {
+            let memory = get_memory(&mut caller)?;
+            let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
 
-    let data = get_memory_slice_mut(memory, data, data_len)?;
-    let sz = data_len.min(4096 - state.response_body_buf.len() as u32);
-
-    if sz == 0 {
-        return Ok(ERRNO_WOULD_BLOCK);
-    }
-    state
-        .response_body_buf
-        .extend_from_slice(&data[..sz as usize]);
-    set_ret_len(memory, bytes_written, sz)?;
-    Ok(ERRNO_OK)
+            let data = get_memory_slice_mut(memory, data, data_len)?;
+            if state
+                .response_body_sender
+                .send(data.to_vec())
+                .await
+                .is_err()
+            {
+                return Ok(ERRNO_UNKNOWN);
+            }
+            Ok(ERRNO_OK)
+        }
+        .boxed(),
+    )
 }
 
 fn poll<'a, State: Send>(
@@ -162,9 +165,7 @@ fn poll<'a, State: Send>(
 
             let WasmEndpointState {
                 request_body_reader,
-                response_body_writer,
                 request_body_buf,
-                response_body_buf,
                 request_body_eof,
                 ..
             } = state;
@@ -198,33 +199,6 @@ fn poll<'a, State: Send>(
                             }
                             Err(_) => RawEvent {
                                 ty: SUBSCRIPTION_TYPE_REQUEST_READ,
-                                userdata,
-                                errno: ERRNO_UNKNOWN,
-                            },
-                        }
-                    }
-                    .boxed(),
-                );
-            }
-
-            if let Some(item) = subscriptions
-                .iter()
-                .find(|item| item.ty == SUBSCRIPTION_TYPE_RESPONSE_WRITE)
-            {
-                let userdata = item.userdata;
-                futures.push(
-                    async move {
-                        match response_body_writer.write(&response_body_buf).await {
-                            Ok(sz) => {
-                                response_body_buf.advance(sz);
-                                RawEvent {
-                                    ty: SUBSCRIPTION_TYPE_RESPONSE_WRITE,
-                                    userdata,
-                                    errno: ERRNO_OK,
-                                }
-                            }
-                            Err(_) => RawEvent {
-                                ty: SUBSCRIPTION_TYPE_RESPONSE_WRITE,
                                 userdata,
                                 errno: ERRNO_UNKNOWN,
                             },

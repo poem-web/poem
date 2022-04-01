@@ -1,7 +1,5 @@
-use crate::{
-    runtime::wasi::{request_reader::RequestReader, response_writer::ResponseWriter},
-    Body, Endpoint, Request,
-};
+use crate::{runtime::wasi::request_reader::RequestReader, Body, Endpoint, Request};
+use tokio::io::AsyncReadExt;
 
 pub fn run<E>(ep: E)
 where
@@ -21,6 +19,17 @@ where
         let resp = ep.get_response(request).await;
         poem_wasm::send_response(resp.status(), resp.headers());
 
-        let _ = tokio::io::copy(&mut resp.into_body().into_async_read(), &mut ResponseWriter).await;
+        let mut reader = resp.into_body().into_async_read();
+        loop {
+            let mut data = [0; 4096];
+            match reader.read(&mut data).await {
+                Ok(0) | Err(_) => break,
+                Ok(sz) => {
+                    if poem_wasm::write_response_body(&data[..sz]).is_err() {
+                        break;
+                    }
+                }
+            }
+        }
     });
 }

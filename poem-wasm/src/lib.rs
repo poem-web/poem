@@ -2,10 +2,8 @@ pub mod ffi;
 
 use crate::ffi::{RawEvent, RawSubscription};
 use http::header::HeaderName;
-use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri};
+use http::{HeaderMap, HeaderValue, Method, Uri};
 use std::borrow::Cow;
-use std::io::{Error, ErrorKind, Result};
-use std::mem::MaybeUninit;
 use std::str::FromStr;
 
 pub struct Subscription(RawSubscription);
@@ -24,15 +22,6 @@ impl Subscription {
     pub fn read_request_body() -> Self {
         Self(RawSubscription {
             ty: ffi::SUBSCRIPTION_TYPE_REQUEST_READ,
-            userdata: 0,
-            deadline: 0,
-        })
-    }
-
-    #[inline]
-    pub fn write_response_body() -> Self {
-        Self(RawSubscription {
-            ty: ffi::SUBSCRIPTION_TYPE_RESPONSE_WRITE,
             userdata: 0,
             deadline: 0,
         })
@@ -67,7 +56,7 @@ impl Event {
 }
 
 #[cfg(target_os = "wasi")]
-pub fn read_request_body(data: &mut [u8]) -> Result<usize> {
+pub fn read_request_body(data: &mut [u8]) -> std::io::Result<usize> {
     let mut bytes_read = 0u32;
 
     unsafe {
@@ -77,31 +66,27 @@ pub fn read_request_body(data: &mut [u8]) -> Result<usize> {
             &mut bytes_read as *mut _ as u32,
         ) {
             ffi::ERRNO_OK => Ok(bytes_read as usize),
-            ffi::ERRNO_WOULD_BLOCK => Err(Error::new(ErrorKind::WouldBlock, "would block")),
-            _ => Err(Error::new(ErrorKind::Other, "other")),
+            ffi::ERRNO_WOULD_BLOCK => Err(std::io::Error::new(
+                std::io::ErrorKind::WouldBlock,
+                "would block",
+            )),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, "other")),
         }
     }
 }
 
 #[cfg(target_os = "wasi")]
-pub fn write_response_body(data: &[u8]) -> Result<usize> {
-    let mut bytes_written = 0u32;
-
+pub fn write_response_body(data: &[u8]) -> std::io::Result<()> {
     unsafe {
-        match ffi::write_response_body(
-            data.as_ptr() as u32,
-            data.len() as u32,
-            &mut bytes_written as *mut _ as u32,
-        ) {
-            ffi::ERRNO_OK => Ok(bytes_written as usize),
-            ffi::ERRNO_WOULD_BLOCK => Err(Error::new(ErrorKind::WouldBlock, "would block")),
-            _ => Err(Error::new(ErrorKind::Other, "other")),
+        match ffi::write_response_body(data.as_ptr() as u32, data.len() as u32) {
+            ffi::ERRNO_OK => Ok(()),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, "other")),
         }
     }
 }
 
 #[cfg(target_os = "wasi")]
-pub fn send_response(status: StatusCode, headers: &HeaderMap) {
+pub fn send_response(status: http::StatusCode, headers: &HeaderMap) {
     let s = encode_headers(headers);
     unsafe { ffi::send_response(status.as_u16() as u32, s.as_ptr() as u32, s.len() as u32) }
 }
@@ -127,6 +112,7 @@ pub fn decode_headers(data: &str) -> HeaderMap {
     headers
 }
 
+#[cfg(target_os = "wasi")]
 fn encode_headers(headers: &HeaderMap) -> String {
     let mut iter = headers
         .iter()
@@ -151,6 +137,8 @@ fn encode_headers(headers: &HeaderMap) -> String {
 
 #[cfg(target_os = "wasi")]
 pub fn poll(subscriptions: &[Subscription]) -> Event {
+    use std::mem::MaybeUninit;
+
     unsafe {
         let mut event: MaybeUninit<RawEvent> = MaybeUninit::uninit();
         ffi::poll(

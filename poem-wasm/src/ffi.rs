@@ -11,14 +11,13 @@ extern "C" {
 
     pub fn send_response(code: u32, headers_buf: u32, headers_buf_len: u32);
 
-    pub fn write_response_body(buf: u32, buf_len: u32, bytes_written: u32) -> i32;
+    pub fn write_response_body(buf: u32, buf_len: u32) -> i32;
 
     pub fn poll(subscriptions: u32, num_subscriptions: u32, event: u32);
 }
 
 pub const SUBSCRIPTION_TYPE_TIMEOUT: u8 = 1;
 pub const SUBSCRIPTION_TYPE_REQUEST_READ: u8 = 2;
-pub const SUBSCRIPTION_TYPE_RESPONSE_WRITE: u8 = 3;
 
 #[repr(C)]
 pub struct RawSubscription {

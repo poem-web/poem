@@ -46,6 +46,10 @@ pub(crate) fn poll() {
             let num_subscriptions = reactor.subscriptions.len();
             let mut event: MaybeUninit<Event> = MaybeUninit::uninit();
 
+            if num_subscriptions == 0 {
+                return;
+            }
+
             ffi::poll(
                 reactor.subscriptions.as_ptr() as u32,
                 num_subscriptions as u32,

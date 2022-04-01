@@ -1,5 +1,6 @@
 use poem::{Body, Endpoint, Request, Response, Result};
 use tokio::sync::mpsc;
+use tokio_stream::StreamExt;
 use wasmtime::{Config, Engine, IntoFunc, Linker, Module, Store};
 
 use crate::{funcs, state::WasmEndpointState, WasmHandlerError};
@@ -80,12 +81,12 @@ where
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
         // create wasm instance
-        let (mut response_receiver, response_body_reader) = {
+        let (mut response_receiver, response_body_receiver) = {
             let user_state = self.user_state.clone();
             let (response_sender, response_receiver) = mpsc::unbounded_channel();
-            let (response_body_writer, response_body_reader) = tokio::io::duplex(8192);
+            let (response_body_sender, response_body_receiver) = mpsc::channel(8);
             let state =
-                WasmEndpointState::new(req, response_sender, response_body_writer, user_state);
+                WasmEndpointState::new(req, response_sender, response_body_sender, user_state);
             let mut store = Store::new(&self.engine, state);
             let linker = self.linker.clone();
             let module = self.module.clone();
@@ -112,16 +113,20 @@ where
                 }
             });
 
-            (response_receiver, response_body_reader)
+            (response_receiver, response_body_receiver)
         };
+
+        let mut resp = Response::default();
 
         // receive response
         match response_receiver.recv().await {
             Some((status, headers)) => {
-                let mut resp = Response::default();
                 resp.set_status(status);
                 *resp.headers_mut() = headers;
-                resp.set_body(Body::from_async_read(response_body_reader));
+                resp.set_body(Body::from_bytes_stream(
+                    tokio_stream::wrappers::ReceiverStream::new(response_body_receiver)
+                        .map(Ok::<_, std::io::Error>),
+                ));
                 Ok(resp)
             }
             None => Err(WasmHandlerError::IncompleteResponse.into()),

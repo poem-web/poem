@@ -1,6 +1,6 @@
 use bytes::BytesMut;
 use std::ops::{Deref, DerefMut};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::AsyncRead;
 use tokio::sync::mpsc;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
@@ -16,9 +16,8 @@ pub struct WasmEndpointState<State = ()> {
     pub(crate) response_sender: mpsc::UnboundedSender<(StatusCode, HeaderMap)>,
     pub(crate) request_body_buf: BytesMut,
     pub(crate) request_body_eof: bool,
-    pub(crate) response_body_buf: BytesMut,
     pub(crate) request_body_reader: Box<dyn AsyncRead + Send + Unpin>,
-    pub(crate) response_body_writer: Box<dyn AsyncWrite + Send + Unpin>,
+    pub(crate) response_body_sender: mpsc::Sender<Vec<u8>>,
 }
 
 impl<State> Deref for WasmEndpointState<State> {
@@ -36,15 +35,12 @@ impl<State> DerefMut for WasmEndpointState<State> {
 }
 
 impl<State> WasmEndpointState<State> {
-    pub(crate) fn new<W>(
+    pub(crate) fn new(
         mut request: Request,
         response_sender: mpsc::UnboundedSender<(StatusCode, HeaderMap)>,
-        response_body_writer: W,
+        response_body_sender: mpsc::Sender<Vec<u8>>,
         user_state: State,
-    ) -> Self
-    where
-        W: AsyncWrite + Send + Unpin + 'static,
-    {
+    ) -> Self {
         let wasi = WasiCtxBuilder::new().inherit_stdout().build();
         let request_body_reader = Box::new(request.take_body().into_async_read());
 
@@ -55,9 +51,8 @@ impl<State> WasmEndpointState<State> {
             response_sender,
             request_body_buf: BytesMut::new(),
             request_body_eof: false,
-            response_body_buf: BytesMut::new(),
             request_body_reader,
-            response_body_writer: Box::new(response_body_writer),
+            response_body_sender,
         }
     }
 }
