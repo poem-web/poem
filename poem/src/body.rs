@@ -218,6 +218,11 @@ impl Body {
     pub fn into_bytes_stream(self) -> impl Stream<Item = Result<Bytes, IoError>> + Send + 'static {
         TryStreamExt::map_err(self.0, |err| IoError::new(ErrorKind::Other, err))
     }
+
+    #[cfg(target_os = "wasi")]
+    pub(crate) async fn data(&mut self) -> Option<Result<Bytes, hyper::Error>> {
+        self.0.data().await
+    }
 }
 
 pin_project_lite::pin_project! {

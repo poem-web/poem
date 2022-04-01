@@ -2,6 +2,10 @@ pub const ERRNO_OK: i32 = 0;
 pub const ERRNO_WOULD_BLOCK: i32 = -1;
 pub const ERRNO_UNKNOWN: i32 = -500;
 
+pub const RESPONSE_BODY_EMPTY: u32 = 0;
+pub const RESPONSE_BODY_BYTES: u32 = 1;
+pub const RESPONSE_BODY_STREAM: u32 = 2;
+
 #[cfg(target_os = "wasi")]
 #[link(wasm_import_module = "poem")]
 extern "C" {
@@ -9,7 +13,7 @@ extern "C" {
 
     pub fn read_request_body(buf: u32, buf_len: u32, bytes_read: u32) -> i32;
 
-    pub fn send_response(code: u32, headers_buf: u32, headers_buf_len: u32);
+    pub fn send_response(code: u32, headers_buf: u32, headers_buf_len: u32, body_type: u32);
 
     pub fn write_response_body(buf: u32, buf_len: u32) -> i32;
 

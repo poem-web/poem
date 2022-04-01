@@ -17,7 +17,7 @@ impl AsyncRead for RequestReader {
         buf: &mut ReadBuf<'_>,
     ) -> Poll<Result<()>> {
         unsafe {
-            let data = buf.unfilled_mut();
+            let data = buf.initialize_unfilled();
             let mut bytes_read = 0u32;
             let res = ffi::read_request_body(
                 data.as_mut_ptr() as u32,

@@ -101,6 +101,7 @@ fn send_response<State>(
     status: u32,
     headers_buf: u32,
     headers_buf_len: u32,
+    body_type: u32,
 ) -> Result<(), Trap> {
     let memory = get_memory(&mut caller)?;
     let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
@@ -114,7 +115,7 @@ fn send_response<State>(
     let data = get_memory_slice_mut(memory, headers_buf, headers_buf_len)?;
     let data = std::str::from_utf8(data).expect("valid header map");
     let headers = poem_wasm::decode_headers(data);
-    let _ = state.response_sender.send((status, headers));
+    let _ = state.response_sender.send((status, headers, body_type));
     Ok(())
 }
 

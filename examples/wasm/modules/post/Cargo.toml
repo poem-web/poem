@@ -1,5 +1,5 @@
 [package]
-name = "udf"
+name = "post"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 poem = { path = "../../../../poem", default_features = false }
-serde = { version = "1.0.136", features = ["derive"] }
+tokio = { version = "1.17", features = ["macros", "rt"] }
+serde = { version = "1.0.130", features = ["derive"] }

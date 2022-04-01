@@ -13,7 +13,7 @@ pub struct WasmEndpointState<State = ()> {
     pub(crate) wasi: WasiCtx,
     pub(crate) user_state: State,
     pub(crate) request: String,
-    pub(crate) response_sender: mpsc::UnboundedSender<(StatusCode, HeaderMap)>,
+    pub(crate) response_sender: mpsc::UnboundedSender<(StatusCode, HeaderMap, u32)>,
     pub(crate) request_body_buf: BytesMut,
     pub(crate) request_body_eof: bool,
     pub(crate) request_body_reader: Box<dyn AsyncRead + Send + Unpin>,
@@ -37,7 +37,7 @@ impl<State> DerefMut for WasmEndpointState<State> {
 impl<State> WasmEndpointState<State> {
     pub(crate) fn new(
         mut request: Request,
-        response_sender: mpsc::UnboundedSender<(StatusCode, HeaderMap)>,
+        response_sender: mpsc::UnboundedSender<(StatusCode, HeaderMap, u32)>,
         response_body_sender: mpsc::Sender<Vec<u8>>,
         user_state: State,
     ) -> Self {

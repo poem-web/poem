@@ -3,4 +3,5 @@ members = [
     "hello-world",
     "sse",
     "udf",
+    "post",
 ]

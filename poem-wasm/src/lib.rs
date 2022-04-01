@@ -86,9 +86,16 @@ pub fn write_response_body(data: &[u8]) -> std::io::Result<()> {
 }
 
 #[cfg(target_os = "wasi")]
-pub fn send_response(status: http::StatusCode, headers: &HeaderMap) {
+pub fn send_response(status: http::StatusCode, headers: &HeaderMap, body_type: u32) {
     let s = encode_headers(headers);
-    unsafe { ffi::send_response(status.as_u16() as u32, s.as_ptr() as u32, s.len() as u32) }
+    unsafe {
+        ffi::send_response(
+            status.as_u16() as u32,
+            s.as_ptr() as u32,
+            s.len() as u32,
+            body_type,
+        )
+    }
 }
 
 pub fn decode_headers(data: &str) -> HeaderMap {
