@@ -1,10 +1,10 @@
 use poem::{Body, Endpoint, Request, Response, Result};
+use poem_wasm::ffi::{RESPONSE_BODY_BYTES, RESPONSE_BODY_EMPTY, RESPONSE_BODY_STREAM};
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use wasmtime::{Config, Engine, IntoFunc, Linker, Module, Store};
 
 use crate::{funcs, state::WasmEndpointState, WasmHandlerError};
-use poem_wasm::ffi::{RESPONSE_BODY_BYTES, RESPONSE_BODY_EMPTY, RESPONSE_BODY_STREAM};
 
 pub struct WasmEndpointBuilder<State>
 where

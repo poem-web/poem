@@ -1,10 +1,10 @@
 pub mod ffi;
 
+use std::{borrow::Cow, str::FromStr};
+
+use http::{header::HeaderName, HeaderMap, HeaderValue, Method, Uri};
+
 use crate::ffi::{RawEvent, RawSubscription};
-use http::header::HeaderName;
-use http::{HeaderMap, HeaderValue, Method, Uri};
-use std::borrow::Cow;
-use std::str::FromStr;
 
 pub struct Subscription(RawSubscription);
 

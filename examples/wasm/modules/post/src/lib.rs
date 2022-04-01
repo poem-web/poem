@@ -1,5 +1,4 @@
-use poem::web::Json;
-use poem::{handler, post, IntoResponse, Route};
+use poem::{handler, post, web::Json, IntoResponse, Route};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

@@ -1,13 +1,12 @@
-use bytes::BytesMut;
 use std::ops::{Deref, DerefMut};
-use tokio::io::AsyncRead;
-use tokio::sync::mpsc;
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
+use bytes::BytesMut;
 use poem::{
     http::{HeaderMap, StatusCode},
     Request,
 };
+use tokio::{io::AsyncRead, sync::mpsc};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
 pub struct WasmEndpointState<State = ()> {
     pub(crate) wasi: WasiCtx,

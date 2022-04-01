@@ -2,8 +2,10 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use poem::{listener::TcpListener, Server};
-use poem_wasmhandler::wasmtime::{Caller, Extern, Trap};
-use poem_wasmhandler::{WasmEndpointBuilder, WasmEndpointState};
+use poem_wasmhandler::{
+    wasmtime::{Caller, Extern, Trap},
+    WasmEndpointBuilder, WasmEndpointState,
+};
 
 #[derive(Parser)]
 struct Options {

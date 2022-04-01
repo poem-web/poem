@@ -1,12 +1,16 @@
-use crate::{runtime::wasi::request_reader::RequestReader, Body, Endpoint, Request};
+use std::{
+    future::Future,
+    io::Cursor,
+    pin::Pin,
+    task::{Context, Poll},
+};
+
 use bytes::{Bytes, BytesMut};
 use hyper::body::HttpBody;
 use poem_wasm::ffi::{RESPONSE_BODY_BYTES, RESPONSE_BODY_EMPTY, RESPONSE_BODY_STREAM};
-use std::future::Future;
-use std::io::Cursor;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use tokio::io::AsyncReadExt;
+
+use crate::{runtime::wasi::request_reader::RequestReader, Body, Endpoint, Request};
 
 pub fn run<E>(ep: E)
 where
