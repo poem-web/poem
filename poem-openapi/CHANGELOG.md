@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.3.20] 2022-4-1
 
 - Fixed `#[oai(default)]` not working with operation parameters.
+- Add `MaybeUndefined::update_to` method.
 
 # [1.3.18] 2022-3-24
 
