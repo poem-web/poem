@@ -28,6 +28,15 @@ impl Subscription {
     }
 
     #[inline]
+    pub fn read_upgraded() -> Self {
+        Self(RawSubscription {
+            ty: ffi::SUBSCRIPTION_TYPE_UPGRADED_READ,
+            userdata: 0,
+            deadline: 0,
+        })
+    }
+
+    #[inline]
     pub fn userdata(self, data: u64) -> Self {
         Self(RawSubscription {
             userdata: data,
@@ -95,6 +104,36 @@ pub fn send_response(status: http::StatusCode, headers: &HeaderMap, body_type: u
             s.len() as u32,
             body_type,
         )
+    }
+}
+
+#[cfg(target_os = "wasi")]
+pub fn read_upgraded(data: &mut [u8]) -> std::io::Result<usize> {
+    let mut bytes_read = 0u32;
+
+    unsafe {
+        match ffi::read_upgraded(
+            data.as_mut_ptr() as u32,
+            data.len() as u32,
+            &mut bytes_read as *mut _ as u32,
+        ) {
+            ffi::ERRNO_OK => Ok(bytes_read as usize),
+            ffi::ERRNO_WOULD_BLOCK => Err(std::io::Error::new(
+                std::io::ErrorKind::WouldBlock,
+                "would block",
+            )),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, "other")),
+        }
+    }
+}
+
+#[cfg(target_os = "wasi")]
+pub fn write_upgraded(data: &[u8]) -> std::io::Result<()> {
+    unsafe {
+        match ffi::write_upgraded(data.as_ptr() as u32, data.len() as u32) {
+            ffi::ERRNO_OK => Ok(()),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, "other")),
+        }
     }
 }
 

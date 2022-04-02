@@ -5,7 +5,7 @@ use futures_util::FutureExt;
 use poem::{http::StatusCode, Result};
 use poem_wasm::ffi::{
     RawEvent, RawSubscription, ERRNO_OK, ERRNO_UNKNOWN, ERRNO_WOULD_BLOCK,
-    SUBSCRIPTION_TYPE_REQUEST_READ, SUBSCRIPTION_TYPE_TIMEOUT,
+    SUBSCRIPTION_TYPE_REQUEST_READ, SUBSCRIPTION_TYPE_TIMEOUT, SUBSCRIPTION_TYPE_UPGRADED_READ,
 };
 use tokio::io::AsyncReadExt;
 use wasmtime::{AsContextMut, Caller, Extern, Linker, Memory, Trap};
@@ -19,7 +19,9 @@ where
     linker.func_wrap("poem", "read_request", read_request)?;
     linker.func_wrap("poem", "read_request_body", read_request_body)?;
     linker.func_wrap("poem", "send_response", send_response)?;
-    linker.func_wrap2_async("poem", "write_response_body", write_response_body)?;
+    linker.func_wrap("poem", "write_response_body", write_response_body)?;
+    linker.func_wrap("poem", "read_upgraded", read_upgraded)?;
+    linker.func_wrap("poem", "write_upgraded", write_upgraded)?;
     linker.func_wrap3_async("poem", "poll", poll)?;
 
     Ok(())
@@ -118,24 +120,68 @@ fn send_response<State>(
     Ok(())
 }
 
-fn write_response_body<'a, State: Send>(
-    mut caller: Caller<'a, WasmEndpointState<State>>,
+fn write_response_body<State: Send>(
+    mut caller: Caller<WasmEndpointState<State>>,
     data: u32,
     data_len: u32,
-) -> Box<dyn Future<Output = Result<i32, Trap>> + Send + 'a> {
-    Box::new(
-        async move {
-            let memory = get_memory(&mut caller)?;
-            let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
+) -> Result<i32, Trap> {
+    let memory = get_memory(&mut caller)?;
+    let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
 
-            let data = get_memory_slice_mut(memory, data, data_len)?;
-            if state.response_body_sender.send(data.to_vec()).is_err() {
-                return Ok(ERRNO_UNKNOWN);
-            }
-            Ok(ERRNO_OK)
-        }
-        .boxed(),
-    )
+    let data = get_memory_slice_mut(memory, data, data_len)?;
+    if state.response_body_sender.send(data.to_vec()).is_err() {
+        return Ok(ERRNO_UNKNOWN);
+    }
+    Ok(ERRNO_OK)
+}
+
+fn read_upgraded<State>(
+    mut caller: Caller<'_, WasmEndpointState<State>>,
+    buf: u32,
+    buf_len: u32,
+    bytes_read: u32,
+) -> Result<i32, Trap> {
+    let memory = get_memory(&mut caller)?;
+    let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
+
+    let upgraded = match &mut state.upgraded {
+        Some(upgraded) => upgraded,
+        None => return Err(WasmHandlerError::NoUpgraded.into()),
+    };
+
+    if upgraded.reader_eof {
+        set_ret_len(memory, bytes_read, 0)?;
+        return Ok(ERRNO_OK);
+    }
+
+    if !upgraded.reader_buf.has_remaining() {
+        return Ok(ERRNO_WOULD_BLOCK);
+    }
+
+    let sz = buf_len.min(upgraded.reader_buf.remaining() as u32);
+    get_memory_slice_mut(memory, buf, sz)?
+        .copy_from_slice(&upgraded.reader_buf.split_to(sz as usize));
+    set_ret_len(memory, bytes_read, sz)?;
+    Ok(0)
+}
+
+fn write_upgraded<State: Send>(
+    mut caller: Caller<WasmEndpointState<State>>,
+    data: u32,
+    data_len: u32,
+) -> Result<i32, Trap> {
+    let memory = get_memory(&mut caller)?;
+    let (memory, state) = memory.data_and_store_mut(caller.as_context_mut());
+    let upgraded = match &mut state.upgraded {
+        Some(upgraded) => upgraded,
+        None => return Err(WasmHandlerError::NoUpgraded.into()),
+    };
+
+    let data = get_memory_slice_mut(memory, data, data_len)?;
+    if upgraded.sender.send(data.to_vec()).is_err() {
+        return Ok(ERRNO_UNKNOWN);
+    }
+    Ok(ERRNO_OK)
 }
 
 fn poll<'a, State: Send>(
@@ -162,6 +208,7 @@ fn poll<'a, State: Send>(
                 request_body_reader,
                 request_body_buf,
                 request_body_eof,
+                upgraded,
                 ..
             } = state;
             let mut futures = Vec::new();
@@ -201,6 +248,45 @@ fn poll<'a, State: Send>(
                     }
                     .boxed(),
                 );
+            }
+
+            if let Some(upgraded) = upgraded {
+                if let Some(item) = subscriptions
+                    .iter()
+                    .find(|item| item.ty == SUBSCRIPTION_TYPE_UPGRADED_READ)
+                {
+                    let userdata = item.userdata;
+                    futures.push(
+                        async move {
+                            let mut data = [0; 4096];
+
+                            match upgraded.reader.read(&mut data).await {
+                                Ok(0) => {
+                                    upgraded.reader_eof = true;
+                                    RawEvent {
+                                        ty: SUBSCRIPTION_TYPE_REQUEST_READ,
+                                        userdata,
+                                        errno: ERRNO_OK,
+                                    }
+                                }
+                                Ok(sz) => {
+                                    upgraded.reader_buf.extend_from_slice(&data[..sz]);
+                                    RawEvent {
+                                        ty: SUBSCRIPTION_TYPE_REQUEST_READ,
+                                        userdata,
+                                        errno: ERRNO_OK,
+                                    }
+                                }
+                                Err(_) => RawEvent {
+                                    ty: SUBSCRIPTION_TYPE_REQUEST_READ,
+                                    userdata,
+                                    errno: ERRNO_UNKNOWN,
+                                },
+                            }
+                        }
+                        .boxed(),
+                    );
+                }
             }
 
             for subscription in subscriptions {

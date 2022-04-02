@@ -21,9 +21,7 @@ use crate::{
 pub struct WebSocket {
     key: HeaderValue,
     #[cfg(not(target_os = "wasi"))]
-    on_upgrade: hyper::OnUpgrade,
-    #[cfg(target_os = "wasi")]
-    request_body: Body,
+    on_upgrade: crate::OnUpgrade,
     protocols: Option<Box<[Cow<'static, str>]>>,
     sec_websocket_protocol: Option<HeaderValue>,
 }
@@ -61,8 +59,6 @@ impl<'a> FromRequest<'a> for WebSocket {
             key,
             #[cfg(not(target_os = "wasi"))]
             on_upgrade: req.take_upgrade()?,
-            #[cfg(target_os = "wasi")]
-            request_body: body.take()?,
             protocols: None,
             sec_websocket_protocol,
         })
@@ -176,8 +172,8 @@ where
 
             #[cfg(target_os = "wasi")]
             let stream = {
-                let request_body_reader = self.websocket.request_body.into_async_read();
-                let response_body_writer = crate::runtime::wasi::ResponseWriter;
+                let request_body_reader = crate::runtime::wasi::UpgradedReader;
+                let response_body_writer = crate::runtime::wasi::UpgradedWriter;
                 super::unite_stream::UniteStream::<
                     Box<dyn tokio::io::AsyncRead + Send + Unpin>,
                     Box<dyn tokio::io::AsyncWrite + Send + Unpin>,

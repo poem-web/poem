@@ -40,7 +40,6 @@ where
         buf: &[u8],
     ) -> Poll<Result<usize, Error>> {
         let this = &mut *self;
-        println!("write");
         Pin::new(&mut this.writer).poll_write(cx, buf)
     }
 

@@ -1,9 +1,4 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::VecDeque,
-    future::Future,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::VecDeque, future::Future};
 
 use async_task::{Runnable, Task};
 
@@ -24,15 +19,11 @@ where
     task
 }
 
-pub(crate) fn block_on<F: Future, T>(fut: F)
+pub(crate) fn block_on<F: Future>(fut: F)
 where
     F: Future + 'static,
 {
-    spawn({
-        let res = res.clone();
-        async move { res.set(Some(fut.await)) }
-    })
-    .detach();
+    spawn(fut).detach();
 
     loop {
         QUEUE.with(|queue| loop {

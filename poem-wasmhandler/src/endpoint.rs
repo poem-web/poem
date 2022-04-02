@@ -167,16 +167,20 @@ where
         }
 
         // upgraded
-        if let (Some(on_upgrade), Some((mut upgraded_writer, upgraded_receiver))) =
+        if let (Some(on_upgrade), Some((mut upgraded_writer, mut upgraded_receiver))) =
             (on_upgrade, upgraded_stub)
         {
-            let (upgraded_reader, upgraded_writer) = tokio::io::split(on_upgrade.await?);
-            tokio::spawn(tokio::io::copy(&mut upgraded_reader, &mut upgraded_writer));
             tokio::spawn(async move {
-                while let Some(data) = upgraded_receiver.recv().await {
-                    if upgraded_writer.write(&data).await.is_err() {
-                        break;
-                    }
+                if let Ok(upgraded) = on_upgrade.await {
+                    let (mut reader, mut writer) = tokio::io::split(upgraded);
+                    tokio::spawn(async move {
+                        while let Some(data) = upgraded_receiver.recv().await {
+                            if writer.write(&data).await.is_err() {
+                                break;
+                            }
+                        }
+                    });
+                    let _ = tokio::io::copy(&mut reader, &mut upgraded_writer).await;
                 }
             });
         }
