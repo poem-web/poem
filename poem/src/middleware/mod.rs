@@ -1,6 +1,7 @@
 //! Commonly used middleware.
 
 mod add_data;
+mod catch_panic;
 #[cfg(feature = "compression")]
 mod compression;
 #[cfg(feature = "cookie")]
@@ -40,6 +41,7 @@ pub use self::tokio_metrics_mw::{TokioMetrics, TokioMetricsEndpoint};
 pub use self::tower_compat::TowerLayerCompatExt;
 pub use self::{
     add_data::{AddData, AddDataEndpoint},
+    catch_panic::{CatchPanic, CatchPanicEndpoint, PanicHandler},
     cors::{Cors, CorsEndpoint},
     force_https::ForceHttps,
     normalize_path::{NormalizePath, NormalizePathEndpoint, TrailingSlash},
