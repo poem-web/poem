@@ -133,11 +133,8 @@ impl<E: Endpoint, H: PanicHandler> Endpoint for CatchPanicEndpoint<E, H> {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
-        match AssertUnwindSafe(self.inner.get_response(req))
-            .catch_unwind()
-            .await
-        {
-            Ok(resp) => Ok(resp),
+        match AssertUnwindSafe(self.inner.call(req)).catch_unwind().await {
+            Ok(resp) => resp.map(IntoResponse::into_response),
             Err(err) => Ok(self.panic_handler.get_response(err).into_response()),
         }
     }

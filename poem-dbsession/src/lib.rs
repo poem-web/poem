@@ -45,7 +45,7 @@
     feature = "sqlx-postgres-rustls",
     feature = "sqlx-postgres-native-tls",
     feature = "sqlx-sqlite-rustls",
-    feature = "sqlx-sqlite-tls"
+    feature = "sqlx-sqlite-native-tls"
 ))]
 pub mod sqlx;
 
