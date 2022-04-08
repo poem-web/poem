@@ -68,7 +68,7 @@
 //!
 //! The extractor is used to extract something from the HTTP request.
 //!
-//! `Poem` provides some commonly used extractors for extracting something from
+//! `Poem` provides some [commonly used extractors](web::FromRequest) for extracting something from
 //! HTTP requests.
 //!
 //! In the following example, the `index` function uses 3 extractors to extract
