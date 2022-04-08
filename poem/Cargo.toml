@@ -37,7 +37,7 @@ tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
 test = ["sse", "sse-codec", "tokio-util/compat"]
 i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
-acme = ["server", "hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser"]
+acme = ["server", "hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser", "chrono"]
 
 [dependencies]
 poem-derive = { path = "../poem-derive", version = "1.3.21" }

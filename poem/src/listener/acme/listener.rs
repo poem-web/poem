@@ -1,7 +1,7 @@
 use std::{
     io::{Error as IoError, ErrorKind, Result as IoResult},
     sync::{Arc, Weak},
-    time::Duration,
+    time::{Duration, UNIX_EPOCH},
 };
 
 use http::uri::Scheme;
@@ -16,6 +16,7 @@ use tokio_rustls::{
     server::TlsStream,
     TlsAcceptor,
 };
+use x509_parser::prelude::{FromDer, X509Certificate};
 
 use crate::{
     listener::{
@@ -47,7 +48,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
     type Acceptor = AutoCertAcceptor<T::Acceptor>;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
-        let client = AcmeClient::try_new(
+        let mut client = AcmeClient::try_new(
             &self.auto_cert.directory_url,
             self.auto_cert.key_pair.clone(),
             self.auto_cert.contacts.clone(),
@@ -82,13 +83,27 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         let cert_resolver = Arc::new(ResolveServerCert::default());
 
         if let (Some(certs), Some(key)) = (cache_certs, cert_key) {
-            tracing::debug!("using cached tls certificates");
+            let certs = certs
+                .into_iter()
+                .map(tokio_rustls::rustls::Certificate)
+                .collect::<Vec<_>>();
 
+            let expires_at = match certs
+                .first()
+                .and_then(|cert| X509Certificate::from_der(cert.as_ref()).ok())
+                .map(|(_, cert)| cert.validity().not_after.timestamp())
+                .map(|timestamp| UNIX_EPOCH + Duration::from_secs(timestamp as u64))
+            {
+                Some(expires_at) => chrono::DateTime::<chrono::Utc>::from(expires_at).to_string(),
+                None => "unknown".to_string(),
+            };
+
+            tracing::debug!(
+                expires_at = expires_at.as_str(),
+                "using cached tls certificates"
+            );
             *cert_resolver.cert.write() = Some(Arc::new(CertifiedKey::new(
-                certs
-                    .into_iter()
-                    .map(tokio_rustls::rustls::Certificate)
-                    .collect(),
+                certs,
                 any_ecdsa_type(&PrivateKey(key)).unwrap(),
             )));
         }
@@ -113,7 +128,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         tokio::spawn(async move {
             while let Some(cert_resolver) = Weak::upgrade(&weak_cert_resolver) {
                 if cert_resolver.is_expired() {
-                    if let Err(err) = issue_cert(&client, &auto_cert, &cert_resolver).await {
+                    if let Err(err) = issue_cert(&mut client, &auto_cert, &cert_resolver).await {
                         tracing::error!(error = %err, "failed to issue certificate");
                     }
                 }
@@ -167,7 +182,7 @@ fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
 }
 
 async fn issue_cert(
-    client: &AcmeClient,
+    client: &mut AcmeClient,
     auto_cert: &AutoCert,
     resolver: &ResolveServerCert,
 ) -> IoResult<()> {

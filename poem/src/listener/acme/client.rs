@@ -25,7 +25,8 @@ pub(crate) struct AcmeClient {
     client: Client<HttpsConnector<HttpConnector>>,
     directory: Directory,
     key_pair: Arc<KeyPair>,
-    kid: String,
+    contacts: Vec<String>,
+    kid: Option<String>,
 }
 
 impl AcmeClient {
@@ -42,23 +43,39 @@ impl AcmeClient {
                 .build(),
         );
         let directory = get_directory(&client, directory_url).await?;
-        let kid = create_acme_account(&client, &directory, &key_pair, contacts).await?;
         Ok(Self {
             client,
             directory,
             key_pair,
-            kid,
+            contacts,
+            kid: None,
         })
     }
 
-    pub(crate) async fn new_order(&self, domains: &[String]) -> IoResult<NewOrderResponse> {
-        tracing::debug!(kid = self.kid.as_str(), "new order request");
+    pub(crate) async fn new_order(&mut self, domains: &[String]) -> IoResult<NewOrderResponse> {
+        let kid = match &self.kid {
+            Some(kid) => kid,
+            None => {
+                // create account
+                let kid = create_acme_account(
+                    &self.client,
+                    &self.directory,
+                    &self.key_pair,
+                    self.contacts.clone(),
+                )
+                .await?;
+                self.kid = Some(kid);
+                self.kid.as_ref().unwrap()
+            }
+        };
+
+        tracing::debug!(kid = kid.as_str(), "new order request");
 
         let nonce = get_nonce(&self.client, &self.directory).await?;
         let resp: NewOrderResponse = jose::request_json(
             &self.client,
             &self.key_pair,
-            Some(&self.kid),
+            Some(kid),
             &nonce,
             &self.directory.new_order,
             Some(NewOrderRequest {
@@ -87,7 +104,7 @@ impl AcmeClient {
         let resp: FetchAuthorizationResponse = jose::request_json(
             &self.client,
             &self.key_pair,
-            Some(&self.kid),
+            self.kid.as_deref(),
             &nonce,
             auth_url,
             None::<()>,
@@ -120,7 +137,7 @@ impl AcmeClient {
         jose::request(
             &self.client,
             &self.key_pair,
-            Some(&self.kid),
+            self.kid.as_deref(),
             &nonce,
             url,
             Some(serde_json::json!({})),
@@ -137,7 +154,7 @@ impl AcmeClient {
         jose::request_json(
             &self.client,
             &self.key_pair,
-            Some(&self.kid),
+            self.kid.as_deref(),
             &nonce,
             url,
             Some(CsrRequest {
@@ -154,7 +171,7 @@ impl AcmeClient {
         let resp = jose::request(
             &self.client,
             &self.key_pair,
-            Some(&self.kid),
+            self.kid.as_deref(),
             &nonce,
             url,
             None::<()>,

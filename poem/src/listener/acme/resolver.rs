@@ -9,7 +9,7 @@ use tokio_rustls::rustls::{
     server::{ClientHello, ResolvesServerCert},
     sign::CertifiedKey,
 };
-use x509_parser::{prelude::X509Certificate, traits::FromDer};
+use x509_parser::prelude::{FromDer, X509Certificate};
 
 pub(crate) const ACME_TLS_ALPN_NAME: &[u8] = b"acme-tls/1";
 
