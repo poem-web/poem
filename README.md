@@ -44,6 +44,7 @@ The following are cases of community use:
 | [databend](https://github.com/datafuselabs/databend)                             | A cloud-native data warehouse written in rust.                                                                         | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746) | [(WEEKLY)](https://github.com/datafuselabs/weekly)                             |
 | [muse](https://leihuo.163.com/)                                                  | A NetEase Leihuo's internal art resource sharing platform, backend in rust.                                            |                                                                  |                                                                                |
 | [hik-proconnect](https://www.hikvision.com/en/products/software/hik-proconnect/) | A front-end automated deployment platform based on continuous integration of aws. Hik-ProConnect project for Hikvision |                                                                  |                                                                                |
+| [warpgate](https://github.com/eugeny/warpgate)                             | A smart SSH bastion host that works with any SSH clients.                                                                         |   |                              |
 
 ### Resources
 
