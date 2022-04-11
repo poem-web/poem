@@ -67,11 +67,12 @@ which are disabled by default:
 | tempfile      | Support for [`tempfile`](https://crates.io/crates/tempfile)                               |
 | tower-compat  | Adapters for `tower::Layer` and `tower::Service`.                                         |
 | websocket     | Support for WebSocket                                                                     |
-| anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate.                     |
+| anyhow        | Integrate with [`anyhow`](https://crates.io/crates/anyhow) crate.                         |
 | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate.        |
 | i18n          | Support for internationalization                                                          |
 | acme          | Support for ACME(Automatic Certificate Management Environment)                            |
-| tokio-metrics | Integrate with the [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.       |
+| tokio-metrics | Integrate with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.           |
+| embed         | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate.                 |
 
 ## Safety
 
