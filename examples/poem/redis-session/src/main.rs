@@ -16,7 +16,7 @@ async fn count(session: &Session) -> String {
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
+        std::env::set_var("RUST_LOG", "DEBUG");
     }
     tracing_subscriber::fmt::init();
 
