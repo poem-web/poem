@@ -8,4 +8,4 @@ publish = false
 poem = { path = "../../../poem", features = ["tower-compat"] }
 tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
 tower = { version = "0.4.8", default-features = true, features = ["limit"] }
-tracing-subscriber = "0.3.9"
+tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
