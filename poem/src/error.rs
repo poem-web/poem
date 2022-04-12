@@ -35,6 +35,9 @@ pub trait ResponseError {
     where
         Self: StdError + Send + Sync + 'static,
     {
+        if self.status() == StatusCode::NOT_MODIFIED {
+            return Response::builder().status(self.status()).finish();
+        }
         Response::builder()
             .status(self.status())
             .body(self.to_string())
