@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [1.3.24] 2022-4-13
 
-- Do not include a body for HTTP 304 [#257](https://github.com/poem-web/poem/pull/257)
+- ~~Do not include a body for HTTP 304~~ [#257](https://github.com/poem-web/poem/pull/257)
+- An error created by a status code should be converted to a response without a body.
 
 # [1.3.23] 2022-4-11
 
