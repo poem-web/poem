@@ -35,6 +35,13 @@ pub enum StaticFileResponse {
         /// Reference: <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Last-Modified>
         #[oai(header = "last-modified")]
         Option<String>,
+        /// The Content-Type representation header is used to indicate the
+        /// original media type of the resource (prior to any content encoding
+        /// applied for sending).
+        ///
+        /// Reference: <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>
+        #[oai(header = "content-type")]
+        Option<String>,
     ),
     /// Not modified
     ///
@@ -85,8 +92,9 @@ impl From<Result<poem::web::StaticFileResponse, StaticFileError>> for StaticFile
                 body,
                 etag,
                 last_modified,
+                content_type,
                 ..
-            }) => StaticFileResponse::Ok(Binary(body), etag, last_modified),
+            }) => StaticFileResponse::Ok(Binary(body), etag, last_modified, content_type),
             Ok(poem::web::StaticFileResponse::NotModified) => StaticFileResponse::NotModified,
             Err(
                 StaticFileError::MethodNotAllowed(_)
