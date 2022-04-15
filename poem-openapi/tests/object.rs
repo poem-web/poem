@@ -561,7 +561,7 @@ fn example() {
 }
 
 #[test]
-fn concretes_example() {
+fn concrete_types() {
     #[derive(Object)]
     #[oai(
         concrete(

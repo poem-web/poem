@@ -449,6 +449,46 @@ async fn external_docs() {
 }
 
 #[tokio::test]
+async fn inline_generic() {
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(inline)]
+    enum MyObj<A: ParseFromJSON + ToJSON, B: ParseFromJSON + ToJSON> {
+        A(A),
+        B(B),
+    }
+
+    let schema_ref: MetaSchemaRef = MyObj::<i32, String>::schema_ref();
+    let meta_schema = schema_ref.unwrap_inline();
+    assert_eq!(meta_schema.any_of[0], i32::schema_ref());
+    assert_eq!(meta_schema.any_of[1], String::schema_ref());
+}
+
+#[tokio::test]
+async fn concrete_types() {
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(
+        concrete(name = "Obj_i32_i64", params(i32, i64)),
+        concrete(name = "Obj_f32_f64", params(f32, f64))
+    )]
+    enum MyObj<A: ParseFromJSON + ToJSON, B: ParseFromJSON + ToJSON> {
+        A(A),
+        B(B),
+    }
+
+    let mut registry = Registry::new();
+    <MyObj<i32, i64>>::register(&mut registry);
+    <MyObj<f32, f64>>::register(&mut registry);
+
+    let meta_schema = registry.schemas.remove("Obj_i32_i64").unwrap();
+    assert_eq!(meta_schema.any_of[0], i32::schema_ref());
+    assert_eq!(meta_schema.any_of[1], i64::schema_ref());
+
+    let meta_schema = registry.schemas.remove("Obj_f32_f64").unwrap();
+    assert_eq!(meta_schema.any_of[0], f32::schema_ref());
+    assert_eq!(meta_schema.any_of[1], f64::schema_ref());
+}
+
+#[tokio::test]
 async fn no_inline() {
     #[derive(Union, Debug, PartialEq)]
     enum MyObj {
