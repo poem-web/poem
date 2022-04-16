@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Attribute, DeriveInput, Error, Generics, Type};
+use syn::{Attribute, DeriveInput, Error, GenericParam, Generics, Type};
 
 use crate::{
     common_args::{ConcreteType, ExternalDocument},
@@ -66,6 +66,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         return Err(Error::new(
             args.inline.span(),
             "Inline objects cannot have the `concretes` attribute.",
+        )
+        .into());
+    }
+
+    let is_generic_union = args
+        .generics
+        .params
+        .iter()
+        .any(|param| matches!(param, GenericParam::Type(_)));
+    if is_generic_union && !*args.inline && args.concretes.is_empty() {
+        return Err(Error::new(
+            args.ident.span(),
+            "Generic objects either specify the `inline` attribute, or specify a name for each concrete type using the `concretes` attribute.",
         )
         .into());
     }

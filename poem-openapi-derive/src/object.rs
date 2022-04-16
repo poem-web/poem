@@ -5,7 +5,7 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
+use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Path, Type};
 
 use crate::{
     common_args::{ConcreteType, DefaultValue, ExternalDocument, RenameRule, RenameRuleExt},
@@ -108,6 +108,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         return Err(Error::new(
             args.inline.span(),
             "Inline objects cannot have the `concretes` attribute.",
+        )
+        .into());
+    }
+
+    let is_generic_object = args
+        .generics
+        .params
+        .iter()
+        .any(|param| matches!(param, GenericParam::Type(_)));
+    if is_generic_object && !*args.inline && args.concretes.is_empty() {
+        return Err(Error::new(
+            args.ident.span(),
+            "Generic objects either specify the `inline` attribute, or specify a name for each concrete type using the `concretes` attribute.",
         )
         .into());
     }

@@ -4,15 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.3.27]
+# [1.3.28] 2022-04-16
+
+- If the `inline` or `concretes` attribute of the generic object is not specified, the exact error will be reported at compile time.
+
+# [1.3.28] 2022-04-15
 
 - Add support for generic union. [#259](https://github.com/poem-web/poem/issues/259) 
 
-# [1.3.26]
+# [1.3.26] 2022-04-14
 
 - Fixed `poem::web::StaticFileResponse` conversion to `poem_openapi::respoinse::StaticFileResponse` missing `Content-Type` header.
 
-# [1.3.25]
+# [1.3.25] 2022-04-13
 
 - Downgrades the `indexmap` dependency to `1.6.2` to resolve https://github.com/tkaitchuck/aHash/issues/95
 
