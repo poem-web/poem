@@ -34,7 +34,7 @@ pub use self::handshake_stream::HandshakeStream;
 #[cfg(feature = "native-tls")]
 pub use self::native_tls::{NativeTlsAcceptor, NativeTlsConfig, NativeTlsListener};
 #[cfg(feature = "rustls")]
-pub use self::rustls::{RustlsAcceptor, RustlsConfig, RustlsListener};
+pub use self::rustls::{RustlsAcceptor, RustlsCertificate, RustlsConfig, RustlsListener};
 #[cfg(any(feature = "rustls", feature = "native-tls"))]
 pub use self::tls::IntoTlsConfigStream;
 #[cfg(unix)]

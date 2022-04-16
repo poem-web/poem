@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use futures_util::{
     stream::{BoxStream, Chain, Pending},
@@ -9,8 +9,10 @@ use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
         server::{
-            AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, NoClientAuth,
+            AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, ClientHello,
+            NoClientAuth, ResolvesServerCert,
         },
+        sign::{self, CertifiedKey},
         Certificate, PrivateKey, RootCertStore, ServerConfig,
     },
     server::TlsStream,
@@ -28,30 +30,20 @@ enum TlsClientAuth {
     Required(Vec<u8>),
 }
 
-/// Rustls Config.
+/// Rustls certificate
 #[cfg_attr(docsrs, doc(cfg(feature = "rustls")))]
-pub struct RustlsConfig {
+#[derive(Default)]
+pub struct RustlsCertificate {
     cert: Vec<u8>,
     key: Vec<u8>,
-    client_auth: TlsClientAuth,
     ocsp_resp: Vec<u8>,
 }
 
-impl Default for RustlsConfig {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl RustlsConfig {
-    /// Create a new tls config object.
+impl RustlsCertificate {
+    /// Create a [`RustlsCertificate`] object.
+    #[inline]
     pub fn new() -> Self {
-        Self {
-            cert: Vec::new(),
-            key: Vec::new(),
-            client_auth: TlsClientAuth::Off,
-            ocsp_resp: Vec::new(),
-        }
+        Default::default()
     }
 
     /// Sets the certificates.
@@ -68,33 +60,21 @@ impl RustlsConfig {
         self
     }
 
-    /// Sets the trust anchor for optional client authentication.
-    #[must_use]
-    pub fn client_auth_optional(mut self, trust_anchor: impl Into<Vec<u8>>) -> Self {
-        self.client_auth = TlsClientAuth::Optional(trust_anchor.into());
-        self
-    }
-
-    /// Sets the trust anchor for required client authentication.
-    #[must_use]
-    pub fn client_auth_required(mut self, trust_anchor: impl Into<Vec<u8>>) -> Self {
-        self.client_auth = TlsClientAuth::Required(trust_anchor.into());
-        self
-    }
-
     /// Sets the DER-encoded OCSP response.
     #[must_use]
     pub fn ocsp_resp(mut self, ocsp_resp: impl Into<Vec<u8>>) -> Self {
         self.ocsp_resp = ocsp_resp.into();
         self
     }
+}
 
-    fn create_server_config(&self) -> IoResult<ServerConfig> {
+impl RustlsCertificate {
+    fn create_certificate_key(&self) -> IoResult<CertifiedKey> {
         let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
             .map(|mut certs| certs.drain(..).map(Certificate).collect())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
 
-        let key = {
+        let priv_key = {
             let mut pkcs8 = rustls_pemfile::pkcs8_private_keys(&mut self.key.as_slice())
                 .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
             if !pkcs8.is_empty() {
@@ -116,6 +96,150 @@ impl RustlsConfig {
             }
         };
 
+        let key = sign::any_supported_type(&priv_key)
+            .map_err(|_| IoError::new(ErrorKind::Other, "invalid private key"))?;
+
+        Ok(CertifiedKey {
+            cert,
+            key,
+            ocsp: if self.ocsp_resp.is_empty() {
+                Some(self.ocsp_resp.clone())
+            } else {
+                None
+            },
+            sct_list: None,
+        })
+    }
+}
+
+/// Rustls Config.
+#[cfg_attr(docsrs, doc(cfg(feature = "rustls")))]
+pub struct RustlsConfig {
+    certificates: HashMap<String, RustlsCertificate>,
+    fallback: Option<RustlsCertificate>,
+    client_auth: TlsClientAuth,
+}
+
+impl Default for RustlsConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RustlsConfig {
+    /// Create a new tls config object.
+    pub fn new() -> Self {
+        Self {
+            certificates: HashMap::new(),
+            fallback: Default::default(),
+            client_auth: TlsClientAuth::Off,
+        }
+    }
+
+    /// Sets the certificates.
+    #[deprecated = "replaced by `RustlsConfig::fallback`"]
+    #[must_use]
+    pub fn cert(mut self, cert: impl Into<Vec<u8>>) -> Self {
+        match &mut self.fallback {
+            Some(fallback) => fallback.cert = cert.into(),
+            None => {
+                self.fallback = Some(RustlsCertificate {
+                    cert: cert.into(),
+                    ..Default::default()
+                })
+            }
+        }
+        self
+    }
+
+    /// Sets the private key.
+    #[deprecated = "replaced by `RustlsConfig::fallback`"]
+    #[must_use]
+    pub fn key(mut self, key: impl Into<Vec<u8>>) -> Self {
+        match &mut self.fallback {
+            Some(fallback) => fallback.key = key.into(),
+            None => {
+                self.fallback = Some(RustlsCertificate {
+                    key: key.into(),
+                    ..Default::default()
+                })
+            }
+        }
+        self
+    }
+
+    /// Sets the DER-encoded OCSP response.
+    #[deprecated = "replaced by `RustlsConfig::fallback`"]
+    #[must_use]
+    pub fn ocsp_resp(mut self, ocsp_resp: impl Into<Vec<u8>>) -> Self {
+        match &mut self.fallback {
+            Some(fallback) => fallback.ocsp_resp = ocsp_resp.into(),
+            None => {
+                self.fallback = Some(RustlsCertificate {
+                    ocsp_resp: ocsp_resp.into(),
+                    ..Default::default()
+                })
+            }
+        }
+        self
+    }
+
+    /// If the certificate corresponding to the SNI name is not found, it will
+    /// fall back to this certificate.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use poem::listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener};
+    ///
+    /// # let cert_bytes: Vec<u8> = todo!();
+    /// # let key_bytes: Vec<u8> = todo!();
+    ///
+    /// let config =
+    ///     RustlsConfig::new().fallback(RustlsCertificate::new().cert(cert_bytes).key(key_bytes));
+    /// let listener = TcpListener::bind("127.0.0.1:3000").rustls(config);
+    /// ```
+    pub fn fallback(mut self, certificate: RustlsCertificate) -> Self {
+        self.fallback = Some(certificate);
+        self
+    }
+
+    /// Add a new certificate to be used for the given SNI `name`.
+    pub fn certificate(mut self, name: impl Into<String>, certificate: RustlsCertificate) -> Self {
+        self.certificates.insert(name.into(), certificate);
+        self
+    }
+
+    /// Sets the trust anchor for optional client authentication.
+    #[must_use]
+    pub fn client_auth_optional(mut self, trust_anchor: impl Into<Vec<u8>>) -> Self {
+        self.client_auth = TlsClientAuth::Optional(trust_anchor.into());
+        self
+    }
+
+    /// Sets the trust anchor for required client authentication.
+    #[must_use]
+    pub fn client_auth_required(mut self, trust_anchor: impl Into<Vec<u8>>) -> Self {
+        self.client_auth = TlsClientAuth::Required(trust_anchor.into());
+        self
+    }
+
+    fn create_server_config(&self) -> IoResult<ServerConfig> {
+        let fallback = self
+            .fallback
+            .as_ref()
+            .map(|fallback| fallback.create_certificate_key())
+            .transpose()?
+            .map(Arc::new);
+        let mut certifcate_keys = HashMap::new();
+
+        for (name, certificate) in &self.certificates {
+            certifcate_keys.insert(
+                name.clone(),
+                Arc::new(certificate.create_certificate_key()?),
+            );
+        }
+
         let client_auth = match &self.client_auth {
             TlsClientAuth::Off => NoClientAuth::new(),
             TlsClientAuth::Optional(trust_anchor) => {
@@ -129,8 +253,10 @@ impl RustlsConfig {
         let mut server_config = ServerConfig::builder()
             .with_safe_defaults()
             .with_client_cert_verifier(client_auth)
-            .with_single_cert_with_ocsp_and_sct(cert, key, self.ocsp_resp.clone(), Vec::new())
-            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+            .with_cert_resolver(Arc::new(ResolveServerCert {
+                certifcate_keys,
+                fallback,
+            }));
         server_config.alpn_protocols = vec!["h2".into(), "http/1.1".into()];
 
         Ok(server_config)
@@ -276,6 +402,20 @@ where
     }
 }
 
+struct ResolveServerCert {
+    certifcate_keys: HashMap<String, Arc<CertifiedKey>>,
+    fallback: Option<Arc<CertifiedKey>>,
+}
+
+impl ResolvesServerCert for ResolveServerCert {
+    fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
+        client_hello
+            .server_name()
+            .and_then(|name| self.certifcate_keys.get(name).map(Arc::clone))
+            .or_else(|| self.fallback.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use tokio::{
@@ -290,9 +430,11 @@ mod tests {
     #[tokio::test]
     async fn tls_listener() {
         let listener = TcpListener::bind("127.0.0.1:0").rustls(
-            RustlsConfig::new()
-                .cert(include_bytes!("certs/cert1.pem").as_ref())
-                .key(include_bytes!("certs/key1.pem").as_ref()),
+            RustlsConfig::new().fallback(
+                RustlsCertificate::new()
+                    .cert(include_bytes!("certs/cert1.pem").as_ref())
+                    .key(include_bytes!("certs/key1.pem").as_ref()),
+            ),
         );
         let mut acceptor = listener.into_acceptor().await.unwrap();
         let local_addr = acceptor.local_addr().pop().unwrap();

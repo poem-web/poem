@@ -65,6 +65,13 @@ pub struct EmbeddedFilesEndpoint<E: RustEmbed + Send + Sync> {
     _embed: PhantomData<E>,
 }
 
+impl<E: RustEmbed + Sync + Send> Default for EmbeddedFilesEndpoint<E> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     /// Create a new `EmbeddedFilesEndpoint` from a `rust-embed` bundle.
     pub fn new() -> Self {
