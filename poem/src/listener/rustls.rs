@@ -102,7 +102,7 @@ impl RustlsCertificate {
         Ok(CertifiedKey {
             cert,
             key,
-            ocsp: if self.ocsp_resp.is_empty() {
+            ocsp: if !self.ocsp_resp.is_empty() {
                 Some(self.ocsp_resp.clone())
             } else {
                 None
