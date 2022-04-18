@@ -1,6 +1,6 @@
 use poem::{
     get, handler,
-    listener::{Listener, RustlsConfig, TcpListener},
+    listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
     Route, Server,
 };
 use tokio::time::Duration;
@@ -31,7 +31,9 @@ async fn main() -> Result<(), std::io::Error> {
 }
 
 fn load_tls_config() -> Result<RustlsConfig, std::io::Error> {
-    Ok(RustlsConfig::new()
-        .cert(std::fs::read("examples/poem/tls-reload/src/cert.pem")?)
-        .key(std::fs::read("examples/poem/tls-reload/src/key.pem")?))
+    Ok(RustlsConfig::new().fallback(
+        RustlsCertificate::new()
+            .cert(std::fs::read("examples/poem/tls-reload/src/cert.pem")?)
+            .key(std::fs::read("examples/poem/tls-reload/src/key.pem")?),
+    ))
 }
