@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.3.28"
+version = "1.3.29"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -31,17 +31,37 @@ tower-compat = ["tokio/rt", "tower"]
 cookie = ["libcookie", "chrono", "time"]
 session = ["tokio/rt", "cookie", "rand", "priority-queue"]
 redis-session = ["session", "redis"]
-opentelemetry = ["libopentelemetry", "opentelemetry-http", "opentelemetry-semantic-conventions"]
+opentelemetry = [
+    "libopentelemetry",
+    "opentelemetry-http",
+    "opentelemetry-semantic-conventions",
+]
 prometheus = ["libopentelemetry", "opentelemetry-prometheus", "libprometheus"]
 tempfile = ["libtempfile", "tokio/fs"]
 csrf = ["cookie", "base64", "libcsrf"]
 test = ["sse", "sse-codec", "tokio-util/compat"]
-i18n = ["fluent", "fluent-langneg", "fluent-syntax", "unic-langid", "intl-memoizer"]
-acme = ["server", "hyper/client", "rustls", "ring", "hyper-rustls", "base64", "rcgen", "x509-parser", "chrono"]
+i18n = [
+    "fluent",
+    "fluent-langneg",
+    "fluent-syntax",
+    "unic-langid",
+    "intl-memoizer",
+]
+acme = [
+    "server",
+    "hyper/client",
+    "rustls",
+    "ring",
+    "hyper-rustls",
+    "base64",
+    "rcgen",
+    "x509-parser",
+    "chrono",
+]
 embed = ["rust-embed", "hex", "mime_guess"]
 
 [dependencies]
-poem-derive = { path = "../poem-derive", version = "1.3.28" }
+poem-derive = { path = "../poem-derive", version = "1.3.29" }
 
 async-trait = "0.1.51"
 bytes = "1.1.0"
@@ -68,21 +88,41 @@ multer = { version = "2.0.1", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.17.1", optional = true }
 tokio-rustls = { version = "0.23.2", optional = true }
 rustls-pemfile = { version = "1.0.0", optional = true }
-async-compression = { version = "0.3.8", optional = true, features = ["tokio", "gzip", "brotli", "deflate"] }
-tower = { version = "0.4.8", optional = true, default-features = true, features = ["util", "buffer"] }
+async-compression = { version = "0.3.8", optional = true, features = [
+    "tokio",
+    "gzip",
+    "brotli",
+    "deflate",
+] }
+tower = { version = "0.4.8", optional = true, default-features = true, features = [
+    "util",
+    "buffer",
+] }
 chrono = { version = "0.4.19", optional = true }
 time = { version = "0.3", optional = true }
-mime = { version = "0.3.16"}
+mime = { version = "0.3.16" }
 mime_guess = { version = "2.0.3", optional = true }
 typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
-redis = { version = "0.21.2", optional = true, features = ["aio", "tokio-comp", "connection-manager"] }
-libcookie = { package = "cookie", version = "0.16", features = ["percent-encode", "private", "signed", "key-expansion", "secure"], optional = true }
+redis = { version = "0.21.2", optional = true, features = [
+    "aio",
+    "tokio-comp",
+    "connection-manager",
+] }
+libcookie = { package = "cookie", version = "0.16", features = [
+    "percent-encode",
+    "private",
+    "signed",
+    "key-expansion",
+    "secure",
+], optional = true }
 opentelemetry-http = { version = "0.6.0", optional = true }
 opentelemetry-semantic-conventions = { version = "0.9.0", optional = true }
 opentelemetry-prometheus = { version = "0.10.0", optional = true }
 libprometheus = { package = "prometheus", version = "0.13.0", optional = true }
-libopentelemetry = { package = "opentelemetry", version = "0.17.0", features = ["metrics"], optional = true }
+libopentelemetry = { package = "opentelemetry", version = "0.17.0", features = [
+    "metrics",
+], optional = true }
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }

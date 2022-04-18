@@ -1,6 +1,6 @@
 [package]
 name = "poem-dbsession"
-version = "0.3.28"
+version = "0.3.29"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Session storage with database for Poem."
@@ -25,30 +25,12 @@ features = ["__sqlx-native-tls"]
 
 [features]
 default = []
-sqlx-mysql-native-tls = [
-    "sqlx/mysql",
-    "sqlx/runtime-tokio-native-tls"
-]
-sqlx-mysql-rustls = [
-    "sqlx/mysql",
-    "sqlx/runtime-tokio-rustls"
-]
-sqlx-postgres-native-tls = [
-    "sqlx/postgres",
-    "sqlx/runtime-tokio-native-tls"
-]
-sqlx-postgres-rustls = [
-    "sqlx/postgres",
-    "sqlx/runtime-tokio-rustls"
-]
-sqlx-sqlite-native-tls = [
-    "sqlx/sqlite",
-    "sqlx/runtime-tokio-native-tls"
-]
-sqlx-sqlite-rustls = [
-    "sqlx/sqlite",
-    "sqlx/runtime-tokio-rustls"
-]
+sqlx-mysql-native-tls = ["sqlx/mysql", "sqlx/runtime-tokio-native-tls"]
+sqlx-mysql-rustls = ["sqlx/mysql", "sqlx/runtime-tokio-rustls"]
+sqlx-postgres-native-tls = ["sqlx/postgres", "sqlx/runtime-tokio-native-tls"]
+sqlx-postgres-rustls = ["sqlx/postgres", "sqlx/runtime-tokio-rustls"]
+sqlx-sqlite-native-tls = ["sqlx/sqlite", "sqlx/runtime-tokio-native-tls"]
+sqlx-sqlite-rustls = ["sqlx/sqlite", "sqlx/runtime-tokio-rustls"]
 
 # Don't use the following features, just for testing.
 __sqlx-native-tls = [
@@ -63,7 +45,7 @@ __sqlx-rustls = [
 ]
 
 [dependencies]
-poem = { path = "../poem", version = "1.3.28", features = ["session"] }
+poem = { path = "../poem", version = "1.3.29", features = ["session"] }
 
 chrono = "0.4.19"
 serde_json = "1.0.73"
