@@ -15,7 +15,9 @@ struct B {
 #[derive(Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
 enum MyObj {
+    #[oai(mapping = "A1")]
     A(A),
+    #[oai(mapping = "B2")]
     B(B),
 }
 

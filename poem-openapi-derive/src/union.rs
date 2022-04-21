@@ -87,13 +87,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut from_json = Vec::new();
     let mut to_json = Vec::new();
     let mut mapping = Vec::new();
-    let mut names = Vec::new();
     let mut schemas = Vec::new();
-
-    let required = match &args.discriminator_name {
-        Some(discriminator_name) => quote!(::std::vec![#discriminator_name]),
-        None => quote!(::std::vec![]),
-    };
 
     for variant in e {
         let item_ident = &variant.ident;
@@ -107,7 +101,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         quote!(::std::convert::AsRef::as_ref(&<#object_ty as #crate_name::types::Type>::name()))
                     }
                 };
-                names.push(quote!(#mapping_name));
 
                 types.push(object_ty);
 
@@ -160,45 +153,25 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 if variant.mapping.is_some() {
                     mapping.push(quote! {
-                        (#mapping_name, format!("#/components/schemas/{}", <#object_ty as #crate_name::types::Type>::schema_ref().unwrap_reference()))
+                        if let ::std::option::Option::Some(name) = <#object_ty as #crate_name::types::Type>::schema_ref().as_reference() {
+                            mapping.push((#mapping_name, format!("#/components/schemas/{}", name)));
+                        }
+                    });
+                } else {
+                    mapping.push(quote! {
+                        if let ::std::option::Option::Some(name) = <#object_ty as #crate_name::types::Type>::schema_ref().as_reference() {
+                            mapping.push((name, format!("#/components/schemas/{}", name)));
+                        }
                     });
                 }
 
-                if let Some(discriminator_name) = &args.discriminator_name {
-                    schemas.push(quote! {
-                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
-                            required: #required,
-                            all_of: ::std::vec![
-                                <#object_ty as #crate_name::types::Type>::schema_ref(),
-                                #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
-                                    title: ::std::option::Option::Some(::std::string::ToString::to_string(#mapping_name)),
-                                    properties: ::std::vec![
-                                        (
-                                            #discriminator_name,
-                                            #crate_name::registry::MetaSchemaRef::merge(
-                                                <::std::string::String as #crate_name::types::Type>::schema_ref(),
-                                                #crate_name::registry::MetaSchema {
-                                                    example: ::std::option::Option::Some(::std::convert::Into::into(#mapping_name)),
-                                                    ..#crate_name::registry::MetaSchema::ANY
-                                                }
-                                            )
-                                        )
-                                    ],
-                                    ..#crate_name::registry::MetaSchema::new("object")
-                                }))
-                            ],
-                            ..#crate_name::registry::MetaSchema::ANY
-                        }))
-                    });
-                } else {
-                    schemas.push(quote! {
-                        <#object_ty as #crate_name::types::Type>::schema_ref()
-                    });
-                }
+                schemas.push(quote! {
+                    <#object_ty as #crate_name::types::Type>::schema_ref()
+                });
             }
             _ => {
                 return Err(
-                    Error::new_spanned(&variant.ident, "Incorrect oneof definition.").into(),
+                    Error::new_spanned(&variant.ident, "Incorrect union definition.").into(),
                 )
             }
         }
@@ -208,7 +181,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         Some(discriminator_name) => quote! {
             ::std::option::Option::Some(#crate_name::registry::MetaDiscriminatorObject {
                 property_name: #discriminator_name,
-                mapping: ::std::vec![#(#mapping),*],
+                mapping: {
+                    let mut mapping = ::std::vec::Vec::new();
+                    #(#mapping)*
+                    mapping
+                },
             })
         },
         None => quote!(::std::option::Option::None),

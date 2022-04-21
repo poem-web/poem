@@ -315,9 +315,13 @@ impl MetaSchemaRef {
     }
 
     pub fn unwrap_reference(&self) -> &'static str {
+        self.as_reference().expect("expect non-inline schema")
+    }
+
+    pub fn as_reference(&self) -> Option<&'static str> {
         match self {
             MetaSchemaRef::Inline(_) => panic!(),
-            MetaSchemaRef::Reference(name) => name,
+            MetaSchemaRef::Reference(name) => Some(name),
         }
     }
 
