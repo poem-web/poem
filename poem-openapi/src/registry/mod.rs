@@ -320,7 +320,7 @@ impl MetaSchemaRef {
 
     pub fn as_reference(&self) -> Option<&'static str> {
         match self {
-            MetaSchemaRef::Inline(_) => panic!(),
+            MetaSchemaRef::Inline(_) => None,
             MetaSchemaRef::Reference(name) => Some(name),
         }
     }
