@@ -392,6 +392,15 @@ impl Error {
         }
     }
 
+    /// Get the StatusCode of the error
+    pub fn status(&self) -> StatusCode {
+        match &self.as_response {
+            AsResponse::Status(status) => *status,
+            AsResponse::Fn(ref f) => f(self).status(),
+            AsResponse::Response(resp) => resp.status(),
+        }
+    }
+
     /// Consumes this to return a response object.
     pub fn into_response(self) -> Response {
         match self.as_response {
