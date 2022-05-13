@@ -110,7 +110,7 @@ tokio = { version = "1", features = ["full"] }
 
 ## Run example
 
-Open `http://localhost:3000/ui` in your browser, you will see the `Swagger UI` that contains these API definitions.
+Open `http://localhost:3000/` in your browser, you will see the `Swagger UI` that contains these API definitions.
 
 ```shell
 > cargo run --example hello_world
