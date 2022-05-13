@@ -100,6 +100,14 @@ async fn main() -> Result<(), std::io::Error> {
 }
 ```
 
+This feature needs to be opted-in. It can be done by adding the feature in `Cargo.toml` file
+```toml filename=Cargo.toml
+[dependencies]
+poem = "1.3.29"
+poem-openapi = { version = "1.3.29", features = ["swagger-ui"]}
+tokio = { version = "1", features = ["full"] }
+```
+
 ## Run example
 
 Open `http://localhost:3000/ui` in your browser, you will see the `Swagger UI` that contains these API definitions.
