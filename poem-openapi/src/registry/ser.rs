@@ -87,7 +87,7 @@ impl<'a> Serialize for Document<'a> {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
         struct Components<'a> {
-            schemas: &'a BTreeMap<&'static str, MetaSchema>,
+            schemas: &'a BTreeMap<String, MetaSchema>,
             #[serde(skip_serializing_if = "BTreeMap::is_empty")]
             security_schemes: &'a BTreeMap<&'static str, MetaSecurityScheme>,
         }

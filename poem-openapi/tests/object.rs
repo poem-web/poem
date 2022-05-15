@@ -36,18 +36,17 @@ fn rename_all() {
 }
 
 #[test]
-fn concretes() {
+fn generics() {
     #[derive(Object)]
-    #[oai(
-        concrete(name = "Obj_i32_i64", params(i32, i64)),
-        concrete(name = "Obj_f32_f64", params(f32, f64))
-    )]
     struct Obj<T1: ParseFromJSON + ToJSON, T2: ParseFromJSON + ToJSON> {
         create_user: T1,
         delete_user: T2,
     }
 
-    assert_eq!(<Obj<i32, i64>>::name(), "Obj_i32_i64");
+    assert_eq!(
+        <Obj<i32, i64>>::name(),
+        "Obj<integer(int32), integer(int64)>"
+    );
     let meta = get_meta::<Obj<i32, i64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "integer");
     assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("int32"));
@@ -55,7 +54,10 @@ fn concretes() {
     assert_eq!(meta.properties[1].1.unwrap_inline().ty, "integer");
     assert_eq!(meta.properties[1].1.unwrap_inline().format, Some("int64"));
 
-    assert_eq!(<Obj<f32, f64>>::name(), "Obj_f32_f64");
+    assert_eq!(
+        <Obj<f32, f64>>::name(),
+        "Obj<number(float), number(double)>"
+    );
     let meta = get_meta::<Obj<f32, f64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "number");
     assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("float"));
@@ -336,7 +338,6 @@ fn serde() {
 #[test]
 fn serde_generic() {
     #[derive(Object, Debug, Eq, PartialEq)]
-    #[oai(concrete(name = "Obj", params(i32)))]
     struct Obj<T: ParseFromJSON + ToJSON> {
         a: T,
     }
@@ -460,7 +461,7 @@ fn inline_fields() {
     let meta_inner_obj = meta.properties[0].1.unwrap_inline();
     assert_eq!(
         meta_inner_obj.all_of[0],
-        MetaSchemaRef::Reference("InlineObj")
+        MetaSchemaRef::Reference("InlineObj".to_string())
     );
     assert_eq!(
         meta_inner_obj.all_of[1],
@@ -476,7 +477,7 @@ fn inline_fields() {
     let meta_inner_enum = meta.properties[1].1.unwrap_inline();
     assert_eq!(
         meta_inner_enum.all_of[0],
-        MetaSchemaRef::Reference("InlineEnum")
+        MetaSchemaRef::Reference("InlineEnum".to_string())
     );
     assert_eq!(
         meta_inner_enum.all_of[1],
@@ -486,30 +487,6 @@ fn inline_fields() {
             ..MetaSchema::ANY
         }))
     );
-}
-
-#[test]
-fn inline() {
-    #[derive(Object)]
-    #[oai(inline)]
-    struct Obj {
-        a: i32,
-    }
-
-    let schema_ref = Obj::schema_ref();
-    let meta: &MetaSchema = schema_ref.unwrap_inline();
-    assert_eq!(meta.properties[0].0, "a");
-
-    #[derive(Object)]
-    #[oai(inline)]
-    struct ObjGeneric<T: ParseFromJSON + ToJSON> {
-        a: T,
-    }
-
-    let schema_ref = ObjGeneric::<String>::schema_ref();
-    let meta: &MetaSchema = schema_ref.unwrap_inline();
-    assert_eq!(meta.properties[0].0, "a");
-    assert_eq!(meta.properties[0].1.unwrap_inline().ty, "string");
 }
 
 #[test]
@@ -532,79 +509,6 @@ fn duplicate_name() {
     let mut registry = Registry::new();
     ObjA::register(&mut registry);
     t::ObjA::register(&mut registry);
-}
-
-#[test]
-fn example() {
-    #[derive(Object)]
-    #[oai(example = "obj_example")]
-    struct Obj {
-        a: i32,
-        b: String,
-    }
-
-    fn obj_example() -> Obj {
-        Obj {
-            a: 100,
-            b: "abc".to_string(),
-        }
-    }
-
-    let meta = get_meta::<Obj>();
-    assert_eq!(
-        meta.example,
-        Some(json!({
-            "a": 100,
-            "b": "abc",
-        }))
-    );
-}
-
-#[test]
-fn concrete_types() {
-    #[derive(Object)]
-    #[oai(
-        concrete(
-            name = "Obj_i32_i64",
-            params(i32, i64),
-            example = "obj_i32_i64_example"
-        ),
-        concrete(
-            name = "Obj_f32_f64",
-            params(f32, f64),
-            example = "obj_f32_f64_example"
-        )
-    )]
-    struct Obj<T1: ParseFromJSON + ToJSON, T2: ParseFromJSON + ToJSON> {
-        a: T1,
-        b: T2,
-    }
-
-    fn obj_i32_i64_example() -> Obj<i32, i64> {
-        Obj { a: 100, b: 200 }
-    }
-
-    fn obj_f32_f64_example() -> Obj<f32, f64> {
-        Obj { a: 32.5, b: 72.5 }
-    }
-
-    let meta = get_meta::<Obj<i32, i64>>();
-    assert_eq!(
-        meta.example,
-        Some(json!({
-            "a": 100,
-            "b": 200,
-        }))
-    );
-
-    let meta = get_meta::<Obj<f32, f64>>();
-    assert_eq!(
-        meta.example,
-        Some(json!({
-            "a": 32.5,
-            "b": 72.5,
-        }))
-    );
 }
 
 #[test]
@@ -724,14 +628,16 @@ fn flatten_field() {
 
     assert_eq!(obj.to_json(), Some(json!({"a": 100, "b": 200, "c": 300})));
     assert_eq!(
-        Obj::parse_from_json(Some(json!({"a": 100, "b": 200, "c": 300}))).unwrap(),
+        Obj::parse_from_json(Some(json!({"a": 100, "b": 200, "c":
+300})))
+        .unwrap(),
         obj
     );
 }
 
 #[test]
 fn remote() {
-    mod remote {
+    mod remote_types {
         #[derive(Debug, Eq, PartialEq)]
         pub struct InternalMyObj {
             pub a: i32,
@@ -740,14 +646,14 @@ fn remote() {
     }
 
     #[derive(Debug, Object, Eq, PartialEq)]
-    #[oai(remote = "remote::InternalMyObj")]
+    #[oai(remote = "remote_types::InternalMyObj")]
     struct MyObj {
         a: i32,
         b: String,
     }
 
     assert_eq!(
-        Into::<MyObj>::into(remote::InternalMyObj {
+        Into::<MyObj>::into(remote_types::InternalMyObj {
             a: 100,
             b: "abc".to_string()
         }),
@@ -758,11 +664,11 @@ fn remote() {
     );
 
     assert_eq!(
-        Into::<remote::InternalMyObj>::into(MyObj {
+        Into::<remote_types::InternalMyObj>::into(MyObj {
             a: 100,
             b: "abc".to_string()
         }),
-        remote::InternalMyObj {
+        remote_types::InternalMyObj {
             a: 100,
             b: "abc".to_string()
         }

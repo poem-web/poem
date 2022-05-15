@@ -19,7 +19,7 @@ impl<T: Type> Type for Option<T> {
     type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
-        T::name()
+        format!("optional<{}>", T::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

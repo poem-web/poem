@@ -295,7 +295,7 @@ impl MetaSchema {
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetaSchemaRef {
     Inline(Box<MetaSchema>),
-    Reference(&'static str),
+    Reference(String),
 }
 
 impl MetaSchemaRef {
@@ -314,7 +314,7 @@ impl MetaSchemaRef {
         }
     }
 
-    pub fn unwrap_reference(&self) -> &'static str {
+    pub fn unwrap_reference(&self) -> &str {
         match self {
             MetaSchemaRef::Inline(_) => panic!(),
             MetaSchemaRef::Reference(name) => name,
@@ -631,7 +631,7 @@ pub struct MetaApi {
 
 #[derive(Default)]
 pub struct Registry {
-    pub schemas: BTreeMap<&'static str, MetaSchema>,
+    pub schemas: BTreeMap<String, MetaSchema>,
     pub tags: BTreeSet<MetaTag>,
     pub security_schemes: BTreeMap<&'static str, MetaSecurityScheme>,
 }
@@ -641,11 +641,11 @@ impl Registry {
         Default::default()
     }
 
-    pub fn create_schema<T, F>(&mut self, name: &'static str, f: F)
+    pub fn create_schema<T, F>(&mut self, name: String, f: F)
     where
         F: FnOnce(&mut Registry) -> MetaSchema,
     {
-        match self.schemas.get(name) {
+        match self.schemas.get(&name) {
             Some(schema) => {
                 if let Some(prev_typename) = schema.rust_typename {
                     if prev_typename != std::any::type_name::<T>() {
@@ -661,10 +661,10 @@ impl Registry {
             None => {
                 // Inserting a fake type before calling the function allows recursive types to
                 // exist.
-                self.schemas.insert(name, MetaSchema::new("fake"));
+                self.schemas.insert(name.clone(), MetaSchema::new("fake"));
                 let mut meta_schema = f(self);
                 meta_schema.rust_typename = Some(std::any::type_name::<T>());
-                *self.schemas.get_mut(name).unwrap() = meta_schema;
+                *self.schemas.get_mut(&name).unwrap() = meta_schema;
             }
         }
     }
@@ -675,7 +675,7 @@ impl Registry {
             MetaSchemaRef::Reference(name) => {
                 T::register(self);
                 self.schemas
-                    .get(name)
+                    .get(&name)
                     .cloned()
                     .expect("You definitely encountered a bug!")
             }

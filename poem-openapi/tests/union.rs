@@ -7,6 +7,12 @@ use poem_openapi::{
 };
 use serde_json::json;
 
+fn get_meta<T: Type>() -> MetaSchema {
+    let mut registry = Registry::new();
+    T::register(&mut registry);
+    registry.schemas.remove(&*T::name()).unwrap()
+}
+
 #[test]
 fn with_discriminator() {
     #[derive(Object, Debug, PartialEq)]
@@ -21,15 +27,18 @@ fn with_discriminator() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(inline, discriminator_name = "type")]
+    #[oai(discriminator_name = "type")]
     enum MyObj {
         A(A),
         B(B),
     }
 
+    let schema = get_meta::<MyObj>();
+
     assert_eq!(
-        MyObj::schema_ref(),
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::with_discriminator::MyObj"),
             ty: "object",
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
@@ -39,7 +48,7 @@ fn with_discriminator() {
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     required: vec!["type"],
                     all_of: vec![
-                        MetaSchemaRef::Reference("A"),
+                        MetaSchemaRef::Reference("A".to_string()),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
                             title: Some("A".to_string()),
                             properties: vec![(
@@ -57,7 +66,7 @@ fn with_discriminator() {
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     required: vec!["type"],
                     all_of: vec![
-                        MetaSchemaRef::Reference("B"),
+                        MetaSchemaRef::Reference("B".to_string()),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
                             title: Some("B".to_string()),
                             properties: vec![(
@@ -74,7 +83,7 @@ fn with_discriminator() {
                 }))
             ],
             ..MetaSchema::ANY
-        }))
+        }
     );
 
     let mut registry = Registry::new();
@@ -140,7 +149,7 @@ fn with_discriminator_mapping() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(inline, discriminator_name = "type")]
+    #[oai(discriminator_name = "type")]
     enum MyObj {
         #[oai(mapping = "c")]
         A(A),
@@ -148,9 +157,12 @@ fn with_discriminator_mapping() {
         B(B),
     }
 
+    let schema = get_meta::<MyObj>();
+
     assert_eq!(
-        MyObj::schema_ref(),
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::with_discriminator_mapping::MyObj"),
             ty: "object",
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
@@ -163,7 +175,7 @@ fn with_discriminator_mapping() {
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     required: vec!["type"],
                     all_of: vec![
-                        MetaSchemaRef::Reference("A"),
+                        MetaSchemaRef::Reference("A".to_string()),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
                             title: Some("c".to_string()),
                             properties: vec![(
@@ -181,7 +193,7 @@ fn with_discriminator_mapping() {
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     required: vec!["type"],
                     all_of: vec![
-                        MetaSchemaRef::Reference("B"),
+                        MetaSchemaRef::Reference("B".to_string()),
                         MetaSchemaRef::Inline(Box::new(MetaSchema {
                             title: Some("d".to_string()),
                             properties: vec![(
@@ -198,7 +210,7 @@ fn with_discriminator_mapping() {
                 }))
             ],
             ..MetaSchema::ANY
-        }))
+        }
     );
 
     let mut registry = Registry::new();
@@ -259,20 +271,24 @@ fn without_discriminator() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(inline)]
     enum MyObj {
         A(A),
         B(bool),
     }
 
+    let schema = get_meta::<MyObj>();
     assert_eq!(
-        MyObj::schema_ref(),
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::without_discriminator::MyObj"),
             ty: "object",
             discriminator: None,
-            any_of: vec![MetaSchemaRef::Reference("A"), bool::schema_ref()],
+            any_of: vec![
+                MetaSchemaRef::Reference("A".to_string()),
+                bool::schema_ref()
+            ],
             ..MetaSchema::ANY
-        }))
+        }
     );
 
     assert_eq!(
@@ -320,20 +336,24 @@ fn anyof() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(inline)]
     enum MyObj {
         A(A),
         B(B),
     }
 
+    let schema = get_meta::<MyObj>();
     assert_eq!(
-        MyObj::schema_ref(),
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::anyof::MyObj"),
             ty: "object",
             discriminator: None,
-            any_of: vec![MetaSchemaRef::Reference("A"), MetaSchemaRef::Reference("B")],
+            any_of: vec![
+                MetaSchemaRef::Reference("A".to_string()),
+                MetaSchemaRef::Reference("B".to_string())
+            ],
             ..MetaSchema::ANY
-        }))
+        }
     );
 
     assert_eq!(
@@ -371,20 +391,25 @@ fn oneof() {
     }
 
     #[derive(Union, Debug, PartialEq)]
-    #[oai(one_of, inline)]
+    #[oai(one_of)]
     enum MyObj {
         A(A),
         B(B),
     }
 
+    let schema = get_meta::<MyObj>();
     assert_eq!(
-        MyObj::schema_ref(),
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::oneof::MyObj"),
             ty: "object",
             discriminator: None,
-            one_of: vec![MetaSchemaRef::Reference("A"), MetaSchemaRef::Reference("B")],
+            one_of: vec![
+                MetaSchemaRef::Reference("A".to_string()),
+                MetaSchemaRef::Reference("B".to_string())
+            ],
             ..MetaSchema::ANY
-        }))
+        }
     );
 
     assert_eq!(
@@ -402,7 +427,7 @@ fn oneof() {
         })))
         .unwrap_err()
         .into_message(),
-        "Expected input type \"object\", found {\"v1\":100,\"v2\":\"hello\"}."
+        "Expected input type \"MyObj\", found {\"v1\":100,\"v2\":\"hello\"}."
     );
 }
 
@@ -413,33 +438,29 @@ fn title_and_description() {
     /// B
     /// C
     #[derive(Union, Debug, PartialEq)]
-    #[oai(inline)]
-    enum MyObj2 {
+    enum MyObj {
         A(i32),
         B(f32),
     }
 
-    let schema_ref: MetaSchemaRef = MyObj2::schema_ref();
-    let meta_schema = schema_ref.unwrap_inline();
-    assert_eq!(meta_schema.description, Some("A\n\nB\nC"));
+    let schema = get_meta::<MyObj>();
+    assert_eq!(schema.description, Some("A\n\nB\nC"));
 }
 
 #[tokio::test]
 async fn external_docs() {
     #[derive(Union, Debug, PartialEq)]
     #[oai(
-        inline,
         external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
     )]
-    enum MyObj2 {
+    enum MyObj {
         A(i32),
         B(f32),
     }
 
-    let schema_ref: MetaSchemaRef = MyObj2::schema_ref();
-    let meta_schema = schema_ref.unwrap_inline();
+    let schema = get_meta::<MyObj>();
     assert_eq!(
-        meta_schema.external_docs,
+        schema.external_docs,
         Some(MetaExternalDocument {
             url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
                 .to_string(),
@@ -449,57 +470,28 @@ async fn external_docs() {
 }
 
 #[tokio::test]
-async fn inline_generic() {
+async fn generics() {
     #[derive(Union, Debug, PartialEq)]
-    #[oai(inline)]
     enum MyObj<A: ParseFromJSON + ToJSON, B: ParseFromJSON + ToJSON> {
         A(A),
         B(B),
     }
 
-    let schema_ref: MetaSchemaRef = MyObj::<i32, String>::schema_ref();
-    let meta_schema = schema_ref.unwrap_inline();
-    assert_eq!(meta_schema.any_of[0], i32::schema_ref());
-    assert_eq!(meta_schema.any_of[1], String::schema_ref());
-}
+    let schema_i32_i64 = get_meta::<MyObj<i32, i64>>();
+    let schema_f32_f64 = get_meta::<MyObj<f32, f64>>();
 
-#[tokio::test]
-async fn concrete_types() {
-    #[derive(Union, Debug, PartialEq)]
-    #[oai(
-        concrete(name = "Obj_i32_i64", params(i32, i64)),
-        concrete(name = "Obj_f32_f64", params(f32, f64))
-    )]
-    enum MyObj<A: ParseFromJSON + ToJSON, B: ParseFromJSON + ToJSON> {
-        A(A),
-        B(B),
-    }
+    assert_eq!(
+        <MyObj<i32, i64>>::schema_ref(),
+        MetaSchemaRef::Reference("MyObj<integer(int32), integer(int64)>".to_string())
+    );
+    assert_eq!(
+        <MyObj<f32, f64>>::schema_ref(),
+        MetaSchemaRef::Reference("MyObj<number(float), number(double)>".to_string())
+    );
 
-    let mut registry = Registry::new();
-    <MyObj<i32, i64>>::register(&mut registry);
-    <MyObj<f32, f64>>::register(&mut registry);
+    assert_eq!(schema_i32_i64.any_of[0], i32::schema_ref());
+    assert_eq!(schema_i32_i64.any_of[1], i64::schema_ref());
 
-    let meta_schema = registry.schemas.remove("Obj_i32_i64").unwrap();
-    assert_eq!(meta_schema.any_of[0], i32::schema_ref());
-    assert_eq!(meta_schema.any_of[1], i64::schema_ref());
-
-    let meta_schema = registry.schemas.remove("Obj_f32_f64").unwrap();
-    assert_eq!(meta_schema.any_of[0], f32::schema_ref());
-    assert_eq!(meta_schema.any_of[1], f64::schema_ref());
-}
-
-#[tokio::test]
-async fn no_inline() {
-    #[derive(Union, Debug, PartialEq)]
-    enum MyObj {
-        A(i32),
-        B(f32),
-    }
-
-    let schema_ref: MetaSchemaRef = MyObj::schema_ref();
-    assert_eq!(schema_ref.unwrap_reference(), "MyObj");
-
-    let mut registry = Registry::new();
-    MyObj::register(&mut registry);
-    assert!(registry.schemas.contains_key("MyObj"));
+    assert_eq!(schema_f32_f64.any_of[0], f32::schema_ref());
+    assert_eq!(schema_f32_f64.any_of[1], f64::schema_ref());
 }

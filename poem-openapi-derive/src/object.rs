@@ -1,16 +1,12 @@
-use darling::{
-    ast::Data,
-    util::{Ignored, SpannedValue},
-    FromDeriveInput, FromField,
-};
+use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, GenericParam, Generics, Path, Type};
+use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
-    common_args::{ConcreteType, DefaultValue, ExternalDocument, RenameRule, RenameRuleExt},
+    common_args::{DefaultValue, ExternalDocument, RenameRule, RenameRuleExt},
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{create_object_name, get_crate_name, get_description, optional_literal},
     validators::Validators,
 };
 
@@ -55,21 +51,15 @@ struct ObjectArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    inline: SpannedValue<bool>,
-    #[darling(default)]
     rename: Option<String>,
     #[darling(default)]
     rename_all: Option<RenameRule>,
-    #[darling(default, multiple, rename = "concrete")]
-    concretes: Vec<ConcreteType>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default)]
     read_only_all: bool,
     #[darling(default)]
     write_only_all: bool,
-    #[darling(default)]
-    example: Option<SpannedValue<Path>>,
     #[darling(default)]
     deny_unknown_fields: bool,
     #[darling(default)]
@@ -103,35 +93,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut fields = Vec::new();
     let mut meta_fields = Vec::new();
     let mut required_fields = Vec::new();
-
-    if *args.inline && !args.concretes.is_empty() {
-        return Err(Error::new(
-            args.inline.span(),
-            "Inline objects cannot have the `concretes` attribute.",
-        )
-        .into());
-    }
-
-    let is_generic_object = args
-        .generics
-        .params
-        .iter()
-        .any(|param| matches!(param, GenericParam::Type(_)));
-    if is_generic_object && !*args.inline && args.concretes.is_empty() {
-        return Err(Error::new(
-            args.ident.span(),
-            "Generic objects either specify the `inline` attribute, or specify a name for each concrete type using the `concretes` attribute.",
-        )
-        .into());
-    }
-
-    if args.example.is_some() && !args.concretes.is_empty() {
-        return Err(Error::new(
-            args.example.as_ref().unwrap().span(),
-            "The example should be specified with the `concretes.example` attribute.",
-        )
-        .into());
-    }
+    let object_name = create_object_name(&crate_name, &oai_typename, &args.generics);
 
     for field in &s.fields {
         let field_ident = field
@@ -351,182 +313,59 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         None
     };
 
-    let define_obj = if args.concretes.is_empty() {
-        let example = match &args.example {
-            Some(path) => {
-                let path = &**path;
-                quote! { <Self as #impl_generics #crate_name::types::ToJSON>::to_json(&#path()) }
-            }
-            None => quote!(::std::option::Option::None),
-        };
+    let define_obj = quote! {
+        impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
+            const IS_REQUIRED: bool = true;
 
-        let (fn_schema_ref, fn_register) = if *args.inline {
-            (
-                quote!(#crate_name::registry::MetaSchemaRef::Inline(Box::new({
-                    let mut meta = #meta;
-                    meta.example = #example;
-                    meta
-                }))),
-                quote! {
-                    #(#register_types)*
-                },
-            )
-        } else {
-            (
-                quote!(#crate_name::registry::MetaSchemaRef::Reference(#oai_typename)),
-                quote! {
-                    registry.create_schema::<Self, _>(#oai_typename, |registry| {
-                        #(#register_types)*
-                        let mut meta = #meta;
-                        meta.example = #example;
-                        meta
-                    })
-                },
-            )
-        };
+            type RawValueType = Self;
 
-        quote! {
-            impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
-                const IS_REQUIRED: bool = true;
+            type RawElementValueType = Self;
 
-                type RawValueType = Self;
-
-                type RawElementValueType = Self;
-
-                fn name() -> ::std::borrow::Cow<'static, str> {
-                    ::std::convert::Into::into(#oai_typename)
-                }
-
-                fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                    #fn_schema_ref
-                }
-
-                fn register(registry: &mut #crate_name::registry::Registry) {
-                    #fn_register
-                }
-
-                fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
-                    ::std::option::Option::Some(self)
-                }
-
-                fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-                    ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
-                }
+            fn name() -> ::std::borrow::Cow<'static, str> {
+                ::std::convert::Into::into(#object_name)
             }
 
-            impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
-                fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
-                    let value = value.unwrap_or_default();
-                    match value {
-                        #crate_name::__private::serde_json::Value::Object(mut obj) => {
-                            #(#deserialize_fields)*
-                            #deny_unknown_fields
-                            ::std::result::Result::Ok(Self { #(#fields),* })
-                        }
-                        _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
-                    }
-                }
+            fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
+                #crate_name::registry::MetaSchemaRef::Reference(Self::name().into_owned())
             }
 
-            impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
-                fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
-                    let mut object = #crate_name::__private::serde_json::Map::new();
-                    #(#serialize_fields)*
-                    ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
-                }
-            }
-        }
-    } else {
-        let mut code = Vec::new();
-
-        code.push(quote! {
-            impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_create_schema(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaSchema
-                where
-                    Self: #crate_name::types::Type
-                {
+            fn register(registry: &mut #crate_name::registry::Registry) {
+                registry.create_schema::<Self, _>(Self::name().into_owned(), |registry| {
                     #(#register_types)*
                     #meta
-                }
-
-                fn __internal_parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> where Self: #crate_name::types::Type {
-                    let value = value.unwrap_or_default();
-                    match value {
-                        #crate_name::__private::serde_json::Value::Object(mut obj) => {
-                            #(#deserialize_fields)*
-                            #deny_unknown_fields
-                            ::std::result::Result::Ok(Self { #(#fields),* })
-                        }
-                        _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
-                    }
-                }
-
-                fn __internal_to_json(&self) -> #crate_name::__private::serde_json::Value where Self: #crate_name::types::Type {
-                    let mut object = ::serde_json::Map::new();
-                    #(#serialize_fields)*
-                    #crate_name::__private::serde_json::Value::Object(object)
-                }
+                })
             }
-        });
 
-        for concrete in &args.concretes {
-            let oai_typename = &concrete.name;
-            let params = &concrete.params.0;
-            let concrete_type = quote! { #ident<#(#params),*> };
-            let example = match &concrete.example {
-                Some(path) => {
-                    quote! { <Self as #crate_name::types::ToJSON>::to_json(&#path()) }
-                }
-                None => quote!(::std::option::Option::None),
-            };
+            fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
+                ::std::option::Option::Some(self)
+            }
 
-            let expanded = quote! {
-                impl #crate_name::types::Type for #concrete_type {
-                    const IS_REQUIRED: bool = true;
-
-                    type RawValueType = Self;
-
-                    type RawElementValueType = Self;
-
-                    fn name() -> ::std::borrow::Cow<'static, str> {
-                        ::std::convert::Into::into(#oai_typename)
-                    }
-
-                    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
-                        ::std::option::Option::Some(self)
-                    }
-
-                    fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                        #crate_name::registry::MetaSchemaRef::Reference(#oai_typename)
-                    }
-
-                    fn register(registry: &mut #crate_name::registry::Registry) {
-                        let mut meta = Self::__internal_create_schema(registry);
-                        meta.example = #example;
-                        registry.create_schema::<Self, _>(#oai_typename, move |registry| meta);
-                    }
-
-                    fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-                        ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
-                    }
-                }
-
-                impl #crate_name::types::ParseFromJSON for #concrete_type {
-                    fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
-                        Self::__internal_parse_from_json(value)
-                    }
-                }
-
-                impl #crate_name::types::ToJSON for #concrete_type {
-                    fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
-                        ::std::option::Option::Some(Self::__internal_to_json(self))
-                    }
-                }
-            };
-            code.push(expanded);
+            fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
+            }
         }
 
-        quote!(#(#code)*)
+        impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
+            fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                let value = value.unwrap_or_default();
+                match value {
+                    #crate_name::__private::serde_json::Value::Object(mut obj) => {
+                        #(#deserialize_fields)*
+                        #deny_unknown_fields
+                        ::std::result::Result::Ok(Self { #(#fields),* })
+                    }
+                    _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
+                }
+            }
+        }
+
+        impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
+            fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                let mut object = #crate_name::__private::serde_json::Map::new();
+                #(#serialize_fields)*
+                ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
+            }
+        }
     };
 
     // remote
@@ -545,6 +384,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
 
+            #[allow(clippy::from_over_into)]
             impl #impl_generics ::std::convert::Into<#remote> for #ident #ty_generics #where_clause {
                 fn into(self) -> #remote {
                     #remote {

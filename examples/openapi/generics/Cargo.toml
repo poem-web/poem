@@ -1,0 +1,11 @@
+[package]
+name = "example-openapi-generics"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+poem = { path = "../../../poem" }
+poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
+tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }

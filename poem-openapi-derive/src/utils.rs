@@ -4,7 +4,10 @@ use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
-use syn::{visit_mut, visit_mut::VisitMut, Attribute, Error, Lifetime, Lit, Meta, Result};
+use syn::{
+    visit_mut, visit_mut::VisitMut, Attribute, Error, GenericParam, Generics, Lifetime, Lit, Meta,
+    Result,
+};
 
 use crate::error::GeneratorResult;
 
@@ -176,5 +179,43 @@ impl VisitMut for RemoveLifetime {
     fn visit_lifetime_mut(&mut self, i: &mut Lifetime) {
         i.ident = Ident::new("_", Span::call_site());
         visit_mut::visit_lifetime_mut(self, i);
+    }
+}
+
+pub(crate) fn create_object_name(
+    crate_name: &TokenStream,
+    name: &str,
+    generics: &Generics,
+) -> TokenStream {
+    let types = generics
+        .params
+        .iter()
+        .filter_map(|param| match param {
+            GenericParam::Type(ty) => Some(&ty.ident),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    if types.is_empty() {
+        quote!({
+            use ::std::convert::From;
+            ::std::string::String::from(#name)
+        })
+    } else {
+        let (first, tail) = types.split_first().unwrap();
+        quote!({
+            use ::std::convert::From;
+            let mut name = ::std::string::String::from(#name);
+
+            name.push('<');
+            name.push_str(&<#first as #crate_name::types::Type>::name());
+            #(
+                name.push_str(", ");
+                name.push_str(&<#tail as #crate_name::types::Type>::name());
+            )*
+            name.push('>');
+
+            name
+        })
     }
 }

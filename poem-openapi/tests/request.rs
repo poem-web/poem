@@ -29,7 +29,7 @@ fn meta() {
             content: vec![
                 MetaMediaType {
                     content_type: "application/json",
-                    schema: MetaSchemaRef::Reference("CreateUser"),
+                    schema: MetaSchemaRef::Reference("CreateUser".to_string()),
                 },
                 MetaMediaType {
                     content_type: "text/plain",

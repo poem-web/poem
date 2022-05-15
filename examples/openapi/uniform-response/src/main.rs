@@ -18,7 +18,6 @@ struct Resource {
 }
 
 #[derive(Object)]
-#[oai(inline)]
 struct ResponseObject<T: ParseFromJSON + ToJSON + Send + Sync> {
     code: i32,
     msg: String,
