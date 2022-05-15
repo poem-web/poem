@@ -444,7 +444,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn duplicate_4() {
-        let _ = Route::new().at("/a/:a", h).at("/a/:b", h);
+        let _ = Route::new().at("/a/:a", h).at("/a/:a", h);
     }
 
     #[test]
