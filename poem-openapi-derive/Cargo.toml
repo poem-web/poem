@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi-derive"
-version = "1.3.29"
+version = "2.0.0-alpha.1"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Macros for poem-openapi"
@@ -9,10 +9,7 @@ documentation = "https://docs.rs/poem/"
 homepage = "https://github.com/poem-web/poem"
 repository = "https://github.com/poem-web/poem"
 keywords = ["http", "async", "openapi", "swagger"]
-categories = [
-    "network-programming",
-    "asynchronous",
-]
+categories = ["network-programming", "asynchronous"]
 
 [lib]
 proc-macro = true
@@ -25,7 +22,7 @@ quote = "1.0.9"
 syn = { version = "1.0.77", features = ["full", "visit-mut"] }
 Inflector = "0.11.4"
 thiserror = "1.0.29"
-indexmap = "~1.6.2" # https://github.com/tkaitchuck/aHash/issues/95
+indexmap = "~1.6.2"                                            # https://github.com/tkaitchuck/aHash/issues/95
 regex = "1.5.5"
 http = "0.2.5"
 mime = "0.3.16"

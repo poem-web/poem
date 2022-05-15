@@ -2,19 +2,19 @@ use std::collections::BTreeSet;
 
 use crate::registry::{Document, MetaMediaType, MetaOperation, MetaSchemaRef};
 
-type UsedTypes = BTreeSet<&'static str>;
+type UsedTypes = BTreeSet<String>;
 
 impl<'a> Document<'a> {
-    fn traverse_schema(&self, used_types: &mut UsedTypes, schema_ref: &MetaSchemaRef) {
+    fn traverse_schema(&self, used_types: &mut UsedTypes, schema_ref: &'a MetaSchemaRef) {
         let schema = match schema_ref {
             MetaSchemaRef::Reference(name) => {
-                if used_types.contains(name) {
+                if used_types.contains(name.as_str()) {
                     return;
                 }
-                used_types.insert(*name);
+                used_types.insert(name.clone());
                 self.registry
                     .schemas
-                    .get(name)
+                    .get(name.as_str())
                     .unwrap_or_else(|| panic!("Schema `{}` does not registered", name))
             }
             MetaSchemaRef::Inline(schema) => schema,
@@ -45,13 +45,13 @@ impl<'a> Document<'a> {
         }
     }
 
-    fn traverse_media_types(&self, used_types: &mut UsedTypes, meta_types: &[MetaMediaType]) {
+    fn traverse_media_types(&self, used_types: &mut UsedTypes, meta_types: &'a [MetaMediaType]) {
         for meta_type in meta_types {
             self.traverse_schema(used_types, &meta_type.schema);
         }
     }
 
-    fn traverse_operation(&self, used_types: &mut UsedTypes, operation: &MetaOperation) {
+    fn traverse_operation(&self, used_types: &mut UsedTypes, operation: &'a MetaOperation) {
         for param in &operation.params {
             self.traverse_schema(used_types, &param.schema);
         }
@@ -84,7 +84,7 @@ impl<'a> Document<'a> {
             .registry
             .schemas
             .keys()
-            .copied()
+            .cloned()
             .collect::<BTreeSet<_>>();
         for name in all_schemas.difference(&used_types).collect::<Vec<_>>() {
             self.registry.schemas.remove(name);

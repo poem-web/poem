@@ -12,9 +12,9 @@ Define a OpenAPI enum
 
 # Item parameters
 
-| Attribute   | description               | Type     | Optional |
-|-------------|---------------------------|----------|----------|
-| rename      | Rename the item           | string   | Y        |
+| Attribute | description     | Type   | Optional |
+|-----------|-----------------|--------|----------|
+| rename    | Rename the item | string | Y        |
 
 # Examples
 

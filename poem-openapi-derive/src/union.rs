@@ -1,16 +1,16 @@
 use darling::{
     ast::{Data, Fields},
-    util::{Ignored, SpannedValue},
+    util::Ignored,
     FromDeriveInput, FromVariant,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Attribute, DeriveInput, Error, GenericParam, Generics, Type};
+use syn::{Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
-    common_args::{ConcreteType, ExternalDocument},
+    common_args::ExternalDocument,
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{create_object_name, get_crate_name, get_description, optional_literal},
 };
 
 #[derive(FromVariant)]
@@ -34,8 +34,6 @@ struct UnionArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
-    inline: SpannedValue<bool>,
-    #[darling(default)]
     rename: Option<String>,
     #[darling(default)]
     one_of: bool,
@@ -43,8 +41,6 @@ struct UnionArgs {
     discriminator_name: Option<String>,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
-    #[darling(default, multiple, rename = "concrete")]
-    concretes: Vec<ConcreteType>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -62,27 +58,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         _ => return Err(Error::new_spanned(ident, "AnyOf can only be applied to an enum.").into()),
     };
 
-    if *args.inline && !args.concretes.is_empty() {
-        return Err(Error::new(
-            args.inline.span(),
-            "Inline objects cannot have the `concretes` attribute.",
-        )
-        .into());
-    }
-
-    let is_generic_union = args
-        .generics
-        .params
-        .iter()
-        .any(|param| matches!(param, GenericParam::Type(_)));
-    if is_generic_union && !*args.inline && args.concretes.is_empty() {
-        return Err(Error::new(
-            args.ident.span(),
-            "Generic objects either specify the `inline` attribute, or specify a name for each concrete type using the `concretes` attribute.",
-        )
-        .into());
-    }
-
     let mut types = Vec::new();
     let mut from_json = Vec::new();
     let mut to_json = Vec::new();
@@ -94,6 +69,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         Some(discriminator_name) => quote!(::std::vec![#discriminator_name]),
         None => quote!(::std::vec![]),
     };
+    let object_name = create_object_name(&crate_name, &oai_typename, &args.generics);
 
     for variant in e {
         let item_ident = &variant.ident;
@@ -108,7 +84,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     }
                 };
                 names.push(quote!(#mapping_name));
-
                 types.push(object_ty);
 
                 if discriminator_name.is_some() {
@@ -268,151 +243,52 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
 
-    let (fn_schema_ref, fn_register) = if *args.inline {
-        let fn_schema_ref =
-            quote! { #crate_name::registry::MetaSchemaRef::Inline(Box::new(#meta)) };
-        let fn_register = quote! { #(<#types as #crate_name::types::Type>::register(registry);)* };
-        (fn_schema_ref, fn_register)
-    } else {
-        let fn_schema_ref =
-            quote! { #crate_name::registry::MetaSchemaRef::Reference(#oai_typename) };
-        let fn_register = quote! {
-            registry.create_schema::<Self, _>(#oai_typename, |registry| {
-                #(<#types as #crate_name::types::Type>::register(registry);)*
-                #meta
-            });
-        };
-        (fn_schema_ref, fn_register)
-    };
+    let expanded = quote! {
+        impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
+            const IS_REQUIRED: bool = true;
 
-    let expanded = if args.concretes.is_empty() {
-        quote! {
-            impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
-                const IS_REQUIRED: bool = true;
+            type RawValueType = Self;
 
-                type RawValueType = Self;
+            type RawElementValueType = Self;
 
-                type RawElementValueType = Self;
-
-                fn name() -> ::std::borrow::Cow<'static, str> {
-                    ::std::convert::Into::into("object")
-                }
-
-                fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                    #fn_schema_ref
-                }
-
-                fn register(registry: &mut #crate_name::registry::Registry) {
-                    #fn_register
-                }
-
-                fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
-                    ::std::option::Option::Some(self)
-                }
-
-                fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-                    ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
-                }
+            fn name() -> ::std::borrow::Cow<'static, str> {
+                ::std::convert::Into::into(#object_name)
             }
 
-            impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
-                fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
-                    let value = value.unwrap_or_default();
-                    #parse_from_json
-                }
+            fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
+                #crate_name::registry::MetaSchemaRef::Reference(Self::name().into_owned())
             }
 
-            impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
-                fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
-                    match self {
-                        #(#to_json),*
-                    }
-                }
-            }
-        }
-    } else {
-        let mut code = Vec::new();
-
-        code.push(quote! {
-            impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_create_schema(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaSchema
-                where
-                    Self: #crate_name::types::Type
-                {
+            fn register(registry: &mut #crate_name::registry::Registry) {
+                registry.create_schema::<Self, _>(Self::name().into_owned(), |registry| {
                     #(<#types as #crate_name::types::Type>::register(registry);)*
                     #meta
-                }
-
-                fn __internal_parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>>
-                where
-                    Self: #crate_name::types::Type
-                {
-                    let value = value.unwrap_or_default();
-                    #parse_from_json
-                }
-
-                fn __internal_to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value>
-                where
-                    Self: #crate_name::types::Type
-                {
-                    match self {
-                        #(#to_json),*
-                    }
-                }
+                });
             }
-        });
 
-        for concrete in &args.concretes {
-            let oai_typename = &concrete.name;
-            let params = &concrete.params.0;
-            let concrete_type = quote! { #ident<#(#params),*> };
+            fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
+                ::std::option::Option::Some(self)
+            }
 
-            let expanded = quote! {
-                impl #crate_name::types::Type for #concrete_type {
-                    const IS_REQUIRED: bool = true;
-
-                    type RawValueType = Self;
-
-                    type RawElementValueType = Self;
-
-                    fn name() -> ::std::borrow::Cow<'static, str> {
-                        ::std::convert::Into::into(#oai_typename)
-                    }
-
-                    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
-                        ::std::option::Option::Some(self)
-                    }
-
-                    fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                        #crate_name::registry::MetaSchemaRef::Reference(#oai_typename)
-                    }
-
-                    fn register(registry: &mut #crate_name::registry::Registry) {
-                        let mut meta = Self::__internal_create_schema(registry);
-                        registry.create_schema::<Self, _>(#oai_typename, move |registry| meta);
-                    }
-
-                    fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-                        ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
-                    }
-                }
-
-                impl #crate_name::types::ParseFromJSON for #concrete_type {
-                    fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
-                        Self::__internal_parse_from_json(value)
-                    }
-                }
-
-                impl #crate_name::types::ToJSON for #concrete_type {
-                    fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
-                        Self::__internal_to_json(self)
-                    }
-                }
-            };
-            code.push(expanded);
+            fn raw_element_iter<'a>(&'a self) -> ::std::boxed::Box<dyn ::std::iter::Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
+            }
         }
 
-        quote!(#(#code)*)
+        impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
+            fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                let value = value.unwrap_or_default();
+                #parse_from_json
+            }
+        }
+
+        impl #impl_generics #crate_name::types::ToJSON for #ident #ty_generics #where_clause {
+            fn to_json(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                match self {
+                    #(#to_json),*
+                }
+            }
+        }
     };
 
     Ok(expanded)

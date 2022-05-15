@@ -37,7 +37,6 @@ async fn api_checker(req: &Request, api_key: ApiKey) -> Option<User> {
 }
 
 #[derive(Object)]
-#[oai(inline)]
 struct LoginRequest {
     username: String,
 }

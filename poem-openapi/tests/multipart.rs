@@ -467,7 +467,7 @@ fn inline_field() {
     let meta_inner_obj = schema.properties[0].1.unwrap_inline();
     assert_eq!(
         meta_inner_obj.all_of[0],
-        MetaSchemaRef::Reference("InlineObj")
+        MetaSchemaRef::Reference("InlineObj".to_string())
     );
     assert_eq!(
         meta_inner_obj.all_of[1],
@@ -483,7 +483,7 @@ fn inline_field() {
     let meta_inner_enum = schema.properties[1].1.unwrap_inline();
     assert_eq!(
         meta_inner_enum.all_of[0],
-        MetaSchemaRef::Reference("InlineEnum")
+        MetaSchemaRef::Reference("InlineEnum".to_string())
     );
     assert_eq!(
         meta_inner_enum.all_of[1],

@@ -23,12 +23,12 @@ Define a OpenAPI response.
 
 # Extra header parameters
 
-| Attribute     | description                                            | Type   | Optional |
-|---------------|--------------------------------------------------------|--------|----------|
-| name          | Header name                                            | String | N        |
-| type          | Header type                                            | String | N        |
-| description   | Header description                                     | String | Y        |
-| deprecated    | Header deprecated                                      | bool   | Y        |
+| Attribute   | description        | Type   | Optional |
+|-------------|--------------------|--------|----------|
+| name        | Header name        | String | N        |
+| type        | Header type        | String | N        |
+| description | Header description | String | Y        |
+| deprecated  | Header deprecated  | bool   | Y        |
 
 # Example response headers
 

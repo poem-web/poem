@@ -50,7 +50,7 @@ fn meta() {
                     status: Some(400),
                     content: vec![MetaMediaType {
                         content_type: "application/json",
-                        schema: MetaSchemaRef::Reference("BadRequestResult")
+                        schema: MetaSchemaRef::Reference("BadRequestResult".to_string())
                     }],
                     headers: vec![]
                 },

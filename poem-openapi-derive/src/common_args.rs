@@ -46,14 +46,6 @@ impl RenameRuleExt for Option<RenameRule> {
     }
 }
 
-#[derive(FromMeta)]
-pub(crate) struct ConcreteType {
-    pub(crate) name: String,
-    pub(crate) params: PathList,
-    #[darling(default)]
-    pub(crate) example: Option<Path>,
-}
-
 pub(crate) struct PathList(pub(crate) Vec<Path>);
 
 impl FromMeta for PathList {
