@@ -639,7 +639,7 @@ mod tests {
 
             let mut values = headers.get_all(header::SET_COOKIE).into_iter();
             let value = values.next().unwrap();
-            let remove_c = Cookie::parse(value.to_str().unwrap().to_string()).unwrap();
+            let remove_c = Cookie::parse(value.to_str().unwrap()).unwrap();
             assert_eq!(remove_c.name(), "a");
             assert_eq!(remove_c.value_str(), "");
 

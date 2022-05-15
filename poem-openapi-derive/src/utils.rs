@@ -132,6 +132,7 @@ pub(crate) fn convert_oai_path<'a, 'b: 'a>(
     Ok((oai_path, new_path))
 }
 
+#[allow(clippy::ptr_arg)]
 fn handle_path<'a>(
     path: &'a SpannedValue<String>,
     oai_path: &mut String,

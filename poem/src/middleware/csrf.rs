@@ -237,7 +237,7 @@ mod tests {
     use super::*;
     use crate::{get, handler, EndpointExt, Error, IntoResponse, Result};
 
-    const CSRF_TOKEN_NAME: &'static str = "X-CSRF-Token";
+    const CSRF_TOKEN_NAME: &str = "X-CSRF-Token";
 
     #[tokio::test]
     async fn test_csrf() {

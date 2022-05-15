@@ -1012,16 +1012,16 @@ mod tests {
     fn test_add_result() {
         let mut tree = RadixTree::default();
         assert!(tree.add("/a/b", 1).is_ok());
-        assert!(!tree.add("/a/b", 2).is_ok());
+        assert!(tree.add("/a/b", 2).is_err());
         assert!(tree.add("/a/b/:p/d", 1).is_ok());
         assert!(tree.add("/a/b/c/d", 2).is_ok());
-        assert!(!tree.add("/a/b/:p2/d", 3).is_ok());
+        assert!(tree.add("/a/b/:p2/d", 3).is_err());
         assert!(tree.add("/a/*p", 1).is_ok());
-        assert!(!tree.add("/a/*p", 2).is_ok());
+        assert!(tree.add("/a/*p", 2).is_err());
         assert!(tree.add("/a/b/*p", 1).is_ok());
-        assert!(!tree.add("/a/b/*p2", 2).is_ok());
+        assert!(tree.add("/a/b/*p2", 2).is_err());
         assert!(tree.add("/k/h/<\\d>+", 1).is_ok());
-        assert!(!tree.add("/k/h/:name<\\d>+", 2).is_ok());
+        assert!(tree.add("/k/h/:name<\\d>+", 2).is_err());
     }
 
     fn create_url_params<I, K, V>(values: I) -> PathParams
