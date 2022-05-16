@@ -63,6 +63,8 @@ struct ObjectArgs {
     #[darling(default)]
     deny_unknown_fields: bool,
     #[darling(default)]
+    example: bool,
+    #[darling(default)]
     external_docs: Option<ExternalDocument>,
     #[darling(default)]
     remote: Option<Path>,
@@ -313,6 +315,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         None
     };
 
+    let example = if args.example {
+        quote! {
+            <Self as #impl_generics #crate_name::types::ToJSON>::to_json(&<Self as #crate_name::types::Example>::example())
+        }
+    } else {
+        quote! { ::std::option::Option::None }
+    };
+
     let define_obj = quote! {
         impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
             const IS_REQUIRED: bool = true;
@@ -332,7 +342,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn register(registry: &mut #crate_name::registry::Registry) {
                 registry.create_schema::<Self, _>(Self::name().into_owned(), |registry| {
                     #(#register_types)*
-                    #meta
+                    let mut meta = #meta;
+                    meta.example = #example;
+                    meta
                 })
             }
 
