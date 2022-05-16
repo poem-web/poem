@@ -51,8 +51,8 @@ async fn deprecated() {
         async fn test2(&self);
     }
 
-    assert_eq!(<&dyn MyWebhooks>::meta()[0].operation.deprecated, false);
-    assert_eq!(<&dyn MyWebhooks>::meta()[1].operation.deprecated, true);
+    assert!(!<&dyn MyWebhooks>::meta()[0].operation.deprecated);
+    assert!(<&dyn MyWebhooks>::meta()[1].operation.deprecated);
 }
 
 #[tokio::test]

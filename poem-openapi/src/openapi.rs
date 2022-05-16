@@ -506,17 +506,17 @@ mod tests {
 
         assert_eq!(headers[0].name, "A1");
         assert_eq!(headers[0].description, None);
-        assert_eq!(headers[0].deprecated, false);
+        assert!(!headers[0].deprecated);
         assert_eq!(headers[0].schema, i32::schema_ref());
 
         assert_eq!(headers[1].name, "A2");
         assert_eq!(headers[1].description.as_deref(), Some("abc"));
-        assert_eq!(headers[1].deprecated, false);
+        assert!(!headers[1].deprecated);
         assert_eq!(headers[1].schema, String::schema_ref());
 
         assert_eq!(headers[2].name, "A3");
         assert_eq!(headers[2].description, None);
-        assert_eq!(headers[2].deprecated, true);
+        assert!(headers[2].deprecated);
         assert_eq!(headers[2].schema, f32::schema_ref());
     }
 
@@ -540,19 +540,19 @@ mod tests {
         assert_eq!(params[0].name, "A1");
         assert_eq!(params[0].in_type, MetaParamIn::Header);
         assert_eq!(params[0].description, None);
-        assert_eq!(params[0].deprecated, false);
+        assert!(!params[0].deprecated);
         assert_eq!(params[0].schema, i32::schema_ref());
 
         assert_eq!(params[1].name, "A2");
         assert_eq!(params[1].in_type, MetaParamIn::Header);
         assert_eq!(params[1].description.as_deref(), Some("abc"));
-        assert_eq!(params[1].deprecated, false);
+        assert!(!params[1].deprecated);
         assert_eq!(params[1].schema, String::schema_ref());
 
         assert_eq!(params[2].name, "A3");
         assert_eq!(params[2].in_type, MetaParamIn::Header);
         assert_eq!(params[2].description, None);
-        assert_eq!(params[2].deprecated, true);
+        assert!(params[2].deprecated);
         assert_eq!(params[2].schema, f32::schema_ref());
     }
 }

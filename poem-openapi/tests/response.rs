@@ -128,7 +128,7 @@ async fn headers() {
 
     assert_eq!(header1.name, "MY-HEADER1");
     assert_eq!(header1.description.as_deref(), Some("header1"));
-    assert_eq!(header1.required, true);
+    assert!(header1.required);
     assert_eq!(
         header1.schema,
         MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", "int32")))
@@ -136,7 +136,7 @@ async fn headers() {
 
     assert_eq!(header2.name, "MY-HEADER2");
     assert_eq!(header2.description, None);
-    assert_eq!(header2.required, false);
+    assert!(!header2.required);
     assert_eq!(
         header2.schema,
         MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
@@ -329,7 +329,7 @@ async fn header_deprecated() {
     }
 
     let meta: MetaResponses = Resp::meta();
-    assert_eq!(meta.responses[0].headers[0].deprecated, true);
+    assert!(meta.responses[0].headers[0].deprecated);
 }
 
 #[tokio::test]
@@ -349,11 +349,11 @@ async fn extra_headers_on_response() {
     assert_eq!(meta.responses[0].headers.len(), 3);
 
     assert_eq!(meta.responses[0].headers[0].name, "A");
-    assert_eq!(meta.responses[0].headers[0].deprecated, false);
+    assert!(!meta.responses[0].headers[0].deprecated);
 
     assert_eq!(meta.responses[0].headers[1].name, "A1");
     assert_eq!(meta.responses[0].headers[1].description, None);
-    assert_eq!(meta.responses[0].headers[1].deprecated, false);
+    assert!(!meta.responses[0].headers[1].deprecated);
     assert_eq!(meta.responses[0].headers[1].schema, String::schema_ref());
 
     assert_eq!(meta.responses[0].headers[2].name, "A2");
@@ -361,7 +361,7 @@ async fn extra_headers_on_response() {
         meta.responses[0].headers[2].description.as_deref(),
         Some("abc")
     );
-    assert_eq!(meta.responses[0].headers[2].deprecated, true);
+    assert!(meta.responses[0].headers[2].deprecated);
     assert_eq!(meta.responses[0].headers[2].schema, i32::schema_ref());
 }
 
@@ -382,18 +382,18 @@ async fn extra_headers_on_item() {
     assert_eq!(meta.responses[0].headers.len(), 3);
 
     assert_eq!(meta.responses[0].headers[0].name, "A");
-    assert_eq!(meta.responses[0].headers[0].deprecated, false);
+    assert!(!meta.responses[0].headers[0].deprecated);
 
     assert_eq!(meta.responses[0].headers[1].name, "A1");
     assert_eq!(meta.responses[0].headers[1].description, None);
-    assert_eq!(meta.responses[0].headers[1].deprecated, false);
+    assert!(!meta.responses[0].headers[1].deprecated);
 
     assert_eq!(meta.responses[0].headers[2].name, "A2");
     assert_eq!(
         meta.responses[0].headers[2].description.as_deref(),
         Some("abc")
     );
-    assert_eq!(meta.responses[0].headers[2].deprecated, true);
+    assert!(meta.responses[0].headers[2].deprecated);
 }
 
 #[tokio::test]

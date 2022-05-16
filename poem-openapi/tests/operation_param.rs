@@ -117,7 +117,7 @@ async fn query_default() {
             #[oai(default)] k: Query<bool>,
         ) {
             assert_eq!(v.0, 999);
-            assert_eq!(k.0, false);
+            assert!(!k.0);
         }
     }
 
@@ -413,21 +413,21 @@ async fn required_params() {
         MetaParamIn::Query
     );
     assert_eq!(meta.paths[0].operations[0].params[0].name, "a");
-    assert_eq!(meta.paths[0].operations[0].params[0].required, false);
+    assert!(!meta.paths[0].operations[0].params[0].required);
 
     assert_eq!(
         meta.paths[0].operations[0].params[1].in_type,
         MetaParamIn::Query
     );
     assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
-    assert_eq!(meta.paths[0].operations[0].params[1].required, true);
+    assert!(meta.paths[0].operations[0].params[1].required);
 
     assert_eq!(
         meta.paths[0].operations[0].params[2].in_type,
         MetaParamIn::Query
     );
     assert_eq!(meta.paths[0].operations[0].params[2].name, "c");
-    assert_eq!(meta.paths[0].operations[0].params[2].required, false);
+    assert!(!meta.paths[0].operations[0].params[2].required);
 }
 
 #[tokio::test]

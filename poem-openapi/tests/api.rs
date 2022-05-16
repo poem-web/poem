@@ -312,7 +312,7 @@ async fn bad_request_handler() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err.to_string())))
+        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
     }
 
     struct Api;
@@ -356,7 +356,7 @@ async fn bad_request_handler_for_validator() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err.to_string())))
+        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
     }
 
     struct Api;
@@ -545,13 +545,13 @@ async fn extra_response_headers_on_operation() {
     let header = &meta.paths[0].operations[0].responses.responses[0].headers[0];
     assert_eq!(header.name, "A1");
     assert_eq!(header.description.as_deref(), Some("abc"));
-    assert_eq!(header.deprecated, false);
+    assert!(!header.deprecated);
     assert_eq!(header.schema, String::schema_ref());
 
     let header = &meta.paths[0].operations[0].responses.responses[0].headers[1];
     assert_eq!(header.name, "A2");
     assert_eq!(header.description, None);
-    assert_eq!(header.deprecated, true);
+    assert!(header.deprecated);
     assert_eq!(header.schema, i32::schema_ref());
 }
 
@@ -573,13 +573,13 @@ async fn extra_response_headers_on_api() {
     let header = &meta.paths[0].operations[0].responses.responses[0].headers[0];
     assert_eq!(header.name, "A1");
     assert_eq!(header.description.as_deref(), Some("abc"));
-    assert_eq!(header.deprecated, false);
+    assert!(!header.deprecated);
     assert_eq!(header.schema, String::schema_ref());
 
     let header = &meta.paths[0].operations[0].responses.responses[0].headers[1];
     assert_eq!(header.name, "A2");
     assert_eq!(header.description, None);
-    assert_eq!(header.deprecated, true);
+    assert!(header.deprecated);
     assert_eq!(header.schema, i32::schema_ref());
 }
 
@@ -605,16 +605,16 @@ async fn extra_request_headers_on_operation() {
     assert_eq!(params.schema, String::schema_ref());
     assert_eq!(params.in_type, MetaParamIn::Header);
     assert_eq!(params.description.as_deref(), Some("abc"));
-    assert_eq!(params.required, true);
-    assert_eq!(params.deprecated, false);
+    assert!(params.required);
+    assert!(!params.deprecated);
 
     let params = &meta.paths[0].operations[0].params[1];
     assert_eq!(params.name, "A2");
     assert_eq!(params.schema, i32::schema_ref());
     assert_eq!(params.in_type, MetaParamIn::Header);
     assert_eq!(params.description, None);
-    assert_eq!(params.required, true);
-    assert_eq!(params.deprecated, true);
+    assert!(params.required);
+    assert!(params.deprecated);
 }
 
 #[tokio::test]
@@ -637,16 +637,16 @@ async fn extra_request_headers_on_api() {
     assert_eq!(params.schema, String::schema_ref());
     assert_eq!(params.in_type, MetaParamIn::Header);
     assert_eq!(params.description.as_deref(), Some("abc"));
-    assert_eq!(params.required, true);
-    assert_eq!(params.deprecated, false);
+    assert!(params.required);
+    assert!(!params.deprecated);
 
     let params = &meta.paths[0].operations[0].params[1];
     assert_eq!(params.name, "A2");
     assert_eq!(params.schema, i32::schema_ref());
     assert_eq!(params.in_type, MetaParamIn::Header);
     assert_eq!(params.description, None);
-    assert_eq!(params.required, true);
-    assert_eq!(params.deprecated, true);
+    assert!(params.required);
+    assert!(params.deprecated);
 }
 
 #[tokio::test]
