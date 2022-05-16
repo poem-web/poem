@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [2.0.0-alpha.1] 2022-05-15
 
 - Remove `inline` and `concrete` attributes of `Object` and `Union` macros, now automatically generate reference names for generic objects.
+- Re-added the `example` attribute for `Object` macro.
 
 # [1.3.28] 2022-04-16
 

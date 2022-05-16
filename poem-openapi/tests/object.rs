@@ -1,6 +1,6 @@
 use poem_openapi::{
     registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
-    types::{ParseFromJSON, ToJSON, Type},
+    types::{Example, ParseFromJSON, ToJSON, Type},
     Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
@@ -756,4 +756,63 @@ fn skip_serializing_if() {
 
     let obj = MyObj { a: 100, b: 200 };
     assert_eq!(obj.to_json(), Some(json!({"b": 200})));
+}
+
+#[test]
+fn example() {
+    #[derive(Object)]
+    #[oai(example)]
+    struct Obj {
+        a: i32,
+        b: String,
+    }
+
+    impl Example for Obj {
+        fn example() -> Self {
+            Obj {
+                a: 100,
+                b: "abc".to_string(),
+            }
+        }
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(
+        meta.example,
+        Some(json!({
+            "a": 100,
+            "b": "abc",
+        }))
+    );
+}
+
+#[test]
+fn example_generics() {
+    #[derive(Object)]
+    #[oai(example)]
+    struct Obj<T: ParseFromJSON + ToJSON> {
+        value: T,
+    }
+
+    impl Example for Obj<i32> {
+        fn example() -> Self {
+            Obj { value: 100 }
+        }
+    }
+
+    impl Example for Obj<String> {
+        fn example() -> Self {
+            Obj {
+                value: "abc".to_string(),
+            }
+        }
+    }
+
+    let meta = get_meta::<Obj<i32>>();
+    assert_eq!(
+        meta.example,
+        Some(json!({
+            "value": 100,
+        }))
+    );
 }

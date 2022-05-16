@@ -328,6 +328,12 @@ impl<T: ToHeader> ToHeader for Box<T> {
     }
 }
 
+/// Represents an example
+pub trait Example {
+    /// Returns the example object
+    fn example() -> Self;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
