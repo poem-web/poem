@@ -4,14 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [2.0.0-alpha.1] 2022-05-20
+# [2.0.0-alpha.2] 2022-05-20
 
+- Re-added the `example` attribute for `Object` macro.
 - Response `404 NOT FOUND` when parsing path parameters fails. [#279](https://github.com/poem-web/poem/discussions/279)
 
 # [2.0.0-alpha.1] 2022-05-15
 
 - Remove `inline` and `concrete` attributes of `Object` and `Union` macros, now automatically generate reference names for generic objects.
-- Re-added the `example` attribute for `Object` macro.
 
 # [1.3.28] 2022-04-16
 
