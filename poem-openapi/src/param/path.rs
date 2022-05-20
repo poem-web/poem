@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use poem::{Request, RequestBody, Result};
 
 use crate::{
-    error::ParseParamError,
+    error::ParsePathError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
     ApiExtractor, ApiExtractorType, ExtractParamOptions,
@@ -67,7 +67,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Path<T> {
         ParseFromParameter::parse_from_parameters(value)
             .map(Self)
             .map_err(|err| {
-                ParseParamError {
+                ParsePathError {
                     name: param_opts.name,
                     reason: err.into_message(),
                 }

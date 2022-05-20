@@ -20,6 +20,23 @@ impl ResponseError for ParseParamError {
     }
 }
 
+/// Parameter error.
+#[derive(Debug, Error)]
+#[error("failed to parse path `{name}`: {reason}")]
+pub struct ParsePathError {
+    /// The name of the parameter.
+    pub name: &'static str,
+
+    /// The reason for the error.
+    pub reason: String,
+}
+
+impl ResponseError for ParsePathError {
+    fn status(&self) -> StatusCode {
+        StatusCode::NOT_FOUND
+    }
+}
+
 /// Parse request payload error.
 #[derive(Debug, Error)]
 #[error("parse request payload error: {reason}")]
