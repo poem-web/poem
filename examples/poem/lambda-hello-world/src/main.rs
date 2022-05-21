@@ -14,5 +14,5 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
     let app = Route::new().at("/hello/:name", get(hello));
-    run(app).await
+    run(Route::new().nest("/prod", app)).await
 }
