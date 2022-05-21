@@ -144,11 +144,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                #crate_name::registry::MetaSchemaRef::Reference(Self::name().into_owned())
+                #crate_name::registry::MetaSchemaRef::Reference(<Self as #crate_name::types::Type>::name().into_owned())
             }
 
             fn register(registry: &mut #crate_name::registry::Registry) {
-                registry.create_schema::<Self, _>(Self::name().into_owned(), |registry| #crate_name::registry::MetaSchema {
+                registry.create_schema::<Self, _>(<Self as #crate_name::types::Type>::name().into_owned(), |registry| #crate_name::registry::MetaSchema {
                     description: #description,
                     external_docs: #external_docs,
                     deprecated: #deprecated,

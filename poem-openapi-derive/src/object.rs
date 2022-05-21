@@ -352,11 +352,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
-                #crate_name::registry::MetaSchemaRef::Reference(Self::name().into_owned())
+                #crate_name::registry::MetaSchemaRef::Reference(<Self as #crate_name::types::Type>::name().into_owned())
             }
 
             fn register(registry: &mut #crate_name::registry::Registry) {
-                registry.create_schema::<Self, _>(Self::name().into_owned(), |registry| {
+                registry.create_schema::<Self, _>(<Self as #crate_name::types::Type>::name().into_owned(), |registry| {
                     #(#register_types)*
                     let mut meta = #meta;
                     meta.example = #example;
