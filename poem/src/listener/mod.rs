@@ -4,14 +4,16 @@
 #[cfg_attr(docsrs, doc(cfg(feature = "acme")))]
 pub mod acme;
 mod combined;
-#[cfg(any(feature = "native-tls", feature = "rustls"))]
+#[cfg(any(feature = "native-tls", feature = "rustls", feature = "openssl-tls"))]
 mod handshake_stream;
 #[cfg(feature = "native-tls")]
 mod native_tls;
 #[cfg(feature = "rustls")]
 mod rustls;
+#[cfg(feature = "openssl-tls")]
+mod openssl_tls;
 mod tcp;
-#[cfg(any(feature = "rustls", feature = "native-tls"))]
+#[cfg(any(feature = "rustls", feature = "native-tls", feature = "openssl-tls"))]
 mod tls;
 #[cfg(unix)]
 mod unix;
@@ -29,13 +31,15 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
 #[cfg(feature = "acme")]
 use self::acme::{AutoCert, AutoCertListener};
-#[cfg(any(feature = "native-tls", feature = "rustls"))]
+#[cfg(any(feature = "native-tls", feature = "rustls", feature = "openssl-tls"))]
 pub use self::handshake_stream::HandshakeStream;
 #[cfg(feature = "native-tls")]
 pub use self::native_tls::{NativeTlsAcceptor, NativeTlsConfig, NativeTlsListener};
 #[cfg(feature = "rustls")]
 pub use self::rustls::{RustlsAcceptor, RustlsCertificate, RustlsConfig, RustlsListener};
-#[cfg(any(feature = "rustls", feature = "native-tls"))]
+#[cfg(feature = "openssl-tls")]
+pub use self::openssl_tls::{OpensslTlsAcceptor, OpensslTlsConfig, OpensslTlsListener};
+#[cfg(any(feature = "rustls", feature = "native-tls", feature = "openssl-tls"))]
 pub use self::tls::IntoTlsConfigStream;
 #[cfg(unix)]
 pub use self::unix::{UnixAcceptor, UnixListener};
@@ -106,6 +110,17 @@ pub trait AcceptorExt: Acceptor {
     {
         NativeTlsAcceptor::new(self, config_stream)
     }
+    
+    /// Consume this acceptor and return a new TLS acceptor with [`openssl-tls`](https://crates.io/crates/openssl).
+    #[cfg(feature = "openssl-tls")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "openssl-tls")))]
+    fn openssl_tls<S>(self, config_stream: S) -> OpensslTlsAcceptor<Self, S>
+    where
+        Self: Sized,
+        S: futures_util::Stream<Item = OpensslTlsConfig> + Send + Unpin + 'static,
+    {
+        OpensslTlsAcceptor::new(self, config_stream)
+    }
 }
 
 impl<T: Acceptor> AcceptorExt for T {}
@@ -164,6 +179,20 @@ pub trait Listener: Send {
         Self: Sized,
     {
         NativeTlsListener::new(self, config_stream)
+    }
+    
+    /// Consume this listener and return a new TLS listener with [`openssl-tls`](https://crates.io/crates/openssl).
+    #[cfg(feature = "openssl-tls")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "openssl-tls")))]
+    #[must_use]
+    fn openssl_tls<S: IntoTlsConfigStream<OpensslTlsConfig>>(
+        self,
+        config_stream: S,
+    ) -> OpensslTlsListener<Self, S>
+    where
+        Self: Sized,
+    {
+        OpensslTlsListener::new(self, config_stream)
     }
 
     /// Consume this listener and return a new ACME listener.
