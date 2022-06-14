@@ -347,7 +347,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         crate::ui::redoc::create_endpoint(&self.spec())
     }
 
-    /// Create an endpoint to serve the open api specification.
+    /// Create an endpoint to serve the open api specification as JSON.
     pub fn spec_endpoint(&self) -> impl Endpoint
     where
         T: OpenApi,
@@ -357,6 +357,21 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/json")
+                .body(spec.clone())
+        })
+    }
+
+    /// Create an endpoint to serve the open api specification as YAML.
+    pub fn spec_endpoint_yaml(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        let spec = self.spec_yaml();
+        make_sync(move |_| {
+            Response::builder()
+                .content_type("application/x-yaml")
+                .header("Content-Disposition", "inline; filename=\"spec.yaml\"")
                 .body(spec.clone())
         })
     }
@@ -433,7 +448,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         doc
     }
 
-    /// Returns the OAS specification file.
+    /// Returns the OAS specification file as JSON.
     pub fn spec(&self) -> String
     where
         T: OpenApi,
@@ -441,6 +456,16 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
     {
         let doc = self.document();
         serde_json::to_string_pretty(&doc).unwrap()
+    }
+
+    /// Returns the OAS specification file as YAML.
+    pub fn spec_yaml(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        let doc = self.document();
+        serde_yaml::to_string(&doc).unwrap()
     }
 }
 

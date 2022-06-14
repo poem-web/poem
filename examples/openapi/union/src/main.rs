@@ -39,13 +39,15 @@ async fn main() -> Result<(), std::io::Error> {
     let api_service = OpenApiService::new(Api, "Union", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
     let spec = api_service.spec_endpoint();
+    let spec_yaml = api_service.spec_endpoint_yaml();
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
             Route::new()
                 .nest("/api", api_service)
                 .nest("/", ui)
-                .at("/spec", spec),
+                .at("/spec", spec)
+                .at("/spec_yaml", spec_yaml),
         )
         .await
 }
