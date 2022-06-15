@@ -11,6 +11,8 @@ mod decimal;
 mod floats;
 mod hashmap;
 mod hashset;
+#[cfg(feature = "humantime")]
+mod humantime;
 mod integers;
 mod optional;
 mod regex;

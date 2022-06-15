@@ -93,7 +93,8 @@
 //!
 //! | Feature    | Description |
 //! |------------|-----------------------------------------------------------------------|
-//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono). |
+//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono) |
+//! | humantime  | Integrate with the [`humantime` crate](https://crates.io/crates/humantime) |
 //! | swagger-ui | Add swagger UI support |
 //! | rapidoc    | Add RapiDoc UI support |
 //! | redoc      | Add Redoc UI support |
