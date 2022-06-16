@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
+use humantime::Duration;
 use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
-use humantime::Duration;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
