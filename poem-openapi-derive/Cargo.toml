@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi-derive"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Macros for poem-openapi"
@@ -26,3 +26,6 @@ indexmap = "1.8.2"
 regex = "1.5.5"
 http = "0.2.5"
 mime = "0.3.16"
+
+[package.metadata.workspaces]
+independent = true
