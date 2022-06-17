@@ -28,13 +28,19 @@ pub struct OpensslTlsConfig {
     key: Either<Vec<u8>, PathBuf>,
 }
 
-impl OpensslTlsConfig {
-    /// Creates new Openssl TLS configuration.
-    pub fn new() -> Self {
+impl Default for OpensslTlsConfig {
+    fn default() -> Self {
         Self {
             cert: Either::Left(vec![]),
             key: Either::Left(vec![]),
         }
+    }
+}
+
+impl OpensslTlsConfig {
+    /// Creates new Openssl TLS configuration.
+    pub fn new() -> Self {
+        Default::default()
     }
 
     /// Sets certificate's chain from PEM data.
@@ -65,12 +71,12 @@ impl OpensslTlsConfig {
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
         match &self.cert {
             Either::Left(data) => {
-                let mut certs = X509::stack_from_pem(&data)?;
+                let mut certs = X509::stack_from_pem(data)?;
                 let mut certs = certs.drain(..);
                 builder.set_certificate(
                     certs
                         .next()
-                        .ok_or(IoError::new(ErrorKind::Other, "no leaf certificate"))?
+                        .ok_or_else(|| IoError::new(ErrorKind::Other, "no leaf certificate"))?
                         .as_ref(),
                 )?;
                 certs.try_for_each(|cert| builder.add_extra_chain_cert(cert))?;
@@ -85,7 +91,7 @@ impl OpensslTlsConfig {
         }
 
         // set ALPN protocols
-        static PROTOS: &'static [u8] = b"\x02h2\x08http/1.1";
+        static PROTOS: &[u8] = b"\x02h2\x08http/1.1";
         builder.set_alpn_protos(PROTOS)?;
         // set uo ALPN selection routine - as select_next_proto
         builder.set_alpn_select_callback(move |_: &mut SslRef, list: &[u8]| {
