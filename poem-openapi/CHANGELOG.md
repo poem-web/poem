@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [2.0.1] 2022-06-17
+
+- Add support for getting the spec as YAML [#287](https://github.com/poem-web/poem/issues/287)
+- Add optional support for humantime Duration in poem Object [#293](https://github.com/poem-web/poem/issues/293)
+
 # [2.0.0] 2022-05-30
 
 - Publish `Poem-openapi v2.0.0` 🙂
