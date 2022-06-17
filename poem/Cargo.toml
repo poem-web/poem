@@ -24,6 +24,7 @@ websocket = ["tokio/rt", "tokio-tungstenite", "base64"]
 multipart = ["multer"]
 rustls = ["server", "tokio-rustls", "rustls-pemfile"]
 native-tls = ["server", "tokio-native-tls"]
+openssl-tls = ["server", "tokio-openssl", "openssl"]
 sse = []
 static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression", "typed-headers"]
@@ -126,6 +127,8 @@ libopentelemetry = { package = "opentelemetry", version = "0.17.0", features = [
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
+tokio-openssl = { version = "0.6.3", optional = true }
+openssl = { version = "0.10", optional = true }
 base64 = { version = "0.13.0", optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
