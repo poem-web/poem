@@ -670,6 +670,28 @@ impl ResponseError for MissingJsonContentTypeError {
     }
 }
 
+/// A possible error value when parsing XML.
+#[derive(Debug, thiserror::Error)]
+#[error("parse: {0}")]
+pub struct ParseXmlError(#[from] pub quick_xml::de::DeError);
+
+impl ResponseError for ParseXmlError {
+    fn status(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+}
+
+/// A missing xml Content-Type error value when parsing header.
+#[derive(Debug, thiserror::Error)]
+#[error("Missing `Content-Type: application/xml`")]
+pub struct MissingXmlContentTypeError;
+
+impl ResponseError for MissingXmlContentTypeError {
+    fn status(&self) -> StatusCode {
+        StatusCode::UNSUPPORTED_MEDIA_TYPE
+    }
+}
+
 /// A possible error value when parsing query.
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]

@@ -83,6 +83,7 @@ smallvec = "1.6.1"
 tracing = "0.1.29"
 headers = "0.3.4"
 thiserror = "1.0.30"
+quick-xml = { version = "0.23.0", features = ["serialize"]}
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
