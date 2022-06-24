@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.3.32] 2022-06-24
+
+- Add XML support [#297](https://github.com/poem-web/poem/pull/297)
+- Add `RealIp` extractor
+
 # [1.3.31] 2022-06-17
 
 - Add openssl TLS listener. [#289](https://github.com/poem-web/poem/pull/289)
