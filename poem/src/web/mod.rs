@@ -13,6 +13,7 @@ mod json;
 mod multipart;
 mod path;
 mod query;
+mod real_ip;
 mod redirect;
 #[cfg(feature = "sse")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
@@ -57,6 +58,7 @@ pub use self::{
     json::Json,
     path::Path,
     query::Query,
+    real_ip::RealIp,
     redirect::Redirect,
     typed_header::TypedHeader,
 };
@@ -120,6 +122,10 @@ impl RequestBody {
 /// - **&LocalAddr**
 ///
 ///    Extracts the local server's address [`LocalAddr`] from request.
+///
+/// - **RealIp**
+///
+///    Extracts the remote peer's real ip address from request.
 ///
 /// - **Method**
 ///

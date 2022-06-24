@@ -214,7 +214,7 @@ impl Body {
     /// # Errors
     ///
     /// - [`ReadBodyError`]
-    /// - [`ParseXmlError`]
+    /// - [`ParseXmlError`](crate::error::ParseXmlError)
     #[cfg(feature = "xml")]
     pub async fn into_xml<T: DeserializeOwned>(self) -> Result<T> {
         Ok(quick_xml::de::from_slice(&self.into_vec().await?)

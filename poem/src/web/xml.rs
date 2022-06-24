@@ -183,6 +183,7 @@ mod tests {
             .await
             .assert_status_is_ok();
     }
+
     #[tokio::test]
     async fn test_xml_extractor_fail() {
         #[handler(internal)]

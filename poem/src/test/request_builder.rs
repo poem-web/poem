@@ -121,7 +121,7 @@ impl<'a, E> TestRequestBuilder<'a, E> {
 
     /// Sets the XML body for this request with `application/xml` content
     /// type.
-    #[cfg(features = "xml")]
+    #[cfg(feature = "xml")]
     #[must_use]
     pub fn body_xml(self, body: &impl Serialize) -> Self {
         self.content_type("application/xml")
