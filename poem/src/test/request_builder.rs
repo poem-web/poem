@@ -119,6 +119,14 @@ impl<'a, E> TestRequestBuilder<'a, E> {
             .body(serde_json::to_string(&body).expect("valid json"))
     }
 
+    /// Sets the XML body for this request with `application/xml` content
+    /// type.
+    #[must_use]
+    pub fn body_xml(self, body: &impl Serialize) -> Self {
+        self.content_type("application/xml")
+            .body(quick_xml::se::to_string(&body).expect("valid xml"))
+    }
+
     /// Sets the form data for this request with
     /// `application/x-www-form-urlencoded` content type.
     #[must_use]

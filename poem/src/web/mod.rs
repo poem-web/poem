@@ -21,6 +21,7 @@ pub mod sse;
 mod static_file;
 #[cfg(feature = "tempfile")]
 mod tempfile;
+mod xml;
 #[doc(inline)]
 pub use headers;
 #[cfg(feature = "csrf")]
@@ -55,6 +56,7 @@ pub use self::{
     query::Query,
     redirect::Redirect,
     typed_header::TypedHeader,
+    xml::Xml,
 };
 use crate::{
     body::Body,
@@ -327,6 +329,12 @@ pub trait FromRequest<'a>: Sized {
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `application/json`. Use
 /// [`serde_json`](https://crates.io/crates/serde_json) to serialize `T` into a json string.
+///
+///
+/// - **Xml&lt;T>**
+///
+///    Sets the status to `OK` and the `Content-Type` to `application/xml`. Use
+/// [`quick-xml`](https://crates.io/crates/quick-xml) to serialize `T` into a json string.
 ///
 /// - **Bytes**
 ///
@@ -879,6 +887,15 @@ mod tests {
         assert_eq!(
             resp.into_body().into_string().await.unwrap(),
             r#"{"a":1,"b":2}"#
+        );
+
+        // Xml
+        let resp = Xml(serde_json::json!({ "a": 1, "b": 2})).into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.content_type(), Some("application/xml; charset=utf-8"));
+        assert_eq!(
+            resp.into_body().into_string().await.unwrap(),
+            r#"<a>1</a><b>2</b>"#
         );
 
         // WithBody

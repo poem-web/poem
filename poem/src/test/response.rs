@@ -158,6 +158,14 @@ impl TestResponse {
         );
     }
 
+    /// Asserts that the response body is XML and it equals to `xml`.
+    pub async fn assert_xml(self, xml: impl Serialize) {
+        assert_eq!(
+            self.0.into_body().into_string().await.expect("expect body"),
+            quick_xml::se::to_string(&xml).expect("valid xml")
+        );
+    }
+
     /// Consumes this object and return the [`TestJson`].
     pub async fn json(self) -> TestJson {
         self.0
