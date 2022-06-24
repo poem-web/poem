@@ -11,7 +11,6 @@ use hyper::body::HttpBody;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-use crate::error::ParseXmlError;
 use crate::{
     error::{ParseJsonError, ReadBodyError},
     Result,
@@ -216,8 +215,10 @@ impl Body {
     ///
     /// - [`ReadBodyError`]
     /// - [`ParseXmlError`]
+    #[cfg(feature = "xml")]
     pub async fn into_xml<T: DeserializeOwned>(self) -> Result<T> {
-        Ok(quick_xml::de::from_slice(&self.into_vec().await?).map_err(ParseXmlError)?)
+        Ok(quick_xml::de::from_slice(&self.into_vec().await?)
+            .map_err(crate::error::ParseXmlError)?)
     }
 
     /// Consumes this body object to return a reader.

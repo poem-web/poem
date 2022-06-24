@@ -21,6 +21,7 @@ pub mod sse;
 mod static_file;
 #[cfg(feature = "tempfile")]
 mod tempfile;
+#[cfg(feature = "xml")]
 mod xml;
 #[doc(inline)]
 pub use headers;
@@ -47,6 +48,8 @@ pub(crate) use self::path::PathDeserializer;
 pub use self::static_file::{StaticFileRequest, StaticFileResponse};
 #[cfg(feature = "tempfile")]
 pub use self::tempfile::TempFile;
+#[cfg(feature = "xml")]
+pub use self::xml::Xml;
 pub use self::{
     addr::{LocalAddr, RemoteAddr},
     data::Data,
@@ -56,7 +59,6 @@ pub use self::{
     query::Query,
     redirect::Redirect,
     typed_header::TypedHeader,
-    xml::Xml,
 };
 use crate::{
     body::Body,
@@ -158,6 +160,13 @@ impl RequestBody {
 /// - **Json&lt;T>**
 ///
 ///    Extracts the [`Json`] from the incoming request.
+///
+///    _This extractor will take over the requested body, so you should avoid
+/// using multiple extractors of this type in one handler._
+///
+/// - **Xml&lt;T>**
+///
+///    Extracts the [`Xml`] from the incoming request.
 ///
 ///    _This extractor will take over the requested body, so you should avoid
 /// using multiple extractors of this type in one handler._
@@ -334,7 +343,7 @@ pub trait FromRequest<'a>: Sized {
 /// - **Xml&lt;T>**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `application/xml`. Use
-/// [`quick-xml`](https://crates.io/crates/quick-xml) to serialize `T` into a json string.
+/// [`quick-xml`](https://crates.io/crates/quick-xml) to serialize `T` into a xml string.
 ///
 /// - **Bytes**
 ///
@@ -889,14 +898,17 @@ mod tests {
             r#"{"a":1,"b":2}"#
         );
 
-        // Xml
-        let resp = Xml(serde_json::json!({ "a": 1, "b": 2})).into_response();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(resp.content_type(), Some("application/xml; charset=utf-8"));
-        assert_eq!(
-            resp.into_body().into_string().await.unwrap(),
-            r#"<a>1</a><b>2</b>"#
-        );
+        #[cfg(feature = "xml")]
+        {
+            // Xml
+            let resp = Xml(serde_json::json!({ "a": 1, "b": 2})).into_response();
+            assert_eq!(resp.status(), StatusCode::OK);
+            assert_eq!(resp.content_type(), Some("application/xml; charset=utf-8"));
+            assert_eq!(
+                resp.into_body().into_string().await.unwrap(),
+                r#"<a>1</a><b>2</b>"#
+            );
+        }
 
         // WithBody
         let resp = StatusCode::CONFLICT.with_body("abc").into_response();

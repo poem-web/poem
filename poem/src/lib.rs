@@ -252,6 +252,7 @@
 //! | acme | Support for ACME(Automatic Certificate Management Environment) |
 //! | tokio-metrics | Integrate with the [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate. |
 //! | embed  | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate. |
+//! | xml | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate. |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

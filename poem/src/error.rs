@@ -671,10 +671,12 @@ impl ResponseError for MissingJsonContentTypeError {
 }
 
 /// A possible error value when parsing XML.
+#[cfg(feature = "xml")]
 #[derive(Debug, thiserror::Error)]
 #[error("parse: {0}")]
 pub struct ParseXmlError(#[from] pub quick_xml::de::DeError);
 
+#[cfg(feature = "xml")]
 impl ResponseError for ParseXmlError {
     fn status(&self) -> StatusCode {
         StatusCode::BAD_REQUEST
@@ -682,10 +684,12 @@ impl ResponseError for ParseXmlError {
 }
 
 /// A missing xml Content-Type error value when parsing header.
+#[cfg(feature = "xml")]
 #[derive(Debug, thiserror::Error)]
 #[error("Missing `Content-Type: application/xml`")]
 pub struct MissingXmlContentTypeError;
 
+#[cfg(feature = "xml")]
 impl ResponseError for MissingXmlContentTypeError {
     fn status(&self) -> StatusCode {
         StatusCode::UNSUPPORTED_MEDIA_TYPE
