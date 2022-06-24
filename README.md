@@ -9,9 +9,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.56.1.html">
-    <img src="https://img.shields.io/badge/rustc-1.56.1+-ab6000.svg"
-      alt="rustc 1.56.1+" />
+  <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.57.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.57.0+-ab6000.svg"
+      alt="rustc 1.57.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -40,7 +40,7 @@ The following are cases of community use:
 
 | Repo                                                                             | Description                                                                                                            | Documentation                                                    | ChangeLog                                                                      |
 |----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [delicate](https://github.com/BinChengZhao/delicate)                             | A distributed task scheduling platform written in rust.                                                                | [(README)](https://delicate-rs.github.io/Roadmap.html)           | [(CHANGELOG)](https://github.com/BinChengZhao/delicate/blob/main/CHANGELOG.md) |         
+| [delicate](https://github.com/BinChengZhao/delicate)                             | A distributed task scheduling platform written in rust.                                                                | [(README)](https://delicate-rs.github.io/Roadmap.html)           | [(CHANGELOG)](https://github.com/BinChengZhao/delicate/blob/main/CHANGELOG.md) |
 | [databend](https://github.com/datafuselabs/databend)                             | A cloud-native data warehouse written in rust.                                                                         | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746) | [(WEEKLY)](https://github.com/datafuselabs/weekly)                             |
 | [muse](https://leihuo.163.com/)                                                  | A NetEase Leihuo's internal art resource sharing platform, backend in rust.                                            |                                                                  |                                                                                |
 | [hik-proconnect](https://www.hikvision.com/en/products/software/hik-proconnect/) | A front-end automated deployment platform based on continuous integration of aws. Hik-ProConnect project for Hikvision |                                                                  |                                                                                |
