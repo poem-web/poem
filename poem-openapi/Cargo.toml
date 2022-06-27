@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "2.0.1"
+version = "2.0.2"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "OpenAPI support for Poem."
@@ -21,8 +21,8 @@ hostname = ["hostname-validator"]
 static-files = ["poem/static-files"]
 
 [dependencies]
-poem-openapi-derive = { path = "../poem-openapi-derive", version = "2.0.0" }
-poem = { path = "../poem", version = "1.3.30", features = [
+poem-openapi-derive = { path = "../poem-openapi-derive", version = "2.0.2" }
+poem = { path = "../poem", version = "1.3.32", features = [
   "multipart",
   "tempfile",
   "cookie",
@@ -57,7 +57,7 @@ humantime = { version = "2.1.0", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-poem = { path = "../poem", version = "1.3.29", features = ["test"] }
+poem = { path = "../poem", version = "1.3.32", features = ["test"] }
 
 [package.metadata.docs.rs]
 all-features = true
