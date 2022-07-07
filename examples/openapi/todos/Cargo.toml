@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 poem = { path = "../../../poem" }
 poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
-sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "sqlite"] }
+sqlx = { version = "0.6.0", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1.8"
