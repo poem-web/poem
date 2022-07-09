@@ -5,7 +5,7 @@ mod bson;
 mod btreemap;
 mod btreeset;
 #[cfg(feature = "chrono")]
-mod datetime;
+mod chrono;
 #[cfg(feature = "rust_decimal")]
 mod decimal;
 mod floats;
@@ -18,6 +18,8 @@ mod optional;
 mod regex;
 mod slice;
 mod string;
+#[cfg(feature = "time")]
+mod time;
 mod uri;
 #[cfg(feature = "url")]
 mod url;

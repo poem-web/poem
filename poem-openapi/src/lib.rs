@@ -94,6 +94,7 @@
 //! | Feature    | Description |
 //! |------------|-----------------------------------------------------------------------|
 //! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono) |
+//! | time  | Integrate with the [`time` crate](https://crates.io/crates/time). |
 //! | humantime  | Integrate with the [`humantime` crate](https://crates.io/crates/humantime) |
 //! | swagger-ui | Add swagger UI support |
 //! | rapidoc    | Add RapiDoc UI support |

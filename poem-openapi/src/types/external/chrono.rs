@@ -4,8 +4,6 @@ use chrono::{DateTime, FixedOffset, Local, NaiveDate, NaiveDateTime, NaiveTime, 
 use poem::web::Field;
 use serde_json::Value;
 
-use crate::{
-    registry::{MetaSchema, MetaSchemaRef},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
         ToJSON, Type,
