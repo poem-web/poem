@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, str::FromStr};
+use std::str::FromStr;
 
 use typed_headers::{AcceptEncoding, ContentCoding, HeaderMapExt};
 
@@ -39,6 +39,15 @@ pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,
 }
 
+fn coding_priority(c: &ContentCoding) -> u8 {
+    match c {
+        &ContentCoding::DEFLATE => 1,
+        &ContentCoding::GZIP => 2,
+        &ContentCoding::BROTLI => 3,
+        _ => 0,
+    }
+}
+
 #[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
     type Output = Response;
@@ -56,19 +65,24 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
         }
 
         // negotiate content-encoding
-        let mut compress_algo = None;
-
-        if let Ok(Some(mut encoding)) = req.headers().typed_get::<AcceptEncoding>() {
-            encoding.0.sort_by_key(|item| Reverse(item.quality));
-            if let Some(item) = encoding.0.get(0) {
-                compress_algo = match item.item {
-                    ContentCoding::BROTLI => Some(CompressionAlgo::BR),
-                    ContentCoding::DEFLATE => Some(CompressionAlgo::DEFLATE),
-                    ContentCoding::STAR | ContentCoding::GZIP => Some(CompressionAlgo::GZIP),
-                    _ => None,
-                }
-            }
-        }
+        let compress_algo = req
+            .headers()
+            .typed_get::<AcceptEncoding>()
+            .ok()
+            .flatten()
+            .and_then(|encoding| {
+                encoding
+                    .0
+                    .into_iter()
+                    .max_by_key(|item| (item.quality, coding_priority(&item.item)))
+            })
+            .map(|c| c.item)
+            .and_then(|coding| match coding {
+                ContentCoding::GZIP => Some(CompressionAlgo::GZIP),
+                ContentCoding::DEFLATE => Some(CompressionAlgo::DEFLATE),
+                ContentCoding::STAR | ContentCoding::BROTLI => Some(CompressionAlgo::BR),
+                _ => None,
+            });
 
         match compress_algo {
             Some(algo) => Ok(Compress::new(self.ep.call(req).await?, algo).into_response()),
@@ -152,10 +166,30 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header("Content-Encoding", "gzip");
+        resp.assert_header("Content-Encoding", "br");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
+        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
+        reader.read_to_end(&mut data).await.unwrap();
+        assert_eq!(data, DATA_REV.as_bytes());
+    }
+
+    #[tokio::test]
+    async fn test_coding_priority() {
+        let ep = index.with(Compression);
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "gzip, deflate, br")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", "br");
+
+        let mut data = Vec::new();
+        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }
