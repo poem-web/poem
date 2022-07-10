@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [1.3.33] 2022-07-10
 
+- Chose Compress algorithm with priority [#302](https://github.com/poem-web/poem/pull/302)
 - Increase the MSRV to `1.61`
 
 # [1.3.32] 2022-06-24
