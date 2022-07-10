@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add integrate with the [`time` crate](https://crates.io/crates/time).
 - Chose Compress algorithm with priority [#302](https://github.com/poem-web/poem/pull/302)
+- Add support generating openapi UI html through the dedicated function. [#298](https://github.com/poem-web/poem/issues/298)
 
 # [2.0.1] 2022-06-17
 

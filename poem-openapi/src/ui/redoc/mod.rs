@@ -36,10 +36,13 @@ const REDOC_TEMPLATE: &str = r#"
 </html>
 "#;
 
-pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = REDOC_TEMPLATE
+pub(crate) fn create_html(document: &str) -> String {
+    REDOC_TEMPLATE
         .replace("{:script}", REDOC_JS)
-        .replace("{:spec}", document);
+        .replace("{:spec}", document)
+}
 
+pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
+    let ui_html = create_html(document);
     poem::Route::new().at("/", make_sync(move |_| Html(ui_html.clone())))
 }

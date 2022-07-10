@@ -43,12 +43,15 @@ const SWAGGER_UI_TEMPLATE: &str = r#"
 </body>
 "#;
 
-pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = SWAGGER_UI_TEMPLATE
+pub(crate) fn create_html(document: &str) -> String {
+    SWAGGER_UI_TEMPLATE
         .replace("{:style}", SWAGGER_UI_CSS)
         .replace("{:script}", SWAGGER_UI_JS)
-        .replace("{:spec}", document);
+        .replace("{:spec}", document)
+}
 
+pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
+    let ui_html = create_html(document);
     poem::Route::new()
         .at("/", make_sync(move |_| Html(ui_html.clone())))
         .at(

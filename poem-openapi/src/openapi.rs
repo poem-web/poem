@@ -325,6 +325,16 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         crate::ui::swagger_ui::create_endpoint(&self.spec())
     }
 
+    /// Create the Swagger UI HTML
+    #[cfg(feature = "swagger-ui")]
+    pub fn swagger_ui_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::swagger_ui::create_html(&self.spec())
+    }
+
     /// Create the Rapidoc endpoint.
     #[must_use]
     #[cfg(feature = "rapidoc")]
@@ -336,6 +346,16 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         crate::ui::rapidoc::create_endpoint(&self.spec())
     }
 
+    /// Create the Rapidoc HTML
+    #[cfg(feature = "rapidoc")]
+    pub fn rapidoc_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::rapidoc::create_html(&self.spec())
+    }
+
     /// Create the Redoc endpoint.
     #[must_use]
     #[cfg(feature = "redoc")]
@@ -345,6 +365,17 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         W: Webhook,
     {
         crate::ui::redoc::create_endpoint(&self.spec())
+    }
+
+    /// Create the Redoc HTML
+    #[must_use]
+    #[cfg(feature = "redoc")]
+    pub fn redoc_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::redoc::create_html(&self.spec())
     }
 
     /// Create an endpoint to serve the open api specification as JSON.

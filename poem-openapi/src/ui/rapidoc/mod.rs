@@ -39,10 +39,14 @@ const RAPIDOC_TEMPLATE: &str = r#"
 </body>
 "#;
 
-pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = RAPIDOC_TEMPLATE
+pub(crate) fn create_html(document: &str) -> String {
+    RAPIDOC_TEMPLATE
         .replace("{:script}", RAPIDOC_JS)
-        .replace("{:spec}", document);
+        .replace("{:spec}", document)
+}
+
+pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
+    let ui_html = create_html(document);
     let oauth_receiver_html = OAUTH_RECEIVER_HTML.replace("{:script}", RAPIDOC_JS);
 
     poem::Route::new()
