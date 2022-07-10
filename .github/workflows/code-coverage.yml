@@ -19,7 +19,7 @@ jobs:
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.57.0
+          toolchain: 1.61.0
           override: true
           components: rustfmt
       - name: Cache Rust
