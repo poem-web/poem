@@ -28,11 +28,11 @@ pub struct MetaDiscriminatorObject {
         skip_serializing_if = "Vec::is_empty",
         serialize_with = "serialize_mapping"
     )]
-    pub mapping: Vec<(&'static str, String)>,
+    pub mapping: Vec<(String, String)>,
 }
 
 fn serialize_mapping<S: Serializer>(
-    mapping: &[(&'static str, String)],
+    mapping: &[(String, String)],
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let mut s = serializer.serialize_map(None)?;

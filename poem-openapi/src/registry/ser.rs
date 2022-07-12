@@ -9,7 +9,7 @@ use crate::registry::{
 
 const OPENAPI_VERSION: &str = "3.0.0";
 
-impl<'a> Serialize for MetaSchemaRef {
+impl Serialize for MetaSchemaRef {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
             MetaSchemaRef::Inline(schema) => schema.serialize(serializer),

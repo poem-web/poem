@@ -13,6 +13,12 @@ fn get_meta<T: Type>() -> MetaSchema {
     registry.schemas.remove(&*T::name()).unwrap()
 }
 
+fn get_meta_by_name<T: Type>(name: &str) -> MetaSchema {
+    let mut registry = Registry::new();
+    T::register(&mut registry);
+    registry.schemas.remove(name).unwrap()
+}
+
 #[test]
 fn with_discriminator() {
     #[derive(Object, Debug, PartialEq)]
@@ -42,54 +48,62 @@ fn with_discriminator() {
             ty: "object",
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
-                mapping: vec![]
+                mapping: vec![
+                    ("A".to_string(), "#/components/schemas/MyObj[A]".to_string()),
+                    ("B".to_string(), "#/components/schemas/MyObj[B]".to_string()),
+                ]
             }),
             any_of: vec![
-                MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    required: vec!["type"],
-                    all_of: vec![
-                        MetaSchemaRef::Reference("A".to_string()),
-                        MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            title: Some("A".to_string()),
-                            properties: vec![(
-                                "type",
-                                String::schema_ref().merge(MetaSchema {
-                                    example: Some("A".into()),
-                                    ..MetaSchema::ANY
-                                })
-                            )],
-                            ..MetaSchema::new("object")
-                        })),
-                    ],
-                    ..MetaSchema::ANY
-                })),
-                MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    required: vec!["type"],
-                    all_of: vec![
-                        MetaSchemaRef::Reference("B".to_string()),
-                        MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            title: Some("B".to_string()),
-                            properties: vec![(
-                                "type",
-                                String::schema_ref().merge(MetaSchema {
-                                    example: Some("B".into()),
-                                    ..MetaSchema::ANY
-                                })
-                            )],
-                            ..MetaSchema::new("object")
-                        })),
-                    ],
-                    ..MetaSchema::ANY
-                }))
+                MetaSchemaRef::Reference("MyObj[A]".to_string()),
+                MetaSchemaRef::Reference("MyObj[B]".to_string()),
             ],
             ..MetaSchema::ANY
         }
     );
 
-    let mut registry = Registry::new();
-    MyObj::register(&mut registry);
-    assert!(registry.schemas.contains_key("A"));
-    assert!(registry.schemas.contains_key("B"));
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj[A]");
+    assert_eq!(
+        schema_myobj_a,
+        MetaSchema {
+            all_of: vec![
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
+                    required: vec!["type"],
+                    properties: vec![(
+                        "type",
+                        String::schema_ref().merge(MetaSchema {
+                            example: Some("A".into()),
+                            ..MetaSchema::ANY
+                        }),
+                    )],
+                    ..MetaSchema::new("object")
+                })),
+                MetaSchemaRef::Reference("A".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj[B]");
+    assert_eq!(
+        schema_myobj_b,
+        MetaSchema {
+            all_of: vec![
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
+                    required: vec!["type"],
+                    properties: vec![(
+                        "type",
+                        String::schema_ref().merge(MetaSchema {
+                            example: Some("B".into()),
+                            ..MetaSchema::ANY
+                        })
+                    )],
+                    ..MetaSchema::new("object")
+                })),
+                MetaSchemaRef::Reference("B".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
 
     assert_eq!(
         MyObj::parse_from_json(Some(json!({
@@ -167,47 +181,57 @@ fn with_discriminator_mapping() {
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
                 mapping: vec![
-                    ("c", "#/components/schemas/A".to_string()),
-                    ("d", "#/components/schemas/B".to_string()),
+                    ("c".to_string(), "#/components/schemas/MyObj[A]".to_string()),
+                    ("d".to_string(), "#/components/schemas/MyObj[B]".to_string()),
                 ]
             }),
             any_of: vec![
+                MetaSchemaRef::Reference("MyObj[A]".to_string()),
+                MetaSchemaRef::Reference("MyObj[B]".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj[A]");
+    assert_eq!(
+        schema_myobj_a,
+        MetaSchema {
+            all_of: vec![
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     required: vec!["type"],
-                    all_of: vec![
-                        MetaSchemaRef::Reference("A".to_string()),
-                        MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            title: Some("c".to_string()),
-                            properties: vec![(
-                                "type",
-                                String::schema_ref().merge(MetaSchema {
-                                    example: Some("c".into()),
-                                    ..MetaSchema::ANY
-                                })
-                            )],
-                            ..MetaSchema::new("object")
-                        })),
-                    ],
-                    ..MetaSchema::ANY
+                    properties: vec![(
+                        "type",
+                        String::schema_ref().merge(MetaSchema {
+                            example: Some("c".into()),
+                            ..MetaSchema::ANY
+                        }),
+                    )],
+                    ..MetaSchema::new("object")
                 })),
+                MetaSchemaRef::Reference("A".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj[B]");
+    assert_eq!(
+        schema_myobj_b,
+        MetaSchema {
+            all_of: vec![
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     required: vec!["type"],
-                    all_of: vec![
-                        MetaSchemaRef::Reference("B".to_string()),
-                        MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            title: Some("d".to_string()),
-                            properties: vec![(
-                                "type",
-                                String::schema_ref().merge(MetaSchema {
-                                    example: Some("d".into()),
-                                    ..MetaSchema::ANY
-                                })
-                            )],
-                            ..MetaSchema::new("object")
-                        })),
-                    ],
-                    ..MetaSchema::ANY
-                }))
+                    properties: vec![(
+                        "type",
+                        String::schema_ref().merge(MetaSchema {
+                            example: Some("d".into()),
+                            ..MetaSchema::ANY
+                        })
+                    )],
+                    ..MetaSchema::new("object")
+                })),
+                MetaSchemaRef::Reference("B".to_string()),
             ],
             ..MetaSchema::ANY
         }

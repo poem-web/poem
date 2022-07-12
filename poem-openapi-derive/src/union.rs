@@ -62,7 +62,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut from_json = Vec::new();
     let mut to_json = Vec::new();
     let mut mapping = Vec::new();
-    let mut names = Vec::new();
+    let mut create_schemas = Vec::new();
     let mut schemas = Vec::new();
 
     let required = match &args.discriminator_name {
@@ -77,18 +77,21 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         match variant.fields.len() {
             1 => {
                 let object_ty = &variant.fields.fields[0];
+                let schema_name = quote! {
+                    ::std::format!("{}[{}]", <Self as #crate_name::types::Type>::name(), <#object_ty as #crate_name::types::Type>::name())
+                };
                 let mapping_name = match &variant.mapping {
-                    Some(mapping) => quote!(#mapping),
+                    Some(mapping) => quote!(::std::string::ToString::to_string(#mapping)),
                     None => {
-                        quote!(::std::convert::AsRef::as_ref(&<#object_ty as #crate_name::types::Type>::name()))
+                        let name = item_ident.to_string();
+                        quote!(::std::string::ToString::to_string(#name))
                     }
                 };
-                names.push(quote!(#mapping_name));
                 types.push(object_ty);
 
                 if discriminator_name.is_some() {
                     from_json.push(quote! {
-                        if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
+                        if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == &#mapping_name) {
                             return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
                                 .map(Self::#item_ident)
                                 .map_err(#crate_name::types::ParseError::propagate);
@@ -133,20 +136,16 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     });
                 }
 
-                if variant.mapping.is_some() {
-                    mapping.push(quote! {
-                        (#mapping_name, format!("#/components/schemas/{}", <#object_ty as #crate_name::types::Type>::schema_ref().unwrap_reference()))
-                    });
-                }
+                mapping.push(quote! {
+                    (#mapping_name, ::std::format!("#/components/schemas/{}", #schema_name))
+                });
 
                 if let Some(discriminator_name) = &args.discriminator_name {
-                    schemas.push(quote! {
-                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
-                            required: #required,
+                    create_schemas.push(quote! {
+                        let schema = #crate_name::registry::MetaSchema {
                             all_of: ::std::vec![
-                                <#object_ty as #crate_name::types::Type>::schema_ref(),
                                 #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
-                                    title: ::std::option::Option::Some(::std::string::ToString::to_string(#mapping_name)),
+                                    required: #required,
                                     properties: ::std::vec![
                                         (
                                             #discriminator_name,
@@ -160,10 +159,16 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                                         )
                                     ],
                                     ..#crate_name::registry::MetaSchema::new("object")
-                                }))
+                                })),
+                                <#object_ty as #crate_name::types::Type>::schema_ref(),
                             ],
                             ..#crate_name::registry::MetaSchema::ANY
-                        }))
+                        };
+                        registry.schemas.insert(#schema_name, schema);
+                    });
+
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
                     });
                 } else {
                     schemas.push(quote! {
@@ -262,6 +267,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             fn register(registry: &mut #crate_name::registry::Registry) {
                 registry.create_schema::<Self, _>(<Self as #crate_name::types::Type>::name().into_owned(), |registry| {
                     #(<#types as #crate_name::types::Type>::register(registry);)*
+                    #(#create_schemas)*
                     #meta
                 });
             }
