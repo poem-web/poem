@@ -484,6 +484,16 @@ pub struct MetaPath {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize)]
+pub struct MetaContact {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+}
+
+#[derive(Debug, Default, PartialEq, Serialize)]
 pub struct MetaLicense {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -503,6 +513,8 @@ pub struct MetaInfo {
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub terms_of_service: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contact: Option<MetaContact>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<MetaLicense>,
 }

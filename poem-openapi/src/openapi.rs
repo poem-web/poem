@@ -10,8 +10,8 @@ use poem::{
 use crate::{
     base::UrlQuery,
     registry::{
-        Document, MetaExternalDocument, MetaHeader, MetaInfo, MetaLicense, MetaOperationParam,
-        MetaParamIn, MetaSchemaRef, MetaServer, Registry,
+        Document, MetaContact, MetaExternalDocument, MetaHeader, MetaInfo, MetaLicense,
+        MetaOperationParam, MetaParamIn, MetaSchemaRef, MetaServer, Registry,
     },
     types::Type,
     OpenApi, Webhook,
@@ -49,7 +49,51 @@ impl ServerObject {
     }
 }
 
+/// A contact information for the exposed API.
+#[derive(Debug, Default)]
+pub struct ContactObject {
+    name: Option<String>,
+    url: Option<String>,
+    email: Option<String>,
+}
+
+impl ContactObject {
+    /// Create a new Contact object
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the identifying name of the contact person/organization.
+    #[must_use]
+    pub fn name(self, name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..self
+        }
+    }
+
+    /// Sets the URL pointing to the contact information.
+    #[must_use]
+    pub fn url(self, url: impl Into<String>) -> Self {
+        Self {
+            url: Some(url.into()),
+            ..self
+        }
+    }
+
+    /// Sets the email address of the contact person/organization.
+    #[must_use]
+    pub fn email(self, email: impl Into<String>) -> Self {
+        Self {
+            email: Some(email.into()),
+            ..self
+        }
+    }
+}
+
 /// A license information for the exposed API.
+#[derive(Debug)]
 pub struct LicenseObject {
     name: String,
     identifier: Option<String>,
@@ -72,7 +116,7 @@ impl LicenseObject {
         }
     }
 
-    /// Sets an [`SPDX`](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60) license expression for the API.
+    /// Sets the [`SPDX`](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60) license expression for the API.
     #[must_use]
     pub fn identifier(self, identifier: impl Into<String>) -> Self {
         Self {
@@ -81,7 +125,7 @@ impl LicenseObject {
         }
     }
 
-    /// Sets a URL to the license used for the API.
+    /// Sets the URL to the license used for the API.
     #[must_use]
     pub fn url(self, url: impl Into<String>) -> Self {
         Self {
@@ -189,6 +233,7 @@ impl<T> OpenApiService<T, ()> {
                 description: None,
                 version: version.into(),
                 terms_of_service: None,
+                contact: None,
                 license: None,
             },
             external_document: None,
@@ -245,6 +290,17 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
         self.servers.push(MetaServer {
             url: server.url,
             description: server.description,
+        });
+        self
+    }
+
+    /// Sets the contact information for the exposed API.
+    #[must_use]
+    pub fn contact(mut self, contact: ContactObject) -> Self {
+        self.info.contact = Some(MetaContact {
+            name: contact.name,
+            url: contact.url,
+            email: contact.email,
         });
         self
     }
