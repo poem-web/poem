@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [2.0.4] 2022-07-12
 
 - Bump `uuid` crate from `0.8.2` to `1.1.0` [#304](https://github.com/poem-web/poem/issues/304)
+- Fixed `Union` macro generating incorrect schema. [#263](https://github.com/poem-web/poem/issues/263)
 
 # [2.0.3] 2022-07-10
 
