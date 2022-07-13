@@ -1,25 +1,27 @@
 use std::ops::{Deref, DerefMut};
 
 use bcs::{from_bytes, to_bytes};
-use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result,
+use poem::{
     http::{header, StatusCode},
+    FromRequest, IntoResponse, Request, RequestBody, Response, Result,
 };
-
-use serde::{Deserialize, Serialize};
 use poem_openapi::{
     error::ParseRequestPayloadError,
+    impl_apirequest_for_payload,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
     ApiResponse,
 };
-use poem_openapi::impl_apirequest_for_payload;
+use serde::{Deserialize, Serialize};
 
 const CONTENT_TYPE_STR: &'static str = "application/x-bcs";
 
 /// A BCS payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Bcs<T>(pub T) where T: Type;
+pub struct Bcs<T>(pub T)
+where
+    T: Type;
 
 impl<T: Type> Deref for Bcs<T> {
     type Target = T;
