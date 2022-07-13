@@ -1,3 +1,6 @@
+#[macro_export]
+/// This macro implements ApiExtractor for your type, with additional bounds
+/// if you want to.
 macro_rules! impl_apirequest_for_payload {
     ($ty:ty) => {
         impl_apirequest_for_payload!($ty,);

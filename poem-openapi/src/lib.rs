@@ -114,8 +114,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
+/// Macros to help with building custom payload types.
 #[macro_use]
-mod macros;
+pub mod macros;
 
 pub mod auth;
 pub mod error;
