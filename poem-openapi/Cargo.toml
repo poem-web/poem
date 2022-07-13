@@ -27,6 +27,7 @@ poem = { path = "../poem", version = "1.3.33", features = [
   "tempfile",
   "cookie",
   "sse",
+  "yaml",
 ] }
 
 tokio = { version = "1.17.0", features = ["fs"] }

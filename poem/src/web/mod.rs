@@ -32,6 +32,8 @@ mod typed_header;
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub mod websocket;
+#[cfg(feature = "yaml")]
+mod yaml;
 
 use std::{convert::Infallible, fmt::Debug};
 
@@ -51,6 +53,8 @@ pub use self::static_file::{StaticFileRequest, StaticFileResponse};
 pub use self::tempfile::TempFile;
 #[cfg(feature = "xml")]
 pub use self::xml::Xml;
+#[cfg(feature = "yaml")]
+pub use self::yaml::Yaml;
 pub use self::{
     addr::{LocalAddr, RemoteAddr},
     data::Data,
@@ -903,6 +907,19 @@ mod tests {
             resp.into_body().into_string().await.unwrap(),
             r#"{"a":1,"b":2}"#
         );
+
+        // YAML
+        #[cfg(feature = "yaml")]
+        {
+            let sample_yaml = "---\nx: 1.0\ny: 2.0\n";
+            let resp = Yaml(serde_yaml::from_str(sample_yaml)).into_response();
+            assert_eq!(resp.status(), StatusCode::OK);
+            assert_eq!(
+                resp.content_type(),
+                Some("application/x-yaml; charset=utf-8")
+            );
+            assert_eq!(resp.into_body().into_string().await.unwrap(), sample_yaml,);
+        }
 
         #[cfg(feature = "xml")]
         {

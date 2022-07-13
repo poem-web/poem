@@ -670,6 +670,28 @@ impl ResponseError for MissingJsonContentTypeError {
     }
 }
 
+/// A possible error value when parsing YAML.
+#[derive(Debug, thiserror::Error)]
+#[error("parse: {0}")]
+pub struct ParseYamlError(#[from] pub serde_yaml::Error);
+
+impl ResponseError for ParseYamlError {
+    fn status(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+}
+
+/// A missing yaml Content-Type error value when parsing header.
+#[derive(Debug, thiserror::Error)]
+#[error("Missing `Content-Type: application/x-yaml`")]
+pub struct MissingYamlContentTypeError;
+
+impl ResponseError for MissingYamlContentTypeError {
+    fn status(&self) -> StatusCode {
+        StatusCode::UNSUPPORTED_MEDIA_TYPE
+    }
+}
+
 /// A possible error value when parsing XML.
 #[cfg(feature = "xml")]
 #[derive(Debug, thiserror::Error)]

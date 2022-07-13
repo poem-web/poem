@@ -19,6 +19,7 @@ pub use error::{ParseError, ParseResult};
 pub use maybe_undefined::MaybeUndefined;
 use poem::{http::HeaderValue, web::Field as PoemField};
 use serde_json::Value;
+use serde_yaml::Value as SerdeYamlValue;
 #[cfg(feature = "email")]
 pub use string_types::Email;
 #[cfg(feature = "hostname")]
@@ -82,7 +83,7 @@ pub trait Type: Send + Sync {
     }
 }
 
-/// Represents a type that can parsing from JSON.
+/// Represents a type that can be parsed from JSON.
 pub trait ParseFromJSON: Sized + Type {
     /// Parse from [`serde_json::Value`].
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self>;
@@ -91,6 +92,18 @@ pub trait ParseFromJSON: Sized + Type {
     fn parse_from_json_string(s: &str) -> ParseResult<Self> {
         let value = serde_json::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
         Self::parse_from_json(value)
+    }
+}
+
+/// Represents a type that can be parsed from YAML.
+pub trait ParseFromYAML: Sized + Type {
+    /// Parse from [`serde_yaml::Value`].
+    fn parse_from_yaml(value: Option<SerdeYamlValue>) -> ParseResult<Self>;
+
+    /// Parse from JSON string.
+    fn parse_from_yaml_string(s: &str) -> ParseResult<Self> {
+        let value = serde_yaml::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
+        Self::parse_from_yaml(value)
     }
 }
 
@@ -135,6 +148,17 @@ pub trait ToJSON: Type {
     }
 }
 
+/// Represents a type that can converted to YAML value.
+pub trait ToYAML: Type {
+    /// Convert this value to [`Value`].
+    fn to_yaml(&self) -> Option<SerdeYamlValue>;
+
+    /// Convert this value to JSON string.
+    fn to_yaml_string(&self) -> String {
+        serde_yaml::to_string(&self.to_yaml()).unwrap_or_default()
+    }
+}
+
 /// Represents a type that can converted to HTTP header.
 pub trait ToHeader: Type {
     /// Convert this value to [`HeaderValue`].
@@ -174,6 +198,12 @@ impl<T: Type> Type for &T {
 impl<T: ToJSON> ToJSON for &T {
     fn to_json(&self) -> Option<Value> {
         T::to_json(self)
+    }
+}
+
+impl<T: ToYAML> ToYAML for &T {
+    fn to_yaml(&self) -> Option<SerdeYamlValue> {
+        T::to_yaml(self)
     }
 }
 
@@ -221,6 +251,14 @@ impl<T: ParseFromJSON> ParseFromJSON for Arc<T> {
     }
 }
 
+impl<T: ParseFromYAML> ParseFromYAML for Arc<T> {
+    fn parse_from_yaml(value: Option<SerdeYamlValue>) -> ParseResult<Self> {
+        T::parse_from_yaml(value)
+            .map_err(ParseError::propagate)
+            .map(Arc::new)
+    }
+}
+
 impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
     fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
         unreachable!()
@@ -238,6 +276,12 @@ impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
 impl<T: ToJSON> ToJSON for Arc<T> {
     fn to_json(&self) -> Option<Value> {
         self.as_ref().to_json()
+    }
+}
+
+impl<T: ToYAML> ToYAML for Arc<T> {
+    fn to_yaml(&self) -> Option<SerdeYamlValue> {
+        self.as_ref().to_yaml()
     }
 }
 
@@ -285,6 +329,14 @@ impl<T: ParseFromJSON> ParseFromJSON for Box<T> {
     }
 }
 
+impl<T: ParseFromYAML> ParseFromYAML for Box<T> {
+    fn parse_from_yaml(value: Option<SerdeYamlValue>) -> ParseResult<Self> {
+        T::parse_from_yaml(value)
+            .map_err(ParseError::propagate)
+            .map(Box::new)
+    }
+}
+
 impl<T: ParseFromParameter> ParseFromParameter for Box<T> {
     fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
         unreachable!()
@@ -322,6 +374,12 @@ impl<T: ToJSON> ToJSON for Box<T> {
     }
 }
 
+impl<T: ToYAML> ToYAML for Box<T> {
+    fn to_yaml(&self) -> Option<SerdeYamlValue> {
+        self.as_ref().to_yaml()
+    }
+}
+
 impl<T: ToHeader> ToHeader for Box<T> {
     fn to_header(&self) -> Option<HeaderValue> {
         self.as_ref().to_header()
@@ -350,6 +408,10 @@ mod tests {
         assert_eq!(value, Arc::new(100));
 
         let value: Arc<i32> =
+            ParseFromYAML::parse_from_yaml(Some(SerdeYamlValue::Number(100.into()))).unwrap();
+        assert_eq!(value, Arc::new(100));
+
+        let value: Arc<i32> =
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Arc::new(100));
 
@@ -371,7 +433,7 @@ mod tests {
         assert_eq!(value, Box::new(100));
 
         let value: Box<i32> =
-            ParseFromJSON::parse_from_json(Some(Value::Number(100.into()))).unwrap();
+            ParseFromYAML::parse_from_yaml(Some(SerdeYamlValue::Number(100.into()))).unwrap();
         assert_eq!(value, Box::new(100));
 
         let value: Box<i32> =
@@ -381,6 +443,11 @@ mod tests {
         assert_eq!(
             ToJSON::to_json(&Box::new(100)),
             Some(Value::Number(100.into()))
+        );
+
+        assert_eq!(
+            ToYAML::to_yaml(&Box::new(100)),
+            Some(SerdeYamlValue::Number(100.into()))
         );
     }
 }
