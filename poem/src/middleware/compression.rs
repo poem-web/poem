@@ -40,10 +40,10 @@ pub struct CompressionEndpoint<E: Endpoint> {
 }
 
 fn coding_priority(c: &ContentCoding) -> u8 {
-    match c {
-        &ContentCoding::DEFLATE => 1,
-        &ContentCoding::GZIP => 2,
-        &ContentCoding::BROTLI => 3,
+    match *c {
+        ContentCoding::DEFLATE => 1,
+        ContentCoding::GZIP => 2,
+        ContentCoding::BROTLI => 3,
         _ => 0,
     }
 }

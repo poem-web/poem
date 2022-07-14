@@ -27,7 +27,7 @@ native-tls = ["server", "tokio-native-tls"]
 openssl-tls = ["server", "tokio-openssl", "openssl"]
 sse = []
 static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
-compression = ["async-compression", "typed-headers"]
+compression = ["async-compression"]
 tower-compat = ["tokio/rt", "tower"]
 cookie = ["libcookie", "chrono", "time"]
 session = ["tokio/rt", "cookie", "rand", "priority-queue"]
@@ -85,6 +85,8 @@ tracing = "0.1.29"
 headers = "0.3.4"
 thiserror = "1.0.30"
 rfc7239 = "0.1.0"
+mime = { version = "0.3.16" }
+typed-headers = { version = "0.2.0" }
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
@@ -103,9 +105,7 @@ tower = { version = "0.4.8", optional = true, default-features = true, features 
 ] }
 chrono = { version = "0.4.19", optional = true }
 time = { version = "0.3", optional = true }
-mime = { version = "0.3.16" }
 mime_guess = { version = "2.0.3", optional = true }
-typed-headers = { version = "0.2.0", optional = true }
 rand = { version = "0.8.4", optional = true }
 redis = { version = "0.21.2", optional = true, features = [
     "aio",

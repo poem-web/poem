@@ -3,11 +3,11 @@ mod bcs_payload;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use bcs_payload::Bcs;
-use poem::{listener::TcpListener, Result, Route, Server};
+use poem::{listener::TcpListener, web::Accept, Result, Route, Server};
 use poem_openapi::{
     payload::Json,
     types::{ParseFromJSON, ToJSON, Type},
-    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService,
+    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -50,13 +50,16 @@ impl<T: ParseFromJSON + Send + Sync + Type + ToJSON + for<'b> Deserialize<'b>> M
     }
 }
 
+#[derive(ResponseContent)]
+enum MyResponseContent<T: ToJSON + Send + Sync + Serialize> {
+    Json(Json<T>),
+    Bcs(Bcs<T>),
+}
+
 #[derive(ApiResponse)]
 enum MyResponse<T: ToJSON + Send + Sync + Serialize> {
-    #[oai(status = 200, content_type = "application/json")]
-    Json(Json<T>),
-
-    #[oai(status = 200, content_type = "application/x-bcs")]
-    Bcs(Bcs<T>),
+    #[oai(status = 200)]
+    Ok(MyResponseContent<T>),
 }
 
 struct Api {
@@ -73,31 +76,48 @@ impl Api {
     }
 }
 
+fn create_response<T: ToJSON + Send + Sync + Serialize>(accept: &Accept, resp: T) -> MyResponse<T> {
+    for mime in &accept.0 {
+        match mime.as_ref() {
+            "application/json" => return MyResponse::Ok(MyResponseContent::Json(Json(resp))),
+            "application/x-bcs" => return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp))),
+            _ => {}
+        }
+    }
+
+    // default to Json
+    MyResponse::Ok(MyResponseContent::Json(Json(resp)))
+}
+
 #[OpenApi]
 impl Api {
     /// get_transaction
     ///
     /// Get the latest committed transaction.
     #[oai(path = "/transaction", method = "get")]
-    async fn get(&self) -> MyResponse<Option<CommittedTransaction>> {
+    async fn get(&self, accept: Accept) -> MyResponse<Option<CommittedTransaction>> {
         // TODO: Handle when transactions is empty.
         let transaction = self.transactions.lock().await.last().cloned();
-        // TODO: Return BCS if the user requested it with Accept.
-        MyResponse::Json(Json(transaction))
+        // Return BCS if the user requested it with Accept.
+        create_response(&accept, transaction)
     }
 
     /// submit_transaction
     ///
     /// Submit a transaction. Returns the new version of the data store.
     #[oai(path = "/transaction", method = "put")]
-    async fn put(&self, request: MyRequest<SubmitTransactionRequest>) -> MyResponse<u64> {
+    async fn put(
+        &self,
+        accept: Accept,
+        request: MyRequest<SubmitTransactionRequest>,
+    ) -> MyResponse<u64> {
         let committed_transaction = CommittedTransaction {
             submit_transaction_request: request.unpack(),
             version: self.version.fetch_add(1, Ordering::Relaxed),
         };
         self.transactions.lock().await.push(committed_transaction);
-        // TODO: Return BCS if the user requested it with Accept.
-        MyResponse::Json(Json(self.version.load(Ordering::Relaxed)))
+        // Return BCS if the user requested it with Accept.
+        create_response(&accept, self.version.load(Ordering::Relaxed))
     }
 }
 

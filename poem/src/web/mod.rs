@@ -1,5 +1,6 @@
 //! Commonly used as the type of extractor or response.
 
+mod accept;
 mod addr;
 #[cfg(feature = "compression")]
 mod compress;
@@ -52,6 +53,7 @@ pub use self::tempfile::TempFile;
 #[cfg(feature = "xml")]
 pub use self::xml::Xml;
 pub use self::{
+    accept::Accept,
     addr::{LocalAddr, RemoteAddr},
     data::Data,
     form::Form,

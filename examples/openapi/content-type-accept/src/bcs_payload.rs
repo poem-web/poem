@@ -15,7 +15,7 @@ use poem_openapi::{
 };
 use serde::{Deserialize, Serialize};
 
-const CONTENT_TYPE_STR: &'static str = "application/x-bcs";
+const CONTENT_TYPE_STR: &str = "application/x-bcs";
 
 /// A BCS payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
