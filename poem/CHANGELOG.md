@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Expose macro `impl_apirequest_for_payload` for custom payload type and add an example to demonstrating the custom payload. [#309](https://github.com/poem-web/poem/pull/309)
 - Add support for specifying contact field [#306](https://github.com/poem-web/poem/issues/306)
-
+- Add `Accept` extractor
 
 # [1.3.33] 2022-07-10
 
