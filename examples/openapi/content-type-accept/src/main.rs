@@ -59,7 +59,10 @@ enum MyResponseContent<T: ToJSON + Send + Sync + Serialize> {
 #[derive(ApiResponse)]
 enum MyResponse<T: ToJSON + Send + Sync + Serialize> {
     #[oai(status = 200)]
-    Ok(MyResponseContent<T>),
+    Ok(
+        MyResponseContent<T>,
+        #[oai(header = "Transaction-Version")] u64,
+    ),
 }
 
 struct Api {
@@ -76,17 +79,25 @@ impl Api {
     }
 }
 
-fn create_response<T: ToJSON + Send + Sync + Serialize>(accept: &Accept, resp: T) -> MyResponse<T> {
+fn create_response<T: ToJSON + Send + Sync + Serialize>(
+    accept: &Accept,
+    resp: T,
+    version: u64,
+) -> MyResponse<T> {
     for mime in &accept.0 {
         match mime.as_ref() {
-            "application/json" => return MyResponse::Ok(MyResponseContent::Json(Json(resp))),
-            "application/x-bcs" => return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp))),
+            "application/json" => {
+                return MyResponse::Ok(MyResponseContent::Json(Json(resp)), version)
+            }
+            "application/x-bcs" => {
+                return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp)), version)
+            }
             _ => {}
         }
     }
 
     // default to Json
-    MyResponse::Ok(MyResponseContent::Json(Json(resp)))
+    MyResponse::Ok(MyResponseContent::Json(Json(resp)), version)
 }
 
 #[OpenApi]
@@ -96,10 +107,8 @@ impl Api {
     /// Get the latest committed transaction.
     #[oai(path = "/transaction", method = "get")]
     async fn get(&self, accept: Accept) -> MyResponse<Option<CommittedTransaction>> {
-        // TODO: Handle when transactions is empty.
         let transaction = self.transactions.lock().await.last().cloned();
-        // Return BCS if the user requested it with Accept.
-        create_response(&accept, transaction)
+        create_response(&accept, transaction, self.version.load(Ordering::Relaxed))
     }
 
     /// submit_transaction
@@ -111,13 +120,14 @@ impl Api {
         accept: Accept,
         request: MyRequest<SubmitTransactionRequest>,
     ) -> MyResponse<u64> {
+        let version = self.version.fetch_add(1, Ordering::Relaxed);
         let committed_transaction = CommittedTransaction {
             submit_transaction_request: request.unpack(),
-            version: self.version.fetch_add(1, Ordering::Relaxed),
+            version,
         };
         self.transactions.lock().await.push(committed_transaction);
         // Return BCS if the user requested it with Accept.
-        create_response(&accept, self.version.load(Ordering::Relaxed))
+        create_response(&accept, self.version.load(Ordering::Relaxed), version)
     }
 }
 
