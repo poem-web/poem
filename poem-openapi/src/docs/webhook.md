@@ -2,13 +2,13 @@ Define a OpenApi webhooks.
 
 # Macro parameters
 
-| Attribute | description                      | Type   | Optional |
+| Attribute | Description                      | Type   | Optional |
 |-----------|----------------------------------|--------|----------|
 | tag       | Define a tag for all operations. | string | Y        |
 
 # Operation parameters
 
-| Attribute     | description                                                                                                          | Type   | Optional |
+| Attribute     | Description                                                                                                          | Type   | Optional |
 |---------------|----------------------------------------------------------------------------------------------------------------------|--------|----------|
 | name          | The key name of the webhook operation                                                                                | bool   | Y        |
 | method        | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string | N        |
@@ -19,7 +19,7 @@ Define a OpenApi webhooks.
 
 # Operation argument parameters
 
-| Attribute                | description                                                                                                                                                                                                                                           | Type                                      | Optional |
+| Attribute                | Description                                                                                                                                                                                                                                           | Type                                      | Optional |
 |--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|----------|
 | name                     | Parameter name                                                                                                                                                                                                                                        | string                                    | Y        |
 | deprecated               | Argument deprecated                                                                                                                                                                                                                                   | bool                                      | Y        |

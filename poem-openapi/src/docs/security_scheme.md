@@ -2,7 +2,7 @@ Define a OpenAPI Security Scheme.
 
 # Macro parameters
 
-| Attribute          | description                                                                                                                                                                                               | Type       | Optional |
+| Attribute          | Description                                                                                                                                                                                               | Type       | Optional |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|----------|
 | rename             | Rename the security scheme.                                                                                                                                                                               | string     | Y        |
 | type               | The type of the security scheme. (api_key, basic, bearer, oauth2, openid_connect)                                                                                                                         | string     | N        |

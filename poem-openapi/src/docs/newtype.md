@@ -2,7 +2,7 @@ Define a new type.
 
 # Macro parameters
 
-| Attribute      | description                                                  | Type   | Optional |
+| Attribute      | Description                                                  | Type   | Optional |
 |----------------|--------------------------------------------------------------|--------|----------|
 | from_json      | Implement `ParseFromJSON` trait. Default is `true`           | bool   | Y        |
 | from_parameter | Implement `ParseFromParameter` trait. Default is `true`      | bool   | Y        |

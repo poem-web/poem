@@ -51,6 +51,8 @@ struct APIOperation {
     response_headers: Vec<ExtraHeader>,
     #[darling(default, multiple, rename = "request_header")]
     request_headers: Vec<ExtraHeader>,
+    #[darling(default)]
+    actual_type: Option<Type>,
 }
 
 #[derive(FromMeta, Default)]
@@ -182,6 +184,7 @@ fn generate_operation(
         external_docs,
         response_headers,
         request_headers,
+        actual_type,
     } = args;
     if methods.is_empty() {
         return Err(Error::new_spanned(
@@ -465,6 +468,11 @@ fn generate_operation(
         });
     }
 
+    let resp_meta = match &actual_type {
+        Some(actual_type) => quote!(<#actual_type as #crate_name::ApiResponse>::meta()),
+        None => quote!(<#res_ty as #crate_name::ApiResponse>::meta()),
+    };
+
     for method in &methods {
         let http_method = method.to_http_method();
         ctx.operations
@@ -489,7 +497,7 @@ fn generate_operation(
                         request
                     },
                     responses: {
-                        let mut meta = <#res_ty as #crate_name::ApiResponse>::meta();
+                        let mut meta = #resp_meta;
                         #(#update_extra_response_headers)*
                         meta
                     },

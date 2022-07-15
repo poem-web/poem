@@ -4,7 +4,7 @@ Define a OpenAPI.
 
 These are attributes that can be added to the `#[OpenApi]` attribute.
 
-| Attribute       | description                                                                                                      | Type                                                       | Optional |
+| Attribute       | Description                                                                                                      | Type                                                       | Optional |
 |-----------------|------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|----------|
 | prefix_path     | Define the prefix for all operation paths. May contain shared path parameters.                                   | string                                                     | Y        |
 | tag             | Define a tag for all operations. This must be the name of an in-scope variant of an enum which implements `Tags` | Tags                                                       | Y        |
@@ -43,7 +43,7 @@ impl Api {
 
 Parameters that can be passed into the `#[oai()]` attribute above each operation function within an `OpenApi`.
 
-| Attribute       | description                                                                                                          | Type                                                       | Optional |
+| Attribute       | Description                                                                                                          | Type                                                       | Optional |
 |-----------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|----------|
 | path            | URI path optionally containing path parameters (e.g., "/:name/hello")                                                | string                                                     | N        |
 | method          | HTTP method. The possible values are "get", "post", "put", "delete", "head", "options", "connect", "patch", "trace". | string                                                     | N        |
@@ -54,7 +54,7 @@ Parameters that can be passed into the `#[oai()]` attribute above each operation
 | transform       | Use a function to transform the API endpoint.                                                                        | string                                                     | Y        |
 | response_header | Add an extra response header to the operation.                                                                       | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 | request_header  | Add an extra request header to all operations.                                                                       | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
-
+| actual_type     | Specifies the actual response type                                                                                   | Y                                                          | string   |
 ## Example
 
 ```rust
@@ -85,7 +85,7 @@ impl Api {
 
 # Operation argument parameters
 
-| Attribute                | description                                                                                                                                                                                                                                           | Type                                      | Optional |
+| Attribute                | Description                                                                                                                                                                                                                                           | Type                                      | Optional |
 |--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|----------|
 | name                     | Parameter name                                                                                                                                                                                                                                        | string                                    | Y        |
 | deprecated               | Argument deprecated                                                                                                                                                                                                                                   | bool                                      | Y        |

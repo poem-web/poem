@@ -2,7 +2,7 @@ Define a OpenAPI object
 
 # Macro parameters
 
-| Attribute                    | description                                                                                                                                                                      | Type   | Optional |
+| Attribute                    | Description                                                                                                                                                                      | Type   | Optional |
 |------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
 | rename                       | Rename the object                                                                                                                                                                | string | Y        |
 | rename_all                   | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string | Y        |
@@ -18,7 +18,7 @@ Define a OpenAPI object
 
 # Field parameters
 
-| Attribute                    | description                                                                                                                                                                                                                                           | Type                                      | Optional |
+| Attribute                    | Description                                                                                                                                                                                                                                           | Type                                      | Optional |
 |------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|----------|
 | skip                         | Skip this field                                                                                                                                                                                                                                       | bool                                      | Y        |
 | rename                       | Rename the field                                                                                                                                                                                                                                      | string                                    | Y        |

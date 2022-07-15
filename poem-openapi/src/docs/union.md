@@ -2,7 +2,7 @@ Define a OpenAPI discriminator object.
 
 # Macro parameters
 
-| Attribute          | description                                                                     | Type   | Optional |
+| Attribute          | Description                                                                     | Type   | Optional |
 |--------------------|---------------------------------------------------------------------------------|--------|----------|
 | discriminator_name | The name of the property in the payload that will hold the discriminator value. | string | Y        |
 | one_of             | Validates the value against exactly one of the subschemas                       | bool   | Y        |
@@ -10,7 +10,7 @@ Define a OpenAPI discriminator object.
 
 # Item parameters
 
-| Attribute | description                                            | Type   | Optional |
+| Attribute | Description                                            | Type   | Optional |
 |-----------|--------------------------------------------------------|--------|----------|
 | mapping   | Rename the payload value. (Default is the object name) | string | Y        |
 

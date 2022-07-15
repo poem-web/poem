@@ -2,7 +2,7 @@ Define a OpenAPI response.
 
 # Macro parameters
 
-| Attribute           | description                                                                                     | Type                                                       | Optional |
+| Attribute           | Description                                                                                     | Type                                                       | Optional |
 |---------------------|-------------------------------------------------------------------------------------------------|------------------------------------------------------------|----------|
 | bad_request_handler | Sets a custom bad request handler, it can convert error to the value of the this response type. | string                                                     | Y        |
 | header              | Add an extra header                                                                             | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
