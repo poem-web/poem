@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [2.0.5] 2022-07-15
+# [2.0.5] 2022-07-16
 
 - Add support for specifying contact field [#306](https://github.com/poem-web/poem/issues/306)
 - Add `actual_type` attribute to `OpenApi`, `Response`, `ResponseContent` macros [#314](https://github.com/poem-web/poem/issues/314)
