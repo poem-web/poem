@@ -52,6 +52,15 @@ impl TcpAcceptor {
             listener: TokioTcpListener::from_std(listener)?,
         })
     }
+
+    /// Creates new `TcpAcceptor` from a `tokio::net::TcpListener`.
+    pub fn from_tokio(listener: tokio::net::TcpListener) -> Result<Self> {
+        let local_addr = listener.local_addr().map(|addr| LocalAddr(addr.into()))?;
+        Ok(Self {
+            local_addr,
+            listener,
+        })
+    }
 }
 
 #[async_trait::async_trait]
