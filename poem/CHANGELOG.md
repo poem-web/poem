@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.3.35] 2022-07-15
 
 - Expose macro `impl_apirequest_for_payload` for custom payload type and add an example to demonstrating the custom payload. [#309](https://github.com/poem-web/poem/pull/309)
-- Add `Accept` extractor
+- Add `Accept` extractor.
+- Add `TcpAcceptor::from_tokio` method. [#317](https://github.com/poem-web/poem/issues/317)
 
 # [1.3.33] 2022-07-10
 
