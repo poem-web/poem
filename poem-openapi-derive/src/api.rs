@@ -377,6 +377,14 @@ fn generate_operation(
             let ep = #transform(ep);
         }
     });
+    let update_content_type = match &actual_type {
+        Some(actual_type) => quote!(
+            resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
+                #crate_name::__private::poem::http::HeaderValue::from_static(<#actual_type as #crate_name::payload::Payload>::CONTENT_TYPE)
+            );
+        ),
+        None => quote!(),
+    };
 
     for method in &methods {
         let http_method = method.to_http_method();
@@ -390,7 +398,13 @@ fn generate_operation(
                         #(#parse_args)*
                         let res = api_obj.#fn_ident(#(#use_args),*).await;
                         let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
-                        ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response)
+                        match ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response) {
+                            ::std::result::Result::Ok(mut resp) => {
+                                #update_content_type
+                                ::std::result::Result::Ok(resp)
+                            }
+                            ::std::result::Result::Err(err) => ::std::result::Result::Err(err),
+                        }
                     }
                 });
                 #transform

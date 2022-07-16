@@ -2,9 +2,10 @@ Define a OpenAPI response content.
 
 # Item parameters
 
-| Attribute    | Description               | Type   | Optional |
-|--------------|---------------------------|--------|----------|
-| content_type | Specify the content type. | string | Y        |
+| Attribute    | Description                        | Type   | Optional |
+|--------------|------------------------------------|--------|----------|
+| content_type | Specify the content type.          | string | Y        |
+| actual_type  | Specifies the actual response type | Y      | string   |
 
 # Examples
 

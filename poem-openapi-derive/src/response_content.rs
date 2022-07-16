@@ -17,6 +17,8 @@ struct ContentItem {
 
     #[darling(default)]
     content_type: Option<SpannedValue<String>>,
+    #[darling(default)]
+    actual_type: Option<Type>,
 }
 
 #[derive(FromDeriveInput)]
@@ -57,22 +59,39 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             1 => {
                 // Item(payload)
                 let item_ty = &variant.fields.fields[0];
-                let content_type = match &variant.content_type {
-                    Some(content_type) => {
-                        let content_type = content_type.as_str();
-                        quote!(#content_type)
-                    }
-                    None => quote!(<#item_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
+
+                let (content_type, schema_ref) = if let Some(content_type) = &variant.content_type {
+                    let content_type = content_type.as_str();
+                    (
+                        quote!(#content_type),
+                        quote!(<#item_ty as #crate_name::payload::Payload>::schema_ref()),
+                    )
+                } else if let Some(actual_type) = &variant.actual_type {
+                    (
+                        quote!(<#actual_type as #crate_name::payload::Payload>::CONTENT_TYPE),
+                        quote!(<#actual_type as #crate_name::payload::Payload>::schema_ref()),
+                    )
+                } else {
+                    (
+                        quote!(<#item_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
+                        quote!(<#item_ty as #crate_name::payload::Payload>::schema_ref()),
+                    )
                 };
-                let update_content_type = match &variant.content_type {
-                    Some(content_type) => {
-                        let content_type = content_type.as_str();
-                        quote! {
-                            resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
-                                #crate_name::__private::poem::http::HeaderValue::from_static(#content_type));
-                        }
+
+                let update_content_type = if let Some(content_type) = &variant.content_type {
+                    let content_type = content_type.as_str();
+                    quote! {
+                        resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
+                            #crate_name::__private::poem::http::HeaderValue::from_static(#content_type));
                     }
-                    None => quote!(),
+                } else if let Some(actual_type) = &variant.actual_type {
+                    quote! {
+                        resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
+                            #crate_name::__private::poem::http::HeaderValue::from_static(<#actual_type as #crate_name::payload::Payload>::CONTENT_TYPE)
+                        );
+                    }
+                } else {
+                    quote!()
                 };
                 into_responses.push(quote! {
                     #ident::#item_ident(resp) => {
@@ -84,7 +103,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 content.push(quote! {
                     #crate_name::registry::MetaMediaType {
                         content_type: #content_type,
-                        schema: <#item_ty as #crate_name::payload::Payload>::schema_ref(),
+                        schema: #schema_ref,
                     }
                 });
                 schemas.push(item_ty);

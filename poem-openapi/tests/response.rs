@@ -6,7 +6,7 @@ use poem::{
     Error, IntoResponse,
 };
 use poem_openapi::{
-    payload::{Json, PlainText},
+    payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
     types::{ToJSON, Type},
     ApiResponse, Object, OpenApi, OpenApiService,
@@ -446,4 +446,48 @@ async fn as_error() {
     assert_eq!(responses[0].status, Some(200));
     assert_eq!(responses[1].status, Some(201));
     assert_eq!(responses[2].status, Some(502));
+}
+
+#[tokio::test]
+async fn actual_type() {
+    #[derive(Debug, Object)]
+    struct MyObj {
+        value: i32,
+    }
+
+    #[derive(Debug, ApiResponse)]
+    enum MyResponse {
+        /// Ok
+        #[oai(status = 200, actual_type = "Json<MyObj>")]
+        Ok(Binary<Vec<u8>>),
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self) -> MyResponse {
+            MyResponse::Ok(Binary(b"{ \"value\": 100 }".to_vec()))
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/");
+
+    let operator = &meta.paths[0].operations[0];
+    let response = &operator.responses.responses[0];
+
+    assert_eq!(response.status, Some(200));
+
+    let media = &response.content[0];
+    assert_eq!(media.content_type, "application/json");
+    assert_eq!(media.schema, <Json<MyObj>>::schema_ref());
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+    let resp = cli.get("/").send().await;
+
+    resp.assert_content_type("application/json");
+    resp.assert_json(&serde_json::json!({ "value": 100 })).await;
 }

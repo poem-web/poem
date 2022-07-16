@@ -38,6 +38,8 @@ struct ResponseItem {
     content_type: Option<String>,
     #[darling(default, multiple, rename = "header")]
     headers: Vec<ExtraHeader>,
+    #[darling(default)]
+    actual_type: Option<Type>,
 }
 
 #[derive(FromDeriveInput)]
@@ -132,24 +134,39 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         fn update_content_type(
             crate_name: &TokenStream,
             content_type: Option<&str>,
+            actual_type: Option<&Type>,
         ) -> (TokenStream, TokenStream) {
-            let update_response_content_type = match content_type {
-                Some(content_type) => {
+            let (update_response_content_type, update_meta_content_type) = if let Some(
+                content_type,
+            ) = content_type
+            {
+                (
                     quote! {
                         resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
                             #crate_name::__private::poem::http::HeaderValue::from_static(#content_type));
-                    }
-                }
-                None => quote!(),
-            };
-
-            let update_meta_content_type = match content_type {
-                Some(content_type) => quote! {
-                    if let Some(mt) = content.get_mut(0) {
-                        mt.content_type = #content_type;
-                    }
-                },
-                None => quote!(),
+                    },
+                    quote! {
+                        if let Some(mt) = content.get_mut(0) {
+                            mt.content_type = #content_type;
+                        }
+                    },
+                )
+            } else if let Some(actual_type) = actual_type {
+                (
+                    quote! {
+                        resp.headers_mut().insert(#crate_name::__private::poem::http::header::CONTENT_TYPE,
+                            #crate_name::__private::poem::http::HeaderValue::from_static(<#actual_type as #crate_name::payload::Payload>::CONTENT_TYPE)
+                        );
+                    },
+                    quote! {
+                        if let Some(mt) = content.get_mut(0) {
+                            mt.content_type = <#actual_type as #crate_name::payload::Payload>::CONTENT_TYPE;
+                            mt.schema = <#actual_type as #crate_name::payload::Payload>::schema_ref();
+                        }
+                    },
+                )
+            } else {
+                (quote! {}, quote! {})
             };
 
             (update_response_content_type, update_meta_content_type)
@@ -159,8 +176,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             2 => {
                 // Item(StatusCode, media)
                 let media_ty = &values[1].ty;
-                let (update_response_content_type, update_meta_content_type) =
-                    update_content_type(&crate_name, variant.content_type.as_deref());
+                let (update_response_content_type, update_meta_content_type) = update_content_type(
+                    &crate_name,
+                    variant.content_type.as_deref(),
+                    variant.actual_type.as_ref(),
+                );
                 into_responses.push(quote! {
                     #ident::#item_ident(status, media, #(#match_headers),*) => {
                         let mut resp = #crate_name::__private::poem::IntoResponse::into_response(media);
@@ -189,8 +209,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 // Item(media)
                 let media_ty = &values[0].ty;
                 let status = get_status(variant.ident.span(), variant.status)?;
-                let (update_response_content_type, update_meta_content_type) =
-                    update_content_type(&crate_name, variant.content_type.as_deref());
+                let (update_response_content_type, update_meta_content_type) = update_content_type(
+                    &crate_name,
+                    variant.content_type.as_deref(),
+                    variant.actual_type.as_ref(),
+                );
                 into_responses.push(quote! {
                     #ident::#item_ident(media, #(#match_headers),*) => {
                         let mut resp = #crate_name::__private::poem::IntoResponse::into_response(media);

@@ -702,9 +702,8 @@ async fn actual_type() {
 
     let ep = OpenApiService::new(Api, "test", "1.0");
     let cli = TestClient::new(ep);
-    cli.get("/")
-        .send()
-        .await
-        .assert_json(&serde_json::json!({ "value": 100 }))
-        .await;
+    let resp = cli.get("/").send().await;
+
+    resp.assert_content_type("application/json");
+    resp.assert_json(&serde_json::json!({ "value": 100 })).await;
 }

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [2.0.5] 2022-07-15
 
 - Add support for specifying contact field [#306](https://github.com/poem-web/poem/issues/306)
-- Add `actual_type` attribute to `OpenApi` macro [#314](https://github.com/poem-web/poem/issues/314)
+- Add `actual_type` attribute to `OpenApi`, `Response`, `ResponseContent` macros [#314](https://github.com/poem-web/poem/issues/314)
 
 # [2.0.4] 2022-07-12
 
