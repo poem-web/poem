@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{fmt::Write, io::Cursor};
 
 use http::{header, header::HeaderName, HeaderMap, HeaderValue};
 use mime::Mime;
@@ -144,11 +144,15 @@ impl TestForm {
             let mut content_disposition = String::from("form-data");
 
             if let Some(name) = name {
-                content_disposition += &format!("; name=\"{}\"", legal_str(name));
+                let _ = write!(content_disposition, "; name=\"{}\"", legal_str(name));
             }
 
             if let Some(filename) = filename {
-                content_disposition += &format!("; filename=\"{}\"", legal_str(filename));
+                let _ = write!(
+                    content_disposition,
+                    "; filename=\"{}\"",
+                    legal_str(filename)
+                );
             }
 
             headers.insert(

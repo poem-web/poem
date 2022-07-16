@@ -1,5 +1,6 @@
 use std::{
     ffi::OsStr,
+    fmt::Write,
     path::{Path, PathBuf},
 };
 
@@ -31,15 +32,17 @@ impl<'a> DirectoryTemplate<'a> {
 
         for file in &self.files {
             if file.is_dir {
-                s.push_str(&format!(
+                let _ = write!(
+                    s,
                     r#"<li><a href="{}">{}/</a></li>"#,
                     file.url, file.filename
-                ));
+                );
             } else {
-                s.push_str(&format!(
+                let _ = write!(
+                    s,
                     r#"<li><a href="{}">{}</a></li>"#,
                     file.url, file.filename
-                ));
+                );
             }
         }
 
