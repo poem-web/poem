@@ -20,5 +20,6 @@ async fn new_type_summary_and_description() {
 
     let schema = MyString::schema_ref();
     let schema = schema.unwrap_inline();
-    assert_eq!(schema.description, Some("MyString\n\nA\nB\nC"));
+    assert_eq!(schema.title.as_deref(), Some("MyString"));
+    assert_eq!(schema.description, Some("A\nB\nC"));
 }
