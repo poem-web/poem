@@ -33,7 +33,7 @@ pub struct ParsePathError {
 
 impl ResponseError for ParsePathError {
     fn status(&self) -> StatusCode {
-        StatusCode::NOT_FOUND
+        StatusCode::BAD_REQUEST
     }
 }
 
