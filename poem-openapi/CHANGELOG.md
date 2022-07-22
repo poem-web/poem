@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [2.0.6]
 
 - Use first line of comment as title of newtype param [#319](https://github.com/poem-web/poem/issues/319)
-
+- Add `Content-Disposition` header to schema for `Attachment` [#325](https://github.com/poem-web/poem/issues/325)
 
 # [2.0.5] 2022-07-16
 

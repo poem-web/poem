@@ -16,7 +16,7 @@ pub use self::{
     attachment::Attachment, base64_payload::Base64, binary::Binary, event_stream::EventStream,
     form::Form, html::Html, json::Json, plain_text::PlainText, response::Response,
 };
-use crate::registry::{MetaSchemaRef, Registry};
+use crate::registry::{MetaHeader, MetaSchemaRef, Registry};
 
 /// Represents a payload type.
 pub trait Payload: Send {
