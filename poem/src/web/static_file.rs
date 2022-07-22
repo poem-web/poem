@@ -109,7 +109,7 @@ impl StaticFileRequest {
         prefer_utf8: bool,
     ) -> Result<StaticFileResponse, StaticFileError> {
         let path = path.as_ref();
-        if !path.exists() {
+        if !path.exists() || !path.is_file() {
             return Err(StaticFileError::NotFound);
         }
         let guess = mime_guess::from_path(path);
