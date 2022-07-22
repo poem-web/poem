@@ -139,7 +139,7 @@ pub use base::{
     ResponseContent, Tags, Webhook,
 };
 pub use openapi::{
-    ContactObject, ExternalDocumentObject, LicenseObject, OpenApiService, ServerObject,
+    ContactObject, ExternalDocumentObject, ExtraHeader, LicenseObject, OpenApiService, ServerObject,
 };
 #[doc = include_str!("docs/request.md")]
 pub use poem_openapi_derive::ApiRequest;
