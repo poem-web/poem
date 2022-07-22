@@ -4,9 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use http::header::LOCATION;
+
 use crate::{
     error::StaticFileError,
-    http::{header, Method},
+    http::{header, Method, StatusCode},
     web::StaticFileRequest,
     Body, Endpoint, FromRequest, IntoResponse, Request, Response, Result,
 };
@@ -73,6 +75,7 @@ pub struct StaticFilesEndpoint {
     show_files_listing: bool,
     index_file: Option<String>,
     prefer_utf8: bool,
+    redirect_to_slash: bool,
 }
 
 impl StaticFilesEndpoint {
@@ -96,6 +99,7 @@ impl StaticFilesEndpoint {
             show_files_listing: false,
             index_file: None,
             prefer_utf8: true,
+            redirect_to_slash: false,
         }
     }
 
@@ -132,6 +136,15 @@ impl StaticFilesEndpoint {
     pub fn prefer_utf8(self, value: bool) -> Self {
         Self {
             prefer_utf8: value,
+            ..self
+        }
+    }
+
+    /// Redirects to a slash-ended path when browsing a directory.
+    #[must_use]
+    pub fn redirect_to_slash_directory(self) -> Self {
+        Self {
+            redirect_to_slash: true,
             ..self
         }
     }
@@ -181,6 +194,17 @@ impl Endpoint for StaticFilesEndpoint {
                 .create_response(&file_path, self.prefer_utf8)?
                 .into_response());
         } else {
+            if self.redirect_to_slash
+                && !req.uri().path().ends_with('/')
+                && (self.index_file.is_some() || self.show_files_listing)
+            {
+                let redirect_to = format!("{}/", req.uri().path());
+                return Ok(Response::builder()
+                    .status(StatusCode::FOUND)
+                    .header(LOCATION, redirect_to)
+                    .finish());
+            }
+
             if let Some(index_file) = &self.index_file {
                 let index_path = file_path.join(index_file);
                 if index_path.is_file() {
