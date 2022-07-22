@@ -50,7 +50,8 @@ The following are cases of community use:
 
 ### Startups
 
-- [My Data My Consent](https://mydatamyconsent.com/) | Online data sharing for people and businesses simplified|                                                                  |                                                                                |
+- [My Data My Consent](https://mydatamyconsent.com/) | Online data sharing for people and businesses simplified|
+
 
 ### Resources
 
