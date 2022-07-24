@@ -45,10 +45,10 @@ macro_rules! impl_type_for_integers {
                  let value = value.unwrap_or_default();
                  if let Value::Number(n) = value {
                      let n = n
-                         .as_i64()
+                         .as_i128()
                          .ok_or_else(|| ParseError::from("invalid integer"))?;
 
-                     if n < Self::MIN as i64 || n > Self::MAX as i64 {
+                     if n < Self::MIN as i128 || n > Self::MAX as i128 {
                          return Err(ParseError::from(format!(
                              "Only integers from {} to {} are accepted.",
                              Self::MIN,
@@ -132,10 +132,10 @@ macro_rules! impl_type_for_unsigneds {
                  let value = value.unwrap_or_default();
                  if let Value::Number(n) = value {
                      let n = n
-                         .as_u64()
+                         .as_u128()
                          .ok_or_else(|| ParseError::from("invalid integer"))?;
 
-                     if n < Self::MIN as u64 || n > Self::MAX as u64 {
+                     if n < Self::MIN as u128 || n > Self::MAX as u128 {
                          return Err(ParseError::from(format!(
                              "Only integers from {} to {} are accepted.",
                              Self::MIN,
@@ -185,12 +185,19 @@ macro_rules! impl_type_for_unsigneds {
     };
 }
 
-impl_type_for_integers!((i8, "int8"), (i16, "int16"), (i32, "int32"), (i64, "int64"));
+impl_type_for_integers!(
+    (i8, "int8"),
+    (i16, "int16"),
+    (i32, "int32"),
+    (i64, "int64"),
+    (i128, "int128")
+);
 
 impl_type_for_unsigneds!(
     (u8, "uint8"),
     (u16, "uint16"),
     (u32, "uint32"),
     (u64, "uint64"),
+    (u128, "uint128"),
     (usize, "uint64")
 );
