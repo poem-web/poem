@@ -1,0 +1,12 @@
+[package]
+name = "example-stream-response"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+futures-util = "0.3.21"
+poem = { path = "../../../poem" }
+reqwest = { version = "0.11.11", features = ["stream"] }
+tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }

@@ -7,6 +7,7 @@ mod event_stream;
 mod form;
 mod html;
 mod json;
+mod json_proxy_stream;
 mod plain_text;
 mod response;
 
@@ -14,7 +15,8 @@ use poem::{Request, RequestBody, Result};
 
 pub use self::{
     attachment::Attachment, base64_payload::Base64, binary::Binary, event_stream::EventStream,
-    form::Form, html::Html, json::Json, plain_text::PlainText, response::Response,
+    form::Form, html::Html, json::Json, json_proxy_stream::JsonProxyStream, plain_text::PlainText,
+    response::Response,
 };
 use crate::registry::{MetaHeader, MetaSchemaRef, Registry};
 

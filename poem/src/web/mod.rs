@@ -21,6 +21,7 @@ mod redirect;
 pub mod sse;
 #[cfg(feature = "static-files")]
 mod static_file;
+pub mod stream;
 #[cfg(feature = "tempfile")]
 mod tempfile;
 #[cfg(feature = "xml")]
