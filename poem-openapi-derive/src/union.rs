@@ -78,7 +78,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             1 => {
                 let object_ty = &variant.fields.fields[0];
                 let schema_name = quote! {
-                    ::std::format!("{}[{}]", <Self as #crate_name::types::Type>::name(), <#object_ty as #crate_name::types::Type>::name())
+                    ::std::format!("{}_{}", <Self as #crate_name::types::Type>::name(), <#object_ty as #crate_name::types::Type>::name())
                 };
                 let mapping_name = match &variant.mapping {
                     Some(mapping) => quote!(::std::string::ToString::to_string(#mapping)),

@@ -49,19 +49,19 @@ fn with_discriminator() {
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
                 mapping: vec![
-                    ("A".to_string(), "#/components/schemas/MyObj[A]".to_string()),
-                    ("B".to_string(), "#/components/schemas/MyObj[B]".to_string()),
+                    ("A".to_string(), "#/components/schemas/MyObj_A".to_string()),
+                    ("B".to_string(), "#/components/schemas/MyObj_B".to_string()),
                 ]
             }),
             any_of: vec![
-                MetaSchemaRef::Reference("MyObj[A]".to_string()),
-                MetaSchemaRef::Reference("MyObj[B]".to_string()),
+                MetaSchemaRef::Reference("MyObj_A".to_string()),
+                MetaSchemaRef::Reference("MyObj_B".to_string()),
             ],
             ..MetaSchema::ANY
         }
     );
 
-    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj[A]");
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj_A");
     assert_eq!(
         schema_myobj_a,
         MetaSchema {
@@ -83,7 +83,7 @@ fn with_discriminator() {
         }
     );
 
-    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj[B]");
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj_B");
     assert_eq!(
         schema_myobj_b,
         MetaSchema {
@@ -181,19 +181,19 @@ fn with_discriminator_mapping() {
             discriminator: Some(MetaDiscriminatorObject {
                 property_name: "type",
                 mapping: vec![
-                    ("c".to_string(), "#/components/schemas/MyObj[A]".to_string()),
-                    ("d".to_string(), "#/components/schemas/MyObj[B]".to_string()),
+                    ("c".to_string(), "#/components/schemas/MyObj_A".to_string()),
+                    ("d".to_string(), "#/components/schemas/MyObj_B".to_string()),
                 ]
             }),
             any_of: vec![
-                MetaSchemaRef::Reference("MyObj[A]".to_string()),
-                MetaSchemaRef::Reference("MyObj[B]".to_string()),
+                MetaSchemaRef::Reference("MyObj_A".to_string()),
+                MetaSchemaRef::Reference("MyObj_B".to_string()),
             ],
             ..MetaSchema::ANY
         }
     );
 
-    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj[A]");
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj_A");
     assert_eq!(
         schema_myobj_a,
         MetaSchema {
@@ -215,7 +215,7 @@ fn with_discriminator_mapping() {
         }
     );
 
-    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj[B]");
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj_B");
     assert_eq!(
         schema_myobj_b,
         MetaSchema {
