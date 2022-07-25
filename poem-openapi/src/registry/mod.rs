@@ -453,6 +453,15 @@ pub struct MetaWebhook {
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MetaCodeSample {
+    pub lang: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<&'static str>,
+    pub source: &'static str,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetaOperation {
     #[serde(skip)]
     pub method: Method,
@@ -475,6 +484,8 @@ pub struct MetaOperation {
     pub security: Vec<HashMap<&'static str, Vec<&'static str>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub operation_id: Option<&'static str>,
+    #[serde(rename = "x-code-samples", skip_serializing_if = "Vec::is_empty")]
+    pub code_samples: Vec<MetaCodeSample>,
 }
 
 #[derive(Debug, PartialEq)]

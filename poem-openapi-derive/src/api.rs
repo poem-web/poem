@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    common_args::{APIMethod, DefaultValue, ExternalDocument, ExtraHeader},
+    common_args::{APIMethod, CodeSample, DefaultValue, ExternalDocument, ExtraHeader},
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
@@ -53,6 +53,8 @@ struct APIOperation {
     request_headers: Vec<ExtraHeader>,
     #[darling(default)]
     actual_type: Option<Type>,
+    #[darling(default, multiple, rename = "code_sample")]
+    code_samples: Vec<CodeSample>,
 }
 
 #[derive(FromMeta, Default)]
@@ -185,6 +187,7 @@ fn generate_operation(
         response_headers,
         request_headers,
         actual_type,
+        code_samples,
     } = args;
     if methods.is_empty() {
         return Err(Error::new_spanned(
@@ -487,6 +490,25 @@ fn generate_operation(
         None => quote!(<#res_ty as #crate_name::ApiResponse>::meta()),
     };
 
+    let code_samples = code_samples
+        .iter()
+        .map(|item| {
+            let CodeSample {
+                lang,
+                label,
+                source,
+            } = item;
+            let label = optional_literal(label);
+            quote! {
+                #crate_name::registry::MetaCodeSample {
+                    lang: #lang,
+                    label: #label,
+                    source: #source,
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
     for method in &methods {
         let http_method = method.to_http_method();
         ctx.operations
@@ -522,6 +544,7 @@ fn generate_operation(
                         security
                     },
                     operation_id: #operation_id,
+                    code_samples: ::std::vec![#(#code_samples),*],
                 }
             });
     }

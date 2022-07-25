@@ -171,3 +171,10 @@ pub(crate) struct ExtraHeader {
     #[darling(default)]
     pub(crate) deprecated: bool,
 }
+
+#[derive(FromMeta)]
+pub(crate) struct CodeSample {
+    pub(crate) lang: String,
+    pub(crate) label: Option<String>,
+    pub(crate) source: syn::Expr,
+}

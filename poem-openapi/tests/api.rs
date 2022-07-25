@@ -7,7 +7,7 @@ use poem::{
 use poem_openapi::{
     param::Query,
     payload::{Binary, Json, Payload, PlainText},
-    registry::{MetaApi, MetaExternalDocument, MetaParamIn, MetaSchema},
+    registry::{MetaApi, MetaExternalDocument, MetaOperation, MetaParamIn, MetaSchema},
     types::Type,
     ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
@@ -706,4 +706,55 @@ async fn actual_type() {
 
     resp.assert_content_type("application/json");
     resp.assert_json(&serde_json::json!({ "value": 100 })).await;
+}
+
+#[tokio::test]
+async fn code_samples() {
+    const JS_SOURCE: &str = "
+    J
+    S
+
+    JavaScript
+    ";
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(
+            path = "/test1",
+            method = "get",
+            code_sample(lang = "js", source = "JS_SOURCE")
+        )]
+        async fn test1(&self) {}
+
+        #[oai(
+            path = "/test2",
+            method = "get",
+            code_sample(lang = "rust", label = "Rust lang", source = "\"Rust Source\""),
+            code_sample(lang = "go", label = "Go", source = "\"Google Go\"")
+        )]
+        async fn test2(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    let path = &meta.paths[0];
+    let operator: &MetaOperation = &path.operations[0];
+    assert_eq!(path.path, "/test1");
+    let code_sample = &operator.code_samples[0];
+    assert_eq!(code_sample.lang, "js");
+    assert_eq!(code_sample.label, None);
+    assert_eq!(code_sample.source, JS_SOURCE);
+
+    let path = &meta.paths[1];
+    let operator: &MetaOperation = &path.operations[0];
+    assert_eq!(path.path, "/test2");
+    let code_sample = &operator.code_samples[0];
+    assert_eq!(code_sample.lang, "rust");
+    assert_eq!(code_sample.label, Some("Rust lang"));
+    assert_eq!(code_sample.source, "Rust Source");
+    let code_sample = &operator.code_samples[1];
+    assert_eq!(code_sample.lang, "go");
+    assert_eq!(code_sample.label, Some("Go"));
+    assert_eq!(code_sample.source, "Google Go");
 }

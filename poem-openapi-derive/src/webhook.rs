@@ -295,6 +295,7 @@ fn generate_operation(
                         deprecated: #deprecated,
                         security: ::std::vec![],
                         operation_id: #operation_id,
+                        code_samples: ::std::vec![],
                     }
                 }
             },
