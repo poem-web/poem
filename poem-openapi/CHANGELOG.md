@@ -4,10 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [2.0.6]
+# [2.0.6] 2022-07-26
 
 - Use first line of comment as title of newtype param [#319](https://github.com/poem-web/poem/issues/319)
 - Add `Content-Disposition` header to schema for `Attachment` [#325](https://github.com/poem-web/poem/issues/325)
+- Add support for `x-code-samples` [#335](https://github.com/poem-web/poem/issues/335)
+- Return `400` when parsing path fails, not `404` [#326](https://github.com/poem-web/poem/pull/326)
+- Use Parent_Child instead of Parent[Child] for generated intermediate type [#340](https://github.com/poem-web/poem/pull/340)
+- Fixed docs for `NewType` macro
 
 # [2.0.5] 2022-07-16
 
