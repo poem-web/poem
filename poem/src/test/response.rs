@@ -158,6 +158,19 @@ impl TestResponse {
         );
     }
 
+    #[cfg(feature = "yaml")]
+    /// Asserts that the response body is JSON and it equals to `json`.
+    pub async fn assert_yaml(self, yaml: impl Serialize) {
+        assert_eq!(
+            self.0
+                .into_body()
+                .into_yaml::<serde_yaml::Value>()
+                .await
+                .expect("expect body"),
+            serde_yaml::to_value(yaml).expect("valid yaml")
+        );
+    }
+
     /// Asserts that the response body is XML and it equals to `xml`.
     #[cfg(feature = "xml")]
     pub async fn assert_xml(self, xml: impl Serialize) {
@@ -172,6 +185,15 @@ impl TestResponse {
         self.0
             .into_body()
             .into_json::<TestJson>()
+            .await
+            .expect("expect body")
+    }
+
+    /// Consumes this object and return the [`TestJson`].
+    pub async fn yaml(self) -> TestYaml {
+        self.0
+            .into_body()
+            .into_yaml::<TestYaml>()
             .await
             .expect("expect body")
     }

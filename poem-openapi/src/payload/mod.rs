@@ -9,12 +9,13 @@ mod html;
 mod json;
 mod plain_text;
 mod response;
+mod yaml;
 
 use poem::{Request, RequestBody, Result};
 
 pub use self::{
     attachment::Attachment, base64_payload::Base64, binary::Binary, event_stream::EventStream,
-    form::Form, html::Html, json::Json, plain_text::PlainText, response::Response,
+    form::Form, html::Html, json::Json, plain_text::PlainText, response::Response, yaml::Yaml,
 };
 use crate::registry::{MetaSchemaRef, Registry};
 
