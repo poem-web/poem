@@ -44,7 +44,7 @@ impl<T: Into<Body> + Send> Attachment<T> {
     pub fn new(data: T) -> Self {
         Self {
             data: Binary(data),
-            ty: AttachmentType::Inline,
+            ty: AttachmentType::Attachment,
             filename: None,
         }
     }
