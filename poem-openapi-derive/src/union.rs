@@ -5,10 +5,10 @@ use darling::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Attribute, DeriveInput, Error, Generics, Type};
+use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
-    common_args::ExternalDocument,
+    common_args::{ExternalDocument, RenameRule},
     error::GeneratorResult,
     utils::{create_object_name, get_crate_name, get_description, optional_literal},
 };
@@ -41,6 +41,8 @@ struct UnionArgs {
     discriminator_name: Option<String>,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
+    #[darling(default)]
+    rename_all: Option<RenameRule>,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -83,8 +85,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let mapping_name = match &variant.mapping {
                     Some(mapping) => quote!(::std::string::ToString::to_string(#mapping)),
                     None => {
-                        let name = item_ident.to_string();
-                        quote!(::std::string::ToString::to_string(#name))
+                        if let Some(rename_all) = &args.rename_all {
+                            let name = rename_all.rename(item_ident.unraw().to_string());
+                            quote!(::std::string::ToString::to_string(#name))
+                        } else {
+                            let name = item_ident.unraw().to_string();
+                            quote!(::std::string::ToString::to_string(#name))
+                        }
                     }
                 };
                 types.push(object_ty);

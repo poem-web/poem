@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [2.0.7]
 
 - Expose `AttachmentType` enum [#344](https://github.com/poem-web/poem/issues/344)
+- Add `rename_all` attribute for `Union` macro [#347](https://github.com/poem-web/poem/issues/347)
 
 # [2.0.6] 2022-07-26
 
