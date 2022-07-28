@@ -195,10 +195,10 @@ impl Endpoint for StaticFilesEndpoint {
                 .into_response());
         } else {
             if self.redirect_to_slash
-                && !req.uri().path().ends_with('/')
+                && !req.original_uri().path().ends_with('/')
                 && (self.index_file.is_some() || self.show_files_listing)
             {
-                let redirect_to = format!("{}/", req.uri().path());
+                let redirect_to = format!("{}/", req.original_uri().path());
                 return Ok(Response::builder()
                     .status(StatusCode::FOUND)
                     .header(LOCATION, redirect_to)
