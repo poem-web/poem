@@ -400,6 +400,11 @@ impl Error {
             AsResponse::Response(resp) => resp,
         }
     }
+
+    /// Returns whether the error has a source or not.
+    pub fn has_source(&self) -> bool {
+        self.source.is_some()
+    }
 }
 
 define_http_error!(
