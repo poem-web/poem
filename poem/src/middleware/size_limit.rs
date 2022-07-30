@@ -5,7 +5,7 @@ use crate::{
 /// Middleware for limit the request payload size.
 ///
 /// If the incoming request does not contain the `Content-Length` header, it
-/// will return `BAD_REQUEST` status code.
+/// will return `LENGTH_REQUIRED` status code.
 ///
 /// # Errors
 ///
@@ -74,7 +74,7 @@ mod tests {
         cli.post("/")
             .send()
             .await
-            .assert_status(StatusCode::BAD_REQUEST);
+            .assert_status(StatusCode::LENGTH_REQUIRED);
 
         cli.post("/")
             .header("content-length", 6)
