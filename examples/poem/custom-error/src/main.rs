@@ -1,6 +1,6 @@
 use poem::{
-    error::ResponseError, get, handler, http::StatusCode, listener::TcpListener, Result, Route,
-    Server,
+    error::ResponseError, get, handler, http::StatusCode, listener::TcpListener, IntoResponse,
+    Response, Result, Route, Server,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -12,6 +12,10 @@ struct CustomError {
 impl ResponseError for CustomError {
     fn status(&self) -> StatusCode {
         StatusCode::BAD_REQUEST
+    }
+
+    fn as_response(&self) -> Response {
+        self.to_string().with_status(self.status()).into_response()
     }
 }
 
