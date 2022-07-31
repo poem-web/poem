@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
-    types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type},
+    types::{ParseError, ParseFromJSON, ParseFromXML, ParseResult, ToJSON, ToXML, Type},
 };
 
 /// A any type.
@@ -86,6 +86,18 @@ impl ParseFromJSON for Value {
 
 impl ToJSON for Value {
     fn to_json(&self) -> Option<Value> {
+        Some(self.clone())
+    }
+}
+
+impl ParseFromXML for Value {
+    fn parse_from_xml(value: Option<Value>) -> ParseResult<Self> {
+        Ok(value.unwrap_or_default())
+    }
+}
+
+impl ToXML for Value {
+    fn to_xml(&self) -> Option<Value> {
         Some(self.clone())
     }
 }
