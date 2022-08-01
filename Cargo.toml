@@ -6,4 +6,6 @@ members = [
     "poem-openapi",
     "poem-lambda",
     "poem-dbsession",
+    "poem-grpc-build",
+    "poem-grpc",
 ]
