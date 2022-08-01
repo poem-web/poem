@@ -14,7 +14,8 @@ use crate::{include_file_descriptor_set, Code, Request, Response, Service, Statu
 
 include!(concat!(env!("OUT_DIR"), "/grpc.reflection.v1alpha.rs"));
 
-pub(crate) const FILE_DESCRIPTOR_SET: &[u8] = include_file_descriptor_set!("grpc-reflection.bin");
+pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
+    include_file_descriptor_set!("reflection_v1alpha1.bin");
 
 struct State {
     service_names: Vec<ServiceResponse>,
