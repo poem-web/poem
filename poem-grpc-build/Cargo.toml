@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc-build"
-version = "0.1.0"
+version = "1.3.37"
 edition = "2021"
 
 [dependencies]

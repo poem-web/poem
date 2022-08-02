@@ -1,7 +1,8 @@
+use std::fmt;
+
 use serde::de::{
     DeserializeSeed, Deserializer, EnumAccess, Error, MapAccess, SeqAccess, VariantAccess, Visitor,
 };
-use std::fmt;
 
 pub(crate) struct I64ToStringDeserializer<D>(pub(crate) D);
 

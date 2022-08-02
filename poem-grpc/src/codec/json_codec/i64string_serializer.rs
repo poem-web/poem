@@ -1,10 +1,12 @@
-use serde::ser::{
-    SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
-    SerializeTupleStruct, SerializeTupleVariant, Serializer,
+use std::{fmt::Display, str};
+
+use serde::{
+    ser::{
+        SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
+        SerializeTupleStruct, SerializeTupleVariant, Serializer,
+    },
+    Serialize,
 };
-use serde::Serialize;
-use std::fmt::Display;
-use std::str;
 
 pub(crate) struct I64ToStringSerializer<S>(pub(crate) S);
 
