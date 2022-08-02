@@ -94,6 +94,19 @@ pub trait ParseFromJSON: Sized + Type {
     }
 }
 
+/// Represents a type that can parsing from XML.
+pub trait ParseFromXML: Sized + Type {
+    /// Parse from [`serde_json::Value`].
+    fn parse_from_xml(value: Option<Value>) -> ParseResult<Self>;
+
+    /// Parse from XML string.
+    fn parse_from_xml_string(s: &str) -> ParseResult<Self> {
+        let value =
+            quick_xml::de::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
+        Self::parse_from_xml(value)
+    }
+}
+
 /// Represents a type that can parsing from parameter. (header, query, path,
 /// cookie)
 pub trait ParseFromParameter: Sized + Type {
@@ -132,6 +145,17 @@ pub trait ToJSON: Type {
     /// Convert this value to JSON string.
     fn to_json_string(&self) -> String {
         serde_json::to_string(&self.to_json()).unwrap_or_default()
+    }
+}
+
+/// Represents a type that can converted to XML value.
+pub trait ToXML: Type {
+    /// Convert this value to [`Value`].
+    fn to_xml(&self) -> Option<Value>;
+
+    /// Convert this value to JSON string.
+    fn to_xml_string(&self) -> String {
+        quick_xml::se::to_string(&self.to_xml()).unwrap_or_default()
     }
 }
 
@@ -174,6 +198,12 @@ impl<T: Type> Type for &T {
 impl<T: ToJSON> ToJSON for &T {
     fn to_json(&self) -> Option<Value> {
         T::to_json(self)
+    }
+}
+
+impl<T: ToXML> ToXML for &T {
+    fn to_xml(&self) -> Option<Value> {
+        T::to_xml(self)
     }
 }
 
@@ -221,6 +251,14 @@ impl<T: ParseFromJSON> ParseFromJSON for Arc<T> {
     }
 }
 
+impl<T: ParseFromXML> ParseFromXML for Arc<T> {
+    fn parse_from_xml(value: Option<Value>) -> ParseResult<Self> {
+        T::parse_from_xml(value)
+            .map_err(ParseError::propagate)
+            .map(Arc::new)
+    }
+}
+
 impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
     fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
         unreachable!()
@@ -238,6 +276,12 @@ impl<T: ParseFromParameter> ParseFromParameter for Arc<T> {
 impl<T: ToJSON> ToJSON for Arc<T> {
     fn to_json(&self) -> Option<Value> {
         self.as_ref().to_json()
+    }
+}
+
+impl<T: ToXML> ToXML for Arc<T> {
+    fn to_xml(&self) -> Option<Value> {
+        self.as_ref().to_xml()
     }
 }
 
@@ -285,6 +329,14 @@ impl<T: ParseFromJSON> ParseFromJSON for Box<T> {
     }
 }
 
+impl<T: ParseFromXML> ParseFromXML for Box<T> {
+    fn parse_from_xml(value: Option<Value>) -> ParseResult<Self> {
+        T::parse_from_xml(value)
+            .map_err(ParseError::propagate)
+            .map(Box::new)
+    }
+}
+
 impl<T: ParseFromParameter> ParseFromParameter for Box<T> {
     fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
         unreachable!()
@@ -322,6 +374,12 @@ impl<T: ToJSON> ToJSON for Box<T> {
     }
 }
 
+impl<T: ToXML> ToXML for Box<T> {
+    fn to_xml(&self) -> Option<Value> {
+        self.as_ref().to_xml()
+    }
+}
+
 impl<T: ToHeader> ToHeader for Box<T> {
     fn to_header(&self) -> Option<HeaderValue> {
         self.as_ref().to_header()
@@ -350,11 +408,20 @@ mod tests {
         assert_eq!(value, Arc::new(100));
 
         let value: Arc<i32> =
+            ParseFromXML::parse_from_xml(Some(Value::Number(100.into()))).unwrap();
+        assert_eq!(value, Arc::new(100));
+
+        let value: Arc<i32> =
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Arc::new(100));
 
         assert_eq!(
             ToJSON::to_json(&Arc::new(100)),
+            Some(Value::Number(100.into()))
+        );
+
+        assert_eq!(
+            ToXML::to_xml(&Arc::new(100)),
             Some(Value::Number(100.into()))
         );
     }
@@ -375,11 +442,20 @@ mod tests {
         assert_eq!(value, Box::new(100));
 
         let value: Box<i32> =
+            ParseFromXML::parse_from_xml(Some(Value::Number(100.into()))).unwrap();
+        assert_eq!(value, Box::new(100));
+
+        let value: Box<i32> =
             ParseFromParameter::parse_from_parameters(std::iter::once("100")).unwrap();
         assert_eq!(value, Box::new(100));
 
         assert_eq!(
             ToJSON::to_json(&Box::new(100)),
+            Some(Value::Number(100.into()))
+        );
+
+        assert_eq!(
+            ToXML::to_xml(&Box::new(100)),
             Some(Value::Number(100.into()))
         );
     }
