@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use poem::{error::BadRequest, listener::TcpListener, Result, Route, Server};
 use poem_openapi::{
     param::Path,
-    payload::{Binary, Json},
+    payload::{Attachment, AttachmentType, Json},
     types::multipart::Upload,
     ApiResponse, Multipart, Object, OpenApi, OpenApiService,
 };
@@ -21,10 +21,7 @@ struct File {
 #[derive(Debug, ApiResponse)]
 enum GetFileResponse {
     #[oai(status = 200)]
-    Ok(
-        Binary<Vec<u8>>,
-        #[oai(header = "Content-Disposition")] String,
-    ),
+    Ok(Attachment<Vec<u8>>),
     /// File not found
     #[oai(status = 404)]
     NotFound,
@@ -72,11 +69,12 @@ impl Api {
         let status = self.status.lock().await;
         match status.files.get(&id) {
             Some(file) => {
-                let mut content_disposition = String::from("attachment");
-                if let Some(file_name) = &file.filename {
-                    content_disposition += &format!("; filename={}", file_name);
+                let mut attachment =
+                    Attachment::new(file.data.clone()).attachment_type(AttachmentType::Attachment);
+                if let Some(filename) = &file.filename {
+                    attachment = attachment.filename(filename);
                 }
-                GetFileResponse::Ok(Binary(file.data.clone()), content_disposition)
+                GetFileResponse::Ok(attachment)
             }
             None => GetFileResponse::NotFound,
         }

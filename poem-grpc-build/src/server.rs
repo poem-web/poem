@@ -105,6 +105,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         impl<T: #service_ident> ::poem::IntoEndpoint for #server_ident<T> {
             type Endpoint = ::poem::endpoint::BoxEndpoint<'static, ::poem::Response>;
 
+            #[allow(clippy::redundant_clone)]
             fn into_endpoint(self) -> Self::Endpoint {
                 use ::poem::endpoint::EndpointExt;
 
@@ -196,7 +197,7 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0;
+            let svc = self.0.clone();
             move |req| {
                 let svc = svc.clone();
                 async move { #call }
@@ -241,7 +242,7 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0;
+            let svc = self.0.clone();
             move |req| {
                 let svc = svc.clone();
                 async move { #call }
@@ -286,7 +287,7 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0;
+            let svc = self.0.clone();
             move |req| {
                 let svc = svc.clone();
                 async move { #call }
@@ -331,7 +332,7 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0;
+            let svc = self.0.clone();
             move |req| {
                 let svc = svc.clone();
                 async move { #call }
