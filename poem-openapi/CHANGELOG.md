@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Expose `AttachmentType` enum [#344](https://github.com/poem-web/poem/issues/344)
 - Add `rename_all` attribute for `Union` macro [#347](https://github.com/poem-web/poem/issues/347)
+- Change the default attachment type to `attachment` [#325](https://github.com/poem-web/poem/issues/325)
+- Update `serde_yaml` to 0.9.0 [#352](https://github.com/poem-web/poem/pull/352)
 
 # [2.0.6] 2022-07-26
 
