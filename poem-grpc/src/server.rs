@@ -3,10 +3,10 @@ use poem::{Request, Response};
 
 use crate::{
     codec::Codec,
+    encoding::{create_decode_request_body, create_encode_response_body},
     service::{
         BidirectionalStreamingService, ClientStreamingService, ServerStreamingService, UnaryService,
     },
-    streaming::{create_decode_request_stream, create_encode_response_body},
     Code, Metadata, Request as GrpcRequest, Response as GrpcResponse, Status, Streaming,
 };
 
@@ -26,7 +26,7 @@ impl<T: Codec> GrpcServer<T> {
         S: UnaryService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let mut stream = create_decode_request_stream(self.codec.decoder(), body);
+        let mut stream = create_decode_request_body(self.codec.decoder(), body);
 
         let res = match stream.next().await {
             Some(Ok(message)) => {
@@ -69,7 +69,7 @@ impl<T: Codec> GrpcServer<T> {
         S: ClientStreamingService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let stream = create_decode_request_stream(self.codec.decoder(), body);
+        let stream = create_decode_request_body(self.codec.decoder(), body);
 
         let res = service
             .call(GrpcRequest {
@@ -106,7 +106,7 @@ impl<T: Codec> GrpcServer<T> {
         S: ServerStreamingService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let mut stream = create_decode_request_stream(self.codec.decoder(), body);
+        let mut stream = create_decode_request_body(self.codec.decoder(), body);
 
         let res = match stream.next().await {
             Some(Ok(message)) => {
@@ -146,7 +146,7 @@ impl<T: Codec> GrpcServer<T> {
         S: BidirectionalStreamingService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let stream = create_decode_request_stream(self.codec.decoder(), body);
+        let stream = create_decode_request_body(self.codec.decoder(), body);
 
         let res = service
             .call(GrpcRequest {

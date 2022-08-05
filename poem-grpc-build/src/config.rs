@@ -7,21 +7,25 @@ use crate::service_generator::PoemServiceGenerator;
 
 #[derive(Debug)]
 pub(crate) struct GrpcConfig {
+    pub(crate) internal: bool,
     pub(crate) codec_list: Vec<String>,
     pub(crate) emit_package: bool,
     pub(crate) build_client: bool,
     pub(crate) build_server: bool,
-    pub(crate) internal: bool,
+    pub(crate) client_middlewares: Vec<String>,
+    pub(crate) server_middlewares: Vec<String>,
 }
 
 impl Default for GrpcConfig {
     fn default() -> Self {
         Self {
+            internal: false,
             codec_list: Default::default(),
             emit_package: Default::default(),
             build_client: true,
             build_server: true,
-            internal: false,
+            client_middlewares: Vec::new(),
+            server_middlewares: Vec::new(),
         }
     }
 }
@@ -308,6 +312,18 @@ impl Config {
     /// Enable or disable gRPC server code generation.
     pub fn build_server(mut self, enable: bool) -> Self {
         self.grpc_config.build_server = enable;
+        self
+    }
+
+    /// Apply a middleware to GRPC client
+    pub fn client_middleware(mut self, expr: impl Into<String>) -> Self {
+        self.grpc_config.client_middlewares.push(expr.into());
+        self
+    }
+
+    /// Apply a middleware to GRPC server
+    pub fn server_middleware(mut self, expr: impl Into<String>) -> Self {
+        self.grpc_config.server_middlewares.push(expr.into());
         self
     }
 

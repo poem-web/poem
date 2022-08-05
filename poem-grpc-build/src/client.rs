@@ -1,12 +1,20 @@
 use proc_macro2::{Ident, TokenStream};
 use prost_build::Service;
 use quote::{format_ident, quote};
-use syn::Type;
+use syn::{Expr, Type};
 
 use crate::{config::GrpcConfig, utils::get_crate_name};
 
 pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String) {
     let client_ident = format_ident!("{}Client", &service.name);
+    let client_middlewares = config
+        .client_middlewares
+        .iter()
+        .map(|expr| {
+            syn::parse_str::<Expr>(expr)
+                .unwrap_or_else(|_| panic!("invalid server middleware: `{}`", expr))
+        })
+        .collect::<Vec<_>>();
     let crate_name = get_crate_name(config.internal);
     let mut methods = Vec::new();
 
@@ -55,17 +63,56 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         }
     }
 
+    let apply_middlewares = client_middlewares
+        .iter()
+        .map(|expr| {
+            quote! {
+                let cli = cli.with(#expr);
+            }
+        })
+        .collect::<Vec<_>>();
+
     let token_stream = quote! {
         #[allow(unused_imports)]
+        #[derive(Clone)]
         pub struct #client_ident {
             cli: #crate_name::client::GrpcClient,
         }
 
+        #[allow(dead_code)]
         impl #client_ident {
             pub fn new(base_url: impl ::std::convert::Into<::std::string::String>) -> Self {
                 Self {
-                    cli: #crate_name::client::GrpcClient::new(base_url),
+                    cli: {
+                        let cli = #crate_name::client::GrpcClient::new(base_url);
+                        #(#apply_middlewares)*
+                        cli
+                    },
                 }
+            }
+
+            pub fn from_endpoint<T>(ep: T) -> Self
+            where
+                T: ::poem::IntoEndpoint,
+                T::Endpoint: 'static,
+                <T::Endpoint as ::poem::Endpoint>::Output: 'static,
+            {
+                Self {
+                    cli: {
+                        let cli = #crate_name::client::GrpcClient::from_endpoint(ep);
+                        #(#apply_middlewares)*
+                        cli
+                    },
+                }
+            }
+
+            pub fn with<M>(mut self, middleware: M) -> Self
+            where
+                M: ::poem::Middleware<::std::sync::Arc<dyn ::poem::Endpoint<Output = ::poem::Response> + 'static>>,
+                M::Output: 'static,
+            {
+                self.cli = self.cli.with(middleware);
+                self
             }
 
             #(

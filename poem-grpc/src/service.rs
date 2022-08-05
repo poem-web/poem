@@ -3,7 +3,7 @@ use crate::{status::Status, streaming::Streaming, Request, Response};
 /// Represent a GRPC service
 pub trait Service {
     /// The name of the GRPC service
-    fn name() -> &'static str;
+    const NAME: &'static str;
 }
 
 #[poem::async_trait]

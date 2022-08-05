@@ -1,5 +1,5 @@
 use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Server};
-use poem_grpc::{Request, Response, Route, Status};
+use poem_grpc::{Request, Response, RouteGrpc, Status};
 
 poem_grpc::include_proto!("helloworld");
 
@@ -27,7 +27,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
-            Route::new()
+            RouteGrpc::new()
                 .add_service(GreeterServer::new(GreeterService))
                 .with(Tracing),
         )

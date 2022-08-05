@@ -3,7 +3,9 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::Metadata;
+use futures_util::Stream;
+
+use crate::{Metadata, Status, Streaming};
 
 /// A GRPC response
 pub struct Response<T> {
@@ -62,5 +64,16 @@ impl<T> Response<T> {
     #[inline]
     pub fn metadata_mut(&mut self) -> &mut Metadata {
         &mut self.metadata
+    }
+}
+
+impl<T> Response<Streaming<T>> {
+    /// Create a new `Response` with `Streaming<T>`
+    #[inline]
+    pub fn new_streaming<S>(stream: S) -> Self
+    where
+        S: Stream<Item = Result<T, Status>> + Send + 'static,
+    {
+        Self::new(Streaming::new(stream))
     }
 }

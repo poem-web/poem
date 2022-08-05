@@ -3,9 +3,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use futures_util::Stream;
 use hyper::http::Extensions;
 
-use crate::Metadata;
+use crate::{Metadata, Status, Streaming};
 
 /// A GRPC request
 pub struct Request<T> {
@@ -91,5 +92,16 @@ impl<T> Request<T> {
     #[inline]
     pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
         self.extensions.insert(data);
+    }
+}
+
+impl<T> Request<Streaming<T>> {
+    /// Create a new `Request` with `Streaming<T>`
+    #[inline]
+    pub fn new_streaming<S>(stream: S) -> Self
+    where
+        S: Stream<Item = Result<T, Status>> + Send + 'static,
+    {
+        Self::new(Streaming::new(stream))
     }
 }

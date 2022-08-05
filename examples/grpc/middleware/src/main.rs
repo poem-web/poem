@@ -1,4 +1,6 @@
-use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Server};
+mod middleware;
+
+use poem::{listener::TcpListener, Server};
 use poem_grpc::{Request, Response, RouteGrpc, Status};
 
 poem_grpc::include_proto!("helloworld");
@@ -20,16 +22,7 @@ impl Greeter for GreeterService {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
-
     Server::new(TcpListener::bind("127.0.0.1:3000"))
-        .run(
-            RouteGrpc::new()
-                .add_service(GreeterServer::new(GreeterService))
-                .with(Tracing),
-        )
+        .run(RouteGrpc::new().add_service(GreeterServer::new(GreeterService)))
         .await
 }

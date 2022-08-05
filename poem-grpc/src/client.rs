@@ -1,20 +1,23 @@
+use std::sync::Arc;
+
 use futures_util::TryStreamExt;
 use hyper::{header, http::Extensions, StatusCode};
 use poem::{
-    endpoint::BoxEndpoint, Endpoint, EndpointExt, Middleware, Request as HttpRequest,
+    http::Version, Endpoint, EndpointExt, IntoEndpoint, Middleware, Request as HttpRequest,
     Response as HttpResponse,
 };
 
 use crate::{
     codec::Codec,
-    streaming::{create_decode_response_stream, create_encode_request_body},
+    encoding::{create_decode_response_body, create_encode_request_body},
     Code, Metadata, Request, Response, Status, Streaming,
 };
 
 #[doc(hidden)]
+#[derive(Clone)]
 pub struct GrpcClient {
     base_url: String,
-    ep: BoxEndpoint<'static, HttpResponse>,
+    ep: Arc<dyn Endpoint<Output = HttpResponse> + 'static>,
 }
 
 impl GrpcClient {
@@ -26,23 +29,24 @@ impl GrpcClient {
         }
     }
 
-    pub fn new_with_endpoint<E>(base_url: impl Into<String>, ep: E) -> Self
+    pub fn from_endpoint<T>(ep: T) -> Self
     where
-        E: Endpoint + 'static,
-        E::Output: 'static,
+        T: IntoEndpoint,
+        T::Endpoint: 'static,
+        <T::Endpoint as Endpoint>::Output: 'static,
     {
         Self {
-            base_url: base_url.into(),
-            ep: ep.map_to_response().boxed(),
+            base_url: String::new(),
+            ep: Arc::new(ep.map_to_response()),
         }
     }
 
-    pub fn with<E>(mut self, middleware: E) -> Self
+    pub fn with<M>(mut self, middleware: M) -> Self
     where
-        E: Middleware<BoxEndpoint<'static, HttpResponse>>,
-        E::Output: 'static,
+        M: Middleware<Arc<dyn Endpoint<Output = HttpResponse> + 'static>>,
+        M::Output: 'static,
     {
-        self.ep = middleware.transform(self.ep).map_to_response().boxed();
+        self.ep = Arc::new(middleware.transform(self.ep).map_to_response());
         self
     }
 
@@ -81,7 +85,7 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let mut stream = create_decode_response_stream(codec.decoder(), resp.headers(), body)?;
+        let mut stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
 
         let message = stream
             .try_next()
@@ -123,7 +127,7 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let mut stream = create_decode_response_stream(codec.decoder(), resp.headers(), body)?;
+        let mut stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
 
         let message = stream
             .try_next()
@@ -168,7 +172,7 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let stream = create_decode_response_stream(codec.decoder(), resp.headers(), body)?;
+        let stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
 
         Ok(Response {
             metadata: Metadata {
@@ -206,7 +210,7 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let stream = create_decode_response_stream(codec.decoder(), resp.headers(), body)?;
+        let stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
 
         Ok(Response {
             metadata: Metadata {
@@ -224,6 +228,7 @@ fn create_http_request<T: Codec>(
 ) -> HttpRequest {
     let mut http_request = HttpRequest::builder()
         .uri_str(path)
+        .version(Version::HTTP_2)
         .content_type(T::CONTENT_TYPES[0])
         .header(header::TE, "trailers")
         .finish();
@@ -239,15 +244,14 @@ fn to_boxed_error(
     Box::new(err)
 }
 
-fn create_client_endpoint() -> BoxEndpoint<'static, HttpResponse> {
+fn create_client_endpoint() -> Arc<dyn Endpoint<Output = HttpResponse> + 'static> {
     let cli = hyper::Client::builder().http2_only(true).build_http();
-    poem::endpoint::make(move |request| {
+    Arc::new(poem::endpoint::make(move |request| {
         let cli = cli.clone();
         async move {
             let request: hyper::Request<hyper::Body> = request.into();
             let resp = cli.request(request).await.map_err(to_boxed_error)?;
             Ok::<_, poem::Error>(HttpResponse::from(resp))
         }
-    })
-    .boxed()
+    }))
 }

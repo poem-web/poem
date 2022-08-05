@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use prost_build::Service;
 use quote::{format_ident, quote};
-use syn::{Path, Type};
+use syn::{Expr, Path, Type};
 
 use crate::{config::GrpcConfig, utils::get_crate_name};
 
@@ -26,6 +26,14 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         .map(|path| {
             syn::parse_str::<Path>(path)
                 .unwrap_or_else(|_| panic!("invalid codec path: `{}`", path))
+        })
+        .collect::<Vec<_>>();
+    let server_middlewares = config
+        .server_middlewares
+        .iter()
+        .map(|expr| {
+            syn::parse_str::<Expr>(expr)
+                .unwrap_or_else(|_| panic!("invalid server middleware: `{}`", expr))
         })
         .collect::<Vec<_>>();
     let crate_name = get_crate_name(config.internal);
@@ -79,6 +87,12 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         }
     }
 
+    let apply_middlewares = server_middlewares.iter().map(|expr| {
+        quote! {
+            let ep = ep.with(#expr);
+        }
+    });
+
     let token_stream = quote! {
         #[allow(unused_imports)]
         #[::poem::async_trait]
@@ -91,11 +105,11 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         pub struct #server_ident<T>(::std::sync::Arc<T>);
 
         impl<T: #service_ident> #crate_name::Service for #server_ident<T> {
-            fn name() -> &'static str {
-                #service_name
-            }
+            const NAME: &'static str = #service_name;
         }
 
+
+        #[allow(dead_code)]
         impl<T> #server_ident<T> {
             pub fn new(service: T) -> Self {
                 Self(::std::sync::Arc::new(service))
@@ -112,12 +126,14 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
                 let mut route = ::poem::Route::new();
 
                 #(#endpoints)*
-                route.before(|req| async move {
+                let ep = route.before(|req| async move {
                     if req.version() != ::poem::http::Version::HTTP_2 {
                         return Err(::poem::Error::from_status(::poem::http::StatusCode::HTTP_VERSION_NOT_SUPPORTED));
                     }
                     Ok(req)
-                }).boxed()
+                });
+                #(#apply_middlewares)*
+                ep.boxed()
             }
         }
     };

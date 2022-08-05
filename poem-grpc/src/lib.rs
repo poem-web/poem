@@ -20,18 +20,23 @@ pub mod service;
 pub mod codec;
 pub mod metadata;
 
+mod encoding;
+mod health;
 mod reflection;
 mod request;
 mod response;
 mod route;
 mod status;
 mod streaming;
+#[cfg(test)]
+mod test_harness;
 
+pub use health::{health_service, HealthReporter, ServingStatus};
 pub use metadata::Metadata;
 pub use reflection::Reflection;
 pub use request::Request;
 pub use response::Response;
-pub use route::Route;
+pub use route::RouteGrpc;
 pub use service::Service;
 pub use status::{Code, Status};
 pub use streaming::Streaming;

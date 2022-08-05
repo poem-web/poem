@@ -4,11 +4,11 @@ use crate::Service;
 
 /// A router for GRPC services
 #[derive(Default)]
-pub struct Route {
+pub struct RouteGrpc {
     route: poem::Route,
 }
 
-impl Route {
+impl RouteGrpc {
     /// Create a `GrpcRoute`
     pub fn new() -> Self {
         Default::default()
@@ -19,12 +19,12 @@ impl Route {
     where
         S: IntoEndpoint<Endpoint = BoxEndpoint<'static, Response>> + Service,
     {
-        self.route = self.route.nest(format!("/{}", S::name()), service);
+        self.route = self.route.nest(format!("/{}", S::NAME), service);
         self
     }
 }
 
-impl IntoEndpoint for Route {
+impl IntoEndpoint for RouteGrpc {
     type Endpoint = poem::Route;
 
     fn into_endpoint(self) -> Self::Endpoint {

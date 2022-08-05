@@ -1,23 +1,25 @@
-#![allow(private_in_public, unreachable_pub)]
-#![allow(clippy::enum_variant_names)]
-
 use std::{collections::HashMap, sync::Arc};
 
 use futures_util::StreamExt;
 use poem::{endpoint::BoxEndpoint, IntoEndpoint};
 use prost::Message;
 use prost_types::{DescriptorProto, EnumDescriptorProto, FileDescriptorProto, FileDescriptorSet};
-use server_reflection_request::MessageRequest;
-use server_reflection_response::MessageResponse;
+use proto::{
+    server_reflection_request::MessageRequest, server_reflection_response::MessageResponse,
+};
 
 use crate::{include_file_descriptor_set, Code, Request, Response, Service, Status, Streaming};
 
-include!(concat!(env!("OUT_DIR"), "/grpc.reflection.v1alpha.rs"));
+#[allow(private_in_public, unreachable_pub)]
+#[allow(clippy::enum_variant_names)]
+mod proto {
+    include!(concat!(env!("OUT_DIR"), "/grpc.reflection.v1alpha.rs"));
+}
 
 pub(crate) const FILE_DESCRIPTOR_SET: &[u8] = include_file_descriptor_set!("grpc-reflection.bin");
 
 struct State {
-    service_names: Vec<ServiceResponse>,
+    service_names: Vec<proto::ServiceResponse>,
     files: HashMap<String, Arc<FileDescriptorProto>>,
     symbols: HashMap<String, Arc<FileDescriptorProto>>,
 }
@@ -36,7 +38,7 @@ impl State {
                 }
 
                 Ok(MessageResponse::FileDescriptorResponse(
-                    FileDescriptorResponse {
+                    proto::FileDescriptorResponse {
                         file_descriptor_proto: vec![encoded_fd],
                     },
                 ))
@@ -57,7 +59,7 @@ impl State {
                 };
 
                 Ok(MessageResponse::FileDescriptorResponse(
-                    FileDescriptorResponse {
+                    proto::FileDescriptorResponse {
                         file_descriptor_proto: vec![encoded_fd],
                     },
                 ))
@@ -66,7 +68,7 @@ impl State {
     }
 
     fn list_services(&self) -> MessageResponse {
-        MessageResponse::ListServicesResponse(ListServiceResponse {
+        MessageResponse::ListServicesResponse(proto::ListServiceResponse {
             service: self.service_names.clone(),
         })
     }
@@ -78,11 +80,11 @@ struct ServerReflectionService {
 }
 
 #[poem::async_trait]
-impl ServerReflection for ServerReflectionService {
+impl proto::ServerReflection for ServerReflectionService {
     async fn server_reflection_info(
         &self,
-        request: Request<Streaming<ServerReflectionRequest>>,
-    ) -> Result<Response<Streaming<ServerReflectionResponse>>, Status> {
+        request: Request<Streaming<proto::ServerReflectionRequest>>,
+    ) -> Result<Response<Streaming<proto::ServerReflectionResponse>>, Status> {
         let mut request_stream = request.into_inner();
         let state = self.state.clone();
 
@@ -96,7 +98,7 @@ impl ServerReflection for ServerReflectionService {
                     None => Err(Status::new(Code::InvalidArgument)),
                 }?;
 
-                yield ServerReflectionResponse {
+                yield proto::ServerReflectionResponse {
                     valid_host: req.host.clone(),
                     original_request: Some(req.clone()),
                     message_response: Some(resp),
@@ -171,12 +173,12 @@ impl Reflection {
             }
         }
 
-        ServerReflectionServer::new(ServerReflectionService {
+        proto::ServerReflectionServer::new(ServerReflectionService {
             state: Arc::new(State {
                 service_names: this
                     .service_names
                     .into_iter()
-                    .map(|name| ServiceResponse { name })
+                    .map(|name| proto::ServiceResponse { name })
                     .collect(),
                 files,
                 symbols: this.symbols,

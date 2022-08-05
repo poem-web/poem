@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use futures_util::StreamExt;
 use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Server};
-use poem_grpc::{Request, Response, Route, Status, Streaming};
+use poem_grpc::{Request, Response, RouteGrpc, Status, Streaming};
 
 poem_grpc::include_proto!("routeguide");
 
@@ -150,7 +150,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(
-            Route::new()
+            RouteGrpc::new()
                 .add_service(RouteGuideServer::new(RouteGuideService {
                     features: Arc::new(data::load()),
                 }))
