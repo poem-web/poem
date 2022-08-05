@@ -33,6 +33,12 @@ jobs:
           - name: poem-dbsession
             registryName: poem-dbsession
             path: poem-dbsession
+          - name: poem-grpc
+            registryName: poem-grpc
+            path: poem-grpc
+          - name: poem-grpc-build
+            registryName: poem-grpc-build
+            path: poem-grpc-build
     steps:
       - uses: actions-rs/toolchain@v1
         with:
