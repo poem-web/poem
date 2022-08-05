@@ -81,6 +81,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
         #[allow(dead_code)]
         impl #client_ident {
+            #[allow(clippy::let_and_return)]
             pub fn new(base_url: impl ::std::convert::Into<::std::string::String>) -> Self {
                 Self {
                     cli: {
@@ -91,6 +92,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
                 }
             }
 
+            #[allow(clippy::let_and_return)]
             pub fn from_endpoint<T>(ep: T) -> Self
             where
                 T: ::poem::IntoEndpoint,

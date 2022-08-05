@@ -120,6 +120,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
             type Endpoint = ::poem::endpoint::BoxEndpoint<'static, ::poem::Response>;
 
             #[allow(clippy::redundant_clone)]
+            #[allow(clippy::let_and_return)]
             fn into_endpoint(self) -> Self::Endpoint {
                 use ::poem::endpoint::EndpointExt;
 
