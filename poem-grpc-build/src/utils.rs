@@ -9,7 +9,7 @@ pub(crate) fn get_crate_name(internal: bool) -> TokenStream {
     } else {
         let name = match crate_name("poem-grpc") {
             Ok(FoundCrate::Name(name)) => name,
-            Ok(FoundCrate::Itself) | Err(_) => "poem-grpc".to_string(),
+            Ok(FoundCrate::Itself) | Err(_) => "poem_grpc".to_string(),
         };
         let name = Ident::new(&name, Span::call_site());
         quote!(#name)

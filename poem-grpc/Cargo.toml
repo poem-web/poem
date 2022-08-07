@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["sunli <scott_s829@163.com>"]
 description = "GRPC support for Poem."
@@ -35,7 +35,7 @@ serde = { version = "1.0.140", optional = true }
 serde_json = { version = "1.0.82", optional = true }
 
 [build-dependencies]
-poem-grpc-build = { path = "../poem-grpc-build", version = "0.2.0" }
+poem-grpc-build = { path = "../poem-grpc-build", version = "0.2.1" }
 
 [package.metadata.workspaces]
 independent = true
