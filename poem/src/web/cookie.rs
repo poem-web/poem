@@ -722,5 +722,14 @@ mod tests {
         private.add(Cookie::new_with_str("c", "789"));
 
         cookie_jar.with_cookies(|cookies| assert_eq!(cookies.count(), 3));
+
+        let mut cookie_names = cookie_jar
+            .with_cookies(|cookies| cookies.map(|c| c.name().to_string()).collect::<Vec<_>>());
+        cookie_names.sort();
+
+        assert_eq!(
+            cookie_names,
+            vec![String::from("a"), String::from("b"), String::from("c")]
+        );
     }
 }
