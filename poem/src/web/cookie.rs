@@ -378,9 +378,15 @@ impl CookieJar {
         self.jar.lock().reset_delta();
     }
 
-    /// Returns an iterator over all of the cookies present in this jar.
-    pub fn iter(&self) -> libcookie::Iter {
-        self.jar.lock().iter()
+    /// Wraps an iterator over all of the cookies present in this jar with a
+    /// closure.
+    pub fn with_cookies<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(libcookie::Iter) -> R,
+    {
+        let jar = self.jar.lock();
+        let iter = jar.iter();
+        f(iter)
     }
 
     /// Returns a PrivateJar with self as its parent jar using the key to
@@ -705,7 +711,7 @@ mod tests {
     }
 
     #[test]
-    fn iter() {
+    fn with_cookies() {
         let key = CookieKey::generate();
         let cookie_jar = CookieJar::default();
         let signed = cookie_jar.signed_with_key(&key);
@@ -715,6 +721,6 @@ mod tests {
         signed.add(Cookie::new_with_str("b", "456"));
         private.add(Cookie::new_with_str("c", "789"));
 
-        assert_eq!(cookie_jar.iter().count(), 3);
+        cookie_jar.with_cookies(|cookies| assert_eq!(cookies.count(), 3));
     }
 }
