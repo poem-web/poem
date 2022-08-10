@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
-    common_args::{ExternalDocument, RenameRule},
+    common_args::{apply_rename_rule_variant, ExternalDocument, RenameRule},
     error::GeneratorResult,
     utils::{create_object_name, get_crate_name, get_description, optional_literal},
 };
@@ -85,13 +85,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let mapping_name = match &variant.mapping {
                     Some(mapping) => quote!(::std::string::ToString::to_string(#mapping)),
                     None => {
-                        if let Some(rename_all) = &args.rename_all {
-                            let name = rename_all.rename(item_ident.unraw().to_string());
-                            quote!(::std::string::ToString::to_string(#name))
-                        } else {
-                            let name = item_ident.unraw().to_string();
-                            quote!(::std::string::ToString::to_string(#name))
-                        }
+                        let name = apply_rename_rule_variant(
+                            args.rename_all,
+                            item_ident.unraw().to_string(),
+                        );
+                        quote!(::std::string::ToString::to_string(#name))
                     }
                 };
                 types.push(object_ty);

@@ -20,7 +20,6 @@ proc-macro-crate = "1.1.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
 syn = { version = "1.0.77", features = ["full", "visit-mut"] }
-Inflector = "0.11.4"
 thiserror = "1.0.29"
 indexmap = "1.8.2"
 regex = "1.5.5"

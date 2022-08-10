@@ -1,5 +1,4 @@
 use darling::{util::SpannedValue, FromMeta};
-use inflector::Inflector;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Lit, Meta, NestedMeta, Path};
@@ -7,42 +6,90 @@ use syn::{Lit, Meta, NestedMeta, Path};
 #[derive(Debug, Copy, Clone, FromMeta)]
 pub(crate) enum RenameRule {
     #[darling(rename = "lowercase")]
-    Lower,
+    LowerCase,
     #[darling(rename = "UPPERCASE")]
-    Upper,
+    UpperCase,
     #[darling(rename = "PascalCase")]
-    Pascal,
+    PascalCase,
     #[darling(rename = "camelCase")]
-    Camel,
+    CamelCase,
     #[darling(rename = "snake_case")]
-    Snake,
+    SnakeCase,
     #[darling(rename = "SCREAMING_SNAKE_CASE")]
-    ScreamingSnake,
+    ScreamingSnakeCase,
+    #[darling(rename = "kebab-case")]
+    KebabCase,
+    #[darling(rename = "SCREAMING-KEBAB-CASE")]
+    ScreamingKebabCase,
 }
 
 impl RenameRule {
-    pub(crate) fn rename(self, name: impl AsRef<str>) -> String {
+    fn rename_variant(self, variant: String) -> String {
+        use RenameRule::*;
+
         match self {
-            Self::Lower => name.as_ref().to_lowercase(),
-            Self::Upper => name.as_ref().to_uppercase(),
-            Self::Pascal => name.as_ref().to_pascal_case(),
-            Self::Camel => name.as_ref().to_camel_case(),
-            Self::Snake => name.as_ref().to_snake_case(),
-            Self::ScreamingSnake => name.as_ref().to_screaming_snake_case(),
+            PascalCase => variant,
+            LowerCase => variant.to_ascii_lowercase(),
+            UpperCase => variant.to_ascii_uppercase(),
+            CamelCase => variant[..1].to_ascii_lowercase() + &variant[1..],
+            SnakeCase => {
+                let mut snake = String::new();
+                for (i, ch) in variant.char_indices() {
+                    if i > 0 && ch.is_uppercase() {
+                        snake.push('_');
+                    }
+                    snake.push(ch.to_ascii_lowercase());
+                }
+                snake
+            }
+            ScreamingSnakeCase => SnakeCase.rename_variant(variant).to_ascii_uppercase(),
+            KebabCase => SnakeCase.rename_variant(variant).replace('_', "-"),
+            ScreamingKebabCase => ScreamingSnakeCase.rename_variant(variant).replace('_', "-"),
+        }
+    }
+
+    fn rename_field(self, field: String) -> String {
+        use RenameRule::*;
+        match self {
+            LowerCase | SnakeCase => field,
+            UpperCase => field.to_ascii_uppercase(),
+            PascalCase => {
+                let mut pascal = String::new();
+                let mut capitalize = true;
+                for ch in field.chars() {
+                    if ch == '_' {
+                        capitalize = true;
+                    } else if capitalize {
+                        pascal.push(ch.to_ascii_uppercase());
+                        capitalize = false;
+                    } else {
+                        pascal.push(ch);
+                    }
+                }
+                pascal
+            }
+            CamelCase => {
+                let pascal = PascalCase.rename_field(field);
+                pascal[..1].to_ascii_lowercase() + &pascal[1..]
+            }
+            ScreamingSnakeCase => field.to_ascii_uppercase(),
+            KebabCase => field.replace('_', "-"),
+            ScreamingKebabCase => ScreamingSnakeCase.rename_field(field).replace('_', "-"),
         }
     }
 }
 
-pub(crate) trait RenameRuleExt {
-    fn rename(&self, name: impl AsRef<str>) -> String;
+pub(crate) fn apply_rename_rule_field(rule: Option<RenameRule>, field: String) -> String {
+    match rule {
+        Some(rule) => rule.rename_field(field),
+        None => field,
+    }
 }
 
-impl RenameRuleExt for Option<RenameRule> {
-    fn rename(&self, name: impl AsRef<str>) -> String {
-        match self {
-            Some(rule) => rule.rename(name),
-            None => name.as_ref().to_string(),
-        }
+pub(crate) fn apply_rename_rule_variant(rule: Option<RenameRule>, variant: String) -> String {
+    match rule {
+        Some(rule) => rule.rename_variant(variant),
+        None => variant,
     }
 }
 

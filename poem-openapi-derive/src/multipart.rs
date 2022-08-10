@@ -6,7 +6,7 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
-    common_args::{DefaultValue, RenameRule, RenameRuleExt},
+    common_args::{apply_rename_rule_field, DefaultValue, RenameRule},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
     validators::Validators,
@@ -80,10 +80,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             continue;
         }
 
-        let field_name = field
-            .rename
-            .clone()
-            .unwrap_or_else(|| args.rename_all.rename(field_ident.unraw().to_string()));
+        let field_name = field.rename.clone().unwrap_or_else(|| {
+            apply_rename_rule_field(args.rename_all, field_ident.unraw().to_string())
+        });
         let field_description = get_description(&field.attrs)?;
         let field_description = optional_literal(&field_description);
         let validators = field.validator.clone().unwrap_or_default();
