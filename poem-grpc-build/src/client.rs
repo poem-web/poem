@@ -82,10 +82,10 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         #[allow(dead_code)]
         impl #client_ident {
             #[allow(clippy::let_and_return)]
-            pub fn new(base_url: impl ::std::convert::Into<::std::string::String>) -> Self {
+            pub fn new(config: #crate_name::ClientConfig) -> Self {
                 Self {
                     cli: {
-                        let cli = #crate_name::client::GrpcClient::new(base_url);
+                        let cli = #crate_name::client::GrpcClient::new(config);
                         #(#apply_middlewares)*
                         cli
                     },

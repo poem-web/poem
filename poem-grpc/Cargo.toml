@@ -31,8 +31,12 @@ prost = "0.11.0"
 base64 = "0.13.0"
 prost-types = "0.11.0"
 tokio-stream = { version = "0.1.9", features = ["sync"] }
+hyper-rustls = { version = "0.23.0", features = ["webpki-roots", "http2"] }
 serde = { version = "1.0.140", optional = true }
 serde_json = { version = "1.0.82", optional = true }
+rustls = "0.20.6"
+thiserror = "1.0.32"
+fastrand = "1.8.0"
 
 [build-dependencies]
 poem-grpc-build = { path = "../poem-grpc-build", version = "0.2.1" }

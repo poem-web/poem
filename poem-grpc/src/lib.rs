@@ -31,6 +31,7 @@ mod streaming;
 #[cfg(test)]
 mod test_harness;
 
+pub use client::{ClientBuilderError, ClientConfig, ClientConfigBuilder};
 pub use health::{health_service, HealthReporter, ServingStatus};
 pub use metadata::Metadata;
 pub use reflection::Reflection;
