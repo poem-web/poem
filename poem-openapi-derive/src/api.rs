@@ -372,8 +372,13 @@ fn generate_operation(
         });
     }
 
-    ctx.register_items
-        .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
+    if let Some(actual_type) = &actual_type {
+        ctx.register_items
+            .push(quote!(<#actual_type as #crate_name::ApiResponse>::register(registry);));
+    } else {
+        ctx.register_items
+            .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
+    }
 
     let transform = transform.map(|transform| {
         quote! {
