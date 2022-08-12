@@ -8,7 +8,7 @@ use std::{
 };
 
 use headers::{ContentRange, HeaderMapExt};
-use http::Method;
+use http::{Extensions, Method};
 
 use crate::{http::StatusCode, IntoResponse, Response};
 
@@ -182,6 +182,7 @@ impl AsResponse {
 pub struct Error {
     as_response: AsResponse,
     source: Option<ErrorSource>,
+    extensions: Extensions,
 }
 
 impl Debug for Error {
@@ -216,6 +217,7 @@ impl<T: ResponseError + StdError + Send + Sync + 'static> From<T> for Error {
         Error {
             as_response: AsResponse::from_type::<T>(),
             source: Some(ErrorSource::BoxedError(Box::new(err))),
+            extensions: Extensions::default(),
         }
     }
 }
@@ -231,6 +233,7 @@ impl From<(StatusCode, Box<dyn StdError + Send + Sync>)> for Error {
         Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::BoxedError(err)),
+            extensions: Extensions::default(),
         }
     }
 }
@@ -241,6 +244,7 @@ impl From<anyhow::Error> for Error {
         Error {
             as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
             source: Some(ErrorSource::Anyhow(err)),
+            extensions: Extensions::default(),
         }
     }
 }
@@ -251,6 +255,7 @@ impl From<eyre06::Error> for Error {
         Error {
             as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
             source: Some(ErrorSource::Eyre06(err)),
+            extensions: Extensions::default(),
         }
     }
 }
@@ -261,6 +266,7 @@ impl From<(StatusCode, anyhow::Error)> for Error {
         Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::Anyhow(err)),
+            extensions: Extensions::default(),
         }
     }
 }
@@ -271,6 +277,7 @@ impl From<(StatusCode, eyre06::Report)> for Error {
         Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::Eyre06(err)),
+            extensions: Extensions::default(),
         }
     }
 }
@@ -288,6 +295,7 @@ impl Error {
         Self {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::BoxedError(Box::new(err))),
+            extensions: Extensions::default(),
         }
     }
 
@@ -296,6 +304,7 @@ impl Error {
         Self {
             as_response: AsResponse::Response(resp),
             source: None,
+            extensions: Extensions::default(),
         }
     }
 
@@ -347,6 +356,7 @@ impl Error {
     #[inline]
     pub fn downcast<T: StdError + Send + Sync + 'static>(self) -> Result<T, Error> {
         let as_response = self.as_response;
+        let extensions = self.extensions;
 
         match self.source {
             Some(ErrorSource::BoxedError(err)) => match err.downcast::<T>() {
@@ -354,6 +364,7 @@ impl Error {
                 Err(err) => Err(Error {
                     as_response,
                     source: Some(ErrorSource::BoxedError(err)),
+                    extensions,
                 }),
             },
             #[cfg(feature = "anyhow")]
@@ -362,6 +373,7 @@ impl Error {
                 Err(err) => Err(Error {
                     as_response,
                     source: Some(ErrorSource::Anyhow(err)),
+                    extensions,
                 }),
             },
             #[cfg(feature = "eyre06")]
@@ -370,11 +382,13 @@ impl Error {
                 Err(err) => Err(Error {
                     as_response,
                     source: Some(ErrorSource::Eyre06(err)),
+                    extensions,
                 }),
             },
             None => Err(Error {
                 as_response,
                 source: None,
+                extensions,
             }),
         }
     }
@@ -394,16 +408,43 @@ impl Error {
 
     /// Consumes this to return a response object.
     pub fn into_response(self) -> Response {
-        match self.as_response {
+        let mut resp = match self.as_response {
             AsResponse::Status(status) => Response::builder().status(status).body(self.to_string()),
             AsResponse::Fn(ref f) => f(&self),
             AsResponse::Response(resp) => resp,
-        }
+        };
+        *resp.extensions_mut() = self.extensions;
+        resp
     }
 
     /// Returns whether the error has a source or not.
     pub fn has_source(&self) -> bool {
         self.source.is_some()
+    }
+
+    /// Inserts a value to extensions
+    ///
+    /// Passed to `Response::extensions` when this error converted to
+    /// [`Response`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use poem::http::StatusCode;
+    /// let mut err = Error::from_status(StatusCode::BadRequest);
+    /// err.set_data(100i32);
+    ///
+    /// let resp = err.into_response();
+    /// assert_eq!(resp.data::<i32>(), Some(&100));
+    /// ```
+    #[inline]
+    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+        self.extensions.insert(data);
+    }
+
+    /// Get a reference from extensions
+    pub fn data<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.extensions.get()
     }
 }
 

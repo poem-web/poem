@@ -391,6 +391,19 @@ fn generate_operation(
 
     for method in &methods {
         let http_method = method.to_http_method();
+        let set_operation_id = operation_id.as_ref().map(|operation_id| {
+            quote! {
+                let ep = #crate_name::__private::poem::EndpointExt::after(ep, |mut res| async move {
+                    let operator_id = #crate_name::OperationId(#operation_id);
+                    match &mut res {
+                        ::std::result::Result::Ok(resp) => resp.set_data(operator_id),
+                        ::std::result::Result::Err(err) => err.set_data(operator_id),
+                    }
+                    res
+                });
+            }
+        });
+
         if ctx.add_routes.entry(new_path.clone()).or_default().insert(**method, quote! {
             method(#crate_name::__private::poem::http::Method::#http_method, {
                 let api_obj = ::std::clone::Clone::clone(&api_obj);
@@ -411,6 +424,7 @@ fn generate_operation(
                     }
                 });
                 #transform
+                #set_operation_id
                 ep
             })
         }).is_some() {

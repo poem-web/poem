@@ -136,7 +136,7 @@ mod ui;
 
 pub use base::{
     ApiExtractor, ApiExtractorType, ApiResponse, ExtractParamOptions, OAuthScopes, OpenApi,
-    ResponseContent, Tags, Webhook,
+    OperationId, ResponseContent, Tags, Webhook,
 };
 pub use openapi::{
     ContactObject, ExternalDocumentObject, ExtraHeader, LicenseObject, OpenApiService, ServerObject,

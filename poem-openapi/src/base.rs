@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::Deref};
+use std::{
+    fmt::{self, Debug, Display},
+    ops::Deref,
+};
 
 use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
@@ -344,6 +347,17 @@ pub trait OAuthScopes {
 
     /// Get the scope name.
     fn name(&self) -> &'static str;
+}
+
+/// A operation id that can be obtained from the response
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct OperationId(pub &'static str);
+
+impl Display for OperationId {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.0)
+    }
 }
 
 /// Represents a OpenAPI object.
