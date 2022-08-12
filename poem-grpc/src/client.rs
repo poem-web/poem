@@ -62,7 +62,12 @@ impl ClientConfigBuilder {
     /// # Examples
     ///
     /// ```rust
-    /// let cfg = ClientConfig::builder().uri("http://server:3000").build();
+    /// # use poem_grpc::ClientConfig;
+    /// let cfg = ClientConfig::builder()
+    ///     .uri("http://server1:3000")
+    ///     .uri("http://server2:3000")
+    ///     .uri("http://server3:3000")
+    ///     .build();
     /// ```
     pub fn uri(mut self, uri: impl TryInto<Uri, Error = InvalidUri>) -> Self {
         self.config = self.config.and_then(|mut config| {
@@ -79,10 +84,13 @@ impl ClientConfigBuilder {
     /// # Examples
     ///
     /// ```rust
+    /// # use poem_grpc::ClientConfig;
     /// let cfg = ClientConfig::builder()
-    ///     .uri("http://server1:3000")
-    ///     .uri("http://server2:3000")
-    ///     .uri("http://serve32:3000")
+    ///     .uris([
+    ///         "http://server1:3000",
+    ///         "http://server2:3000",
+    ///         "http://server3:3000",
+    ///     ])
     ///     .build();
     /// ```
     pub fn uris<I, T>(self, uris: I) -> Self

@@ -430,8 +430,8 @@ impl Error {
     /// # Examples
     ///
     /// ```rust
-    /// # use poem::http::StatusCode;
-    /// let mut err = Error::from_status(StatusCode::BadRequest);
+    /// # use poem::{http::StatusCode, Error};
+    /// let mut err = Error::from_status(StatusCode::BAD_REQUEST);
     /// err.set_data(100i32);
     ///
     /// let resp = err.into_response();
