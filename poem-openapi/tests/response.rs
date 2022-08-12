@@ -7,7 +7,9 @@ use poem::{
 };
 use poem_openapi::{
     payload::{Binary, Json, Payload, PlainText},
-    registry::{MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef},
+    registry::{
+        MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry,
+    },
     types::{ToJSON, Type},
     ApiResponse, Object, OpenApi, OpenApiService,
 };
@@ -490,4 +492,9 @@ async fn actual_type() {
 
     resp.assert_content_type("application/json");
     resp.assert_json(&serde_json::json!({ "value": 100 })).await;
+
+    let mut registry = Registry::new();
+    Api::register(&mut registry);
+    let type_name: Vec<&String> = registry.schemas.keys().collect();
+    assert_eq!(&type_name, &["MyObj"]);
 }
