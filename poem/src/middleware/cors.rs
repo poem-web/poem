@@ -35,6 +35,7 @@ use crate::{
 ///     .allow_credentials(false);
 /// ```
 #[derive(Default)]
+#[allow(clippy::type_complexity)]
 pub struct Cors {
     allow_credentials: bool,
     allow_origins: HashSet<HeaderValue>,
@@ -215,6 +216,7 @@ impl<E: Endpoint> Middleware<E> for Cors {
 }
 
 /// Endpoint for Cors middleware.
+#[allow(clippy::type_complexity)]
 pub struct CorsEndpoint<E> {
     inner: E,
     allow_credentials: bool,

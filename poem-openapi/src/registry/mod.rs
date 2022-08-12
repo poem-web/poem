@@ -20,7 +20,7 @@ const fn is_false(value: &bool) -> bool {
     !*value
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaDiscriminatorObject {
     pub property_name: &'static str,
@@ -451,7 +451,7 @@ pub struct MetaWebhook {
     pub operation: MetaOperation,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaCodeSample {
     pub lang: &'static str,
@@ -494,7 +494,7 @@ pub struct MetaPath {
     pub operations: Vec<MetaOperation>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct MetaContact {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -504,7 +504,7 @@ pub struct MetaContact {
     pub email: Option<String>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct MetaLicense {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -513,7 +513,7 @@ pub struct MetaLicense {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaInfo {
     pub title: String,
@@ -530,14 +530,14 @@ pub struct MetaInfo {
     pub license: Option<MetaLicense>,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 pub struct MetaServer {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct MetaExternalDocument {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -580,13 +580,13 @@ impl Hash for MetaTag {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 pub struct MetaOAuthScope {
     pub name: &'static str,
     pub description: Option<&'static str>,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaOAuthFlow {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -613,7 +613,7 @@ fn serialize_oauth_flow_scopes<S: Serializer>(
     s.end()
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaOAuthFlows {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -626,7 +626,7 @@ pub struct MetaOAuthFlows {
     pub authorization_code: Option<MetaOAuthFlow>,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaSecurityScheme {
     #[serde(rename = "type")]

@@ -4,6 +4,7 @@ use quote::quote;
 use syn::{Lit, Meta, NestedMeta, Path};
 
 #[derive(Debug, Copy, Clone, FromMeta)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum RenameRule {
     #[darling(rename = "lowercase")]
     LowerCase,
