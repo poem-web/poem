@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 authors = ["sunli <scott_s829@163.com>"]
 description = "GRPC support for Poem."
@@ -17,7 +17,7 @@ default = []
 json-codec = ["serde", "serde_json"]
 
 [dependencies]
-poem = { path = "../poem", version = "1.3.39" }
+poem = { path = "../poem", version = "1.3.40" }
 
 futures-util = { version = "0.3.17" }
 hyper = { version = "0.14.20", features = ["client"] }
@@ -39,7 +39,7 @@ thiserror = "1.0.32"
 fastrand = "1.8.0"
 
 [build-dependencies]
-poem-grpc-build = { path = "../poem-grpc-build", version = "0.2.2" }
+poem-grpc-build = { path = "../poem-grpc-build", version = "0.2.4" }
 
 [package.metadata.workspaces]
 independent = true

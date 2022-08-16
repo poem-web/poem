@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "1.3.39"
+version = "1.3.40"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Poem is a full-featured and easy-to-use web framework with the Rust programming language."
@@ -63,7 +63,7 @@ embed = ["rust-embed", "hex", "mime_guess"]
 xml = ["quick-xml"]
 
 [dependencies]
-poem-derive = { path = "../poem-derive", version = "1.3.39" }
+poem-derive = { path = "../poem-derive", version = "1.3.40" }
 
 async-trait = "0.1.51"
 bytes = "1.1.0"
