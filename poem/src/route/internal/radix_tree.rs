@@ -173,12 +173,7 @@ struct Node<T> {
 
 impl<T> Node<T> {
     fn find_static_child(&self, prefix: u8) -> Option<usize> {
-        for i in 0..self.indices.len() {
-            if self.indices[i] == prefix {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.indices.len()).find(|&i| self.indices[i] == prefix)
     }
 
     fn insert_child(&mut self, mut segments: Vec<Segment<'_>>, data: T) -> bool {

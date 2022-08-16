@@ -218,7 +218,7 @@ impl Endpoint for StaticFilesEndpoint {
             if self.show_files_listing {
                 let read_dir = file_path.read_dir().map_err(StaticFileError::Io)?;
                 let mut template = DirectoryTemplate {
-                    path: &*path,
+                    path: &path,
                     files: Vec::new(),
                 };
 

@@ -2,7 +2,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 /// A JSON object for testing.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Clone)]
 pub struct TestJson(Value);
 
 impl TestJson {

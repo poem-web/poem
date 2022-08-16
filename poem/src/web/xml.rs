@@ -120,20 +120,15 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Xml<T> {
 }
 
 fn is_xml_content_type(req: &Request) -> bool {
-    match req
-        .header(header::CONTENT_TYPE)
-        .and_then(|value| value.parse::<mime::Mime>().ok())
-    {
-        // the content-type should be `application/[prefix+]xml`
+    matches!(
+        req
+            .header(header::CONTENT_TYPE)
+            .and_then(|value| value.parse::<mime::Mime>().ok()),
         Some(content_type)
             if content_type.type_() == "application"
                 && (content_type.subtype() == "xml"
-                    || content_type.suffix().map_or(false, |v| v == "xml")) =>
-        {
-            true
-        }
-        _ => false,
-    }
+                    || content_type.suffix().map_or(false, |v| v == "xml"))
+    )
 }
 
 impl<T: Serialize + Send> IntoResponse for Xml<T> {

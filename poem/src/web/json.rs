@@ -118,20 +118,14 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
 }
 
 fn is_json_content_type(req: &Request) -> bool {
-    match req
-        .header(header::CONTENT_TYPE)
-        .and_then(|value| value.parse::<mime::Mime>().ok())
-    {
-        // the content-type should be `application/[prefix+]json`
+    matches!(
+        req
+            .header(header::CONTENT_TYPE)
+            .and_then(|value| value.parse::<mime::Mime>().ok()),
         Some(content_type)
             if content_type.type_() == "application"
                 && (content_type.subtype() == "json"
-                    || content_type.suffix().map_or(false, |v| v == "json")) =>
-        {
-            true
-        }
-        _ => false,
-    }
+                    || content_type.suffix().map_or(false, |v| v == "json")))
 }
 
 impl<T: Serialize + Send> IntoResponse for Json<T> {
