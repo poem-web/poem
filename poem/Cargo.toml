@@ -82,7 +82,7 @@ percent-encoding = "2.1.0"
 regex = "1.5.5"
 smallvec = "1.6.1"
 tracing = "0.1.29"
-headers = "0.3.4"
+headers = "0.3.7"
 thiserror = "1.0.30"
 rfc7239 = "0.1.0"
 mime = { version = "0.3.16" }
