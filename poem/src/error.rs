@@ -596,9 +596,6 @@ define_simple_errors!(
 
     /// Error occurred in the router.
     (MethodNotAllowedError, METHOD_NOT_ALLOWED, "method not allowed");
-
-    /// Error occurred in the `Cors` middleware.
-    (CorsError, UNAUTHORIZED, "unauthorized");
 );
 
 /// A possible error value when reading the body.
@@ -964,7 +961,29 @@ impl ResponseError for RouteError {
     }
 }
 
-/// A possible error value occurred when load i18n resources.
+/// A possible error value occurred in the `Cors` middleware.
+#[derive(Debug, thiserror::Error, Eq, PartialEq)]
+pub enum CorsError {
+    /// Method not allowed
+    #[error("request-method not allowed")]
+    MethodNotAllowed,
+
+    /// Origin not allowed
+    #[error("request-origin not allowed")]
+    OriginNotAllowed,
+
+    /// Headers not allowed
+    #[error("request-headers not allowed")]
+    HeadersNotAllowed,
+}
+
+impl ResponseError for CorsError {
+    fn status(&self) -> StatusCode {
+        StatusCode::FORBIDDEN
+    }
+}
+
+/// A possible error value occurred when loading i18n resources.
 #[cfg(feature = "i18n")]
 #[derive(Debug, thiserror::Error)]
 pub enum I18NError {

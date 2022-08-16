@@ -342,7 +342,7 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
 
         let (origin_is_allow, vary_header) = self.is_valid_origin(&origin);
         if !origin_is_allow {
-            return Err(CorsError.into());
+            return Err(CorsError::OriginNotAllowed.into());
         }
 
         if req.method() == Method::OPTIONS {
@@ -359,13 +359,13 @@ impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
                     }
                 });
             if !matches!(allow_method, Some(true)) {
-                return Err(CorsError.into());
+                return Err(CorsError::MethodNotAllowed.into());
             }
 
             let (allow_headers, request_headers) = self.check_allow_headers(&req);
 
             if !allow_headers {
-                return Err(CorsError.into());
+                return Err(CorsError::HeadersNotAllowed.into());
             }
 
             return Ok(self.build_preflight_response(&origin, request_headers));
@@ -538,7 +538,7 @@ mod tests {
             .header(header::ORIGIN, ALLOW_ORIGIN)
             .send()
             .await;
-        resp.assert_status(StatusCode::UNAUTHORIZED);
+        resp.assert_status(StatusCode::FORBIDDEN);
     }
 
     #[tokio::test]
@@ -561,7 +561,7 @@ mod tests {
             .header(header::ORIGIN, "https://foo.com")
             .send()
             .await;
-        resp.assert_status(StatusCode::UNAUTHORIZED);
+        resp.assert_status(StatusCode::FORBIDDEN);
     }
 
     #[tokio::test]
@@ -575,7 +575,7 @@ mod tests {
             .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
             .send()
             .await
-            .assert_status(StatusCode::UNAUTHORIZED);
+            .assert_status(StatusCode::FORBIDDEN);
 
         cli.options("/")
             .header(header::ORIGIN, "https://example.com")
@@ -583,7 +583,7 @@ mod tests {
             .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Token")
             .send()
             .await
-            .assert_status(StatusCode::UNAUTHORIZED);
+            .assert_status(StatusCode::FORBIDDEN);
 
         cli.options("/")
             .header(header::ORIGIN, "https://example.com")
@@ -591,7 +591,7 @@ mod tests {
             .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "X-Abc")
             .send()
             .await
-            .assert_status(StatusCode::UNAUTHORIZED);
+            .assert_status(StatusCode::FORBIDDEN);
 
         cli.options("/")
             .header(header::ORIGIN, "https://example.com")
