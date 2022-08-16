@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [2.0.9] 2022-08-16
 
+- Add `actual_type` to schema registry. [#366](https://github.com/poem-web/poem/pull/366)
 - Add `explode` attribute for the operation parameter. [#367](https://github.com/poem-web/poem/issues/367)
 
 # [2.0.8] 2022-08-12
