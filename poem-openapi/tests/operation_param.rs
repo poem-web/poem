@@ -52,11 +52,10 @@ async fn query() {
     }
 
     let meta: MetaApi = Api::meta().remove(0);
-    assert_eq!(
-        meta.paths[0].operations[0].params[0].in_type,
-        MetaParamIn::Query
-    );
-    assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
+    let param = &meta.paths[0].operations[0].params[0];
+    assert_eq!(param.in_type, MetaParamIn::Query);
+    assert_eq!(param.name, "v");
+    assert_eq!(param.explode, true);
 
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
@@ -68,7 +67,7 @@ async fn query() {
 }
 
 #[tokio::test]
-async fn query_multiple_values() {
+async fn query_multiple_values_explode() {
     struct Api;
 
     #[OpenApi]
@@ -80,18 +79,11 @@ async fn query_multiple_values() {
     }
 
     let meta: MetaApi = Api::meta().remove(0);
-    assert_eq!(
-        meta.paths[0].operations[0].params[0].in_type,
-        MetaParamIn::Query
-    );
-    assert_eq!(meta.paths[0].operations[0].params[0].name, "v");
-    assert_eq!(
-        meta.paths[0].operations[0].params[0]
-            .schema
-            .unwrap_inline()
-            .ty,
-        "array"
-    );
+    let param = &meta.paths[0].operations[0].params[0];
+    assert_eq!(param.in_type, MetaParamIn::Query);
+    assert_eq!(param.name, "v");
+    assert_eq!(param.schema.unwrap_inline().ty, "array");
+    assert_eq!(param.explode, true);
 
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
@@ -99,6 +91,34 @@ async fn query_multiple_values() {
         .query("v", &10)
         .query("v", &20)
         .query("v", &30)
+        .send()
+        .await
+        .assert_status_is_ok();
+}
+
+#[tokio::test]
+async fn query_multiple_values_no_explode() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, #[oai(explode = false)] v: Query<Vec<i32>>) {
+            assert_eq!(v.0, vec![10, 20, 30]);
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    let param = &meta.paths[0].operations[0].params[0];
+    assert_eq!(param.in_type, MetaParamIn::Query);
+    assert_eq!(param.name, "v");
+    assert_eq!(param.schema.unwrap_inline().ty, "array");
+    assert_eq!(param.explode, false);
+
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .query("v", &"10,20,30")
         .send()
         .await
         .assert_status_is_ok();

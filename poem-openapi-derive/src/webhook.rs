@@ -53,6 +53,8 @@ struct WebHookOperationParam {
     default: Option<DefaultValue>,
     #[darling(default)]
     validator: Option<Validators>,
+    #[darling(default)]
+    explode: Option<bool>,
 }
 
 struct Context {
@@ -222,6 +224,8 @@ fn generate_operation(
             .unwrap_or_else(|| arg_ident.unraw().to_string());
         let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
+        let explode = operation_param.explode.unwrap_or(true);
+
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
                 let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
@@ -240,6 +244,7 @@ fn generate_operation(
                     description: #param_desc,
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED,
                     deprecated: #deprecated,
+                    explode: #explode,
                 };
                 params.push(meta_param);
             }

@@ -62,6 +62,11 @@ pub struct ExtractParamOptions<T> {
 
     /// The default value of this parameter.
     pub default_value: Option<fn() -> T>,
+
+    /// When this is `true`, parameter values of type array or object generate
+    /// separate parameters for each value of the array or key-value pair of the
+    /// map.
+    pub explode: bool,
 }
 
 impl<T> Default for ExtractParamOptions<T> {
@@ -69,6 +74,7 @@ impl<T> Default for ExtractParamOptions<T> {
         Self {
             name: "",
             default_value: None,
+            explode: true,
         }
     }
 }

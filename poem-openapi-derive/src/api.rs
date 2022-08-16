@@ -68,6 +68,8 @@ struct APIOperationParam {
     default: Option<DefaultValue>,
     #[darling(default)]
     validator: Option<Validators>,
+    #[darling(default)]
+    explode: Option<bool>,
 
     // for oauth
     #[darling(multiple, default, rename = "scope")]
@@ -310,10 +312,13 @@ fn generate_operation(
         let validators_update_meta = validator.create_update_meta(crate_name)?;
 
         // do extract
+        let explode = operation_param.explode.unwrap_or(true);
+
         parse_args.push(quote! {
             let mut param_opts = #crate_name::ExtractParamOptions {
                 name: #param_name,
                 default_value: #default_value,
+                explode: #explode,
             };
 
             let #pname = match <#arg_ty as #crate_name::ApiExtractor>::from_request(&request, &mut body, param_opts).await {
@@ -349,6 +354,7 @@ fn generate_operation(
                     description: #param_desc,
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED && !#has_default,
                     deprecated: #deprecated,
+                    explode: #explode,
                 };
                 params.push(meta_param);
             }
@@ -471,6 +477,7 @@ fn generate_operation(
                 description: #description,
                 required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
                 deprecated: #deprecated,
+                explode: true,
             });
         });
     }

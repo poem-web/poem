@@ -366,6 +366,7 @@ pub struct MetaOperationParam {
     pub description: Option<String>,
     pub required: bool,
     pub deprecated: bool,
+    pub explode: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize)]

@@ -70,14 +70,27 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
             _ => {}
         }
 
-        ParseFromParameter::parse_from_parameters(values)
-            .map(Self)
-            .map_err(|err| {
-                ParseParamError {
-                    name: param_opts.name,
-                    reason: err.into_message(),
-                }
-                .into()
-            })
+        if param_opts.explode {
+            ParseFromParameter::parse_from_parameters(values)
+                .map(Self)
+                .map_err(|err| {
+                    ParseParamError {
+                        name: param_opts.name,
+                        reason: err.into_message(),
+                    }
+                    .into()
+                })
+        } else {
+            let values = values.next().unwrap().split(',').map(|v| v.trim());
+            ParseFromParameter::parse_from_parameters(values)
+                .map(Self)
+                .map_err(|err| {
+                    ParseParamError {
+                        name: param_opts.name,
+                        reason: err.into_message(),
+                    }
+                    .into()
+                })
+        }
     }
 }
