@@ -9,7 +9,8 @@ use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{resource, trace};
 
 use crate::{
-    web::headers::HeaderMapExt, Endpoint, IntoResponse, Middleware, Request, Response, Result,
+    web::{headers::HeaderMapExt, RealIp},
+    Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
 };
 
 /// Middleware for tracing with OpenTelemetry.
@@ -60,6 +61,13 @@ where
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
+        let remote_addr = RealIp::from_request_without_body(&req)
+            .await
+            .ok()
+            .and_then(|real_ip| real_ip.0)
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| req.remote_addr().to_string());
+
         let parent_cx = global::get_text_map_propagator(|propagator| {
             propagator.extract(&HeaderExtractor(req.headers()))
         });
@@ -70,7 +78,7 @@ where
         attributes.push(resource::TELEMETRY_SDK_LANGUAGE.string("rust"));
         attributes.push(trace::HTTP_METHOD.string(req.method().to_string()));
         attributes.push(trace::HTTP_TARGET.string(req.uri().path().to_string()));
-        attributes.push(trace::HTTP_CLIENT_IP.string(req.remote_addr().to_string()));
+        attributes.push(trace::HTTP_CLIENT_IP.string(remote_addr));
         attributes.push(trace::HTTP_FLAVOR.string(format!("{:?}", req.version())));
 
         let mut span = self
