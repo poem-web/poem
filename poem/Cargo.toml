@@ -99,7 +99,7 @@ async-compression = { version = "0.3.8", optional = true, features = [
     "brotli",
     "deflate",
 ] }
-tower = { version = "0.4.8", optional = true, default-features = true, features = [
+tower = { version = "0.4.8", optional = true, default-features = false, features = [
     "util",
     "buffer",
 ] }
