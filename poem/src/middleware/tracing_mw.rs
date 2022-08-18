@@ -42,7 +42,7 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
             remote_addr = %remote_addr,
             version = ?req.version(),
             method = %req.method(),
-            path = %req.uri(),
+            uri = %req.original_uri(),
         );
 
         async move {
