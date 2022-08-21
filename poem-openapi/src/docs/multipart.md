@@ -2,9 +2,9 @@ Define a OpenAPI payload.
 
 # Macro parameters
 
-| Attribute  | Description                                                                                                                                                                      | Type   | Optional |
-|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
-| rename_all | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string | Y        |
+| Attribute  | Description                                                                                                                                                                                                            | Type   | Optional |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
+| rename_all | Rename all the fields according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE", "kebab-case", "SCREAMING-KEBAB-CASE". | string | Y        |
 | deny_unknown_fields | Always error during parsing when encountering unknown fields.                                                                                                                    | bool Y |
 
 # Field parameters

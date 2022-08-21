@@ -1,0 +1,17 @@
+[package]
+version = "0.1.0"
+name = "grpc-middleware"
+edition = "2021"
+
+[dependencies]
+poem = { path = "../../../poem" }
+poem-grpc = { path = "../../../poem-grpc" }
+prost = "0.11.0"
+tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
+
+[build-dependencies]
+poem-grpc-build = { path = "../../../poem-grpc-build" }
+
+[[bin]]
+name = "grpc-middleware-client"
+path = "src/client.rs"

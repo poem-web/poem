@@ -1,0 +1,15 @@
+[package]
+version = "0.1.0"
+name = "grpc-jsoncodec"
+edition = "2021"
+
+[dependencies]
+poem = { path = "../../../poem" }
+poem-grpc = { path = "../../../poem-grpc", features = ["json-codec"] }
+prost = "0.11.0"
+serde = { version = "1.0.140", features = ["derive"] }
+tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
+
+[build-dependencies]
+poem-grpc-build = { path = "../../../poem-grpc-build" }

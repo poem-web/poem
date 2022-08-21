@@ -7,6 +7,6 @@ publish = false
 [dependencies]
 poem = { path = "../../../poem" }
 tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
-async-graphql = "2.10.1"
+async-graphql = "4.0.6"
 slab = "0.4.4"
 tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }

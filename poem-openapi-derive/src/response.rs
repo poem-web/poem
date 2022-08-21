@@ -202,7 +202,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         headers: ::std::vec![#(#meta_headers),*],
                     }
                 });
-                schemas.push(media_ty);
+                if let Some(actual_type) = variant.actual_type.as_ref() {
+                    schemas.push(actual_type);
+                } else {
+                    schemas.push(media_ty);
+                }
             }
             1 => {
                 // #[oai(status = 200)]
@@ -235,7 +239,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         headers: ::std::vec![#(#meta_headers),*],
                     }
                 });
-                schemas.push(media_ty);
+                if let Some(actual_type) = variant.actual_type.as_ref() {
+                    schemas.push(actual_type);
+                } else {
+                    schemas.push(media_ty);
+                }
             }
             0 => {
                 // #[oai(status = 200)]

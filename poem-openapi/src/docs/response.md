@@ -13,7 +13,7 @@ Define a OpenAPI response.
 |--------------|--------------------------------------------------------------|------------------------------------------------------------|----------|
 | status       | HTTP status code. If omitted, it is a default response type. | u16                                                        | Y        |
 | content_type | Specify the content type.                                    | string                                                     | Y        |
-| actual_type  | Specifies the actual response type                           | Y                                                          | string   |
+| actual_type  | Specifies the actual response type                           | string                                                     | Y        |
 | header       | Add an extra header                                          | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 
 # Header parameters

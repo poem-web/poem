@@ -6,12 +6,12 @@ use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use model::Episode;
 pub use model::QueryRoot;
 use slab::Slab;
-
 pub type StarWarsSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
 
 pub struct StarWarsChar {
     id: &'static str,
     name: &'static str,
+    is_human: bool,
     friends: Vec<usize>,
     appears_in: Vec<Episode>,
     home_planet: Option<&'static str>,
@@ -22,8 +22,7 @@ pub struct StarWars {
     luke: usize,
     artoo: usize,
     chars: Slab<StarWarsChar>,
-    human_data: HashMap<&'static str, usize>,
-    droid_data: HashMap<&'static str, usize>,
+    chars_by_id: HashMap<&'static str, usize>,
 }
 
 impl StarWars {
@@ -34,6 +33,7 @@ impl StarWars {
         let luke = chars.insert(StarWarsChar {
             id: "1000",
             name: "Luke Skywalker",
+            is_human: true,
             friends: vec![],
             appears_in: vec![],
             home_planet: Some("Tatooine"),
@@ -42,7 +42,8 @@ impl StarWars {
 
         let vader = chars.insert(StarWarsChar {
             id: "1001",
-            name: "Luke Skywalker",
+            name: "Anakin Skywalker",
+            is_human: true,
             friends: vec![],
             appears_in: vec![],
             home_planet: Some("Tatooine"),
@@ -52,6 +53,7 @@ impl StarWars {
         let han = chars.insert(StarWarsChar {
             id: "1002",
             name: "Han Solo",
+            is_human: true,
             friends: vec![],
             appears_in: vec![Episode::Empire, Episode::NewHope, Episode::Jedi],
             home_planet: None,
@@ -61,6 +63,7 @@ impl StarWars {
         let leia = chars.insert(StarWarsChar {
             id: "1003",
             name: "Leia Organa",
+            is_human: true,
             friends: vec![],
             appears_in: vec![Episode::Empire, Episode::NewHope, Episode::Jedi],
             home_planet: Some("Alderaa"),
@@ -70,6 +73,7 @@ impl StarWars {
         let tarkin = chars.insert(StarWarsChar {
             id: "1004",
             name: "Wilhuff Tarkin",
+            is_human: true,
             friends: vec![],
             appears_in: vec![Episode::Empire, Episode::NewHope, Episode::Jedi],
             home_planet: None,
@@ -79,6 +83,7 @@ impl StarWars {
         let threepio = chars.insert(StarWarsChar {
             id: "2000",
             name: "C-3PO",
+            is_human: false,
             friends: vec![],
             appears_in: vec![Episode::Empire, Episode::NewHope, Episode::Jedi],
             home_planet: None,
@@ -88,6 +93,7 @@ impl StarWars {
         let artoo = chars.insert(StarWarsChar {
             id: "2001",
             name: "R2-D2",
+            is_human: false,
             friends: vec![],
             appears_in: vec![Episode::Empire, Episode::NewHope, Episode::Jedi],
             home_planet: None,
@@ -102,39 +108,52 @@ impl StarWars {
         chars[threepio].friends = vec![luke, han, leia, artoo];
         chars[artoo].friends = vec![luke, han, leia];
 
-        let mut human_data = HashMap::new();
-        human_data.insert("1000", luke);
-        human_data.insert("1001", vader);
-        human_data.insert("1002", han);
-        human_data.insert("1003", leia);
-        human_data.insert("1004", tarkin);
-
-        let mut droid_data = HashMap::new();
-        droid_data.insert("2000", threepio);
-        droid_data.insert("2001", artoo);
-
+        let chars_by_id = chars.iter().map(|(idx, ch)| (ch.id, idx)).collect();
         Self {
             luke,
             artoo,
             chars,
-            human_data,
-            droid_data,
+            chars_by_id,
         }
     }
 
-    pub fn human(&self, id: &str) -> Option<usize> {
-        self.human_data.get(id).copied()
+    pub fn human(&self, id: &str) -> Option<&StarWarsChar> {
+        self.chars_by_id
+            .get(id)
+            .copied()
+            .map(|idx| self.chars.get(idx).unwrap())
+            .filter(|ch| ch.is_human)
     }
 
-    pub fn droid(&self, id: &str) -> Option<usize> {
-        self.droid_data.get(id).copied()
+    pub fn droid(&self, id: &str) -> Option<&StarWarsChar> {
+        self.chars_by_id
+            .get(id)
+            .copied()
+            .map(|idx| self.chars.get(idx).unwrap())
+            .filter(|ch| !ch.is_human)
     }
 
-    pub fn humans(&self) -> Vec<usize> {
-        self.human_data.values().copied().collect()
+    pub fn humans(&self) -> Vec<&StarWarsChar> {
+        self.chars
+            .iter()
+            .filter(|(_, ch)| ch.is_human)
+            .map(|(_, ch)| ch)
+            .collect()
     }
 
-    pub fn droids(&self) -> Vec<usize> {
-        self.droid_data.values().copied().collect()
+    pub fn droids(&self) -> Vec<&StarWarsChar> {
+        self.chars
+            .iter()
+            .filter(|(_, ch)| !ch.is_human)
+            .map(|(_, ch)| ch)
+            .collect()
+    }
+
+    pub fn friends(&self, ch: &StarWarsChar) -> Vec<&StarWarsChar> {
+        ch.friends
+            .iter()
+            .copied()
+            .filter_map(|id| self.chars.get(id))
+            .collect()
     }
 }

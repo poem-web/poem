@@ -5,7 +5,7 @@ Define a OpenAPI response content.
 | Attribute    | Description                        | Type   | Optional |
 |--------------|------------------------------------|--------|----------|
 | content_type | Specify the content type.          | string | Y        |
-| actual_type  | Specifies the actual response type | Y      | string   |
+| actual_type  | Specifies the actual response type | string | Y        |
 
 # Examples
 

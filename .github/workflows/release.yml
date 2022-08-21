@@ -4,8 +4,8 @@ on:
     branches:
       - release
     paths:
-      - '**/Cargo.toml'
-      - '.github/workflows/release.yml'
+      - "**/Cargo.toml"
+      - ".github/workflows/release.yml"
 
 jobs:
   publish:
@@ -33,6 +33,12 @@ jobs:
           - name: poem-dbsession
             registryName: poem-dbsession
             path: poem-dbsession
+          - name: poem-grpc-build
+            registryName: poem-grpc-build
+            path: poem-grpc-build
+          - name: poem-grpc
+            registryName: poem-grpc
+            path: poem-grpc
     steps:
       - uses: actions-rs/toolchain@v1
         with:

@@ -4,9 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.3.36] 2022-07-26
+# [1.3.41]
+
+- Use the real IP as the `remote_addr` in the logs of the Tracing middleware. [#370](https://github.com/poem-web/poem/issues/370)
+
+# [1.3.39] 2022-08-16
+
+- CORS middleware use 403 instead of 401. [#368](https://github.com/poem-web/poem/issues/368)
+
+# [1.3.38] 2022-08-12
+
+- Expose libcookie `iter()` [#361](https://github.com/poem-web/poem/pull/361)
+
+# [1.3.37] 2022-08-02
 
 - Add `StaticFilesEndpoint::redirect_to_slash_directory`  to enable Redirects to a slash-ended path when browsing a directory.
+- Add `has_source` method to `poem::Error` [#349](https://github.com/poem-web/poem/pull/349)
+- Use `LENGTH_REQUIRED` instead of `BAD_REQUEST` in `SizeLimit` middleware [#348](https://github.com/poem-web/poem/pull/348)
 
 # [1.3.35] 2022-07-16
 

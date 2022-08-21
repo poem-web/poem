@@ -315,7 +315,7 @@ async fn issue_cert(
 
     // download certificate
     let acme_cert_pem = client
-        .obtain_certificate(&*order_resp.certificate.as_ref().ok_or_else(|| {
+        .obtain_certificate(order_resp.certificate.as_ref().ok_or_else(|| {
             IoError::new(
                 ErrorKind::Other,
                 "invalid response: missing `certificate` url",

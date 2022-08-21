@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package test_harness;
+
+message UnaryRequest {
+  int32 a = 1;
+  int32 b = 2;
+}
+
+message ValueResponse { int32 value = 1; }
+
+message ValueRequest { int32 value = 1; }
+
+service TestHarness {
+  rpc Unary(UnaryRequest) returns (ValueResponse);
+
+  rpc ClientStreaming(stream ValueRequest) returns (ValueResponse);
+
+  rpc ServerStreaming(ValueRequest) returns (stream ValueResponse);
+
+  rpc BidirectionalStreaming(stream ValueRequest)
+      returns (stream ValueResponse);
+
+  rpc UnaryMetadata(UnaryRequest) returns (ValueResponse);
+}

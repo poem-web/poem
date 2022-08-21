@@ -2,7 +2,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 /// A JSON object for testing.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Clone)]
 pub struct TestJson(Value);
 
 impl TestJson {
@@ -58,7 +58,7 @@ macro_rules! impl_assert_array_types {
 }
 
 /// A JSON value.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct TestJsonValue<'a>(&'a Value);
 
 impl<'a> PartialEq<Value> for TestJsonValue<'a> {

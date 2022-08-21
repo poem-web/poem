@@ -4,10 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [2.0.7]
+# [2.0.10] 2022-08-16
+
+- Add the `default` attribute to Object macro. [#369](https://github.com/poem-web/poem/issues/369)
+
+# [2.0.9] 2022-08-16
+
+- Add `actual_type` to schema registry. [#366](https://github.com/poem-web/poem/pull/366)
+- Add `explode` attribute for the operation parameter. [#367](https://github.com/poem-web/poem/issues/367)
+
+# [2.0.8] 2022-08-12
+
+- Fixes [#362](https://github.com/poem-web/poem/issues/362)
+- Add `OperationId` extension for response of OpenAPI [#351](https://github.com/poem-web/poem/issues/351)
+
+# [2.0.7] 2022-08-02
 
 - Expose `AttachmentType` enum [#344](https://github.com/poem-web/poem/issues/344)
 - Add `rename_all` attribute for `Union` macro [#347](https://github.com/poem-web/poem/issues/347)
+- Change the default attachment type to `attachment` [#325](https://github.com/poem-web/poem/issues/325)
+- Update `serde_yaml` to 0.9.0 [#352](https://github.com/poem-web/poem/pull/352)
 
 # [2.0.6] 2022-07-26
 

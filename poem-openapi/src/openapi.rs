@@ -489,6 +489,7 @@ impl<T, W: ?Sized> OpenApiService<T, W> {
                         description: header.description.clone(),
                         required: *is_required,
                         deprecated: header.deprecated,
+                        explode: true,
                     },
                 );
             }

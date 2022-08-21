@@ -68,6 +68,8 @@ struct APIOperationParam {
     default: Option<DefaultValue>,
     #[darling(default)]
     validator: Option<Validators>,
+    #[darling(default)]
+    explode: Option<bool>,
 
     // for oauth
     #[darling(multiple, default, rename = "scope")]
@@ -310,10 +312,13 @@ fn generate_operation(
         let validators_update_meta = validator.create_update_meta(crate_name)?;
 
         // do extract
+        let explode = operation_param.explode.unwrap_or(true);
+
         parse_args.push(quote! {
             let mut param_opts = #crate_name::ExtractParamOptions {
                 name: #param_name,
                 default_value: #default_value,
+                explode: #explode,
             };
 
             let #pname = match <#arg_ty as #crate_name::ApiExtractor>::from_request(&request, &mut body, param_opts).await {
@@ -349,6 +354,7 @@ fn generate_operation(
                     description: #param_desc,
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED && !#has_default,
                     deprecated: #deprecated,
+                    explode: #explode,
                 };
                 params.push(meta_param);
             }
@@ -372,8 +378,13 @@ fn generate_operation(
         });
     }
 
-    ctx.register_items
-        .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
+    if let Some(actual_type) = &actual_type {
+        ctx.register_items
+            .push(quote!(<#actual_type as #crate_name::ApiResponse>::register(registry);));
+    } else {
+        ctx.register_items
+            .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
+    }
 
     let transform = transform.map(|transform| {
         quote! {
@@ -391,6 +402,19 @@ fn generate_operation(
 
     for method in &methods {
         let http_method = method.to_http_method();
+        let set_operation_id = operation_id.as_ref().map(|operation_id| {
+            quote! {
+                let ep = #crate_name::__private::poem::EndpointExt::after(ep, |mut res| async move {
+                    let operator_id = #crate_name::OperationId(#operation_id);
+                    match &mut res {
+                        ::std::result::Result::Ok(resp) => resp.set_data(operator_id),
+                        ::std::result::Result::Err(err) => err.set_data(operator_id),
+                    }
+                    res
+                });
+            }
+        });
+
         if ctx.add_routes.entry(new_path.clone()).or_default().insert(**method, quote! {
             method(#crate_name::__private::poem::http::Method::#http_method, {
                 let api_obj = ::std::clone::Clone::clone(&api_obj);
@@ -411,6 +435,7 @@ fn generate_operation(
                     }
                 });
                 #transform
+                #set_operation_id
                 ep
             })
         }).is_some() {
@@ -452,6 +477,7 @@ fn generate_operation(
                 description: #description,
                 required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
                 deprecated: #deprecated,
+                explode: true,
             });
         });
     }

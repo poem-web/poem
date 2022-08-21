@@ -1,0 +1,27 @@
+[package]
+name = "poem-grpc-build"
+version = "0.2.4"
+edition = "2021"
+authors = ["sunli <scott_s829@163.com>"]
+description = "Codegen module of poem-grpc."
+license = "MIT/Apache-2.0"
+documentation = "https://docs.rs/poem/"
+homepage = "https://github.com/poem-web/poem"
+repository = "https://github.com/poem-web/poem"
+keywords = ["http", "async", "grpc"]
+categories = ["network-programming", "asynchronous"]
+
+[dependencies]
+prettyplease = "0.1.16"
+proc-macro2 = "1.0.37"
+prost-build = "0.10.0"
+quote = "1.0.17"
+syn = "1.0.91"
+proc-macro-crate = "1.1.0"
+
+[package.metadata.workspaces]
+independent = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

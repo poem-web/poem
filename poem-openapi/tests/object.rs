@@ -816,3 +816,180 @@ fn example_generics() {
         }))
     );
 }
+
+#[test]
+fn object_default() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    #[oai(default)]
+    struct Obj {
+        a: i32,
+        b: String,
+    }
+
+    impl Default for Obj {
+        fn default() -> Self {
+            Self {
+                a: 100,
+                b: "abc".to_string(),
+            }
+        }
+    }
+
+    let meta = get_meta::<Obj>();
+
+    let field_meta = meta.properties[0].1.unwrap_inline();
+    assert_eq!(field_meta.default, Some(json!(100)));
+
+    let field_meta = meta.properties[1].1.unwrap_inline();
+    assert_eq!(field_meta.default, Some(json!("abc")));
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({}))).unwrap(),
+        Obj {
+            a: 100,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({
+            "a": 1,
+        })))
+        .unwrap(),
+        Obj {
+            a: 1,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({
+            "a": 300,
+            "b": "def",
+        })))
+        .unwrap(),
+        Obj {
+            a: 300,
+            b: "def".to_string()
+        }
+    );
+}
+
+#[test]
+fn object_default_by_function() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    #[oai(default = "default_obj")]
+    struct Obj {
+        a: i32,
+        b: String,
+    }
+
+    fn default_obj() -> Obj {
+        Obj {
+            a: 100,
+            b: "abc".to_string(),
+        }
+    }
+
+    let meta = get_meta::<Obj>();
+
+    let field_meta = meta.properties[0].1.unwrap_inline();
+    assert_eq!(field_meta.default, Some(json!(100)));
+
+    let field_meta = meta.properties[1].1.unwrap_inline();
+    assert_eq!(field_meta.default, Some(json!("abc")));
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({}))).unwrap(),
+        Obj {
+            a: 100,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({
+            "a": 1,
+        })))
+        .unwrap(),
+        Obj {
+            a: 1,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({
+            "a": 300,
+            "b": "def",
+        })))
+        .unwrap(),
+        Obj {
+            a: 300,
+            b: "def".to_string()
+        }
+    );
+}
+
+#[test]
+fn object_default_override_by_field() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    #[oai(default)]
+    struct Obj {
+        #[oai(default = "default_a")]
+        a: i32,
+        b: String,
+    }
+
+    fn default_a() -> i32 {
+        300
+    }
+
+    impl Default for Obj {
+        fn default() -> Self {
+            Self {
+                a: 100,
+                b: "abc".to_string(),
+            }
+        }
+    }
+
+    let meta = get_meta::<Obj>();
+
+    let field_meta = meta.properties[0].1.unwrap_inline();
+    assert_eq!(field_meta.default, Some(json!(300)));
+
+    let field_meta = meta.properties[1].1.unwrap_inline();
+    assert_eq!(field_meta.default, Some(json!("abc")));
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({}))).unwrap(),
+        Obj {
+            a: 300,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({
+            "a": 1,
+        })))
+        .unwrap(),
+        Obj {
+            a: 1,
+            b: "abc".to_string()
+        }
+    );
+
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({
+            "a": 500,
+            "b": "def",
+        })))
+        .unwrap(),
+        Obj {
+            a: 500,
+            b: "def".to_string()
+        }
+    );
+}

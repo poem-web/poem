@@ -8,4 +8,4 @@ publish = false
 poem = { path = "../../../poem", features = ["multipart", "tempfile"] }
 poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }

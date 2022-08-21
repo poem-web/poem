@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::Deref};
+use std::{
+    fmt::{self, Debug, Display},
+    ops::Deref,
+};
 
 use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
@@ -59,6 +62,11 @@ pub struct ExtractParamOptions<T> {
 
     /// The default value of this parameter.
     pub default_value: Option<fn() -> T>,
+
+    /// When this is `true`, parameter values of type array or object generate
+    /// separate parameters for each value of the array or key-value pair of the
+    /// map.
+    pub explode: bool,
 }
 
 impl<T> Default for ExtractParamOptions<T> {
@@ -66,6 +74,7 @@ impl<T> Default for ExtractParamOptions<T> {
         Self {
             name: "",
             default_value: None,
+            explode: true,
         }
     }
 }
@@ -344,6 +353,17 @@ pub trait OAuthScopes {
 
     /// Get the scope name.
     fn name(&self) -> &'static str;
+}
+
+/// A operation id that can be obtained from the response
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct OperationId(pub &'static str);
+
+impl Display for OperationId {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.0)
+    }
 }
 
 /// Represents a OpenAPI object.

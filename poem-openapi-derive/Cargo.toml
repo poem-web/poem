@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi-derive"
-version = "2.0.6"
+version = "2.0.10"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "Macros for poem-openapi"
@@ -20,7 +20,6 @@ proc-macro-crate = "1.1.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
 syn = { version = "1.0.77", features = ["full", "visit-mut"] }
-Inflector = "0.11.4"
 thiserror = "1.0.29"
 indexmap = "1.8.2"
 regex = "1.5.5"

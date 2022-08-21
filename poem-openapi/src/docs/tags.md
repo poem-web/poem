@@ -2,9 +2,9 @@ Define a OpenAPI Tags.
 
 # Macro parameters
 
-| Attribute  | Description                                                                                                                                                                     | Type   | Optional |
-|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
-| rename_all | Rename all the items according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string | Y        |
+| Attribute  | Description                                                                                                                                                                                                           | Type   | Optional |
+|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
+| rename_all | Rename all the items according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE", "kebab-case", "SCREAMING-KEBAB-CASE". | string | Y        |
 
 # Item parameters
 

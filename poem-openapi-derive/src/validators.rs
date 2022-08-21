@@ -98,7 +98,7 @@ impl Validators {
 
         if let Some(value) = &self.pattern {
             // https://datatracker.ietf.org/doc/html/draft-wright-json-schema-validation-00#section-5.8
-            if let Err(err) = Regex::new(&*value) {
+            if let Err(err) = Regex::new(value) {
                 return Err(Error::new(
                     value.span(),
                     format!("Invalid regular expression. {}", err),

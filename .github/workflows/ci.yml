@@ -32,6 +32,9 @@ jobs:
           - name: poem-dbsession-native-tls
             path: poem-dbsession
             options: --features __sqlx-native-tls
+          - name: poem-grpc
+            path: poem-grpc
+            options: --all-features
     services:
       redis:
         image: redis:5.0.7

@@ -2,12 +2,12 @@ Define a OpenAPI discriminator object.
 
 # Macro parameters
 
-| Attribute          | Description                                                                                                                                                                            | Type   | Optional |
-|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
-| discriminator_name | The name of the property in the payload that will hold the discriminator value.                                                                                                        | string | Y        |
-| one_of             | Validates the value against exactly one of the subschemas                                                                                                                              | bool   | Y        |
-| external_docs      | Specify a external resource for extended documentation                                                                                                                                 | string | Y        |
-| rename_all         | Rename all the mapping name according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE". | string | Y        |
+| Attribute          | Description                                                                                                                                                                                                                  | Type   | Optional |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|----------|
+| discriminator_name | The name of the property in the payload that will hold the discriminator value.                                                                                                                                              | string | Y        |
+| one_of             | Validates the value against exactly one of the subschemas                                                                                                                                                                    | bool   | Y        |
+| external_docs      | Specify a external resource for extended documentation                                                                                                                                                                       | string | Y        |
+| rename_all         | Rename all the mapping name according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE", "kebab-case", "SCREAMING-KEBAB-CASE". | string | Y        |
 
 # Item parameters
 

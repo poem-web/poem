@@ -2,7 +2,9 @@ use std::time::Instant;
 
 use tracing::{Instrument, Level};
 
-use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
+use crate::{
+    web::RealIp, Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
+};
 
 /// Middleware for [`tracing`](https://crates.io/crates/tracing).
 #[derive(Default)]
@@ -26,14 +28,21 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
+        let remote_addr = RealIp::from_request_without_body(&req)
+            .await
+            .ok()
+            .and_then(|real_ip| real_ip.0)
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| req.remote_addr().to_string());
+
         let span = tracing::span!(
             target: module_path!(),
             Level::INFO,
             "request",
-            remote_addr = %req.remote_addr(),
+            remote_addr = %remote_addr,
             version = ?req.version(),
             method = %req.method(),
-            path = %req.uri(),
+            uri = %req.original_uri(),
         );
 
         async move {

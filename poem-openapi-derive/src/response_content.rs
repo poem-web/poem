@@ -106,7 +106,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         schema: #schema_ref,
                     }
                 });
-                schemas.push(item_ty);
+                if let Some(actual_type) = &variant.actual_type {
+                    schemas.push(actual_type);
+                } else {
+                    schemas.push(item_ty);
+                };
             }
             _ => {
                 return Err(

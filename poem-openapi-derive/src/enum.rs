@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Path};
 
 use crate::{
-    common_args::{ExternalDocument, RenameRule, RenameRuleExt},
+    common_args::{apply_rename_rule_variant, ExternalDocument, RenameRule},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };
@@ -72,10 +72,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         let item_ident = &variant.ident;
-        let oai_item_name = variant
-            .rename
-            .clone()
-            .unwrap_or_else(|| args.rename_all.rename(variant.ident.unraw().to_string()));
+        let oai_item_name = variant.rename.clone().unwrap_or_else(|| {
+            apply_rename_rule_variant(args.rename_all, variant.ident.unraw().to_string())
+        });
 
         enum_items.push(quote!(#crate_name::types::ToJSON::to_json(&#ident::#item_ident).unwrap()));
         ident_to_item.push(quote!(#ident::#item_ident => #oai_item_name));

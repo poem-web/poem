@@ -118,7 +118,8 @@ async fn parameters() {
                 in_type: MetaParamIn::Query,
                 description: None,
                 required: true,
-                deprecated: false
+                deprecated: false,
+                explode: true,
             },
             MetaOperationParam {
                 name: "b".to_string(),
@@ -126,7 +127,8 @@ async fn parameters() {
                 in_type: MetaParamIn::Path,
                 description: None,
                 required: true,
-                deprecated: false
+                deprecated: false,
+                explode: true,
             }
         ]
     );
