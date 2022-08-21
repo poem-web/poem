@@ -6,8 +6,8 @@ use serde_json::Value;
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
     types::{
-        ParseError, ParseFromJSON, ParseFromXML, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToHeader, ToJSON, ToXML, Type,
+        ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseFromXML,
+        ParseResult, ToHeader, ToJSON, ToXML, Type,
     },
 };
 
