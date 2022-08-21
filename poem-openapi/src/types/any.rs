@@ -52,6 +52,20 @@ impl<T: Serialize + Send + Sync> ToJSON for Any<T> {
     }
 }
 
+impl<T: DeserializeOwned + Send + Sync> ParseFromXML for Any<T> {
+    fn parse_from_xml(value: Option<Value>) -> ParseResult<Self> {
+        Ok(Self(
+            serde_json::from_value(value.unwrap_or_default()).map_err(ParseError::custom)?,
+        ))
+    }
+}
+
+impl<T: Serialize + Send + Sync> ToXML for Any<T> {
+    fn to_xml(&self) -> Option<Value> {
+        Some(serde_json::to_value(&self.0).unwrap_or_default())
+    }
+}
+
 impl Type for Value {
     const IS_REQUIRED: bool = true;
 
