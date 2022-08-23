@@ -88,6 +88,7 @@ use crate::{
 /// resp.assert_text(r#"<User name="foo"/>"#).await;
 /// # });
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "xml")))]
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Xml<T>(pub T);
 
