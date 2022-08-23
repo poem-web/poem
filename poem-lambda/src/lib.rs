@@ -86,7 +86,7 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
             *lambda_resp.headers_mut() = parts.headers;
             *lambda_resp.extensions_mut() = parts.extensions;
 
-            Ok::<_, Error>(lambda_http::IntoResponse::into_response(lambda_resp))
+            Ok::<_, Error>(lambda_resp)
         }
     }))
     .await
