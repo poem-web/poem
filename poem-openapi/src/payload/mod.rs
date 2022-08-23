@@ -9,6 +9,7 @@ mod html;
 mod json;
 mod plain_text;
 mod response;
+mod xml;
 
 use poem::{Request, RequestBody, Result};
 
@@ -22,6 +23,7 @@ pub use self::{
     json::Json,
     plain_text::PlainText,
     response::Response,
+    xml::Xml,
 };
 use crate::registry::{MetaSchemaRef, Registry};
 
