@@ -484,10 +484,11 @@ impl<T> RadixTree<T> {
             Some(data) => {
                 let mut params2 = Vec::with_capacity(params.len());
                 for (name, value) in params {
-                    if let (Ok(name), Ok(value)) =
-                        (std::str::from_utf8(name), std::str::from_utf8(value))
-                    {
-                        params2.push((name.to_string(), value.to_string()));
+                    if let (Ok(name), Ok(value)) = (
+                        std::str::from_utf8(name),
+                        percent_encoding::percent_decode(value).decode_utf8(),
+                    ) {
+                        params2.push((name.to_string(), value.into_owned()));
                     }
                 }
                 Some(Matches {
@@ -1199,5 +1200,21 @@ mod tests {
         assert_eq!(matches.params.len(), 1);
         assert_eq!(matches.params[0].0, "id2");
         assert_eq!(matches.params[0].1, "def");
+    }
+
+    #[test]
+    fn test_percent_decoded() {
+        let mut tree = RadixTree::default();
+        tree.add("/a/:id", 1).unwrap();
+
+        let matches = tree.matches("/a/abc").unwrap();
+        assert_eq!(matches.data, &1);
+        assert_eq!(matches.params[0].0, "id");
+        assert_eq!(matches.params[0].1, "abc");
+
+        let matches = tree.matches("/a/%E4%BD%A0%E5%A5%BD").unwrap();
+        assert_eq!(matches.data, &1);
+        assert_eq!(matches.params[0].0, "id");
+        assert_eq!(matches.params[0].1, "你好");
     }
 }
