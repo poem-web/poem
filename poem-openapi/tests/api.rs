@@ -763,3 +763,42 @@ async fn code_samples() {
     assert_eq!(code_sample.label, Some("Go"));
     assert_eq!(code_sample.source, "Google Go");
 }
+
+#[tokio::test]
+async fn hidden() {
+    #[derive(Debug, Object)]
+    struct MyObj1 {
+        value: i32,
+    }
+
+    #[derive(Debug, Object)]
+    struct MyObj2 {
+        value: i32,
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/api1", method = "get", hidden)]
+        async fn api1(&self, req: Json<MyObj1>) -> Json<i32> {
+            Json(req.0.value)
+        }
+
+        #[oai(path = "/api2", method = "get")]
+        async fn api2(&self, req: Json<MyObj2>) -> Json<i32> {
+            Json(req.0.value)
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths.len(), 1);
+    let path = &meta.paths[0];
+    assert_eq!(path.path, "/api2");
+
+    let mut registry = Registry::new();
+    Api::register(&mut registry);
+
+    assert!(!registry.schemas.contains_key("MyObj1"));
+    assert!(registry.schemas.contains_key("MyObj2"));
+}

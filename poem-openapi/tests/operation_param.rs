@@ -55,7 +55,7 @@ async fn query() {
     let param = &meta.paths[0].operations[0].params[0];
     assert_eq!(param.in_type, MetaParamIn::Query);
     assert_eq!(param.name, "v");
-    assert_eq!(param.explode, true);
+    assert!(param.explode);
 
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
@@ -83,7 +83,7 @@ async fn query_multiple_values_explode() {
     assert_eq!(param.in_type, MetaParamIn::Query);
     assert_eq!(param.name, "v");
     assert_eq!(param.schema.unwrap_inline().ty, "array");
-    assert_eq!(param.explode, true);
+    assert!(param.explode);
 
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
@@ -113,7 +113,7 @@ async fn query_multiple_values_no_explode() {
     assert_eq!(param.in_type, MetaParamIn::Query);
     assert_eq!(param.name, "v");
     assert_eq!(param.schema.unwrap_inline().ty, "array");
-    assert_eq!(param.explode, false);
+    assert!(param.explode);
 
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)

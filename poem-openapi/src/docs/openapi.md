@@ -55,6 +55,8 @@ Parameters that can be passed into the `#[oai()]` attribute above each operation
 | response_header | Add an extra response header to the operation.                                                                       | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 | request_header  | Add an extra request header to all operations.                                                                       | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 | actual_type     | Specifies the actual response type                                                                                   | string                                                     | Y        |
+| code_samples    | Code samples for the operation                                                                                       | object                                                     | Y        |
+| hidden          | Hide this operation in the document                                                                                  | bool                                                       | Y        |
 
 ## Example
 

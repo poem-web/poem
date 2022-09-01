@@ -55,6 +55,8 @@ struct APIOperation {
     actual_type: Option<Type>,
     #[darling(default, multiple, rename = "code_sample")]
     code_samples: Vec<CodeSample>,
+    #[darling(default)]
+    hidden: bool,
 }
 
 #[derive(FromMeta, Default)]
@@ -190,6 +192,7 @@ fn generate_operation(
         request_headers,
         actual_type,
         code_samples,
+        hidden,
     } = args;
     if methods.is_empty() {
         return Err(Error::new_spanned(
@@ -272,10 +275,12 @@ fn generate_operation(
             .unwrap_or_else(|| arg_ident.unraw().to_string());
         use_args.push(pname.clone());
 
-        // register
-        ctx.register_items.push(quote! {
-            <#arg_ty as #crate_name::ApiExtractor>::register(registry);
-        });
+        if !hidden {
+            // register arg type
+            ctx.register_items.push(quote! {
+                <#arg_ty as #crate_name::ApiExtractor>::register(registry);
+            });
+        }
 
         // default value for parameter
         let default_value = match &operation_param.default {
@@ -378,12 +383,14 @@ fn generate_operation(
         });
     }
 
-    if let Some(actual_type) = &actual_type {
-        ctx.register_items
-            .push(quote!(<#actual_type as #crate_name::ApiResponse>::register(registry);));
-    } else {
-        ctx.register_items
-            .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
+    if !hidden {
+        if let Some(actual_type) = &actual_type {
+            ctx.register_items
+                .push(quote!(<#actual_type as #crate_name::ApiResponse>::register(registry);));
+        } else {
+            ctx.register_items
+                .push(quote!(<#res_ty as #crate_name::ApiResponse>::register(registry);));
+        }
     }
 
     let transform = transform.map(|transform| {
@@ -535,44 +542,46 @@ fn generate_operation(
         })
         .collect::<Vec<_>>();
 
-    for method in &methods {
-        let http_method = method.to_http_method();
-        ctx.operations
-            .entry(oai_path.clone())
-            .or_default()
-            .push(quote! {
-                #crate_name::registry::MetaOperation {
-                    tags: ::std::vec![#(#tag_names),*],
-                    method: #crate_name::__private::poem::http::Method::#http_method,
-                    summary: #summary,
-                    description: #description,
-                    external_docs: #external_docs,
-                    params: {
-                        let mut params = ::std::vec::Vec::new();
-                        #(#update_extra_request_headers)*
-                        #(#params_meta)*
-                        params
-                    },
-                    request: {
-                        let mut request = ::std::option::Option::None;
-                        #(#request_meta)*
-                        request
-                    },
-                    responses: {
-                        let mut meta = #resp_meta;
-                        #(#update_extra_response_headers)*
-                        meta
-                    },
-                    deprecated: #deprecated,
-                    security: {
-                        let mut security = ::std::vec![];
-                        #(#security)*
-                        security
-                    },
-                    operation_id: #operation_id,
-                    code_samples: ::std::vec![#(#code_samples),*],
-                }
-            });
+    if !hidden {
+        for method in &methods {
+            let http_method = method.to_http_method();
+            ctx.operations
+                .entry(oai_path.clone())
+                .or_default()
+                .push(quote! {
+                    #crate_name::registry::MetaOperation {
+                        tags: ::std::vec![#(#tag_names),*],
+                        method: #crate_name::__private::poem::http::Method::#http_method,
+                        summary: #summary,
+                        description: #description,
+                        external_docs: #external_docs,
+                        params: {
+                            let mut params = ::std::vec::Vec::new();
+                            #(#update_extra_request_headers)*
+                            #(#params_meta)*
+                            params
+                        },
+                        request: {
+                            let mut request = ::std::option::Option::None;
+                            #(#request_meta)*
+                            request
+                        },
+                        responses: {
+                            let mut meta = #resp_meta;
+                            #(#update_extra_response_headers)*
+                            meta
+                        },
+                        deprecated: #deprecated,
+                        security: {
+                            let mut security = ::std::vec![];
+                            #(#security)*
+                            security
+                        },
+                        operation_id: #operation_id,
+                        code_samples: ::std::vec![#(#code_samples),*],
+                    }
+                });
+        }
     }
 
     Ok(())
