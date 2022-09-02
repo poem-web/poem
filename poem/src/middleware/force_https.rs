@@ -1,13 +1,16 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use http::{header, uri::Scheme, Uri};
 
 use crate::{web::Redirect, Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
+type FilterFn = Arc<dyn Fn(&Request) -> bool + Send + Sync>;
+
 /// Middleware for force redirect to HTTPS uri.
 #[derive(Default)]
 pub struct ForceHttps {
     https_port: Option<u16>,
+    filter_fn: Option<FilterFn>,
 }
 
 impl ForceHttps {
@@ -21,6 +24,16 @@ impl ForceHttps {
     pub fn https_port(self, port: u16) -> Self {
         Self {
             https_port: Some(port),
+            ..self
+        }
+    }
+
+    /// Uses a closure to determine if a request should be redirect.
+    #[must_use]
+    pub fn filter(self, predicate: impl Fn(&Request) -> bool + Send + Sync + 'static) -> Self {
+        Self {
+            filter_fn: Some(Arc::new(predicate)),
+            ..self
         }
     }
 }
@@ -35,6 +48,7 @@ where
         ForceHttpsEndpoint {
             inner: ep,
             https_port: self.https_port,
+            filter_fn: self.filter_fn.clone(),
         }
     }
 }
@@ -43,6 +57,7 @@ where
 pub struct ForceHttpsEndpoint<E> {
     inner: E,
     https_port: Option<u16>,
+    filter_fn: Option<FilterFn>,
 }
 
 #[async_trait::async_trait]
@@ -53,7 +68,8 @@ where
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Result<Self::Output> {
-        if req.scheme() == &Scheme::HTTP {
+        if req.scheme() == &Scheme::HTTP && self.filter_fn.as_ref().map(|f| f(&req)).unwrap_or(true)
+        {
             if let Some(host) = req.headers().get(header::HOST).cloned() {
                 if let Ok(host) = host.to_str() {
                     let host = redirect_host(host, self.https_port);
