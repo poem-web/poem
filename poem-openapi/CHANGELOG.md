@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [2.0.11] 2022-08-30
 
 - Add `EventStream::to_event` method to set a function used to convert the message to SSE event. [#378](https://github.com/poem-web/poem/issues/378)
+- OpenApi XML support [#354](https://github.com/poem-web/poem/pull/354)
+- Add `hidden` attribute for the operation [#376](https://github.com/poem-web/poem/issues/376)
 
 # [2.0.10] 2022-08-16
 

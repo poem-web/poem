@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.3.42] 2022-08-30
-
-- Automatically decode percent-encoded path parameters. [#375](https://github.com/poem-web/poem/issues/375)
-
 # [1.3.41] 2022-08-16
 
 - Use the real IP as the `remote_addr` in the logs of the Tracing middleware. [#370](https://github.com/poem-web/poem/issues/370)
+- Automatically decode percent-encoded path parameters. [#375](https://github.com/poem-web/poem/issues/375)
+- Fix: trace nested route with original uri. [#371](https://github.com/poem-web/poem/pull/371)
+- Automatically decode percent-encoded path parameters. [#375](https://github.com/poem-web/poem/issues/375)
+- Add `ForceHttps::filter` method to determine if a request should be redirect. [#360](https://github.com/poem-web/poem/issues/360)
+- Add `content-length` for `StaticFileResponse` [#373](https://github.com/poem-web/poem/pull/373)
 
 # [1.3.39] 2022-08-16
 
