@@ -27,6 +27,8 @@ pub enum StaticFileResponse {
     Ok {
         /// Response body
         body: Body,
+        /// Content length
+        content_length: u64,
         /// Content type
         content_type: Option<String>,
         /// `ETag` header value
@@ -45,12 +47,15 @@ impl IntoResponse for StaticFileResponse {
         match self {
             StaticFileResponse::Ok {
                 body,
+                content_length,
                 content_type,
                 etag,
                 last_modified,
                 content_range,
             } => {
-                let mut builder = Response::builder().header(header::ACCEPT_RANGES, "bytes");
+                let mut builder = Response::builder()
+                    .header(header::ACCEPT_RANGES, "bytes")
+                    .header(header::CONTENT_LENGTH, content_length);
 
                 if let Some(content_type) = content_type {
                     builder = builder.content_type(&content_type);
@@ -115,6 +120,9 @@ impl StaticFileRequest {
         let guess = mime_guess::from_path(path);
         let mut file = std::fs::File::open(path)?;
         let metadata = file.metadata()?;
+
+        // content length
+        let content_length = metadata.len();
 
         // content type
         let content_type = guess.first().map(|mime| {
@@ -190,6 +198,7 @@ impl StaticFileRequest {
 
         Ok(StaticFileResponse::Ok {
             body,
+            content_length,
             content_type,
             etag: if !etag_str.is_empty() {
                 Some(etag_str)
