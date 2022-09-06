@@ -113,7 +113,7 @@ async fn query_multiple_values_no_explode() {
     assert_eq!(param.in_type, MetaParamIn::Query);
     assert_eq!(param.name, "v");
     assert_eq!(param.schema.unwrap_inline().ty, "array");
-    assert!(param.explode);
+    assert!(!param.explode);
 
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
