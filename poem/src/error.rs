@@ -198,7 +198,7 @@ impl Display for Error {
         match &self.source {
             Some(ErrorSource::BoxedError(err)) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
-            Some(ErrorSource::Anyhow(err)) => Display::fmt(err, f),
+            Some(ErrorSource::Anyhow(err)) => write!(f, "{:#}", err),
             #[cfg(feature = "eyre06")]
             Some(ErrorSource::Eyre06(err)) => Display::fmt(err, f),
             None => f.write_str("response"),
