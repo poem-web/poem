@@ -47,6 +47,7 @@ The following are cases of community use:
 | [warpgate](https://github.com/eugeny/warpgate)                                   | A smart SSH bastion host that works with any SSH clients.                                                              | [(README)](https://github.com/warp-tech/warpgate/blob/main/README.md) |
 | [lust](https://github.com/ChillFish8/lust)                                       | A fast, auto-optimizing image server designed for high throughput and caching.                                         | [(README)](https://github.com/ChillFish8/lust/blob/master/README.md)  |
 | [aptos](https://github.com/aptos-labs/aptos-core)                                | Building the safest and most scalable Layer 1 blockchain.                                                              | [(WEBSITE)](https://aptoslabs.com/)                                   |
+| [poem-casbin](https://github.com/casbin-rs/poem-casbin)  | Casbin access control middleware for poem framework.                                                              | [(WEBSITE)](https://casbin.org/)                                   |
 
 
 ### Startups
