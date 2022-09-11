@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed `StaticFileEndpoint` returning an incorrect `Content-Length` header when a `Range` header is in the request.
 - Fixed `Compression` middleware returning incorrect `Content-Length` header.
+- Disabled `brotli(CompressionAlgo::BR)` algorithm, very slow, still looking for the reason.
 
 # [1.3.41] 2022-08-16
 
