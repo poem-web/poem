@@ -122,7 +122,7 @@ impl StaticFileRequest {
         let metadata = file.metadata()?;
 
         // content length
-        let content_length = metadata.len();
+        let mut content_length = metadata.len();
 
         // content type
         let content_type = guess.first().map(|mime| {
@@ -180,7 +180,6 @@ impl StaticFileRequest {
                 Bound::Unbounded => metadata.len(),
             };
             if end < start || end > metadata.len() {
-                // builder.typed_header(ContentRange::unsatisfied_bytes(length))
                 return Err(StaticFileError::RangeNotSatisfiable {
                     size: metadata.len(),
                 });
@@ -190,6 +189,7 @@ impl StaticFileRequest {
                 content_range = Some((start..end, metadata.len()));
             }
 
+            content_length = end - start;
             file.seek(SeekFrom::Start(start))?;
             Body::from_async_read(File::from_std(file).take(end - start))
         } else {
