@@ -43,7 +43,7 @@ fn coding_priority(c: &ContentCoding) -> u8 {
     match *c {
         ContentCoding::DEFLATE => 1,
         ContentCoding::GZIP => 2,
-        ContentCoding::BROTLI => 3,
+        // ContentCoding::BROTLI => 3,
         _ => 0,
     }
 }
@@ -80,7 +80,8 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
             .and_then(|coding| match coding {
                 ContentCoding::GZIP => Some(CompressionAlgo::GZIP),
                 ContentCoding::DEFLATE => Some(CompressionAlgo::DEFLATE),
-                ContentCoding::STAR | ContentCoding::BROTLI => Some(CompressionAlgo::BR),
+                // ContentCoding::STAR | ContentCoding::BROTLI => Some(CompressionAlgo::BR),
+                ContentCoding::STAR => Some(CompressionAlgo::GZIP),
                 _ => None,
             });
 
@@ -129,7 +130,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_compression() {
-        test_algo(CompressionAlgo::BR).await;
+        // test_algo(CompressionAlgo::BR).await;
         test_algo(CompressionAlgo::DEFLATE).await;
         test_algo(CompressionAlgo::GZIP).await;
     }
@@ -166,10 +167,10 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header("Content-Encoding", "br");
+        resp.assert_header("Content-Encoding", "gzip");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
+        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }
@@ -186,10 +187,10 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header("Content-Encoding", "br");
+        resp.assert_header("Content-Encoding", "gzip");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
+        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }

@@ -15,9 +15,8 @@ use crate::{
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum CompressionAlgo {
-    /// brotli
-    BR,
-
+    // /// brotli
+    // BR,
     /// deflate
     DEFLATE,
 
@@ -30,7 +29,7 @@ impl FromStr for CompressionAlgo {
 
     fn from_str(s: &str) -> std::prelude::rust_2015::Result<Self, Self::Err> {
         Ok(match s {
-            "br" => CompressionAlgo::BR,
+            // "br" => CompressionAlgo::BR,
             "deflate" => CompressionAlgo::DEFLATE,
             "gzip" => CompressionAlgo::GZIP,
             _ => return Err(()),
@@ -41,7 +40,7 @@ impl FromStr for CompressionAlgo {
 impl CompressionAlgo {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
-            CompressionAlgo::BR => "br",
+            // CompressionAlgo::BR => "br",
             CompressionAlgo::DEFLATE => "deflate",
             CompressionAlgo::GZIP => "gzip",
         }
@@ -52,9 +51,10 @@ impl CompressionAlgo {
         reader: impl AsyncRead + Send + Unpin + 'a,
     ) -> Pin<Box<dyn AsyncRead + Send + 'a>> {
         match self {
-            CompressionAlgo::BR => Box::pin(async_compression::tokio::bufread::BrotliEncoder::new(
-                BufReader::new(reader),
-            )),
+            // CompressionAlgo::BR =>
+            // Box::pin(async_compression::tokio::bufread::BrotliEncoder::new(
+            //     BufReader::new(reader),
+            // )),
             CompressionAlgo::DEFLATE => Box::pin(
                 async_compression::tokio::bufread::DeflateEncoder::new(BufReader::new(reader)),
             ),
@@ -69,9 +69,10 @@ impl CompressionAlgo {
         reader: impl AsyncRead + Send + Unpin + 'a,
     ) -> Pin<Box<dyn AsyncRead + Send + 'a>> {
         match self {
-            CompressionAlgo::BR => Box::pin(async_compression::tokio::bufread::BrotliDecoder::new(
-                BufReader::new(reader),
-            )),
+            // CompressionAlgo::BR =>
+            // Box::pin(async_compression::tokio::bufread::BrotliDecoder::new(
+            //     BufReader::new(reader),
+            // )),
             CompressionAlgo::DEFLATE => Box::pin(
                 async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(reader)),
             ),
@@ -126,6 +127,7 @@ impl<T: IntoResponse> IntoResponse for Compress<T> {
             header::CONTENT_ENCODING,
             HeaderValue::from_static(self.algo.as_str()),
         );
+        resp.headers_mut().remove(header::CONTENT_LENGTH);
 
         resp.set_body(Body::from_async_read(
             self.algo.compress(body.into_async_read()),
@@ -165,6 +167,7 @@ mod tests {
         .await;
         resp.assert_status_is_ok();
         resp.assert_header(header::CONTENT_ENCODING, algo.as_str());
+        resp.assert_header_is_not_exist(header::CONTENT_LENGTH);
         assert_eq!(
             decompress_data(algo, &resp.0.into_body().into_bytes().await.unwrap()).await,
             DATA
@@ -173,7 +176,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_compress() {
-        test_algo(CompressionAlgo::BR).await;
+        // test_algo(CompressionAlgo::BR).await;
         test_algo(CompressionAlgo::DEFLATE).await;
         test_algo(CompressionAlgo::GZIP).await;
     }
