@@ -1,5 +1,5 @@
+use http::{header, HeaderMap};
 use mime::Mime;
-use typed_headers::HeaderMapExt;
 
 use crate::{FromRequest, Request, RequestBody, Result};
 
@@ -7,18 +7,29 @@ use crate::{FromRequest, Request, RequestBody, Result};
 #[derive(Debug, Clone)]
 pub struct Accept(pub Vec<Mime>);
 
+fn parse_accept(headers: &HeaderMap) -> Vec<Mime> {
+    let mut items = headers
+        .get_all(header::ACCEPT)
+        .iter()
+        .filter_map(|hval| hval.to_str().ok())
+        .flat_map(|s| s.split(',').map(str::trim))
+        .filter_map(|v| {
+            let (e, q) = match v.split_once(";q=") {
+                Some((e, q)) => (e, (q.parse::<f32>().ok()? * 1000.0) as i32),
+                None => (v, 1000),
+            };
+            let mime: Mime = e.parse().ok()?;
+            Some((mime, q))
+        })
+        .collect::<Vec<_>>();
+    items.sort_by(|(_, qa), (_, qb)| qb.cmp(qa));
+    items.into_iter().map(|(mime, _)| mime).collect()
+}
+
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Accept {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
-        let mut items = req
-            .headers()
-            .typed_get::<typed_headers::Accept>()
-            .ok()
-            .flatten()
-            .map(|accept| accept.0)
-            .unwrap_or_default();
-        items.sort_by(|a, b| b.quality.cmp(&a.quality));
-        Ok(Self(items.into_iter().map(|item| item.item).collect()))
+        Ok(Self(parse_accept(req.headers())))
     }
 }
 

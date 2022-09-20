@@ -1,12 +1,52 @@
 use std::str::FromStr;
 
-use typed_headers::{AcceptEncoding, ContentCoding, HeaderMapExt};
+use headers::HeaderMap;
 
 use crate::{
     http::header,
     web::{Compress, CompressionAlgo},
     Body, Endpoint, IntoResponse, Middleware, Request, Response, Result,
 };
+
+enum ContentCoding {
+    Deflate,
+    Gzip,
+    Star,
+}
+
+impl FromStr for ContentCoding {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.eq_ignore_ascii_case("deflate") {
+            Ok(ContentCoding::Deflate)
+        } else if s.eq_ignore_ascii_case("gzip") {
+            Ok(ContentCoding::Gzip)
+        } else if s == "*" {
+            Ok(ContentCoding::Star)
+        } else {
+            Err(())
+        }
+    }
+}
+
+fn parse_accept_encoding(headers: &HeaderMap) -> Option<ContentCoding> {
+    headers
+        .get_all(header::ACCEPT_ENCODING)
+        .iter()
+        .filter_map(|hval| hval.to_str().ok())
+        .flat_map(|s| s.split(',').map(str::trim))
+        .filter_map(|v| {
+            let (e, q) = match v.split_once(";q=") {
+                Some((e, q)) => (e, (q.parse::<f32>().ok()? * 1000.0) as i32),
+                None => (v, 1000),
+            };
+            let coding: ContentCoding = e.parse().ok()?;
+            Some((coding, q))
+        })
+        .max_by_key(|(coding, q)| (*q, coding_priority(coding)))
+        .map(|(coding, _)| coding)
+}
 
 /// Middleware for decompress request body and compress response body.
 ///
@@ -39,10 +79,11 @@ pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,
 }
 
+#[inline]
 fn coding_priority(c: &ContentCoding) -> u8 {
     match *c {
-        ContentCoding::DEFLATE => 1,
-        ContentCoding::GZIP => 2,
+        ContentCoding::Deflate => 1,
+        ContentCoding::Gzip => 2,
         // ContentCoding::BROTLI => 3,
         _ => 0,
     }
@@ -65,25 +106,12 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
         }
 
         // negotiate content-encoding
-        let compress_algo = req
-            .headers()
-            .typed_get::<AcceptEncoding>()
-            .ok()
-            .flatten()
-            .and_then(|encoding| {
-                encoding
-                    .0
-                    .into_iter()
-                    .max_by_key(|item| (item.quality, coding_priority(&item.item)))
-            })
-            .map(|c| c.item)
-            .and_then(|coding| match coding {
-                ContentCoding::GZIP => Some(CompressionAlgo::GZIP),
-                ContentCoding::DEFLATE => Some(CompressionAlgo::DEFLATE),
-                // ContentCoding::STAR | ContentCoding::BROTLI => Some(CompressionAlgo::BR),
-                ContentCoding::STAR => Some(CompressionAlgo::GZIP),
-                _ => None,
-            });
+        let compress_algo = parse_accept_encoding(req.headers()).map(|coding| match coding {
+            ContentCoding::Gzip => CompressionAlgo::GZIP,
+            ContentCoding::Deflate => CompressionAlgo::DEFLATE,
+            // ContentCoding::STAR | ContentCoding::BROTLI => Some(CompressionAlgo::BR),
+            ContentCoding::Star => CompressionAlgo::GZIP,
+        });
 
         match compress_algo {
             Some(algo) => Ok(Compress::new(self.ep.call(req).await?, algo).into_response()),

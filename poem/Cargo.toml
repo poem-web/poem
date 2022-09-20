@@ -86,7 +86,6 @@ headers = "0.3.7"
 thiserror = "1.0.30"
 rfc7239 = "0.1.0"
 mime = { version = "0.3.16" }
-typed-headers = { version = "0.2.0" }
 
 # Non-feature optional dependencies
 multer = { version = "2.0.1", features = ["tokio"], optional = true }
