@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `Compression` middleware returning incorrect `Content-Length` header.
 - Disabled `brotli(CompressionAlgo::BR)` algorithm, very slow, still looking for the reason.
 
+# [1.3.43] 2022-9-23
+
+- Removed dependency on `typed-headers`. [#394](https://github.com/poem-web/poem/issues/394)
+
 # [1.3.41] 2022-08-16
 
 - Use the real IP as the `remote_addr` in the logs of the Tracing middleware. [#370](https://github.com/poem-web/poem/issues/370)
