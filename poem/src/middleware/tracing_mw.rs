@@ -62,6 +62,7 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
                 }
                 Err(err) => {
                     tracing::info!(
+                        status = %err.status(),
                         error = %err,
                         duration = ?duration,
                         "error"

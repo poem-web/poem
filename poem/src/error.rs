@@ -61,11 +61,12 @@ impl Debug for ErrorSource {
     }
 }
 
-type BoxAsResponseFn = Box<dyn Fn(&Error) -> Response + Send + Sync + 'static>;
+type AsResponseFn = fn(&Error) -> Response;
+type GetStatusFn = fn(&Error) -> StatusCode;
 
 enum AsResponse {
     Status(StatusCode),
-    Fn(BoxAsResponseFn),
+    Fn(AsResponseFn, GetStatusFn),
     Response(Response),
 }
 
@@ -76,10 +77,16 @@ impl AsResponse {
     }
 
     fn from_type<T: ResponseError + StdError + Send + Sync + 'static>() -> Self {
-        AsResponse::Fn(Box::new(|err| {
-            let err = err.downcast_ref::<T>().expect("valid error");
-            err.as_response()
-        }))
+        AsResponse::Fn(
+            |err| {
+                let err = err.downcast_ref::<T>().expect("valid error");
+                err.as_response()
+            },
+            |err| {
+                let err = err.downcast_ref::<T>().expect("valid error");
+                err.status()
+            },
+        )
     }
 }
 
@@ -410,7 +417,7 @@ impl Error {
     pub fn into_response(self) -> Response {
         let mut resp = match self.as_response {
             AsResponse::Status(status) => Response::builder().status(status).body(self.to_string()),
-            AsResponse::Fn(ref f) => f(&self),
+            AsResponse::Fn(ref f, _) => f(&self),
             AsResponse::Response(resp) => resp,
         };
         *resp.extensions_mut() = self.extensions;
@@ -445,6 +452,15 @@ impl Error {
     /// Get a reference from extensions
     pub fn data<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.extensions.get()
+    }
+
+    /// Get the status code of the error
+    pub fn status(&self) -> StatusCode {
+        match &self.as_response {
+            AsResponse::Status(status) => *status,
+            AsResponse::Fn(_, get_status) => (get_status)(self),
+            AsResponse::Response(resp) => resp.status(),
+        }
     }
 }
 

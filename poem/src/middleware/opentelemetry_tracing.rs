@@ -110,6 +110,7 @@ where
                     Ok(resp)
                 }
                 Err(err) => {
+                    span.set_attribute(trace::HTTP_STATUS_CODE.i64(err.status().as_u16() as i64));
                     span.add_event(
                         "request.error".to_string(),
                         vec![trace::EXCEPTION_MESSAGE.string(err.to_string())],
