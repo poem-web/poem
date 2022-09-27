@@ -394,7 +394,7 @@ impl Error {
             },
             None => Err(Error {
                 as_response,
-                source: None,
+                source: self.source,
                 extensions,
             }),
         }
