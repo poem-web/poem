@@ -4,11 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.3.44] 2022-9-25
+# [1.3.35] 2022-09-28
+
+- Add `Error::is_from_response` method.
+
+# [1.3.44] 2022-09-25
 
 - Add `Error::status` method to get the status code of error.
 
-# [1.3.43] 2022-9-23
+# [1.3.43] 2022-09-23
 
 - Removed dependency on `typed-headers`. [#394](https://github.com/poem-web/poem/issues/394)
 
