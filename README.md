@@ -59,6 +59,9 @@ The following are cases of community use:
 
 - [Examples](https://github.com/poem-web/poem/tree/master/examples)
 
+### Deployment
+
+If you want a quick and easy way to deploy your Poem app, you can use [shuttle](https://github.com/shuttle-hq/shuttle), a Rust-native cloud development platform that allows deploying of Poem apps for free.
 
 ## Contributing
 
