@@ -2,7 +2,7 @@ use poem::{
     http::{Method, StatusCode},
     test::TestClient,
     web::Data,
-    EndpointExt, Error,
+    Endpoint, EndpointExt, Error,
 };
 use poem_openapi::{
     param::Query,
@@ -801,4 +801,26 @@ async fn hidden() {
 
     assert!(!registry.schemas.contains_key("MyObj1"));
     assert!(registry.schemas.contains_key("MyObj2"));
+}
+
+#[test]
+fn issue_405() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(
+            path = "/hello",
+            method = "get",
+            operation_id = "hello",
+            transform = "my_transformer"
+        )]
+        async fn index(&self) -> PlainText<String> {
+            PlainText(format!("hello, world!"))
+        }
+    }
+
+    fn my_transformer(ep: impl Endpoint) -> impl Endpoint {
+        ep.map_to_response()
+    }
 }

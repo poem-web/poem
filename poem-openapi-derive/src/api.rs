@@ -395,7 +395,7 @@ fn generate_operation(
 
     let transform = transform.map(|transform| {
         quote! {
-            let ep = #transform(ep);
+            let ep = #crate_name::__private::poem::EndpointExt::map_to_response(#transform(ep));
         }
     });
     let update_content_type = match &actual_type {
