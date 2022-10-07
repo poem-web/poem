@@ -816,7 +816,7 @@ fn issue_405() {
             transform = "my_transformer"
         )]
         async fn index(&self) -> PlainText<String> {
-            PlainText(format!("hello, world!"))
+            PlainText("hello, world!".to_string())
         }
     }
 
