@@ -1,4 +1,7 @@
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    fmt::{self, Debug, Formatter},
+    sync::Arc,
+};
 
 use regex::bytes::Regex;
 use smallvec::SmallVec;
@@ -159,6 +162,25 @@ impl PartialEq for PathRegex {
 impl Eq for PathRegex {}
 
 #[derive(Debug, Eq, PartialEq)]
+pub(crate) struct NodeData<T> {
+    pub(crate) data: T,
+    pub(crate) pattern: Arc<str>,
+}
+
+impl<T> NodeData<T> {
+    #[inline]
+    fn new<P>(data: T, pattern: P) -> Self
+    where
+        P: Into<Arc<str>>,
+    {
+        Self {
+            data,
+            pattern: pattern.into(),
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
 struct Node<T> {
     node_type: NodeType,
     name: Vec<u8>,
@@ -168,7 +190,7 @@ struct Node<T> {
     param_children: Vec<Box<Node<T>>>,
     catch_all_child: Option<Box<Node<T>>>,
     regex_children: Vec<Box<Node<T>>>,
-    data: Option<T>,
+    data: Option<NodeData<T>>,
 }
 
 impl<T> Node<T> {
@@ -176,7 +198,7 @@ impl<T> Node<T> {
         (0..self.indices.len()).find(|&i| self.indices[i] == prefix)
     }
 
-    fn insert_child(&mut self, mut segments: Vec<Segment<'_>>, data: T) -> bool {
+    fn insert_child(&mut self, mut segments: Vec<Segment<'_>>, data: NodeData<T>) -> bool {
         match segments.pop() {
             Some(segment) => match segment {
                 Segment::Static(name) => self.insert_static_child(segments, name, data),
@@ -194,7 +216,12 @@ impl<T> Node<T> {
         }
     }
 
-    fn insert_static_child(&mut self, segments: Vec<Segment<'_>>, name: &[u8], data: T) -> bool {
+    fn insert_static_child(
+        &mut self,
+        segments: Vec<Segment<'_>>,
+        name: &[u8],
+        data: NodeData<T>,
+    ) -> bool {
         match self.find_static_child(name[0]) {
             Some(pos) => {
                 let mut child = &mut self.children[pos];
@@ -268,7 +295,12 @@ impl<T> Node<T> {
         }
     }
 
-    fn insert_param_child(&mut self, segments: Vec<Segment<'_>>, name: &[u8], data: T) -> bool {
+    fn insert_param_child(
+        &mut self,
+        segments: Vec<Segment<'_>>,
+        name: &[u8],
+        data: NodeData<T>,
+    ) -> bool {
         let child = match self
             .param_children
             .iter_mut()
@@ -294,7 +326,7 @@ impl<T> Node<T> {
         child.insert_child(segments, data)
     }
 
-    fn insert_catch_all_child(&mut self, name: Option<&[u8]>, data: T) -> bool {
+    fn insert_catch_all_child(&mut self, name: Option<&[u8]>, data: NodeData<T>) -> bool {
         self.catch_all_child
             .replace(Box::new(Node {
                 node_type: NodeType::CatchAll,
@@ -315,7 +347,7 @@ impl<T> Node<T> {
         segments: Vec<Segment<'_>>,
         name: Option<&[u8]>,
         re: PathRegex,
-        data: T,
+        data: NodeData<T>,
     ) -> bool {
         let name = name.unwrap_or_default();
         let child = match self
@@ -347,7 +379,7 @@ impl<T> Node<T> {
         &'a self,
         path: &'b [u8],
         params: &mut SmallVec<[(&'b [u8], &'b [u8]); 8]>,
-    ) -> Option<&'a T> {
+    ) -> Option<&'a NodeData<T>> {
         if path.is_empty() {
             return if let Some(catch_all_child) = &self.catch_all_child {
                 if !catch_all_child.name.is_empty() {
@@ -412,7 +444,7 @@ pub(crate) type PathParams = Vec<(String, String)>;
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Matches<'a, T> {
     pub(crate) params: PathParams,
-    pub(crate) data: &'a T,
+    pub(crate) data: &'a NodeData<T>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -466,7 +498,7 @@ impl<T> RadixTree<T> {
         }
         segments.reverse();
 
-        if self.root.insert_child(segments, data) {
+        if self.root.insert_child(segments, NodeData::new(data, path)) {
             Ok(())
         } else {
             Err(RouteError::Duplicate(path.to_string()))
@@ -602,21 +634,21 @@ mod tests {
                                 param_children: vec![],
                                 catch_all_child: None,
                                 regex_children: vec![],
-                                data: Some(3),
+                                data: Some(NodeData::new(3, "/abcdefgh")),
                             }],
                             indices: vec![b'g'],
                             re: None,
                             param_children: vec![],
                             catch_all_child: None,
                             regex_children: vec![],
-                            data: Some(2),
+                            data: Some(NodeData::new(2, "/abcdef")),
                         }],
                         indices: vec![b'd'],
                         re: None,
                         param_children: vec![],
                         catch_all_child: None,
                         regex_children: vec![],
-                        data: Some(1)
+                        data: Some(NodeData::new(1, "/abc"))
                     }],
                     indices: vec![b'/'],
                     re: None,
@@ -656,7 +688,7 @@ mod tests {
                                 param_children: vec![],
                                 catch_all_child: None,
                                 regex_children: vec![],
-                                data: Some(1),
+                                data: Some(NodeData::new(1, "/abcd")),
                             },
                             Node {
                                 node_type: NodeType::Static,
@@ -671,7 +703,7 @@ mod tests {
                                         param_children: vec![],
                                         catch_all_child: None,
                                         regex_children: vec![],
-                                        data: Some(2)
+                                        data: Some(NodeData::new(2, "/ab1234"))
                                     },
                                     Node {
                                         node_type: NodeType::Static,
@@ -685,14 +717,14 @@ mod tests {
                                             param_children: vec![],
                                             catch_all_child: None,
                                             regex_children: vec![],
-                                            data: Some(4)
+                                            data: Some(NodeData::new(4, "/ab125678"))
                                         }],
                                         indices: vec![b'7'],
                                         re: None,
                                         param_children: vec![],
                                         catch_all_child: None,
                                         regex_children: vec![],
-                                        data: Some(3)
+                                        data: Some(NodeData::new(3, "/ab1256"))
                                     }
                                 ],
                                 indices: vec![b'3', b'5'],
@@ -744,14 +776,14 @@ mod tests {
                             param_children: vec![],
                             catch_all_child: None,
                             regex_children: vec![],
-                            data: Some(1)
+                            data: Some(NodeData::new(1, "/abc"))
                         }],
                         indices: vec![b'c'],
                         re: None,
                         param_children: vec![],
                         catch_all_child: None,
                         regex_children: vec![],
-                        data: Some(2)
+                        data: Some(NodeData::new(2, "/ab"))
                     }],
                     indices: vec![b'/'],
                     re: None,
@@ -797,7 +829,7 @@ mod tests {
                                     param_children: vec![],
                                     catch_all_child: None,
                                     regex_children: vec![],
-                                    data: Some(2),
+                                    data: Some(NodeData::new(2, "/abc/:p1/p2"))
                                 }],
                                 indices: vec![b'p'],
                                 re: None,
@@ -810,7 +842,7 @@ mod tests {
                                     param_children: vec![],
                                     catch_all_child: None,
                                     regex_children: vec![],
-                                    data: Some(3)
+                                    data: Some(NodeData::new(3, "/abc/:p1/:p3"))
                                 })],
                                 catch_all_child: None,
                                 regex_children: vec![],
@@ -821,7 +853,7 @@ mod tests {
                             param_children: vec![],
                             catch_all_child: None,
                             regex_children: vec![],
-                            data: Some(1)
+                            data: Some(NodeData::new(1, "/abc/:p1"))
                         })],
                         catch_all_child: None,
                         regex_children: vec![],
@@ -869,7 +901,7 @@ mod tests {
                                     param_children: vec![],
                                     catch_all_child: None,
                                     regex_children: vec![],
-                                    data: Some(1)
+                                    data: Some(NodeData::new(1, "/abc/*p1"))
                                 })),
                                 regex_children: vec![],
                                 data: None
@@ -883,7 +915,7 @@ mod tests {
                                 param_children: vec![],
                                 catch_all_child: None,
                                 regex_children: vec![],
-                                data: Some(2)
+                                data: Some(NodeData::new(2, "/ab/de"))
                             }
                         ],
                         indices: vec![b'c', b'/'],
@@ -927,7 +959,7 @@ mod tests {
                         param_children: vec![],
                         catch_all_child: None,
                         regex_children: vec![],
-                        data: Some(1)
+                        data: Some(NodeData::new(1, "*p1"))
                     })),
                     regex_children: vec![],
                     data: None
@@ -968,7 +1000,7 @@ mod tests {
                                 param_children: vec![],
                                 catch_all_child: None,
                                 regex_children: vec![],
-                                data: Some(2),
+                                data: Some(NodeData::new(2, "/abc/def/:name<\\d+>"))
                             })],
                             data: None
                         }],
@@ -988,7 +1020,7 @@ mod tests {
                                 param_children: vec![],
                                 catch_all_child: None,
                                 regex_children: vec![],
-                                data: Some(1),
+                                data: Some(NodeData::new(1, "/abc/<\\d+>/def"))
                             }],
                             indices: vec![b'/'],
                             re: Some(PathRegex::new(b"\\d+").unwrap()),
@@ -1060,87 +1092,78 @@ mod tests {
         }
 
         let matches = vec![
-            (
-                "/ab/def",
-                Some(Matches {
-                    params: vec![],
-                    data: &1,
-                }),
-            ),
-            (
-                "/abc/def",
-                Some(Matches {
-                    params: vec![],
-                    data: &2,
-                }),
-            ),
+            ("/ab/def", Some((vec![], NodeData::new(1, "/ab/def")))),
+            ("/abc/def", Some((vec![], NodeData::new(2, "/abc/def")))),
             (
                 "/abc/cde",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "cde")]),
-                    data: &3,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "cde")]),
+                    NodeData::new(3, "/abc/:p1"),
+                )),
             ),
             (
                 "/abc/cde/def",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "cde")]),
-                    data: &4,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "cde")]),
+                    NodeData::new(4, "/abc/:p1/def"),
+                )),
             ),
             (
                 "/abc/cde/hjk",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "cde"), ("p2", "hjk")]),
-                    data: &5,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "cde"), ("p2", "hjk")]),
+                    NodeData::new(5, "/abc/:p1/:p2"),
+                )),
             ),
             (
                 "/abc/def/iop/123",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "iop/123")]),
-                    data: &6,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "iop/123")]),
+                    NodeData::new(6, "/abc/def/*p1"),
+                )),
             ),
             (
                 "/a/b/k/c",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "b"), ("p2", "k")]),
-                    data: &8,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "b"), ("p2", "k")]),
+                    NodeData::new(8, "/a/:p1/:p2/c"),
+                )),
             ),
             (
                 "/kcd/uio",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "kcd/uio")]),
-                    data: &9,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "kcd/uio")]),
+                    NodeData::new(9, "/*p1"),
+                )),
             ),
             (
                 "/",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "")]),
-                    data: &9,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "")]),
+                    NodeData::new(9, "/*p1"),
+                )),
             ),
             (
                 "/abc/123/def",
-                Some(Matches {
-                    params: vec![],
-                    data: &10,
-                }),
+                Some((vec![], NodeData::new(10, "/abc/<\\d+>/def"))),
             ),
             (
                 "/kcd/567",
-                Some(Matches {
-                    params: create_url_params(vec![("p1", "567")]),
-                    data: &11,
-                }),
+                Some((
+                    create_url_params(vec![("p1", "567")]),
+                    NodeData::new(11, "/kcd/:p1<\\d+>"),
+                )),
             ),
         ];
 
-        for (path, res) in matches {
-            assert_eq!(tree.matches(path), res);
+        for (path, mut res) in matches {
+            assert_eq!(
+                tree.matches(path),
+                res.as_mut().map(|(params, data)| Matches {
+                    params: std::mem::take(params),
+                    data
+                })
+            );
         }
     }
 
@@ -1151,19 +1174,19 @@ mod tests {
         tree.add("/a/*path", 2).unwrap();
 
         let matches = tree.matches("/a/123");
-        assert_eq!(matches.unwrap().data, &2);
+        assert_eq!(matches.unwrap().data.data, 2);
 
         tree.add("/a/:id", 3).unwrap();
         let matches = tree.matches("/a/123");
-        assert_eq!(matches.unwrap().data, &3);
+        assert_eq!(matches.unwrap().data.data, 3);
 
         tree.add("/a/:id<\\d+>", 4).unwrap();
         let matches = tree.matches("/a/123");
-        assert_eq!(matches.unwrap().data, &4);
+        assert_eq!(matches.unwrap().data.data, 4);
 
         tree.add("/a/123", 5).unwrap();
         let matches = tree.matches("/a/123");
-        assert_eq!(matches.unwrap().data, &5);
+        assert_eq!(matches.unwrap().data.data, 5);
     }
 
     #[test]
@@ -1172,15 +1195,15 @@ mod tests {
         tree.add("/a/*path", 1).unwrap();
 
         let matches = tree.matches("/a/b/c/123");
-        assert_eq!(matches.unwrap().data, &1);
+        assert_eq!(matches.unwrap().data.data, 1);
 
         tree.add("/a/b/*path", 2).unwrap();
         let matches = tree.matches("/a/b/c/123");
-        assert_eq!(matches.unwrap().data, &2);
+        assert_eq!(matches.unwrap().data.data, 2);
 
         tree.add("/a/b/c/*path", 3).unwrap();
         let matches = tree.matches("/a/b/c/123");
-        assert_eq!(matches.unwrap().data, &3);
+        assert_eq!(matches.unwrap().data.data, 3);
     }
 
     #[test]
@@ -1190,13 +1213,13 @@ mod tests {
         tree.add("/:id2/b", 2).unwrap();
 
         let matches = tree.matches("/abc/a").unwrap();
-        assert_eq!(matches.data, &1);
+        assert_eq!(matches.data.data, 1);
         assert_eq!(matches.params.len(), 1);
         assert_eq!(matches.params[0].0, "id1");
         assert_eq!(matches.params[0].1, "abc");
 
         let matches = tree.matches("/def/b").unwrap();
-        assert_eq!(matches.data, &2);
+        assert_eq!(matches.data.data, 2);
         assert_eq!(matches.params.len(), 1);
         assert_eq!(matches.params[0].0, "id2");
         assert_eq!(matches.params[0].1, "def");
@@ -1208,12 +1231,12 @@ mod tests {
         tree.add("/a/:id", 1).unwrap();
 
         let matches = tree.matches("/a/abc").unwrap();
-        assert_eq!(matches.data, &1);
+        assert_eq!(matches.data.data, 1);
         assert_eq!(matches.params[0].0, "id");
         assert_eq!(matches.params[0].1, "abc");
 
         let matches = tree.matches("/a/%E4%BD%A0%E5%A5%BD").unwrap();
-        assert_eq!(matches.data, &1);
+        assert_eq!(matches.data.data, 1);
         assert_eq!(matches.params[0].0, "id");
         assert_eq!(matches.params[0].1, "你好");
     }

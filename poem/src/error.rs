@@ -462,6 +462,12 @@ impl Error {
             AsResponse::Response(resp) => resp.status(),
         }
     }
+
+    /// Returns `true` if the error was created from the response
+    #[inline]
+    pub fn is_from_response(&self) -> bool {
+        matches!(&self.as_response, AsResponse::Response(_))
+    }
 }
 
 define_http_error!(

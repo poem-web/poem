@@ -287,6 +287,10 @@ impl Route {
     }
 }
 
+#[derive(Debug)]
+#[allow(unreachable_pub)]
+pub struct PathPattern(pub Arc<str>);
+
 #[async_trait::async_trait]
 impl Endpoint for Route {
     type Output = Response;
@@ -295,7 +299,9 @@ impl Endpoint for Route {
         match self.tree.matches(req.uri().path()) {
             Some(matches) => {
                 req.state_mut().match_params.extend(matches.params);
-                matches.data.call(req).await
+                req.extensions_mut()
+                    .insert(PathPattern(matches.data.pattern.clone()));
+                matches.data.data.call(req).await
             }
             None => Err(NotFoundError.into()),
         }
