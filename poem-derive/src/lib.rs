@@ -11,7 +11,9 @@ mod utils;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, AttributeArgs, FnArg, ItemFn, Member, Meta, NestedMeta, Result};
+use syn::{
+    parse_macro_input, AttributeArgs, FnArg, GenericParam, ItemFn, Member, Meta, NestedMeta, Result,
+};
 
 /// Wrap an asynchronous function as an `Endpoint`.
 ///
@@ -42,6 +44,7 @@ pub fn handler(args: TokenStream, input: TokenStream) -> TokenStream {
 fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
     let crate_name = utils::get_crate_name(internal);
     let item_fn = syn::parse::<ItemFn>(input)?;
+    let (impl_generics, type_generics, where_clause) = item_fn.sig.generics.split_for_impl();
     let vis = &item_fn.vis;
     let docs = item_fn
         .attrs
@@ -54,6 +57,30 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
         Some(quote::quote!(.await))
     } else {
         None
+    };
+
+    let def_struct = if !item_fn.sig.generics.params.is_empty() {
+        let members = item_fn
+            .sig
+            .generics
+            .params
+            .iter()
+            .filter_map(|param| match param {
+                GenericParam::Type(ty) => Some(ty),
+                _ => None,
+            })
+            .enumerate()
+            .map(|(idx, ty)| {
+                let ty_ident = &ty.ident;
+                let ident = format_ident!("_mark{}", idx);
+                quote! { #ident: ::std::marker::PhantomData<#ty_ident> }
+            });
+        quote! {
+            #[derive(Default)]
+            #vis struct #ident #type_generics { #(#members),*}
+        }
+    } else {
+        quote! { #vis struct #ident; }
     };
 
     let mut extractors = Vec::new();
@@ -72,10 +99,10 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
     let expanded = quote! {
         #(#docs)*
         #[allow(non_camel_case_types)]
-        #vis struct #ident;
+        #def_struct
 
         #[#crate_name::async_trait]
-        impl #crate_name::Endpoint for #ident {
+        impl #impl_generics #crate_name::Endpoint for #ident #type_generics #where_clause {
             type Output = #crate_name::Response;
 
             #[allow(unused_mut)]
