@@ -1,0 +1,11 @@
+[package]
+name = "example-tera-templating"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+poem = { path = "../../../poem", features = ["rustls"]}
+tokio = { version = "1.21.2", features = ["full"] }
+tera = "1.17.1"
+lazy_static = "1.4.0"
