@@ -1,5 +1,5 @@
 [package]
-name = "example-templating"
+name = "example-tera-templating"
 version = "0.1.0"
 edition = "2021"
 publish = false
