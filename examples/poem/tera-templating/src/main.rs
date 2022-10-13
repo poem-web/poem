@@ -1,7 +1,11 @@
-use poem::{get, handler, listener::TcpListener, web::Path, web::Html, Route, Server};
-use poem::error::InternalServerError;
-use tera::Tera;
-use tera::Context;
+use poem::{
+    error::InternalServerError,
+    get, handler,
+    listener::TcpListener,
+    web::{Html, Path},
+    Route, Server,
+};
+use tera::{Context, Tera};
 
 #[macro_use]
 extern crate lazy_static;
@@ -25,9 +29,9 @@ fn hello(Path(name): Path<String>) -> Result<Html<String>, poem::Error> {
     let mut context = Context::new();
     context.insert("name", &name);
     TEMPLATES
-    .render("index.html.tera", &context)
-    .map_err(InternalServerError)
-    .map(Html)
+        .render("index.html.tera", &context)
+        .map_err(InternalServerError)
+        .map(Html)
 }
 
 #[tokio::main]
