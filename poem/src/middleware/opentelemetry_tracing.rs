@@ -3,12 +3,13 @@ use std::sync::Arc;
 use libopentelemetry::{
     global,
     trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
-    Context,
+    Context, Key,
 };
 use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{resource, trace};
 
 use crate::{
+    route::PathPattern,
     web::{headers::HeaderMapExt, RealIp},
     Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
 };
@@ -77,9 +78,14 @@ where
         attributes.push(resource::TELEMETRY_SDK_VERSION.string(env!("CARGO_PKG_VERSION")));
         attributes.push(resource::TELEMETRY_SDK_LANGUAGE.string("rust"));
         attributes.push(trace::HTTP_METHOD.string(req.method().to_string()));
-        attributes.push(trace::HTTP_TARGET.string(req.uri().path().to_string()));
+        attributes.push(trace::HTTP_URL.string(req.original_uri().to_string()));
         attributes.push(trace::HTTP_CLIENT_IP.string(remote_addr));
         attributes.push(trace::HTTP_FLAVOR.string(format!("{:?}", req.version())));
+
+        if let Some(path_pattern) = req.data::<PathPattern>() {
+            const HTTP_PATH_PATTERN: Key = Key::from_static_str("http.path_pattern");
+            attributes.push(HTTP_PATH_PATTERN.string(path_pattern.0.to_string()));
+        }
 
         let mut span = self
             .tracer

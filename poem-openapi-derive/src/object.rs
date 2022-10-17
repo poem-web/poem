@@ -1,4 +1,8 @@
-use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
+use darling::{
+    ast::Data,
+    util::{Ignored, SpannedValue},
+    FromDeriveInput, FromField,
+};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
@@ -31,7 +35,7 @@ struct ObjectField {
     #[darling(default)]
     validator: Option<Validators>,
     #[darling(default)]
-    flatten: bool,
+    flatten: SpannedValue<bool>,
     #[darling(default)]
     skip_serializing_if_is_none: bool,
     #[darling(default)]
@@ -150,7 +154,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     ::std::default::Default::default()
                 };
             });
-        } else if !field.flatten {
+        } else if !*field.flatten {
             match (&field.default, &args.default) {
                 // field default
                 (Some(default_value), _) => {
@@ -215,6 +219,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             };
         } else {
+            if args.deny_unknown_fields {
+                return Err(Error::new(
+                    field.flatten.span(),
+                    "flatten attribute is not supported in combination with structs that use deny_unknown_fields.",
+                )
+                .into());
+            }
             deserialize_fields.push(quote! {
                 #[allow(non_snake_case)]
                 let #field_ident: #field_ty = {
@@ -224,7 +235,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             });
         }
 
-        if !field.flatten {
+        if !*field.flatten {
             if !write_only {
                 let check_is_none = if skip_serializing_if_is_none {
                     quote!(!#crate_name::types::Type::is_none(&self.#field_ident))
@@ -281,7 +292,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             (None, None) => quote!(::std::option::Option::None),
         };
 
-        if !field.flatten {
+        if !*field.flatten {
             register_types
                 .push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
 
