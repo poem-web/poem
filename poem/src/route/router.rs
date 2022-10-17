@@ -10,6 +10,9 @@ use crate::{
     Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
+#[derive(Debug)]
+struct PathPrefix(usize);
+
 /// Routing object
 ///
 /// You can match the full path or wildcard path, and use the
@@ -224,6 +227,7 @@ impl Route {
             inner: T,
             root: bool,
             prefix_len: usize,
+            prefix_for_path_pattern: usize,
         }
 
         #[async_trait::async_trait]
@@ -251,6 +255,7 @@ impl Route {
                 };
                 *req.uri_mut() = new_uri;
 
+                req.set_data(PathPrefix(self.prefix_for_path_pattern));
                 Ok(self.inner.call(req).await?.into_response())
             }
         }
@@ -264,6 +269,10 @@ impl Route {
             false => 0,
             true => path.len() - 1,
         };
+        let prefix_for_path_pattern = match strip {
+            false => path.len() - 1,
+            true => 0,
+        };
 
         self.tree.add(
             &format!("{}*--poem-rest", path),
@@ -271,6 +280,7 @@ impl Route {
                 inner: ep.clone(),
                 root: false,
                 prefix_len,
+                prefix_for_path_pattern,
             }),
         )?;
 
@@ -280,6 +290,7 @@ impl Route {
                 inner: ep,
                 root: true,
                 prefix_len,
+                prefix_for_path_pattern,
             }),
         )?;
 
@@ -299,8 +310,22 @@ impl Endpoint for Route {
         match self.tree.matches(req.uri().path()) {
             Some(matches) => {
                 req.state_mut().match_params.extend(matches.params);
-                req.extensions_mut()
-                    .insert(PathPattern(matches.data.pattern.clone()));
+
+                let pattern = match matches.data.pattern.strip_suffix("/*--poem-rest") {
+                    Some(pattern) => pattern.into(),
+                    None => matches.data.pattern.clone(),
+                };
+
+                match (req.data::<PathPattern>(), req.data::<PathPrefix>()) {
+                    (Some(parent), Some(prefix)) => req.set_data(PathPattern(
+                        format!("{}{}", parent.0, &pattern[prefix.0..]).into(),
+                    )),
+                    (None, Some(prefix)) => req.set_data(PathPattern(pattern[prefix.0..].into())),
+                    (None, None) => req.set_data(PathPattern(pattern)),
+                    (Some(parent), None) => {
+                        req.set_data(PathPattern(format!("{}{}", parent.0, pattern).into()))
+                    }
+                }
                 matches.data.data.call(req).await
             }
             None => Err(NotFoundError.into()),
@@ -322,7 +347,7 @@ mod tests {
     use http::{StatusCode, Uri};
 
     use super::*;
-    use crate::{endpoint::make_sync, handler};
+    use crate::{endpoint::make_sync, handler, test::TestClient};
 
     #[test]
     fn test_normalize_path() {
@@ -468,5 +493,72 @@ mod tests {
                 .status(),
             StatusCode::NOT_FOUND
         );
+    }
+
+    #[tokio::test]
+    async fn path_pattern() {
+        let app = Route::new()
+            .at(
+                "/a/:id",
+                make_sync(|req| req.data::<PathPattern>().unwrap().0.to_string()),
+            )
+            .nest(
+                "/nest",
+                Route::new().at(
+                    "/c/:id",
+                    make_sync(|req| req.data::<PathPattern>().unwrap().0.to_string()),
+                ),
+            )
+            .nest(
+                "/nest1",
+                Route::new().nest(
+                    "/nest2",
+                    Route::new().at(
+                        "/:id",
+                        make_sync(|req| req.data::<PathPattern>().unwrap().0.to_string()),
+                    ),
+                ),
+            )
+            .nest_no_strip(
+                "/nest_no_strip",
+                Route::new().at(
+                    "/nest_no_strip/d/:id",
+                    make_sync(|req| req.data::<PathPattern>().unwrap().0.to_string()),
+                ),
+            )
+            .nest_no_strip(
+                "/nest_no_strip1",
+                Route::new().nest_no_strip(
+                    "/nest_no_strip1/nest_no_strip2",
+                    Route::new().at(
+                        "/nest_no_strip1/nest_no_strip2/:id",
+                        make_sync(|req| req.data::<PathPattern>().unwrap().0.to_string()),
+                    ),
+                ),
+            );
+
+        let cli = TestClient::new(app);
+
+        cli.get("/a/10").send().await.assert_text("/a/:id").await;
+        cli.get("/nest/c/10")
+            .send()
+            .await
+            .assert_text("/nest/c/:id")
+            .await;
+        cli.get("/nest_no_strip/d/99")
+            .send()
+            .await
+            .assert_text("/nest_no_strip/d/:id")
+            .await;
+        cli.get("/nest1/nest2/10")
+            .send()
+            .await
+            .assert_text("/nest1/nest2/:id")
+            .await;
+        cli.get("/nest_no_strip1/nest_no_strip2/10")
+            .send()
+            .await
+            .assert_text("/nest_no_strip1/nest_no_strip2/:id")
+            .await;
     }
 }
