@@ -4,9 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.3.46] 2022-10-11
+# [1.3.46] 2022-10-17
 
 - Add `path_pattern` to log [#337](https://github.com/poem-web/poem/issues/337)
+- Add support to generics handler [#408](https://github.com/poem-web/poem/issues/408)
 
 # [1.3.45] 2022-09-28
 
