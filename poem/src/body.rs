@@ -206,7 +206,7 @@ impl Body {
     /// - [`ReadBodyError`]
     /// - [`ParseJsonError`]
     pub async fn into_json<T: DeserializeOwned>(self) -> Result<T> {
-        Ok(serde_json::from_slice(&self.into_vec().await?).map_err(ParseJsonError)?)
+        Ok(serde_json::from_slice(&self.into_vec().await?).map_err(ParseJsonError::Parse)?)
     }
 
     /// Consumes this body object and parse it as `T`.
@@ -217,8 +217,8 @@ impl Body {
     /// - [`ParseXmlError`](crate::error::ParseXmlError)
     #[cfg(feature = "xml")]
     pub async fn into_xml<T: DeserializeOwned>(self) -> Result<T> {
-        Ok(quick_xml::de::from_slice(&self.into_vec().await?)
-            .map_err(crate::error::ParseXmlError)?)
+        Ok(quick_xml::de::from_reader(self.into_vec().await?.as_ref())
+            .map_err(crate::error::ParseXmlError::Parse)?)
     }
 
     /// Consumes this body object to return a reader.

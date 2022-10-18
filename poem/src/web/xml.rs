@@ -4,10 +4,8 @@ use http::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    error::{MissingXmlContentTypeError, ParseXmlError},
-    http::header,
-    web::RequestBody,
-    FromRequest, IntoResponse, Request, Response, Result,
+    error::ParseXmlError, http::header, web::RequestBody, FromRequest, IntoResponse, Request,
+    Response, Result,
 };
 
 /// XML extractor and response.
@@ -109,27 +107,29 @@ impl<T> DerefMut for Xml<T> {
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Xml<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        if is_xml_content_type(req) {
-            let data = body.take()?.into_bytes().await?;
-            Ok(Self(
-                quick_xml::de::from_slice(&data).map_err(ParseXmlError)?,
-            ))
-        } else {
-            Err(MissingXmlContentTypeError.into())
+        let content_type = req
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|content_type| content_type.to_str().ok())
+            .ok_or(ParseXmlError::ContentTypeRequired)?;
+        if !is_xml_content_type(content_type) {
+            return Err(ParseXmlError::InvalidContentType(content_type.into()).into());
         }
+
+        Ok(Self(
+            quick_xml::de::from_reader(body.take()?.into_bytes().await?.as_ref())
+                .map_err(ParseXmlError::Parse)?,
+        ))
     }
 }
 
-fn is_xml_content_type(req: &Request) -> bool {
-    matches!(
-        req
-            .header(header::CONTENT_TYPE)
-            .and_then(|value| value.parse::<mime::Mime>().ok()),
-        Some(content_type)
-            if content_type.type_() == "application"
-                && (content_type.subtype() == "xml"
-                    || content_type.suffix().map_or(false, |v| v == "xml"))
-    )
+fn is_xml_content_type(content_type: &str) -> bool {
+    matches!(content_type.parse::<mime::Mime>(), 
+        Ok(content_type) if content_type.type_() == "application" 
+        && (content_type.subtype() == "xml"
+        || content_type
+            .suffix()
+            .map_or(false, |v| v == "xml")))
 }
 
 impl<T: Serialize + Send> IntoResponse for Xml<T> {

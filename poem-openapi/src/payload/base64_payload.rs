@@ -85,7 +85,15 @@ impl<T> DerefMut for Base64<T> {
 }
 
 impl<T: Send> Payload for Base64<T> {
-    const CONTENT_TYPE: &'static str = "text/plain";
+    const CONTENT_TYPE: &'static str = "text/plain; charset=utf-8";
+
+    fn check_content_type(content_type: &str) -> bool {
+        matches!(content_type.parse::<mime::Mime>(), Ok(content_type) if content_type.type_() == "text"
+                && (content_type.subtype() == "plain"
+                || content_type
+                    .suffix()
+                    .map_or(false, |v| v == "plain")))
+    }
 
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {

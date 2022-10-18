@@ -28,7 +28,15 @@ impl<T> DerefMut for Html<T> {
 }
 
 impl<T: Send> Payload for Html<T> {
-    const CONTENT_TYPE: &'static str = "text/html";
+    const CONTENT_TYPE: &'static str = "text/html; charset=utf-8";
+
+    fn check_content_type(content_type: &str) -> bool {
+        matches!(content_type.parse::<mime::Mime>(), Ok(content_type) if content_type.type_() == "text"
+                && (content_type.subtype() == "html"
+                || content_type
+                    .suffix()
+                    .map_or(false, |v| v == "html")))
+    }
 
     fn schema_ref() -> MetaSchemaRef {
         String::schema_ref()

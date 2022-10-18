@@ -30,7 +30,15 @@ impl<T> DerefMut for Xml<T> {
 }
 
 impl<T: Type> Payload for Xml<T> {
-    const CONTENT_TYPE: &'static str = "application/xml";
+    const CONTENT_TYPE: &'static str = "application/xml; charset=utf-8";
+
+    fn check_content_type(content_type: &str) -> bool {
+        matches!(content_type.parse::<mime::Mime>(), Ok(content_type) if content_type.type_() == "application"
+                && (content_type.subtype() == "xml"
+                || content_type
+                    .suffix()
+                    .map_or(false, |v| v == "xml")))
+    }
 
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()

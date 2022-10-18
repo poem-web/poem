@@ -28,11 +28,11 @@ fn meta() {
             description: Some("MyRequest\n\nABC"),
             content: vec![
                 MetaMediaType {
-                    content_type: "application/json",
+                    content_type: "application/json; charset=utf-8",
                     schema: MetaSchemaRef::Reference("CreateUser".to_string()),
                 },
                 MetaMediaType {
-                    content_type: "text/plain",
+                    content_type: "text/plain; charset=utf-8",
                     schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
                 }
             ],
@@ -45,6 +45,26 @@ fn meta() {
 async fn from_request() {
     let request = poem::Request::builder()
         .content_type("application/json")
+        .body(
+            serde_json::to_vec(&serde_json::json!({
+                "user": "sunli",
+                "password": "123456",
+            }))
+            .unwrap(),
+        );
+    let (request, mut body) = request.split();
+    assert_eq!(
+        MyRequest::from_request(&request, &mut body, Default::default())
+            .await
+            .unwrap(),
+        MyRequest::CreateByJson(Json(CreateUser {
+            user: "sunli".to_string(),
+            password: "123456".to_string()
+        }))
+    );
+
+    let request = poem::Request::builder()
+        .content_type("application/json; x=10")
         .body(
             serde_json::to_vec(&serde_json::json!({
                 "user": "sunli",
@@ -83,7 +103,7 @@ async fn generic() {
     }
 
     let request = poem::Request::builder()
-        .content_type("application/json")
+        .content_type("application/json; charset=utf-8")
         .body(serde_json::to_vec(&serde_json::json!("hello")).unwrap());
 
     assert_eq!(
@@ -91,7 +111,7 @@ async fn generic() {
         MetaRequest {
             description: None,
             content: vec![MetaMediaType {
-                content_type: "application/json",
+                content_type: "application/json; charset=utf-8",
                 schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
             },],
             required: true

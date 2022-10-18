@@ -4,10 +4,8 @@ use http::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    error::{MissingJsonContentTypeError, ParseJsonError},
-    http::header,
-    web::RequestBody,
-    FromRequest, IntoResponse, Request, Response, Result,
+    error::ParseJsonError, http::header, web::RequestBody, FromRequest, IntoResponse, Request,
+    Response, Result,
 };
 
 /// JSON extractor and response.
@@ -108,24 +106,29 @@ impl<T> DerefMut for Json<T> {
 #[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        if is_json_content_type(req) {
-            let data = body.take()?.into_bytes().await?;
-            Ok(Self(serde_json::from_slice(&data).map_err(ParseJsonError)?))
-        } else {
-            Err(MissingJsonContentTypeError.into())
+        let content_type = req
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|content_type| content_type.to_str().ok())
+            .ok_or(ParseJsonError::ContentTypeRequired)?;
+        if !is_json_content_type(content_type) {
+            return Err(ParseJsonError::InvalidContentType(content_type.into()).into());
         }
+
+        Ok(Self(
+            serde_json::from_slice(&body.take()?.into_bytes().await?)
+                .map_err(ParseJsonError::Parse)?,
+        ))
     }
 }
 
-fn is_json_content_type(req: &Request) -> bool {
-    matches!(
-        req
-            .header(header::CONTENT_TYPE)
-            .and_then(|value| value.parse::<mime::Mime>().ok()),
-        Some(content_type)
-            if content_type.type_() == "application"
-                && (content_type.subtype() == "json"
-                    || content_type.suffix().map_or(false, |v| v == "json")))
+fn is_json_content_type(content_type: &str) -> bool {
+    matches!(content_type.parse::<mime::Mime>(), 
+        Ok(content_type) if content_type.type_() == "application" 
+        && (content_type.subtype() == "json"
+        || content_type
+            .suffix()
+            .map_or(false, |v| v == "json")))
 }
 
 impl<T: Serialize + Send> IntoResponse for Json<T> {

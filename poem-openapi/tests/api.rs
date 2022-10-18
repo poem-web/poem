@@ -141,10 +141,16 @@ async fn request() {
     assert!(meta_request.required);
     assert_eq!(meta_request.description, Some("Test request"));
 
-    assert_eq!(meta_request.content[0].content_type, "application/json");
+    assert_eq!(
+        meta_request.content[0].content_type,
+        "application/json; charset=utf-8"
+    );
     assert_eq!(meta_request.content[0].schema, i32::schema_ref());
 
-    assert_eq!(meta_request.content[1].content_type, "text/plain");
+    assert_eq!(
+        meta_request.content[1].content_type,
+        "text/plain; charset=utf-8"
+    );
     assert_eq!(meta_request.content[1].schema, String::schema_ref());
 
     assert_eq!(
@@ -164,6 +170,13 @@ async fn request() {
 
     cli.get("/")
         .content_type("application/json")
+        .body("100")
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    cli.get("/")
+        .content_type("application/json; x=10")
         .body("100")
         .send()
         .await
@@ -200,7 +213,10 @@ async fn payload_request() {
     let meta_request = meta.paths[0].operations[0].request.as_ref().unwrap();
     assert!(meta_request.required);
 
-    assert_eq!(meta_request.content[0].content_type, "application/json");
+    assert_eq!(
+        meta_request.content[0].content_type,
+        "application/json; charset=utf-8"
+    );
     assert_eq!(meta_request.content[0].schema, i32::schema_ref());
 
     let ep = OpenApiService::new(Api, "test", "1.0");
@@ -262,7 +278,7 @@ async fn response() {
     assert_eq!(meta_responses.responses[1].status, Some(409));
     assert_eq!(
         meta_responses.responses[1].content[0].content_type,
-        "application/json"
+        "application/json; charset=utf-8"
     );
     assert_eq!(
         meta_responses.responses[1].content[0].schema,
@@ -273,7 +289,7 @@ async fn response() {
     assert_eq!(meta_responses.responses[2].status, None);
     assert_eq!(
         meta_responses.responses[2].content[0].content_type,
-        "text/plain"
+        "text/plain; charset=utf-8"
     );
     assert_eq!(
         meta_responses.responses[2].content[0].schema,
@@ -697,14 +713,14 @@ async fn actual_type() {
     assert_eq!(response.status, Some(200));
 
     let media = &response.content[0];
-    assert_eq!(media.content_type, "application/json");
+    assert_eq!(media.content_type, "application/json; charset=utf-8");
     assert_eq!(media.schema, <Json<MyObj>>::schema_ref());
 
     let ep = OpenApiService::new(Api, "test", "1.0");
     let cli = TestClient::new(ep);
     let resp = cli.get("/").send().await;
 
-    resp.assert_content_type("application/json");
+    resp.assert_content_type("application/json; charset=utf-8");
     resp.assert_json(&serde_json::json!({ "value": 100 })).await;
 
     let mut registry = Registry::new();

@@ -147,7 +147,7 @@ async fn request_body() {
         Some(MetaRequest {
             description: None,
             content: vec![MetaMediaType {
-                content_type: "application/json",
+                content_type: "application/json; charset=utf-8",
                 schema: i32::schema_ref(),
             }],
             required: true
@@ -170,7 +170,7 @@ async fn response() {
                 description: "",
                 status: Some(200),
                 content: vec![MetaMediaType {
-                    content_type: "application/json",
+                    content_type: "application/json; charset=utf-8",
                     schema: i32::schema_ref(),
                 }],
                 headers: vec![]

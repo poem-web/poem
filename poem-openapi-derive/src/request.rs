@@ -5,7 +5,6 @@ use darling::{
     util::{Ignored, SpannedValue},
     FromDeriveInput, FromVariant,
 };
-use mime::Mime;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Generics, Type};
@@ -75,22 +74,27 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let payload_ty = &variant.fields.fields[0];
                 let content_type = match &variant.content_type {
                     Some(content_type) => {
-                        if !matches!(Mime::from_str(content_type), Ok(mime) if mime.params().count() == 0)
-                        {
-                            return Err(Error::new(content_type.span(), "Invalid mime type").into());
-                        }
                         let content_type = &**content_type;
                         quote!(#content_type)
                     }
-                    None => quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE),
+                    None => {
+                        quote!(<#payload_ty as #crate_name::payload::Payload>::CONTENT_TYPE)
+                    }
+                };
+                let check_content_type = match &variant.content_type {
+                    Some(content_type) => {
+                        let content_type = &**content_type;
+                        quote!(content_type == #content_type)
+                    }
+                    None => {
+                        quote!(<#payload_ty as #crate_name::payload::Payload>::check_content_type(content_type))
+                    }
                 };
                 from_requests.push(quote! {
-                    if let ::std::result::Result::Ok(content_type2) = #crate_name::__private::mime::Mime::from_str(#content_type) {
-                        if content_type2 == content_type  {
-                            return ::std::result::Result::Ok(#ident::#item_ident(
-                                <#payload_ty as #crate_name::payload::ParsePayload>::from_request(request, body).await?
-                            ));
-                        }
+                    if #check_content_type {
+                        return ::std::result::Result::Ok(#ident::#item_ident(
+                            <#payload_ty as #crate_name::payload::ParsePayload>::from_request(request, body).await?
+                        ));
                     }
                 });
                 content.push(quote! {
