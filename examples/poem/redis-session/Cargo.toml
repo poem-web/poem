@@ -8,4 +8,4 @@ publish = false
 poem = { path = "../../../poem", features = ["redis-session"] }
 tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
-redis = { version = "0.21.2", features = ["aio", "tokio-comp", "connection-manager"] }
+redis = { version = "0.22.0", features = ["aio", "tokio-comp", "connection-manager"] }
