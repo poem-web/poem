@@ -187,7 +187,7 @@ async fn create() {
         async fn test(&self) -> Json<i32>;
     }
 
-    let _ = OpenApiService::new((), "Test", "1.0").webhooks::<dyn MyWebhooks>();
+    let _ = OpenApiService::new((), "Test", "1.0").webhooks::<&dyn MyWebhooks>();
 }
 
 #[tokio::test]

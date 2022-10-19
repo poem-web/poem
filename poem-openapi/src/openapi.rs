@@ -209,7 +209,7 @@ impl ExtraHeader {
 }
 
 /// An OpenAPI service for Poem.
-pub struct OpenApiService<T, W: ?Sized> {
+pub struct OpenApiService<T, W> {
     api: T,
     _webhook: PhantomData<W>,
     info: MetaInfo,
@@ -245,9 +245,9 @@ impl<T> OpenApiService<T, ()> {
     }
 }
 
-impl<T, W: ?Sized> OpenApiService<T, W> {
+impl<T, W> OpenApiService<T, W> {
     /// Sets the webhooks.
-    pub fn webhooks<W2: ?Sized>(self) -> OpenApiService<T, W2> {
+    pub fn webhooks<W2>(self) -> OpenApiService<T, W2> {
         OpenApiService {
             api: self.api,
             _webhook: PhantomData,
