@@ -9,9 +9,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.61.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.61.0+-ab6000.svg"
-      alt="rustc 1.61.0+" />
+  <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.62.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.62.0+-ab6000.svg"
+      alt="rustc 1.62.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -47,7 +47,7 @@ The following are cases of community use:
 | [warpgate](https://github.com/eugeny/warpgate)                                   | A smart SSH bastion host that works with any SSH clients.                                                              | [(README)](https://github.com/warp-tech/warpgate/blob/main/README.md) |
 | [lust](https://github.com/ChillFish8/lust)                                       | A fast, auto-optimizing image server designed for high throughput and caching.                                         | [(README)](https://github.com/ChillFish8/lust/blob/master/README.md)  |
 | [aptos](https://github.com/aptos-labs/aptos-core)                                | Building the safest and most scalable Layer 1 blockchain.                                                              | [(WEBSITE)](https://aptoslabs.com/)                                   |
-| [poem-casbin](https://github.com/casbin-rs/poem-casbin)  | Casbin access control middleware for poem framework.                                                              | [(WEBSITE)](https://casbin.org/)                                   |
+| [poem-casbin](https://github.com/casbin-rs/poem-casbin)                          | Casbin access control middleware for poem framework.                                                                   | [(WEBSITE)](https://casbin.org/)                                      |
 
 
 ### Startups
