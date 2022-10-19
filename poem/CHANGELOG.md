@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [1.3.47] 2022-10-19
+
+- Fixes [#346](https://github.com/poem-web/poem/issues/346) [#395](https://github.com/poem-web/poem/issues/395)
+- Bump redis version to 0.22.0 [#412](https://github.com/poem-web/poem/pull/412)
+- Bump opentelemetry from `0.17.0` to `0.18.0`
+
 # [1.3.46] 2022-10-17
 
 - Add `path_pattern` to log [#337](https://github.com/poem-web/poem/issues/337)

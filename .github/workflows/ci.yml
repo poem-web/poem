@@ -72,7 +72,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
-        
+
       # Do tests
       - name: Check with clippy
         run: cargo clippy ${{ matrix.package.options }}
@@ -86,6 +86,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
 
       # Use nightly Rust to check the format
       - uses: actions-rs/toolchain@v1
