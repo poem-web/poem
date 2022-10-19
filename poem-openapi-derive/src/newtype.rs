@@ -36,6 +36,8 @@ struct NewTypeArgs {
     to_header: bool,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
+    #[darling(default)]
+    example: bool,
 }
 
 const fn default_true() -> bool {
@@ -75,12 +77,23 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
         None => quote!(::std::option::Option::None),
     };
+    let example = if args.example {
+        quote! {
+            {
+                let value = <Self as #crate_name::types::Example>::example();
+                <Self as #crate_name::types::ToJSON>::to_json(&value)
+            }
+        }
+    } else {
+        quote!(None)
+    };
 
     let schema_ref = quote! {
         <#inner_ty as #crate_name::types::Type>::schema_ref().merge(#crate_name::registry::MetaSchema {
             title: #summary,
             description: #description,
             external_docs: #external_docs,
+            example: #example,
             ..#crate_name::registry::MetaSchema::ANY
         })
     };
