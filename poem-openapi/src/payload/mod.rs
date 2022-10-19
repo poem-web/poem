@@ -32,6 +32,11 @@ pub trait Payload: Send {
     /// The content type of this payload.
     const CONTENT_TYPE: &'static str;
 
+    /// Check the content type of incoming request
+    fn check_content_type(content_type: &str) -> bool {
+        content_type == Self::CONTENT_TYPE
+    }
+
     /// Gets schema reference of this payload.
     fn schema_ref() -> MetaSchemaRef;
 

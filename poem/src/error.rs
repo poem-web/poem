@@ -715,49 +715,55 @@ impl ResponseError for ParseFormError {
 
 /// A possible error value when parsing JSON.
 #[derive(Debug, thiserror::Error)]
-#[error("parse: {0}")]
-pub struct ParseJsonError(#[from] pub serde_json::Error);
+pub enum ParseJsonError {
+    /// Invalid content type.
+    #[error("invalid content type `{0}`, expect: `application/json`")]
+    InvalidContentType(String),
+
+    /// `Content-Type` header is required.
+    #[error("expect content type `application/json`")]
+    ContentTypeRequired,
+
+    /// Url decode error.
+    #[error("parse error: {0}")]
+    Parse(#[from] serde_json::Error),
+}
 
 impl ResponseError for ParseJsonError {
     fn status(&self) -> StatusCode {
-        StatusCode::BAD_REQUEST
-    }
-}
-
-/// A missing json Content-Type error value when parsing header.
-#[derive(Debug, thiserror::Error)]
-#[error("Missing `Content-Type: application/json`")]
-pub struct MissingJsonContentTypeError;
-
-impl ResponseError for MissingJsonContentTypeError {
-    fn status(&self) -> StatusCode {
-        StatusCode::UNSUPPORTED_MEDIA_TYPE
+        match self {
+            ParseJsonError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseJsonError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseJsonError::Parse(_) => StatusCode::BAD_REQUEST,
+        }
     }
 }
 
 /// A possible error value when parsing XML.
 #[cfg(feature = "xml")]
 #[derive(Debug, thiserror::Error)]
-#[error("parse: {0}")]
-pub struct ParseXmlError(#[from] pub quick_xml::de::DeError);
+pub enum ParseXmlError {
+    /// Invalid content type.
+    #[error("invalid content type `{0}`, expect: `application/xml`")]
+    InvalidContentType(String),
+
+    /// `Content-Type` header is required.
+    #[error("expect content type `application/xml`")]
+    ContentTypeRequired,
+
+    /// Url decode error.
+    #[error("parse error: {0}")]
+    Parse(#[from] quick_xml::de::DeError),
+}
 
 #[cfg(feature = "xml")]
 impl ResponseError for ParseXmlError {
     fn status(&self) -> StatusCode {
-        StatusCode::BAD_REQUEST
-    }
-}
-
-/// A missing xml Content-Type error value when parsing header.
-#[cfg(feature = "xml")]
-#[derive(Debug, thiserror::Error)]
-#[error("Missing `Content-Type: application/xml`")]
-pub struct MissingXmlContentTypeError;
-
-#[cfg(feature = "xml")]
-impl ResponseError for MissingXmlContentTypeError {
-    fn status(&self) -> StatusCode {
-        StatusCode::UNSUPPORTED_MEDIA_TYPE
+        match self {
+            ParseXmlError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseXmlError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseXmlError::Parse(_) => StatusCode::BAD_REQUEST,
+        }
     }
 }
 

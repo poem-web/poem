@@ -87,6 +87,14 @@ impl<T> DerefMut for Binary<T> {
 impl<T: Send> Payload for Binary<T> {
     const CONTENT_TYPE: &'static str = "application/octet-stream";
 
+    fn check_content_type(content_type: &str) -> bool {
+        matches!(content_type.parse::<mime::Mime>(), Ok(content_type) if content_type.type_() == "application"
+                && (content_type.subtype() == "octet-stream"
+                || content_type
+                    .suffix()
+                    .map_or(false, |v| v == "octet-stream")))
+    }
+
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
             format: Some("binary"),

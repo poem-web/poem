@@ -30,7 +30,15 @@ impl<T> DerefMut for Json<T> {
 }
 
 impl<T: Type> Payload for Json<T> {
-    const CONTENT_TYPE: &'static str = "application/json";
+    const CONTENT_TYPE: &'static str = "application/json; charset=utf-8";
+
+    fn check_content_type(content_type: &str) -> bool {
+        matches!(content_type.parse::<mime::Mime>(), Ok(content_type) if content_type.type_() == "application"
+                && (content_type.subtype() == "json"
+                || content_type
+                    .suffix()
+                    .map_or(false, |v| v == "json")))
+    }
 
     fn schema_ref() -> MetaSchemaRef {
         T::schema_ref()

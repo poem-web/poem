@@ -36,22 +36,14 @@ macro_rules! impl_apirequest_for_payload {
             ) -> poem::Result<Self> {
                 match request.content_type() {
                     Some(content_type) => {
-                        let mime: mime::Mime = match content_type.parse() {
-                            Ok(mime) => mime,
-                            Err(_) => {
-                                return Err($crate::error::ContentTypeError::NotSupported {
-                                    content_type: content_type.to_string(),
-                                }.into());
-                            }
-                        };
-
-                        if mime.essence_str() != <Self as $crate::payload::Payload>::CONTENT_TYPE {
+                        if <$ty>::check_content_type(content_type) {
+                            <Self as $crate::payload::ParsePayload>::from_request(request, body).await
+                        } else {
                             return Err($crate::error::ContentTypeError::NotSupported {
                                 content_type: content_type.to_string(),
                             }.into());
-                        }
 
-                        <Self as $crate::payload::ParsePayload>::from_request(request, body).await
+                        }
                     }
                     None => Err($crate::error::ContentTypeError::ExpectContentType.into()),
                 }

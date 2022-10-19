@@ -65,11 +65,13 @@ jobs:
       # Switch to stable Rust
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.61.0
+          toolchain: 1.62.0
           override: true
           components: rustfmt, clippy
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
 
       # Do tests
       - name: Check with clippy
@@ -84,6 +86,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
 
       # Use nightly Rust to check the format
       - uses: actions-rs/toolchain@v1
@@ -97,7 +101,7 @@ jobs:
       # Switch to stable Rust
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.61.0
+          toolchain: 1.62.0
           override: true
           components: rustfmt, clippy
       - name: Cache Rust

@@ -11,10 +11,11 @@ use reqwest::{Client, Method, Url};
 
 fn init_tracer() -> Tracer {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_jaeger::new_pipeline()
+    opentelemetry_jaeger::new_collector_pipeline()
         .with_service_name("poem")
-        .with_collector_endpoint("http://localhost:14268/api/traces")
-        .install_simple()
+        .with_endpoint("http://localhost:14268/api/traces")
+        .with_hyper()
+        .install_batch(opentelemetry::runtime::Tokio)
         .unwrap()
 }
 
@@ -31,7 +32,8 @@ async fn main() {
             Url::from_str("http://localhost:3001/api1").unwrap(),
         );
         global::get_text_map_propagator(|propagator| {
-            propagator.inject_context(&cx, &mut HeaderInjector(req.headers_mut()))
+            propagator.inject_context(&cx, &mut HeaderInjector(req.headers_mut()));
+            println!("{:?}", req.headers_mut());
         });
         *req.body_mut() = Some("client\n".into());
         req
@@ -51,4 +53,6 @@ async fn main() {
     }
     .with_context(cx)
     .await;
+
+    global::shutdown_tracer_provider();
 }
