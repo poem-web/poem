@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc-build"
-version = "0.2.10"
+version = "0.2.11"
 edition = "2021"
 authors = ["sunli <scott_s829@163.com>"]
 description = "Codegen module of poem-grpc."

@@ -16,6 +16,8 @@ jobs:
         options: --entrypoint redis-server
     steps:
       - uses: actions/checkout@v1
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
