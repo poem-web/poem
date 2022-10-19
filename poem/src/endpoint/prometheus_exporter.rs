@@ -1,5 +1,10 @@
-use libopentelemetry::{sdk::Resource, KeyValue};
-use libprometheus::{Encoder, TextEncoder};
+use std::collections::HashMap;
+
+use libopentelemetry::sdk::{
+    export::metrics::aggregation,
+    metrics::{controllers, controllers::BasicController, processors, selectors},
+};
+use libprometheus::{Encoder, Registry, TextEncoder};
 
 use crate::{
     http::{Method, StatusCode},
@@ -7,22 +12,81 @@ use crate::{
 };
 
 /// An endpoint that exports metrics for Prometheus.
+///
+/// # Example
+///
+/// ```
+/// use libopentelemetry::sdk::{
+///     export::metrics::aggregation,
+///     metrics::{controllers, processors, selectors},
+/// };
+/// use poem::{endpoint::PrometheusExporter, Route};
+///
+/// let controller = controllers::basic(
+///     processors::factory(
+///         selectors::simple::histogram([1.0, 2.0, 5.0, 10.0, 20.0, 50.0]),
+///         aggregation::cumulative_temporality_selector(),
+///     )
+///     .with_memory(true),
+/// )
+/// .build();
+///
+/// let app = Route::new().nest("/metrics", PrometheusExporter::with_controller(controller));
+/// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "prometheus")))]
-#[derive(Default)]
 pub struct PrometheusExporter {
-    global_labels: Vec<KeyValue>,
+    controller: BasicController,
+    prefix: Option<String>,
+    labels: HashMap<String, String>,
+}
+
+impl Default for PrometheusExporter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PrometheusExporter {
     /// Create a `PrometheusExporter` endpoint.
     pub fn new() -> Self {
-        Default::default()
+        let controller = controllers::basic(
+            processors::factory(
+                selectors::simple::histogram([1.0, 2.0, 5.0, 10.0, 20.0, 50.0]),
+                aggregation::cumulative_temporality_selector(),
+            )
+            .with_memory(true),
+        )
+        .build();
+
+        Self {
+            controller,
+            prefix: None,
+            labels: HashMap::new(),
+        }
     }
 
-    /// Add a global label.
+    /// Create a `PrometheusExporter` endpoint with a controller.
+    pub fn with_controller(controller: BasicController) -> Self {
+        Self {
+            controller,
+            prefix: None,
+            labels: HashMap::new(),
+        }
+    }
+
+    /// Set a common namespace for all registered collectors.
     #[must_use]
-    pub fn label(mut self, kv: KeyValue) -> Self {
-        self.global_labels.push(kv);
+    pub fn prefix(self, prefix: impl Into<String>) -> Self {
+        Self {
+            prefix: Some(prefix.into()),
+            ..self
+        }
+    }
+
+    /// Add a common label for all registered collectors.
+    #[must_use]
+    pub fn label(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.labels.insert(name.into(), value.into());
         self
     }
 }
@@ -32,8 +96,11 @@ impl IntoEndpoint for PrometheusExporter {
 
     fn into_endpoint(self) -> Self::Endpoint {
         PrometheusExporterEndpoint {
-            exporter: opentelemetry_prometheus::exporter()
-                .with_resource(Resource::new(self.global_labels))
+            exporter: opentelemetry_prometheus::exporter(self.controller)
+                .with_registry(
+                    Registry::new_custom(self.prefix, Some(self.labels))
+                        .expect("create prometheus registry"),
+                )
                 .init(),
         }
     }
