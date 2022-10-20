@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashSet, str::FromStr};
 
 use headers::HeaderMap;
 
@@ -33,7 +33,10 @@ impl FromStr for ContentCoding {
     }
 }
 
-fn parse_accept_encoding(headers: &HeaderMap) -> Option<ContentCoding> {
+fn parse_accept_encoding(
+    headers: &HeaderMap,
+    enabled_algorithms: &HashSet<CompressionAlgo>,
+) -> Option<ContentCoding> {
     headers
         .get_all(header::ACCEPT_ENCODING)
         .iter()
@@ -46,6 +49,20 @@ fn parse_accept_encoding(headers: &HeaderMap) -> Option<ContentCoding> {
             };
             let coding: ContentCoding = e.parse().ok()?;
             Some((coding, q))
+        })
+        .filter(|(encoding, _)| {
+            if !enabled_algorithms.is_empty() {
+                match encoding {
+                    ContentCoding::Brotli => enabled_algorithms.contains(&CompressionAlgo::BR),
+                    ContentCoding::Deflate => {
+                        enabled_algorithms.contains(&CompressionAlgo::DEFLATE)
+                    }
+                    ContentCoding::Gzip => enabled_algorithms.contains(&CompressionAlgo::GZIP),
+                    _ => true,
+                }
+            } else {
+                true
+            }
         })
         .max_by_key(|(coding, q)| (*q, coding_priority(coding)))
         .map(|(coding, _)| coding)
@@ -60,6 +77,7 @@ fn parse_accept_encoding(headers: &HeaderMap) -> Option<ContentCoding> {
 #[derive(Default)]
 pub struct Compression {
     level: Option<CompressionLevel>,
+    algorithms: HashSet<CompressionAlgo>,
 }
 
 impl Compression {
@@ -73,7 +91,20 @@ impl Compression {
     #[must_use]
     #[inline]
     pub fn with_quality(self, level: CompressionLevel) -> Self {
-        Self { level: Some(level) }
+        Self {
+            level: Some(level),
+            ..self
+        }
+    }
+
+    /// Specify the enabled algorithms (default to all)
+    #[must_use]
+    #[inline]
+    pub fn algorithms(self, algorithms: impl IntoIterator<Item = CompressionAlgo>) -> Self {
+        Self {
+            algorithms: algorithms.into_iter().collect(),
+            ..self
+        }
     }
 }
 
@@ -84,6 +115,7 @@ impl<E: Endpoint> Middleware<E> for Compression {
         CompressionEndpoint {
             ep,
             level: self.level,
+            algorithms: self.algorithms.clone(),
         }
     }
 }
@@ -93,6 +125,7 @@ impl<E: Endpoint> Middleware<E> for Compression {
 pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,
     level: Option<CompressionLevel>,
+    algorithms: HashSet<CompressionAlgo>,
 }
 
 #[inline]
@@ -122,11 +155,12 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
         }
 
         // negotiate content-encoding
-        let compress_algo = parse_accept_encoding(req.headers()).map(|coding| match coding {
-            ContentCoding::Gzip => CompressionAlgo::GZIP,
-            ContentCoding::Deflate => CompressionAlgo::DEFLATE,
-            ContentCoding::Star | ContentCoding::Brotli => CompressionAlgo::BR,
-        });
+        let compress_algo =
+            parse_accept_encoding(req.headers(), &self.algorithms).map(|coding| match coding {
+                ContentCoding::Gzip => CompressionAlgo::GZIP,
+                ContentCoding::Deflate => CompressionAlgo::DEFLATE,
+                ContentCoding::Star | ContentCoding::Brotli => CompressionAlgo::BR,
+            });
 
         let resp = self.ep.call(req).await?;
         match compress_algo {
@@ -243,5 +277,32 @@ mod tests {
         let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
+    }
+
+    #[tokio::test]
+    async fn test_enabled_algorithms() {
+        let ep = index.with(Compression::default().algorithms([CompressionAlgo::GZIP]));
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "gzip, deflate, br")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", "gzip");
+
+        let ep = index.with(Compression::default().algorithms([CompressionAlgo::BR]));
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "gzip, deflate, br")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", "br");
     }
 }

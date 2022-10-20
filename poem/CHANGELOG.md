@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-enable the `brotli` compression algorithm.
 - Add `Compress::with_quality` and `Compression::with_quality` methods.
+- Add `Compression::algorithms` to specify the enabled algorithms.
 
 # [1.3.47] 2022-10-19
 

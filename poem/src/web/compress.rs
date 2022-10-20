@@ -14,7 +14,7 @@ use crate::{
 
 /// The compression algorithms.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum CompressionAlgo {
     /// brotli
     BR,
