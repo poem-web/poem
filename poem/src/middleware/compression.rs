@@ -4,11 +4,12 @@ use headers::HeaderMap;
 
 use crate::{
     http::header,
-    web::{Compress, CompressionAlgo},
+    web::{Compress, CompressionAlgo, CompressionLevel},
     Body, Endpoint, IntoResponse, Middleware, Request, Response, Result,
 };
 
 enum ContentCoding {
+    Brotli,
     Deflate,
     Gzip,
     Star,
@@ -22,6 +23,8 @@ impl FromStr for ContentCoding {
             Ok(ContentCoding::Deflate)
         } else if s.eq_ignore_ascii_case("gzip") {
             Ok(ContentCoding::Gzip)
+        } else if s.eq_ignore_ascii_case("br") {
+            Ok(ContentCoding::Brotli)
         } else if s == "*" {
             Ok(ContentCoding::Star)
         } else {
@@ -55,7 +58,9 @@ fn parse_accept_encoding(headers: &HeaderMap) -> Option<ContentCoding> {
 /// to the request `Accept-Encoding` header.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 #[derive(Default)]
-pub struct Compression;
+pub struct Compression {
+    level: Option<CompressionLevel>,
+}
 
 impl Compression {
     /// Creates a new `Compression` middleware.
@@ -63,13 +68,23 @@ impl Compression {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Specify the compression level
+    #[must_use]
+    #[inline]
+    pub fn with_quality(self, level: CompressionLevel) -> Self {
+        Self { level: Some(level) }
+    }
 }
 
 impl<E: Endpoint> Middleware<E> for Compression {
     type Output = CompressionEndpoint<E>;
 
     fn transform(&self, ep: E) -> Self::Output {
-        CompressionEndpoint { ep }
+        CompressionEndpoint {
+            ep,
+            level: self.level,
+        }
     }
 }
 
@@ -77,6 +92,7 @@ impl<E: Endpoint> Middleware<E> for Compression {
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,
+    level: Option<CompressionLevel>,
 }
 
 #[inline]
@@ -84,7 +100,7 @@ fn coding_priority(c: &ContentCoding) -> u8 {
     match *c {
         ContentCoding::Deflate => 1,
         ContentCoding::Gzip => 2,
-        // ContentCoding::BROTLI => 3,
+        ContentCoding::Brotli => 3,
         _ => 0,
     }
 }
@@ -109,13 +125,19 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
         let compress_algo = parse_accept_encoding(req.headers()).map(|coding| match coding {
             ContentCoding::Gzip => CompressionAlgo::GZIP,
             ContentCoding::Deflate => CompressionAlgo::DEFLATE,
-            // ContentCoding::STAR | ContentCoding::BROTLI => Some(CompressionAlgo::BR),
-            ContentCoding::Star => CompressionAlgo::GZIP,
+            ContentCoding::Star | ContentCoding::Brotli => CompressionAlgo::BR,
         });
 
+        let resp = self.ep.call(req).await?;
         match compress_algo {
-            Some(algo) => Ok(Compress::new(self.ep.call(req).await?, algo).into_response()),
-            None => Ok(self.ep.call(req).await?.into_response()),
+            Some(algo) => {
+                let mut compress = Compress::new(resp, algo);
+                if let Some(level) = self.level {
+                    compress = compress.with_quality(level);
+                }
+                Ok(compress.into_response())
+            }
+            None => Ok(resp.into_response()),
         }
     }
 }
@@ -136,14 +158,14 @@ mod tests {
     }
 
     async fn test_algo(algo: CompressionAlgo) {
-        let ep = index.with(Compression);
+        let ep = index.with(Compression::default());
         let cli = TestClient::new(ep);
 
         let resp = cli
             .post("/")
             .header("Content-Encoding", algo.as_str())
             .header("Accept-Encoding", algo.as_str())
-            .body(Body::from_async_read(algo.compress(DATA.as_bytes())))
+            .body(Body::from_async_read(algo.compress(DATA.as_bytes(), None)))
             .send()
             .await;
 
@@ -158,14 +180,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_compression() {
-        // test_algo(CompressionAlgo::BR).await;
+        test_algo(CompressionAlgo::BR).await;
         test_algo(CompressionAlgo::DEFLATE).await;
         test_algo(CompressionAlgo::GZIP).await;
     }
 
     #[tokio::test]
     async fn test_negotiate() {
-        let ep = index.with(Compression);
+        let ep = index.with(Compression::default());
         let cli = TestClient::new(ep);
 
         let resp = cli
@@ -185,7 +207,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_star() {
-        let ep = index.with(Compression);
+        let ep = index.with(Compression::default());
         let cli = TestClient::new(ep);
 
         let resp = cli
@@ -195,17 +217,17 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header("Content-Encoding", "gzip");
+        resp.assert_header("Content-Encoding", "br");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
+        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }
 
     #[tokio::test]
     async fn test_coding_priority() {
-        let ep = index.with(Compression);
+        let ep = index.with(Compression::default());
         let cli = TestClient::new(ep);
 
         let resp = cli
@@ -215,10 +237,10 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header("Content-Encoding", "gzip");
+        resp.assert_header("Content-Encoding", "br");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
+        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }

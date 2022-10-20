@@ -36,6 +36,8 @@ pub mod websocket;
 
 use std::{convert::Infallible, fmt::Debug};
 
+#[cfg(feature = "compression")]
+pub use async_compression::Level as CompressionLevel;
 use bytes::Bytes;
 use http::header;
 
