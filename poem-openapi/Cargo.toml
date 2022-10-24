@@ -19,6 +19,7 @@ redoc = []
 email = ["email_address"]
 hostname = ["hostname-validator"]
 static-files = ["poem/static-files"]
+websocket = ["poem/websocket"]
 
 [dependencies]
 poem-openapi-derive = { path = "../poem-openapi-derive", version = "2.0.18" }

@@ -65,6 +65,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | bson         | Integrate with the [`bson` crate](https://crates.io/crates/bson)                 |
 | rust_decimal | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
 | static-files | Support for static file response                                                 |
+| websocket    | Support for websocket                                                            |
 
 ## Safety
 

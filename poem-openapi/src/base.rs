@@ -3,6 +3,7 @@ use std::{
     ops::Deref,
 };
 
+use futures_util::Future;
 use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
 use crate::{
@@ -335,6 +336,26 @@ where
     fn from_parse_request_error(err: Error) -> Self {
         Ok(T::from_parse_request_error(err))
     }
+}
+
+#[cfg(feature = "websocket")]
+impl<F, Fut> ApiResponse for poem::web::websocket::WebSocketUpgraded<F>
+where
+    F: FnOnce(poem::web::websocket::WebSocketStream) -> Fut + Send + Sync + 'static,
+    Fut: Future + Send + 'static,
+{
+    fn meta() -> MetaResponses {
+        MetaResponses {
+            responses: vec![MetaResponse {
+                description: "A websocket response",
+                status: Some(101),
+                content: vec![],
+                headers: vec![],
+            }],
+        }
+    }
+
+    fn register(_registry: &mut Registry) {}
 }
 
 /// Represents a OpenAPI tags.

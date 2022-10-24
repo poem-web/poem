@@ -1,5 +1,6 @@
 use std::{borrow::Cow, future::Future};
 
+use futures_util::{future::BoxFuture, FutureExt};
 use headers::HeaderMapExt;
 use tokio_tungstenite::tungstenite::protocol::Role;
 
@@ -111,7 +112,7 @@ impl WebSocket {
     /// Note that the return value of this function must be returned from the
     /// handler.
     #[must_use]
-    pub fn on_upgrade<F, Fut>(self, callback: F) -> impl IntoResponse
+    pub fn on_upgrade<F, Fut>(self, callback: F) -> WebSocketUpgraded<F>
     where
         F: FnOnce(WebSocketStream) -> Fut + Send + Sync + 'static,
         Fut: Future + Send + 'static,
@@ -123,9 +124,31 @@ impl WebSocket {
     }
 }
 
-struct WebSocketUpgraded<F> {
+/// A response returned from `WebSocket::on_upgrade`.
+pub struct WebSocketUpgraded<F> {
     websocket: WebSocket,
     callback: F,
+}
+
+type BoxWebSocketHandler =
+    Box<dyn FnOnce(WebSocketStream) -> BoxFuture<'static, ()> + Send + Sync + 'static>;
+
+/// An owned dynamically typed WebSocketUpgraded for use in cases where you
+/// can’t statically type your result or need to add some indirection.
+pub type BoxWebSocketUpgraded = WebSocketUpgraded<BoxWebSocketHandler>;
+
+impl<F, Fut> WebSocketUpgraded<F>
+where
+    F: FnOnce(WebSocketStream) -> Fut + Send + Sync + 'static,
+    Fut: Future + Send + 'static,
+{
+    /// Create an owned dynamically typed WebSocketUpgraded
+    pub fn boxed(self) -> BoxWebSocketUpgraded {
+        WebSocketUpgraded {
+            websocket: self.websocket,
+            callback: Box::new(|stream| (self.callback)(stream).map(|_| ()).boxed()),
+        }
+    }
 }
 
 impl<F, Fut> IntoResponse for WebSocketUpgraded<F>
