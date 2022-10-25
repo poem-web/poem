@@ -55,5 +55,5 @@ trait MyWebhooks: Sync {
 }
 
 let api = OpenApiService::new((), "Demo", "1.0.0")
-    .webhooks::<dyn MyWebhooks>();
+    .webhooks::<&dyn MyWebhooks>();
 ```

@@ -10,6 +10,7 @@ Define a new type.
 | to_json        | Implement `ToJSON` trait. Default is `true`                  | bool   | Y        |
 | to_header      | Implement `ToHeader` trait. Default is `true`                | bool   | Y        |
 | external_docs  | Specify a external resource for extended documentation       | string | Y        |
+| example        | Indicates that the type has implemented `Example` trait      | bool   | Y        |
 
 # Examples
 

@@ -194,7 +194,7 @@ fn legal_str(s: impl AsRef<str>) -> String {
     s.as_ref()
         .replace('\\', "\\\\")
         .replace('\"', "\\\"")
-        .replace('r', "\\\r")
+        .replace('\r', "\\\r")
         .replace('\n', "\\\n")
 }
 

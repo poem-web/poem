@@ -7,6 +7,7 @@ use tokio::sync::watch::{Receiver, Sender};
 use crate::{Code, Request, Response, Service, Status, Streaming};
 
 #[allow(private_in_public, unreachable_pub)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 mod proto {
     include!(concat!(env!("OUT_DIR"), "/grpc.health.v1.rs"));
 }

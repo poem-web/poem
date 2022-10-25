@@ -337,6 +337,26 @@ where
     }
 }
 
+#[cfg(feature = "websocket")]
+impl<F, Fut> ApiResponse for poem::web::websocket::WebSocketUpgraded<F>
+where
+    F: FnOnce(poem::web::websocket::WebSocketStream) -> Fut + Send + Sync + 'static,
+    Fut: std::future::Future + Send + 'static,
+{
+    fn meta() -> MetaResponses {
+        MetaResponses {
+            responses: vec![MetaResponse {
+                description: "A websocket response",
+                status: Some(101),
+                content: vec![],
+                headers: vec![],
+            }],
+        }
+    }
+
+    fn register(_registry: &mut Registry) {}
+}
+
 /// Represents a OpenAPI tags.
 pub trait Tags {
     /// Register this tag type to registry.
