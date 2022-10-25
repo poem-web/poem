@@ -4,15 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [1.3.49] 2022-10-24
+# [1.3.48] 2022-10-25
 
-- Make `WebSocketUpgraded<T>` and `BoxWebSocketUpgraded` public [#415](https://github.com/poem-web/poem/issues/415)
-# [1.3.48] 2022-10-20
 - Fixes [#416](https://github.com/poem-web/poem/issues/416)
-
 - Re-enable the `brotli` compression algorithm.
 - Add `Compress::with_quality` and `Compression::with_quality` methods.
 - Add `Compression::algorithms` to specify the enabled algorithms.
+- Make `WebSocketUpgraded<T>` and `BoxWebSocketUpgraded` public [#415](https://github.com/poem-web/poem/issues/415)
 
 # [1.3.47] 2022-10-19
 
