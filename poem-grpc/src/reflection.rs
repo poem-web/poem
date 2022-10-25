@@ -12,6 +12,7 @@ use crate::{include_file_descriptor_set, Code, Request, Response, Service, Statu
 
 #[allow(private_in_public, unreachable_pub)]
 #[allow(clippy::enum_variant_names)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 mod proto {
     include!(concat!(env!("OUT_DIR"), "/grpc.reflection.v1alpha.rs"));
 }

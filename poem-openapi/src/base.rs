@@ -3,7 +3,6 @@ use std::{
     ops::Deref,
 };
 
-use futures_util::Future;
 use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
 
 use crate::{
@@ -342,7 +341,7 @@ where
 impl<F, Fut> ApiResponse for poem::web::websocket::WebSocketUpgraded<F>
 where
     F: FnOnce(poem::web::websocket::WebSocketStream) -> Fut + Send + Sync + 'static,
-    Fut: Future + Send + 'static,
+    Fut: std::future::Future + Send + 'static,
 {
     fn meta() -> MetaResponses {
         MetaResponses {
