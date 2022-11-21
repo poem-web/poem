@@ -79,7 +79,7 @@ struct APIOperationParam {
 }
 
 struct Context {
-    add_routes: IndexMap<String, IndexMap<APIMethod, TokenStream>>,
+    add_routes: Vec<TokenStream>,
     operations: IndexMap<String, Vec<TokenStream>>,
     register_items: Vec<TokenStream>,
 }
@@ -136,19 +136,6 @@ pub(crate) fn generate(
         paths
     };
 
-    let routes = {
-        let mut routes = Vec::new();
-
-        for (path, add_route) in add_routes {
-            let add_route = add_route.values();
-            routes.push(quote! {
-                at(#path, #crate_name::__private::poem::RouteMethod::new()#(.#add_route)*)
-            });
-        }
-
-        routes
-    };
-
     let expanded = quote! {
         #item_impl
 
@@ -163,9 +150,9 @@ pub(crate) fn generate(
                 #(#register_items)*
             }
 
-            fn add_routes(self, route: #crate_name::__private::poem::Route) -> #crate_name::__private::poem::Route {
+            fn add_routes(self, route_table: &mut ::std::collections::HashMap<#crate_name::__private::poem::http::Method, ::std::collections::HashMap<::std::string::String, #crate_name::__private::poem::endpoint::BoxEndpoint<'static>>>) {
                 let api_obj = ::std::sync::Arc::new(self);
-                route #(.#routes)*
+                #(#add_routes)*
             }
         }
     };
@@ -237,7 +224,7 @@ fn generate_operation(
         ReturnType::Default => Box::new(syn::parse2(quote!(())).unwrap()),
         ReturnType::Type(_, ty) => ty.clone(),
     };
-    RemoveLifetime.visit_type_mut(&mut *res_ty);
+    RemoveLifetime.visit_type_mut(&mut res_ty);
 
     let mut parse_args = Vec::new();
     let mut use_args = Vec::new();
@@ -266,7 +253,7 @@ fn generate_operation(
             }
         };
 
-        RemoveLifetime.visit_type_mut(&mut *arg_ty);
+        RemoveLifetime.visit_type_mut(&mut arg_ty);
 
         let pname = format_ident!("p{}", i);
         let param_name = operation_param
@@ -422,32 +409,32 @@ fn generate_operation(
             }
         });
 
-        if ctx.add_routes.entry(new_path.clone()).or_default().insert(**method, quote! {
-            method(#crate_name::__private::poem::http::Method::#http_method, {
-                let api_obj = ::std::clone::Clone::clone(&api_obj);
-                let ep = #crate_name::__private::poem::endpoint::make(move |request| {
+        ctx.add_routes.push(quote! {
+            route_table.entry(#crate_name::__private::poem::http::Method::#http_method)
+                .or_default()
+                .insert(::std::string::ToString::to_string(#new_path), {
                     let api_obj = ::std::clone::Clone::clone(&api_obj);
-                    async move {
-                        let (request, mut body) = request.split();
-                        #(#parse_args)*
-                        let res = api_obj.#fn_ident(#(#use_args),*).await;
-                        let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
-                        match ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response) {
-                            ::std::result::Result::Ok(mut resp) => {
-                                #update_content_type
-                                ::std::result::Result::Ok(resp)
+                    let ep = #crate_name::__private::poem::endpoint::make(move |request| {
+                        let api_obj = ::std::clone::Clone::clone(&api_obj);
+                        async move {
+                            let (request, mut body) = request.split();
+                            #(#parse_args)*
+                            let res = api_obj.#fn_ident(#(#use_args),*).await;
+                            let res = #crate_name::__private::poem::error::IntoResult::into_result(res);
+                            match ::std::result::Result::map(res, #crate_name::__private::poem::IntoResponse::into_response) {
+                                ::std::result::Result::Ok(mut resp) => {
+                                    #update_content_type
+                                    ::std::result::Result::Ok(resp)
+                                }
+                                ::std::result::Result::Err(err) => ::std::result::Result::Err(err),
                             }
-                            ::std::result::Result::Err(err) => ::std::result::Result::Err(err),
                         }
-                    }
+                    });
+                    #transform
+                    #set_operation_id
+                    #crate_name::__private::poem::EndpointExt::boxed(ep)
                 });
-                #transform
-                #set_operation_id
-                ep
-            })
-        }).is_some() {
-            return Err(Error::new(method.span(), "duplicate method").into());
-        }
+        });
     }
 
     let mut tag_names = Vec::new();

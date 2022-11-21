@@ -1,9 +1,10 @@
 use std::{
+    collections::HashMap,
     fmt::{self, Debug, Display},
     ops::Deref,
 };
 
-use poem::{Error, FromRequest, Request, RequestBody, Result, Route};
+use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
 
 use crate::{
     payload::Payload,
@@ -395,7 +396,7 @@ pub trait OpenApi: Sized {
     fn register(registry: &mut Registry);
 
     /// Adds all API endpoints to the routing object.
-    fn add_routes(self, route: Route) -> Route;
+    fn add_routes(self, route_table: &mut HashMap<Method, HashMap<String, BoxEndpoint<'static>>>);
 }
 
 macro_rules! impl_openapi_for_tuple {
@@ -416,12 +417,11 @@ macro_rules! impl_openapi_for_tuple {
                 )*
             }
 
-            fn add_routes(self, route: Route) -> Route {
-                let route = self.$hn.add_routes(route);
+            fn add_routes(self, route_table: &mut HashMap<Method, HashMap<String, BoxEndpoint<'static>>>) {
+                self.$hn.add_routes(route_table);
                 $(
-                let route = self.$tn.add_routes(route);
+                self.$tn.add_routes(route_table);
                 )*
-                route
             }
         }
     };
@@ -467,8 +467,7 @@ impl OpenApi for () {
 
     fn register(_registry: &mut Registry) {}
 
-    fn add_routes(self, route: Route) -> Route {
-        route
+    fn add_routes(self, _route_table: &mut HashMap<Method, HashMap<String, BoxEndpoint<'static>>>) {
     }
 }
 
