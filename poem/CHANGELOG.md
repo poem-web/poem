@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-- Bump quick-xml to `0.26.0`
+# [1.3.49] 2022-11-21
+
+- Bump `quick-xml` to `0.26.0`
 
 # [1.3.48] 2022-10-25
 
