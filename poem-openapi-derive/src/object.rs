@@ -107,7 +107,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let field_ident = field
             .ident
             .as_ref()
-            .ok_or_else(|| Error::new_spanned(&ident, "All fields must be named."))?;
+            .ok_or_else(|| Error::new_spanned(ident, "All fields must be named."))?;
         let field_ty = &field.ty;
         let read_only = args.read_only_all || field.read_only;
         let write_only = args.write_only_all || field.write_only;

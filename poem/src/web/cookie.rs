@@ -91,7 +91,7 @@ impl Cookie {
     pub fn expires(&self) -> Option<DateTime<Utc>> {
         self.0
             .expires_datetime()
-            .map(|t| Utc.timestamp(t.unix_timestamp(), 0))
+            .and_then(|t| Utc.timestamp_opt(t.unix_timestamp(), 0).single())
     }
 
     /// Returns whether this cookie was marked `HttpOnly` or not.

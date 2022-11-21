@@ -1,10 +1,13 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::{
+    collections::{HashMap, HashSet},
+    marker::PhantomData,
+};
 
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
     middleware::CookieJarManager,
     web::cookie::CookieKey,
-    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route,
+    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route, RouteMethod,
 };
 
 use crate::{
@@ -586,8 +589,21 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
             }
         }
 
-        self.api
-            .add_routes(Route::new())
+        let mut items = HashMap::new();
+        self.api.add_routes(&mut items);
+
+        let route = items
+            .into_iter()
+            .fold(RouteMethod::new(), |route_method, (method, paths)| {
+                route_method.method(
+                    method,
+                    paths
+                        .into_iter()
+                        .fold(Route::new(), |route, (path, ep)| route.at(path, ep)),
+                )
+            });
+
+        route
             .with(cookie_jar_manager)
             .before(extract_query)
             .map_to_response()

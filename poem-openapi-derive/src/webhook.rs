@@ -169,7 +169,7 @@ fn generate_operation(
         ReturnType::Default => Box::new(syn::parse2(quote!(())).unwrap()),
         ReturnType::Type(_, ty) => ty.clone(),
     };
-    RemoveLifetime.visit_type_mut(&mut *res_ty);
+    RemoveLifetime.visit_type_mut(&mut res_ty);
 
     let mut request_meta = Vec::new();
     let mut params_meta = Vec::new();
@@ -195,7 +195,7 @@ fn generate_operation(
             }
         };
 
-        RemoveLifetime.visit_type_mut(&mut *arg_ty);
+        RemoveLifetime.visit_type_mut(&mut arg_ty);
 
         // register
         ctx.register_items.push(quote! {
