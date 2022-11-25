@@ -110,7 +110,7 @@ async fn read_base64(body: &mut RequestBody) -> Result<Vec<u8>> {
         .map_err(|err| ParseRequestPayloadError {
             reason: err.to_string(),
         })?;
-    let data = base64::decode(&body).map_err(|err| ParseRequestPayloadError {
+    let data = base64::decode(body).map_err(|err| ParseRequestPayloadError {
         reason: err.to_string(),
     })?;
     Ok(data)

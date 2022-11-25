@@ -57,9 +57,7 @@ impl<T> Trie<T> {
         let is_last = segments.peek().is_none();
 
         let node = match segment {
-            "+" => parent_node
-                .plus_child
-                .get_or_insert_with(|| Box::new(Node::default())),
+            "+" => parent_node.plus_child.get_or_insert_with(Box::default),
             "*" => return parent_node.star_child.replace(data).is_none(),
             _ => parent_node
                 .named_children
