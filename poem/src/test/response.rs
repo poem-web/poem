@@ -167,6 +167,15 @@ impl TestResponse {
         );
     }
 
+    /// Asserts that the response body is XML and it equals to `xml`.
+    #[cfg(feature = "yaml")]
+    pub async fn assert_yaml(self, yaml: impl Serialize) {
+        assert_eq!(
+            self.0.into_body().into_string().await.expect("expect body"),
+            serde_yaml::to_string(&yaml).expect("valid yaml")
+        );
+    }
+
     /// Consumes this object and return the [`TestJson`].
     pub async fn json(self) -> TestJson {
         self.0

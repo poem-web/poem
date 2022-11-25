@@ -10,6 +10,8 @@ pub mod cookie;
 mod data;
 mod form;
 mod json;
+#[cfg(feature = "yaml")]
+mod yaml;
 #[cfg(feature = "multipart")]
 mod multipart;
 mod path;
@@ -54,6 +56,8 @@ pub use self::static_file::{StaticFileRequest, StaticFileResponse};
 pub use self::tempfile::TempFile;
 #[cfg(feature = "xml")]
 pub use self::xml::Xml;
+#[cfg(feature = "yaml")]
+pub use self::yaml::Yaml;
 pub use self::{
     accept::Accept,
     addr::{LocalAddr, RemoteAddr},
