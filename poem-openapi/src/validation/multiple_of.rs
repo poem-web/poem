@@ -22,7 +22,7 @@ impl MultipleOf {
 impl<T: AsPrimitive<f64>> Validator<T> for MultipleOf {
     #[inline]
     fn check(&self, value: &T) -> bool {
-        value.as_() % self.n as f64 == 0.0
+        value.as_() % self.n == 0.0
     }
 }
 
