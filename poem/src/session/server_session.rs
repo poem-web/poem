@@ -36,11 +36,15 @@ impl<T: SessionStorage, E: Endpoint> Middleware<E> for ServerSession<T> {
     }
 }
 
+/// Session key generation routine that follows [OWASP recommendations].
+///
+/// [OWASP recommendations]: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-entropy
 fn generate_session_id() -> String {
     let value = std::iter::repeat(())
         .map(|()| OsRng.sample(Alphanumeric))
-        .take(32)
+        .take(64)
         .collect::<Vec<_>>();
+
     String::from_utf8(value).unwrap_or_default()
 }
 
