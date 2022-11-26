@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenApi XML support [#354](https://github.com/poem-web/poem/pull/354)
 - Add `hidden` attribute for the operation [#376](https://github.com/poem-web/poem/issues/376)
 
+# [Unreleased]
+
+- Add generic support to the NewType macro
+
 # [2.0.10] 2022-08-16
 
 - Add the `default` attribute to Object macro. [#369](https://github.com/poem-web/poem/issues/369)
