@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- Fixes not enough randomness in session keys([#430](https://github.com/poem-web/poem/issues/430))
+
 # [1.3.49] 2022-11-21
 
 - Bump `quick-xml` to `0.26.0`
