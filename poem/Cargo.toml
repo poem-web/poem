@@ -30,7 +30,7 @@ static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression"]
 tower-compat = ["tokio/rt", "tower"]
 cookie = ["libcookie", "chrono", "time"]
-session = ["tokio/rt", "cookie", "rand", "priority-queue"]
+session = ["tokio/rt", "cookie", "rand", "priority-queue", "base64"]
 redis-session = ["session", "redis"]
 opentelemetry = [
     "libopentelemetry",
