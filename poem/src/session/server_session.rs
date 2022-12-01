@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use base64::URL_SAFE;
-use rand::{thread_rng, RngCore};
+use base64::URL_SAFE_NO_PAD;
+use rand::{thread_rng, Rng};
 
 use crate::{
     middleware::{CookieJarManager, CookieJarManagerEndpoint},
@@ -41,9 +41,8 @@ impl<T: SessionStorage, E: Endpoint> Middleware<E> for ServerSession<T> {
 ///
 /// [OWASP recommendations]: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-entropy
 fn generate_session_id() -> String {
-    let mut random_bytes = [0u8; 32];
-    thread_rng().fill_bytes(&mut random_bytes);
-    base64::encode_config(random_bytes, URL_SAFE)
+    let random_bytes = thread_rng().gen::<[u8; 32]>();
+    base64::encode_config(random_bytes, URL_SAFE_NO_PAD)
 }
 
 /// Endpoint for `ServerSession` middleware.
