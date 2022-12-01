@@ -31,7 +31,7 @@ impl TestClient {
         let resp = ep.call(req).await.unwrap().into_response();
         for s in resp.headers().get_all(header::SET_COOKIE) {
             if let Ok(s) = s.to_str() {
-                let cookie = Cookie::parse(&s).unwrap();
+                let cookie = Cookie::parse(s).unwrap();
 
                 if cookie.value_str().is_empty() {
                     self.cookies.remove(cookie.name());

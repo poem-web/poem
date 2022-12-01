@@ -492,7 +492,7 @@ mod tests {
     #[test]
     fn test_maybe_undefined_serde() {
         assert_eq!(
-            serde_json::to_value(&MaybeUndefined::Value(100i32)).unwrap(),
+            serde_json::to_value(MaybeUndefined::Value(100i32)).unwrap(),
             json!(100)
         );
 

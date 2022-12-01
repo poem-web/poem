@@ -1,5 +1,5 @@
 use poem_openapi::{
-    types::{Example, Type},
+    types::{Example, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ToJSON, Type},
     NewType,
 };
 
@@ -42,4 +42,22 @@ async fn new_type_example() {
     let schema = MyString::schema_ref();
     let schema = schema.unwrap_inline();
     assert_eq!(schema.example, Some("abc".into()));
+}
+
+#[tokio::test]
+async fn generic() {
+    #[derive(NewType)]
+    #[oai(to_header = false)]
+    struct MyVec<T: ParseFromJSON + ToJSON + ParseFromParameter + ParseFromMultipartField>(Vec<T>);
+
+    let schema = MyVec::<String>::schema_ref();
+    let schema = schema.unwrap_inline();
+    assert_eq!(schema.ty, "array");
+    assert_eq!(
+        schema
+            .items
+            .as_ref()
+            .map(|schema| schema.unwrap_inline().ty),
+        Some("string")
+    );
 }

@@ -80,7 +80,7 @@ impl_datetime_types!(DateTime<Local>, "string", "date-time");
 impl_datetime_types!(DateTime<FixedOffset>, "string", "date-time");
 
 macro_rules! impl_naive_datetime_types {
-    ($ty:ty, $type_name:literal, $format:literal) => {
+    ($ty:ty, $type_name:literal, $format:literal, $display:literal) => {
         impl Type for $ty {
             const IS_REQUIRED: bool = true;
 
@@ -136,12 +136,73 @@ macro_rules! impl_naive_datetime_types {
 
         impl ToJSON for $ty {
             fn to_json(&self) -> Option<Value> {
-                Some(Value::String(self.to_string()))
+                Some(Value::String(format!($display, &self)))
             }
         }
     };
 }
 
-impl_naive_datetime_types!(NaiveDateTime, "string", "naive-date-time");
-impl_naive_datetime_types!(NaiveDate, "string", "naive-date");
-impl_naive_datetime_types!(NaiveTime, "string", "naive-time");
+impl_naive_datetime_types!(NaiveDateTime, "string", "naive-date-time", "{:?}");
+impl_naive_datetime_types!(NaiveDate, "string", "naive-date", "{}");
+impl_naive_datetime_types!(NaiveTime, "string", "naive-time", "{}");
+
+#[cfg(test)]
+mod tests {
+    use chrono::TimeZone;
+
+    use super::*;
+
+    #[test]
+    fn date_time() {
+        let dt = Utc.from_utc_datetime(&NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4));
+        let value = dt.to_json();
+        assert_eq!(
+            value,
+            Some(Value::String("2015-09-18T23:56:04+00:00".to_string()))
+        );
+        assert_eq!(
+            DateTime::<Utc>::parse_from_json(Some(Value::String(
+                "2015-09-18T23:56:04+00:00".to_string()
+            )))
+            .unwrap(),
+            Utc.from_utc_datetime(&NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4))
+        );
+    }
+
+    #[test]
+    fn naive_date_time() {
+        let dt = NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4);
+        let value = dt.to_json();
+        assert_eq!(
+            value,
+            Some(Value::String("2015-09-18T23:56:04".to_string()))
+        );
+        assert_eq!(
+            NaiveDateTime::parse_from_json(Some(Value::String("2015-09-18T23:56:04".to_string())))
+                .unwrap(),
+            NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4)
+        );
+    }
+
+    #[test]
+    fn naive_date() {
+        let dt = NaiveDate::from_ymd(2015, 9, 18);
+        let value = dt.to_json();
+        assert_eq!(value, Some(Value::String("2015-09-18".to_string())));
+        assert_eq!(
+            NaiveDate::parse_from_json(Some(Value::String("2015-09-18".to_string()))).unwrap(),
+            NaiveDate::from_ymd(2015, 9, 18)
+        );
+    }
+
+    #[test]
+    fn naive_time() {
+        let dt = NaiveTime::from_hms(23, 56, 4);
+        let value = dt.to_json();
+        assert_eq!(value, Some(Value::String("23:56:04".to_string())));
+        assert_eq!(
+            NaiveTime::parse_from_json(Some(Value::String("23:56:04".to_string()))).unwrap(),
+            NaiveTime::from_hms(23, 56, 4)
+        );
+    }
+}

@@ -48,8 +48,8 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
     ) -> Result<()> {
         let value = serde_json::to_string(entries).unwrap_or_default();
         let cmd = match expires {
-            Some(expires) => Cmd::set_ex(&session_id, value, expires.as_secs() as usize),
-            None => Cmd::set(&session_id, value),
+            Some(expires) => Cmd::set_ex(session_id, value, expires.as_secs() as usize),
+            None => Cmd::set(session_id, value),
         };
         cmd.query_async(&mut self.connection.clone())
             .await
