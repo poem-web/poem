@@ -1,3 +1,5 @@
+#[cfg(feature = "openapi-explorer")]
+pub(crate) mod openapi_explorer;
 #[cfg(feature = "rapidoc")]
 pub(crate) mod rapidoc;
 #[cfg(feature = "redoc")]

@@ -375,6 +375,27 @@ impl<T, W> OpenApiService<T, W> {
 
     /// Create the Swagger UI endpoint.
     #[must_use]
+    #[cfg(feature = "openapi-explorer")]
+    pub fn openapi_explorer(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::openapi_explorer::create_endpoint(&self.spec())
+    }
+
+    /// Create the Swagger UI HTML
+    #[cfg(feature = "openapi-explorer")]
+    pub fn openapi_explorer_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::openapi_explorer::create_html(&self.spec())
+    }
+
+    /// Create the Swagger UI endpoint.
+    #[must_use]
     #[cfg(feature = "swagger-ui")]
     pub fn swagger_ui(&self) -> impl Endpoint
     where
