@@ -11,6 +11,11 @@ const REDOC_TEMPLATE: &str = r#"
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+    <style type="text/css">
+      :root {
+        --font-regular: Montserrat;
+      }
+    </style>
 
     <script charset="UTF-8">{:script}</script>
   </head>
