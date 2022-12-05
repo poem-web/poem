@@ -1,5 +1,7 @@
-use std::{borrow::Cow, net::Ipv6Addr};
-use std::net::Ipv4Addr;
+use std::{
+    borrow::Cow,
+    net::{Ipv4Addr, Ipv6Addr},
+};
 
 use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
@@ -76,7 +78,6 @@ impl ToHeader for Ipv4Addr {
         HeaderValue::from_str(&self.to_string()).ok()
     }
 }
-
 
 impl Type for Ipv6Addr {
     const IS_REQUIRED: bool = true;
