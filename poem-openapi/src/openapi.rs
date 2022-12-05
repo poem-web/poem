@@ -373,7 +373,7 @@ impl<T, W> OpenApiService<T, W> {
         }
     }
 
-    /// Create the Swagger UI endpoint.
+    /// Create the OpenAPI Explorer endpoint.
     #[must_use]
     #[cfg(feature = "openapi-explorer")]
     pub fn openapi_explorer(&self) -> impl Endpoint
@@ -384,7 +384,7 @@ impl<T, W> OpenApiService<T, W> {
         crate::ui::openapi_explorer::create_endpoint(&self.spec())
     }
 
-    /// Create the Swagger UI HTML
+    /// Create the OpenAPI Explorer HTML
     #[cfg(feature = "openapi-explorer")]
     pub fn openapi_explorer_html(&self) -> String
     where
