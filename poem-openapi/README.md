@@ -50,22 +50,23 @@ important business implementations.
 
 To avoid compiling unused dependencies, Poem gates certain features, some of which are disabled by default:
 
-| Feature      | Description                                                                      |
-|--------------|----------------------------------------------------------------------------------|
-| chrono       | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).            |
-| time         | Integrate with the [`time` crate](https://crates.io/crates/time).                |
-| humantime    | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)       |
-| swagger-ui   | Add swagger UI support                                                           |
-| rapidoc      | Add RapiDoc UI support                                                           |
-| redoc        | Add Redoc UI support                                                             |
-| email        | Support for email address string                                                 |
-| hostname     | Support for hostname string                                                      |
-| uuid         | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                 |
-| url          | Integrate with the [`url` crate](https://crates.io/crates/url)                   |
-| bson         | Integrate with the [`bson` crate](https://crates.io/crates/bson)                 |
-| rust_decimal | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
-| static-files | Support for static file response                                                 |
-| websocket    | Support for websocket                                                            |
+| Feature          | Description                                                                      |
+|------------------|----------------------------------------------------------------------------------|
+| chrono           | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).            |
+| time             | Integrate with the [`time` crate](https://crates.io/crates/time).                |
+| humantime        | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)       |
+| openapi-explorer | Add OpenAPI Explorer support                                                           |
+| swagger-ui       | Add swagger UI support                                                           |
+| rapidoc          | Add RapiDoc UI support                                                           |
+| redoc            | Add Redoc UI support                                                             |
+| email            | Support for email address string                                                 |
+| hostname         | Support for hostname string                                                      |
+| uuid             | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                 |
+| url              | Integrate with the [`url` crate](https://crates.io/crates/url)                   |
+| bson             | Integrate with the [`bson` crate](https://crates.io/crates/bson)                 |
+| rust_decimal     | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
+| static-files     | Support for static file response                                                 |
+| websocket        | Support for websocket                                                            |
 
 ## Safety
 
