@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -83,7 +83,7 @@ jobs:
         working-directory: ${{ matrix.package.path }}
 
   check-examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v1
       - name: Install Protoc
@@ -109,4 +109,3 @@ jobs:
       - name: Check with clippy
         run: cargo clippy
         working-directory: examples
-
