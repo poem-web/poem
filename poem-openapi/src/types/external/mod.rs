@@ -14,6 +14,7 @@ mod hashset;
 #[cfg(feature = "humantime")]
 mod humantime;
 mod integers;
+mod ip;
 mod optional;
 mod regex;
 mod slice;
