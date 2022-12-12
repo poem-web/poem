@@ -101,7 +101,7 @@ impl<E: Endpoint> Endpoint for OpenTelemetryMetricsEndpoint<E> {
 
         self.request_count.add(&cx, 1, &labels);
         self.duration
-            .record(&cx, elapsed.as_secs_f64() / 1000.0, &labels);
+            .record(&cx, elapsed.as_secs_f64() * 1000.0, &labels);
 
         res
     }
