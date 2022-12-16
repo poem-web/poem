@@ -41,10 +41,13 @@ impl Type for Decimal {
 impl ParseFromJSON for Decimal {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
-        if let Value::String(value) = value {
-            Ok(value.parse()?)
-        } else {
-            Err(ParseError::expected_type(value))
+        match value {
+            Value::String(value) => Ok(value.parse()?),
+            Value::Number(num) if num.is_i64() => Ok(Decimal::from(
+                num.as_i64()
+                    .ok_or_else(|| ParseError::custom("Number is missing"))?,
+            )),
+            _ => Err(ParseError::expected_type(value)),
         }
     }
 }
