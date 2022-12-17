@@ -58,7 +58,7 @@ impl IntoResponse for StaticFileResponse {
                     .header(header::CONTENT_LENGTH, content_length);
 
                 if let Some(content_type) = content_type {
-                    builder = builder.content_type(&content_type);
+                    builder = builder.content_type(content_type);
                 }
                 if let Some(etag) = etag {
                     builder = builder.header(header::ETAG, etag);

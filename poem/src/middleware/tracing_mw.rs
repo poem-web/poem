@@ -47,7 +47,7 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
         );
 
         if let Some(path_pattern) = req.data::<PathPattern>() {
-            span.record("path_pattern", &path_pattern.0.as_ref());
+            span.record("path_pattern", path_pattern.0.as_ref());
         }
 
         async move {
