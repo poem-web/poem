@@ -45,8 +45,13 @@ impl ParseFromJSON for Decimal {
             Value::String(value) => Ok(value.parse()?),
             Value::Number(num) if num.is_i64() => Ok(Decimal::from(
                 num.as_i64()
-                    .ok_or_else(|| ParseError::custom("Number is missing"))?,
+                    .ok_or_else(|| ParseError::custom("Expected a number"))?,
             )),
+            Value::Number(num) if num.is_f64() => Ok(Decimal::from_f64_retain(
+                num.as_f64()
+                    .ok_or_else(|| ParseError::custom("Expected a float"))?,
+            )
+            .ok_or_else(|| ParseError::custom("Error converting to decimal"))?),
             _ => Err(ParseError::expected_type(value)),
         }
     }
