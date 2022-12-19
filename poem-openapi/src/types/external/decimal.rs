@@ -47,11 +47,15 @@ impl ParseFromJSON for Decimal {
                 num.as_i64()
                     .ok_or_else(|| ParseError::custom("Expected a number"))?,
             )),
-            Value::Number(num) if num.is_f64() => Ok(Decimal::from_f64_retain(
+            Value::Number(num) if num.is_u64() => Ok(Decimal::from(
+                num.as_u64()
+                    .ok_or_else(|| ParseError::custom("Expected a number"))?,
+            )),
+            Value::Number(num) if num.is_f64() => Ok(Decimal::try_from(
                 num.as_f64()
                     .ok_or_else(|| ParseError::custom("Expected a float"))?,
             )
-            .ok_or_else(|| ParseError::custom("Error converting to decimal"))?),
+            .map_err(|_| ParseError::custom("Float out of range"))?),
             _ => Err(ParseError::expected_type(value)),
         }
     }
