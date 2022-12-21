@@ -298,7 +298,7 @@ impl Route {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(unreachable_pub)]
 pub struct PathPattern(pub Arc<str>);
 
@@ -316,17 +316,34 @@ impl Endpoint for Route {
                     None => matches.data.pattern.clone(),
                 };
 
-                match (req.data::<PathPattern>(), req.data::<PathPrefix>()) {
-                    (Some(parent), Some(prefix)) => req.set_data(PathPattern(
-                        format!("{}{}", parent.0, &pattern[prefix.0..]).into(),
-                    )),
-                    (None, Some(prefix)) => req.set_data(PathPattern(pattern[prefix.0..].into())),
-                    (None, None) => req.set_data(PathPattern(pattern)),
-                    (Some(parent), None) => {
-                        req.set_data(PathPattern(format!("{}{}", parent.0, pattern).into()))
+                let pattern = match (req.data::<PathPattern>(), req.data::<PathPrefix>()) {
+                    (Some(parent), Some(prefix)) => {
+                        PathPattern(format!("{}{}", parent.0, &pattern[prefix.0..]).into())
+                    }
+                    (None, Some(prefix)) => PathPattern(pattern[prefix.0..].into()),
+                    (None, None) => PathPattern(pattern),
+                    (Some(parent), None) => PathPattern(format!("{}{}", parent.0, pattern).into()),
+                };
+                req.set_data(pattern.clone());
+
+                let result = matches.data.data.call(req).await;
+
+                // Add PathPattern to the innermost response so that metrics instrumentation
+                // can report the innermost matched pattern.
+                match result {
+                    Ok(mut res) => {
+                        if res.data::<PathPattern>().is_none() {
+                            res.set_data(pattern);
+                        }
+                        Ok(res)
+                    }
+                    Err(mut err) => {
+                        if err.data::<PathPattern>().is_none() {
+                            err.set_data(pattern);
+                        }
+                        Err(err)
                     }
                 }
-                matches.data.data.call(req).await
             }
             None => Err(NotFoundError.into()),
         }
