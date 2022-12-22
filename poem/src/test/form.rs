@@ -206,6 +206,7 @@ fn gen_headers(headers: &HeaderMap) -> Vec<u8> {
     data
 }
 
+#[cfg(feature = "multipart")]
 #[cfg(test)]
 mod tests {
     use super::*;

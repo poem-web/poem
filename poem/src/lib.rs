@@ -74,7 +74,7 @@
 //! In the following example, the `index` function uses 3 extractors to extract
 //! the remote address, HTTP method and URI.
 //!
-//! ```rust
+//! ```
 //! use poem::{
 //!     handler,
 //!     http::{Method, Uri},
