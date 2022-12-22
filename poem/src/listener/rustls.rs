@@ -86,7 +86,7 @@ impl RustlsCertificate {
                             ErrorKind::Other,
                             "failed to parse tls private keys",
                         ))
-                    },
+                    }
                     _ => continue,
                 };
                 if !key.is_empty() {
