@@ -298,7 +298,7 @@ impl Route {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(unreachable_pub)]
 pub struct PathPattern(pub Arc<str>);
 
@@ -316,17 +316,34 @@ impl Endpoint for Route {
                     None => matches.data.pattern.clone(),
                 };
 
-                match (req.data::<PathPattern>(), req.data::<PathPrefix>()) {
-                    (Some(parent), Some(prefix)) => req.set_data(PathPattern(
-                        format!("{}{}", parent.0, &pattern[prefix.0..]).into(),
-                    )),
-                    (None, Some(prefix)) => req.set_data(PathPattern(pattern[prefix.0..].into())),
-                    (None, None) => req.set_data(PathPattern(pattern)),
-                    (Some(parent), None) => {
-                        req.set_data(PathPattern(format!("{}{}", parent.0, pattern).into()))
+                let pattern = match (req.data::<PathPattern>(), req.data::<PathPrefix>()) {
+                    (Some(parent), Some(prefix)) => {
+                        PathPattern(format!("{}{}", parent.0, &pattern[prefix.0..]).into())
+                    }
+                    (None, Some(prefix)) => PathPattern(pattern[prefix.0..].into()),
+                    (None, None) => PathPattern(pattern),
+                    (Some(parent), None) => PathPattern(format!("{}{}", parent.0, pattern).into()),
+                };
+                req.set_data(pattern.clone());
+
+                let result = matches.data.data.call(req).await;
+
+                // Add PathPattern to the innermost response so that metrics instrumentation
+                // can report the innermost matched pattern.
+                match result {
+                    Ok(mut res) => {
+                        if res.data::<PathPattern>().is_none() {
+                            res.set_data(pattern);
+                        }
+                        Ok(res)
+                    }
+                    Err(mut err) => {
+                        if err.data::<PathPattern>().is_none() {
+                            err.set_data(pattern);
+                        }
+                        Err(err)
                     }
                 }
-                matches.data.data.call(req).await
             }
             None => Err(NotFoundError.into()),
         }
@@ -344,10 +361,11 @@ fn normalize_path(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use futures_util::lock::Mutex;
     use http::{StatusCode, Uri};
 
     use super::*;
-    use crate::{endpoint::make_sync, handler, test::TestClient};
+    use crate::{endpoint::make_sync, handler, test::TestClient, Error};
 
     #[test]
     fn test_normalize_path() {
@@ -560,5 +578,176 @@ mod tests {
             .await
             .assert_text("/nest_no_strip1/nest_no_strip2/:id")
             .await;
+    }
+
+    #[derive(Clone, Default)]
+    struct PathPatternSpy {
+        pattern: Arc<Mutex<Option<PathPattern>>>,
+    }
+
+    impl PathPatternSpy {
+        async fn last_pattern(&self) -> String {
+            let guard = self.pattern.lock().await;
+            guard
+                .as_ref()
+                .map(|pp| pp.0.to_string())
+                .expect("some pattern")
+        }
+
+        async fn set_last_pattern(&self, pattern: Option<&PathPattern>) {
+            let mut guard = self.pattern.lock().await;
+            *guard = pattern.cloned();
+        }
+    }
+
+    impl<E: Endpoint> crate::Middleware<E> for PathPatternSpy {
+        type Output = PathPatternSpyEndpoint<E>;
+
+        fn transform(&self, ep: E) -> Self::Output {
+            PathPatternSpyEndpoint {
+                spy: self.clone(),
+                inner: ep,
+            }
+        }
+    }
+
+    struct PathPatternSpyEndpoint<E> {
+        spy: PathPatternSpy,
+        inner: E,
+    }
+
+    #[async_trait::async_trait]
+    impl<E: Endpoint> Endpoint for PathPatternSpyEndpoint<E> {
+        type Output = Response;
+
+        async fn call(&self, req: Request) -> Result<Self::Output> {
+            let result = self.inner.call(req).await.map(IntoResponse::into_response);
+
+            match result {
+                Ok(res) => {
+                    self.spy.set_last_pattern(res.data::<PathPattern>()).await;
+                    Ok(res)
+                }
+                Err(err) => {
+                    self.spy.set_last_pattern(err.data::<PathPattern>()).await;
+                    Err(err)
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn path_pattern_middleware_with_ok_result() {
+        let spy = PathPatternSpy::default();
+        let app = Route::new()
+            .at("/a/:id", make_sync(|_| "ok"))
+            .nest("/nest", Route::new().at("/c/:id", make_sync(|_| "ok")))
+            .nest(
+                "/nest1",
+                Route::new().nest("/nest2", Route::new().at("/:id", make_sync(|_| "ok"))),
+            )
+            .nest_no_strip(
+                "/nest_no_strip",
+                Route::new().at("/nest_no_strip/d/:id", make_sync(|_| "ok")),
+            )
+            .nest_no_strip(
+                "/nest_no_strip1",
+                Route::new().nest_no_strip(
+                    "/nest_no_strip1/nest_no_strip2",
+                    Route::new().at("/nest_no_strip1/nest_no_strip2/:id", make_sync(|_| "ok")),
+                ),
+            )
+            .with(spy.clone());
+
+        let cli = TestClient::new(app);
+
+        cli.get("/a/10").send().await.assert_status_is_ok();
+        assert_eq!(spy.last_pattern().await, "/a/:id");
+        cli.get("/nest/c/10").send().await.assert_status_is_ok();
+        assert_eq!(spy.last_pattern().await, "/nest/c/:id");
+        cli.get("/nest_no_strip/d/99")
+            .send()
+            .await
+            .assert_status_is_ok();
+        assert_eq!(spy.last_pattern().await, "/nest_no_strip/d/:id");
+        cli.get("/nest1/nest2/10")
+            .send()
+            .await
+            .assert_status_is_ok();
+        assert_eq!(spy.last_pattern().await, "/nest1/nest2/:id");
+        cli.get("/nest_no_strip1/nest_no_strip2/10")
+            .send()
+            .await
+            .assert_status_is_ok();
+        assert_eq!(
+            spy.last_pattern().await,
+            "/nest_no_strip1/nest_no_strip2/:id"
+        );
+    }
+
+    struct ErrorEndpoint;
+
+    #[async_trait::async_trait]
+    impl Endpoint for ErrorEndpoint {
+        type Output = Response;
+
+        async fn call(&self, _req: Request) -> Result<Self::Output> {
+            Err(Error::from_status(StatusCode::SERVICE_UNAVAILABLE))
+        }
+    }
+
+    #[tokio::test]
+    async fn path_pattern_middleware_with_err_result() {
+        let spy = PathPatternSpy::default();
+        let app = Route::new()
+            .at("/a/:id", ErrorEndpoint)
+            .nest("/nest", Route::new().at("/c/:id", ErrorEndpoint))
+            .nest(
+                "/nest1",
+                Route::new().nest("/nest2", Route::new().at("/:id", ErrorEndpoint)),
+            )
+            .nest_no_strip(
+                "/nest_no_strip",
+                Route::new().at("/nest_no_strip/d/:id", ErrorEndpoint),
+            )
+            .nest_no_strip(
+                "/nest_no_strip1",
+                Route::new().nest_no_strip(
+                    "/nest_no_strip1/nest_no_strip2",
+                    Route::new().at("/nest_no_strip1/nest_no_strip2/:id", ErrorEndpoint),
+                ),
+            )
+            .with(spy.clone());
+
+        let cli = TestClient::new(app);
+
+        cli.get("/a/10")
+            .send()
+            .await
+            .assert_status(StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(spy.last_pattern().await, "/a/:id");
+        cli.get("/nest/c/10")
+            .send()
+            .await
+            .assert_status(StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(spy.last_pattern().await, "/nest/c/:id");
+        cli.get("/nest_no_strip/d/99")
+            .send()
+            .await
+            .assert_status(StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(spy.last_pattern().await, "/nest_no_strip/d/:id");
+        cli.get("/nest1/nest2/10")
+            .send()
+            .await
+            .assert_status(StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(spy.last_pattern().await, "/nest1/nest2/:id");
+        cli.get("/nest_no_strip1/nest_no_strip2/10")
+            .send()
+            .await
+            .assert_status(StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(
+            spy.last_pattern().await,
+            "/nest_no_strip1/nest_no_strip2/:id"
+        );
     }
 }
