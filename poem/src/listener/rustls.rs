@@ -5,6 +5,7 @@ use futures_util::{
     Stream, StreamExt,
 };
 use http::uri::Scheme;
+use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
@@ -75,23 +76,21 @@ impl RustlsCertificate {
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
 
         let priv_key = {
-            let mut pkcs8 = rustls_pemfile::pkcs8_private_keys(&mut self.key.as_slice())
-                .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls private keys"))?;
-            if !pkcs8.is_empty() {
-                PrivateKey(pkcs8.remove(0))
-            } else {
-                let mut rsa =
-                    rustls_pemfile::rsa_private_keys(&mut self.key.as_slice()).map_err(|_| {
-                        IoError::new(ErrorKind::Other, "failed to parse tls private keys")
-                    })?;
-
-                if !rsa.is_empty() {
-                    PrivateKey(rsa.remove(0))
-                } else {
-                    return Err(IoError::new(
-                        ErrorKind::Other,
-                        "failed to parse tls private keys",
-                    ));
+            loop {
+                let key = match rustls_pemfile::read_one(&mut self.key.as_slice())? {
+                    Some(Item::RSAKey(key)) => key,
+                    Some(Item::PKCS8Key(key)) => key,
+                    Some(Item::ECKey(key)) => key,
+                    None => {
+                        return Err(IoError::new(
+                            ErrorKind::Other,
+                            "failed to parse tls private keys",
+                        ))
+                    }
+                    _ => continue,
+                };
+                if !key.is_empty() {
+                    break PrivateKey(key);
                 }
             }
         };
