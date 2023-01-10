@@ -11,7 +11,7 @@ use crate::{
     ApiResponse,
 };
 
-/// A XML payload.
+/// A YAML payload.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Yaml<T>(pub T);
 
