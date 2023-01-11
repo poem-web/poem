@@ -6,11 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [1.3.51] 2023-01-11
 
+- More compact packing of random bytes in session_id [#437](https://github.com/poem-web/poem/pull/437)
+- Fixes opentelemetry_metrics: Correct duration conversion [#449](https://github.com/poem-web/poem/pull/449)
+- Support fall back to the index file when serving static files [#450](https://github.com/poem-web/poem/pull/450)
+- Record and use PathPattern in response [#462](https://github.com/poem-web/poem/pull/462)
+- listener::rustls: add support for elliptic curve private keys [#460](https://github.com/poem-web/poem/pull/460)
 - Add `Error::set_error_message` to change the error message
 
 # [1.3.50] 2022-12-01
 
-- Fixes not enough randomness in session keys([#430](https://github.com/poem-web/poem/issues/430))
+- Fixes not enough randomness in session keys [#430](https://github.com/poem-web/poem/issues/430)
 
 # [1.3.49] 2022-11-21
 
