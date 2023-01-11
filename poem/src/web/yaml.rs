@@ -83,8 +83,11 @@ use crate::{
 /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// let resp = cli.get("/").send().await;
 /// resp.assert_status_is_ok();
-/// resp.assert_text(r#"name: foo
-/// "#).await;
+/// resp.assert_text(
+///     r#"name: foo
+/// "#,
+/// )
+/// .await;
 /// # });
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]

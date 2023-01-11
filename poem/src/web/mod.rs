@@ -10,8 +10,6 @@ pub mod cookie;
 mod data;
 mod form;
 mod json;
-#[cfg(feature = "yaml")]
-mod yaml;
 #[cfg(feature = "multipart")]
 mod multipart;
 mod path;
@@ -27,6 +25,8 @@ mod static_file;
 mod tempfile;
 #[cfg(feature = "xml")]
 mod xml;
+#[cfg(feature = "yaml")]
+mod yaml;
 #[doc(inline)]
 pub use headers;
 #[cfg(feature = "csrf")]

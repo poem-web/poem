@@ -114,8 +114,7 @@ pub trait ParseFromYAML: Sized + Type {
 
     /// Parse from YAML string.
     fn parse_from_yaml_string(s: &str) -> ParseResult<Self> {
-        let value =
-            serde_yaml::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
+        let value = serde_yaml::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
         Self::parse_from_yaml(value)
     }
 }
