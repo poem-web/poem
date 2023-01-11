@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "2.0.21"
+version = "2.0.22"
 authors = ["sunli <scott_s829@163.com>"]
 edition = "2021"
 description = "OpenAPI support for Poem."
@@ -23,8 +23,8 @@ static-files = ["poem/static-files"]
 websocket = ["poem/websocket"]
 
 [dependencies]
-poem-openapi-derive = { path = "../poem-openapi-derive", version = "2.0.21" }
-poem = { path = "../poem", version = "1.3.50", features = [
+poem-openapi-derive = { path = "../poem-openapi-derive", version = "2.0.22" }
+poem = { path = "../poem", version = "1.3.51", features = [
   "multipart",
   "tempfile",
   "cookie",
@@ -67,7 +67,7 @@ humantime = { version = "2.1.0", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-poem = { path = "../poem", version = "1.3.50", features = ["test"] }
+poem = { path = "../poem", version = "1.3.51", features = ["test"] }
 
 [package.metadata.docs.rs]
 all-features = true
