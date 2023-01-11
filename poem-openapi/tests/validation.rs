@@ -429,7 +429,7 @@ fn test_unsigned_integers() {
             "u8": u8::MAX as u64,
             "u16": u16::MAX as u64,
             "u32": u32::MAX as u64,
-            "u64": u64::MAX as u64,
+            "u64": u64::MAX,
         })))
         .unwrap(),
         A {
@@ -444,7 +444,7 @@ fn test_unsigned_integers() {
             "u8": u8::MAX as u64 + 1,
             "u16": u16::MAX as u64,
             "u32": u32::MAX as u64,
-            "u64": u64::MAX as u64,
+            "u64": u64::MAX,
         })))
         .unwrap_err()
         .into_message(),

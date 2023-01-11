@@ -55,6 +55,8 @@ struct ResponseArgs {
     bad_request_handler: Option<Path>,
     #[darling(default, multiple, rename = "header")]
     headers: Vec<ExtraHeader>,
+    #[darling(default)]
+    display: bool,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -72,6 +74,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     };
 
     let mut into_responses = Vec::new();
+    let mut error_messages = Vec::new();
     let mut responses_meta = Vec::new();
     let mut schemas = Vec::new();
 
@@ -190,6 +193,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         resp
                     }
                 });
+                error_messages.push(quote! {
+                    #ident::#item_ident(status, media, #(#match_headers),*) => #item_description,
+                });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
@@ -227,6 +233,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         resp
                     }
                 });
+                error_messages.push(quote! {
+                    #ident::#item_ident(media, #(#match_headers),*) => #item_description,
+                });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
@@ -263,6 +272,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         resp
                     }
                 });
+                error_messages.push(quote! {
+                    #item => #item_description,
+                });
                 responses_meta.push(quote! {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
@@ -295,6 +307,17 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
         }
     });
+    let error_msg = if args.display {
+        quote! {
+            let error_msg = ::std::option::Option::Some(::std::string::ToString::to_string(&resp));
+        }
+    } else {
+        quote! {
+            let error_msg: ::std::option::Option<&str> = match &resp {
+                #(#error_messages)*
+            };
+        }
+    };
 
     let expanded = {
         quote! {
@@ -325,7 +348,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             impl #impl_generics ::std::convert::From<#ident #ty_generics> for #crate_name::__private::poem::Error #where_clause {
                 fn from(resp: #ident #ty_generics) -> #crate_name::__private::poem::Error {
                     use #crate_name::__private::poem::IntoResponse;
-                    #crate_name::__private::poem::Error::from_response(resp.into_response())
+                    #error_msg
+                    let mut err = #crate_name::__private::poem::Error::from_response(resp.into_response());
+                    if let ::std::option::Option::Some(error_msg) = error_msg {
+                        err.set_error_message(error_msg);
+                    }
+                    err
                 }
             }
         }
