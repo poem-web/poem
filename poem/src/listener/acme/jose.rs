@@ -83,7 +83,7 @@ impl Jwk {
         let json = serde_json::to_vec(&jwk_thumb).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode jwt: {}", err))
         })?;
-        let hash = sha256(&json);
+        let hash = sha256(json);
         Ok(base64::encode_config(hash, URL_SAFE_NO_PAD))
     }
 }

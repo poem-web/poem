@@ -154,7 +154,12 @@ mod tests {
 
     #[test]
     fn date_time() {
-        let dt = Utc.from_utc_datetime(&NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4));
+        let dt = Utc.from_utc_datetime(
+            &NaiveDate::from_ymd_opt(2015, 9, 18)
+                .unwrap()
+                .and_hms_opt(23, 56, 4)
+                .unwrap(),
+        );
         let value = dt.to_json();
         assert_eq!(
             value,
@@ -165,13 +170,21 @@ mod tests {
                 "2015-09-18T23:56:04+00:00".to_string()
             )))
             .unwrap(),
-            Utc.from_utc_datetime(&NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4))
+            Utc.from_utc_datetime(
+                &NaiveDate::from_ymd_opt(2015, 9, 18)
+                    .unwrap()
+                    .and_hms_opt(23, 56, 4)
+                    .unwrap()
+            )
         );
     }
 
     #[test]
     fn naive_date_time() {
-        let dt = NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4);
+        let dt = NaiveDate::from_ymd_opt(2015, 9, 18)
+            .unwrap()
+            .and_hms_opt(23, 56, 4)
+            .unwrap();
         let value = dt.to_json();
         assert_eq!(
             value,
@@ -180,29 +193,32 @@ mod tests {
         assert_eq!(
             NaiveDateTime::parse_from_json(Some(Value::String("2015-09-18T23:56:04".to_string())))
                 .unwrap(),
-            NaiveDate::from_ymd(2015, 9, 18).and_hms(23, 56, 4)
+            NaiveDate::from_ymd_opt(2015, 9, 18)
+                .unwrap()
+                .and_hms_opt(23, 56, 4)
+                .unwrap()
         );
     }
 
     #[test]
     fn naive_date() {
-        let dt = NaiveDate::from_ymd(2015, 9, 18);
+        let dt = NaiveDate::from_ymd_opt(2015, 9, 18).unwrap();
         let value = dt.to_json();
         assert_eq!(value, Some(Value::String("2015-09-18".to_string())));
         assert_eq!(
             NaiveDate::parse_from_json(Some(Value::String("2015-09-18".to_string()))).unwrap(),
-            NaiveDate::from_ymd(2015, 9, 18)
+            NaiveDate::from_ymd_opt(2015, 9, 18).unwrap()
         );
     }
 
     #[test]
     fn naive_time() {
-        let dt = NaiveTime::from_hms(23, 56, 4);
+        let dt = NaiveTime::from_hms_opt(23, 56, 4).unwrap();
         let value = dt.to_json();
         assert_eq!(value, Some(Value::String("23:56:04".to_string())));
         assert_eq!(
             NaiveTime::parse_from_json(Some(Value::String("23:56:04".to_string()))).unwrap(),
-            NaiveTime::from_hms(23, 56, 4)
+            NaiveTime::from_hms_opt(23, 56, 4).unwrap()
         );
     }
 }

@@ -190,6 +190,7 @@ pub struct Error {
     as_response: AsResponse,
     source: Option<ErrorSource>,
     extensions: Extensions,
+    msg: Option<String>,
 }
 
 impl Debug for Error {
@@ -202,13 +203,17 @@ impl Debug for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(msg) = &self.msg {
+            return write!(f, "{}", msg);
+        }
+
         match &self.source {
             Some(ErrorSource::BoxedError(err)) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
             Some(ErrorSource::Anyhow(err)) => write!(f, "{:#}", err),
             #[cfg(feature = "eyre06")]
             Some(ErrorSource::Eyre06(err)) => Display::fmt(err, f),
-            None => f.write_str("response"),
+            None => write!(f, "{}", self.status()),
         }
     }
 }
@@ -225,6 +230,7 @@ impl<T: ResponseError + StdError + Send + Sync + 'static> From<T> for Error {
             as_response: AsResponse::from_type::<T>(),
             source: Some(ErrorSource::BoxedError(Box::new(err))),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 }
@@ -241,6 +247,7 @@ impl From<(StatusCode, Box<dyn StdError + Send + Sync>)> for Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::BoxedError(err)),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 }
@@ -252,6 +259,7 @@ impl From<anyhow::Error> for Error {
             as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
             source: Some(ErrorSource::Anyhow(err)),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 }
@@ -263,6 +271,7 @@ impl From<eyre06::Error> for Error {
             as_response: AsResponse::from_status(StatusCode::INTERNAL_SERVER_ERROR),
             source: Some(ErrorSource::Eyre06(err)),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 }
@@ -274,6 +283,7 @@ impl From<(StatusCode, anyhow::Error)> for Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::Anyhow(err)),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 }
@@ -285,6 +295,7 @@ impl From<(StatusCode, eyre06::Report)> for Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::Eyre06(err)),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 }
@@ -303,6 +314,7 @@ impl Error {
             as_response: AsResponse::from_status(status),
             source: Some(ErrorSource::BoxedError(Box::new(err))),
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 
@@ -312,6 +324,7 @@ impl Error {
             as_response: AsResponse::Response(resp),
             source: None,
             extensions: Extensions::default(),
+            msg: None,
         }
     }
 
@@ -364,6 +377,7 @@ impl Error {
     pub fn downcast<T: StdError + Send + Sync + 'static>(self) -> Result<T, Error> {
         let as_response = self.as_response;
         let extensions = self.extensions;
+        let msg = self.msg;
 
         match self.source {
             Some(ErrorSource::BoxedError(err)) => match err.downcast::<T>() {
@@ -372,6 +386,7 @@ impl Error {
                     as_response,
                     source: Some(ErrorSource::BoxedError(err)),
                     extensions,
+                    msg,
                 }),
             },
             #[cfg(feature = "anyhow")]
@@ -381,6 +396,7 @@ impl Error {
                     as_response,
                     source: Some(ErrorSource::Anyhow(err)),
                     extensions,
+                    msg,
                 }),
             },
             #[cfg(feature = "eyre06")]
@@ -390,12 +406,14 @@ impl Error {
                     as_response,
                     source: Some(ErrorSource::Eyre06(err)),
                     extensions,
+                    msg,
                 }),
             },
             None => Err(Error {
                 as_response,
                 source: None,
                 extensions,
+                msg,
             }),
         }
     }
@@ -467,6 +485,11 @@ impl Error {
     #[inline]
     pub fn is_from_response(&self) -> bool {
         matches!(&self.as_response, AsResponse::Response(_))
+    }
+
+    /// Set the error message
+    pub fn set_error_message(&mut self, msg: impl Into<String>) {
+        self.msg = Some(msg.into());
     }
 }
 

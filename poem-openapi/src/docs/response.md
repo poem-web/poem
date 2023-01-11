@@ -6,6 +6,7 @@ Define a OpenAPI response.
 |---------------------|-------------------------------------------------------------------------------------------------|------------------------------------------------------------|----------|
 | bad_request_handler | Sets a custom bad request handler, it can convert error to the value of the this response type. | string                                                     | Y        |
 | header              | Add an extra header                                                                             | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
+| display             | When converting a response to an error, the error message comes from the `Display trait`.       | bool                                                       | Y        |
 
 # Item parameters
 
