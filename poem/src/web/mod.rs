@@ -25,6 +25,8 @@ mod static_file;
 mod tempfile;
 #[cfg(feature = "xml")]
 mod xml;
+#[cfg(feature = "yaml")]
+mod yaml;
 #[doc(inline)]
 pub use headers;
 #[cfg(feature = "csrf")]
@@ -54,6 +56,8 @@ pub use self::static_file::{StaticFileRequest, StaticFileResponse};
 pub use self::tempfile::TempFile;
 #[cfg(feature = "xml")]
 pub use self::xml::Xml;
+#[cfg(feature = "yaml")]
+pub use self::yaml::Yaml;
 pub use self::{
     accept::Accept,
     addr::{LocalAddr, RemoteAddr},
