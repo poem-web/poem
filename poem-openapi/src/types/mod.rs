@@ -107,6 +107,18 @@ pub trait ParseFromXML: Sized + Type {
     }
 }
 
+/// Represents a type that can parsing from YAML.
+pub trait ParseFromYAML: Sized + Type {
+    /// Parse from [`serde_json::Value`].
+    fn parse_from_yaml(value: Option<Value>) -> ParseResult<Self>;
+
+    /// Parse from YAML string.
+    fn parse_from_yaml_string(s: &str) -> ParseResult<Self> {
+        let value = serde_yaml::from_str(s).map_err(|err| ParseError::custom(err.to_string()))?;
+        Self::parse_from_yaml(value)
+    }
+}
+
 /// Represents a type that can parsing from parameter. (header, query, path,
 /// cookie)
 pub trait ParseFromParameter: Sized + Type {
@@ -153,9 +165,20 @@ pub trait ToXML: Type {
     /// Convert this value to [`Value`].
     fn to_xml(&self) -> Option<Value>;
 
-    /// Convert this value to JSON string.
+    /// Convert this value to XML string.
     fn to_xml_string(&self) -> String {
         quick_xml::se::to_string(&self.to_xml()).unwrap_or_default()
+    }
+}
+
+/// Represents a type that can converted to YAML value.
+pub trait ToYAML: Type {
+    /// Convert this value to [`Value`].
+    fn to_yaml(&self) -> Option<Value>;
+
+    /// Convert this value to YAML string.
+    fn to_yaml_string(&self) -> String {
+        serde_yaml::to_string(&self.to_yaml()).unwrap_or_default()
     }
 }
 
@@ -204,6 +227,12 @@ impl<T: ToJSON> ToJSON for &T {
 impl<T: ToXML> ToXML for &T {
     fn to_xml(&self) -> Option<Value> {
         T::to_xml(self)
+    }
+}
+
+impl<T: ToYAML> ToYAML for &T {
+    fn to_yaml(&self) -> Option<Value> {
+        T::to_yaml(self)
     }
 }
 
@@ -377,6 +406,12 @@ impl<T: ToJSON> ToJSON for Box<T> {
 impl<T: ToXML> ToXML for Box<T> {
     fn to_xml(&self) -> Option<Value> {
         self.as_ref().to_xml()
+    }
+}
+
+impl<T: ToYAML> ToYAML for Box<T> {
+    fn to_yaml(&self) -> Option<Value> {
+        self.as_ref().to_yaml()
     }
 }
 

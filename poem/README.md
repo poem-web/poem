@@ -75,6 +75,7 @@ which are disabled by default:
 | tokio-metrics | Integrate with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.           |
 | embed         | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate.                 |
 | xml           | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate.                   |
+| yaml           | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                   |
 
 ## Safety
 

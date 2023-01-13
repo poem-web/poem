@@ -124,14 +124,19 @@ pub mod param;
 pub mod payload;
 #[doc(hidden)]
 pub mod registry;
-pub mod response;
+mod response;
 pub mod types;
 #[doc(hidden)]
 pub mod validation;
 
 mod base;
 mod openapi;
-#[cfg(any(feature = "swagger-ui", feature = "rapidoc", feature = "redoc"))]
+#[cfg(any(
+    feature = "swagger-ui",
+    feature = "rapidoc",
+    feature = "redoc",
+    feature = "openapi-explorer"
+))]
 mod ui;
 
 pub use base::{

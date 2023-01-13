@@ -790,6 +790,34 @@ impl ResponseError for ParseXmlError {
     }
 }
 
+/// A possible error value when parsing YAML.
+#[cfg(feature = "yaml")]
+#[derive(Debug, thiserror::Error)]
+pub enum ParseYamlError {
+    /// Invalid content type.
+    #[error("invalid content type `{0}`, expect: `application/yaml`")]
+    InvalidContentType(String),
+
+    /// `Content-Type` header is required.
+    #[error("expect content type `application/yaml`")]
+    ContentTypeRequired,
+
+    /// Url decode error.
+    #[error("parse error: {0}")]
+    Parse(#[from] serde_yaml::Error),
+}
+
+#[cfg(feature = "yaml")]
+impl ResponseError for ParseYamlError {
+    fn status(&self) -> StatusCode {
+        match self {
+            ParseYamlError::InvalidContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseYamlError::ContentTypeRequired => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ParseYamlError::Parse(_) => StatusCode::BAD_REQUEST,
+        }
+    }
+}
+
 /// A possible error value when parsing query.
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
