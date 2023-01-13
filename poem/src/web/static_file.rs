@@ -7,6 +7,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use bytes::Bytes;
 use headers::{
     ContentRange, ETag, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfUnmodifiedSince,
     Range,
@@ -40,6 +41,16 @@ pub enum StaticFileResponse {
     },
     /// 304 NOT MODIFIED
     NotModified,
+}
+
+impl StaticFileResponse {
+    /// Set the content type
+    pub fn with_content_type(mut self, ct: impl Into<String>) -> Self {
+        if let StaticFileResponse::Ok { content_type, .. } = &mut self {
+            *content_type = Some(ct.into());
+        }
+        self
+    }
 }
 
 impl IntoResponse for StaticFileResponse {
@@ -104,6 +115,59 @@ impl<'a> FromRequest<'a> for StaticFileRequest {
 }
 
 impl StaticFileRequest {
+    /// Create static file response.
+    ///
+    /// `prefer_utf8` - Specifies whether text responses should signal a UTF-8
+    /// encoding.
+    pub fn create_response_from_data(
+        self,
+        data: impl AsRef<[u8]>,
+    ) -> Result<StaticFileResponse, StaticFileError> {
+        let data = data.as_ref();
+
+        // content length
+        let mut content_length = data.len() as u64;
+        let mut content_range = None;
+
+        let body = if let Some((start, end)) = self.range.and_then(|range| range.iter().next()) {
+            let start = match start {
+                Bound::Included(n) => n,
+                Bound::Excluded(n) => n + 1,
+                Bound::Unbounded => 0,
+            };
+            let end = match end {
+                Bound::Included(n) => n + 1,
+                Bound::Excluded(n) => n,
+                Bound::Unbounded => content_length,
+            };
+            if end < start || end > content_length {
+                return Err(StaticFileError::RangeNotSatisfiable {
+                    size: content_length,
+                });
+            }
+
+            if start != 0 || end != content_length {
+                content_range = Some((start..end, content_length));
+            }
+
+            content_length = end - start;
+            Body::from_bytes(Bytes::copy_from_slice(
+                &data[start as usize..(start + content_length) as usize],
+            ))
+        } else {
+            Body::from_bytes(Bytes::copy_from_slice(data))
+        };
+
+        Ok(StaticFileResponse::Ok {
+            body,
+            content_length,
+            content_type: None,
+            etag: None,
+            last_modified: None,
+            content_range,
+        })
+    }
+
     /// Create static file response.
     ///
     /// `prefer_utf8` - Specifies whether text responses should signal a UTF-8

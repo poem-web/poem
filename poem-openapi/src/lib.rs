@@ -124,7 +124,7 @@ pub mod param;
 pub mod payload;
 #[doc(hidden)]
 pub mod registry;
-pub mod response;
+mod response;
 pub mod types;
 #[doc(hidden)]
 pub mod validation;
