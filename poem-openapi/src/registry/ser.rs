@@ -22,14 +22,17 @@ impl Serialize for MetaSchemaRef {
     }
 }
 
-struct PathMap<'a>(&'a [MetaApi]);
+struct PathMap<'a>(&'a [MetaApi], Option<&'a str>);
 
 impl<'a> Serialize for PathMap<'a> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut s = serializer.serialize_map(Some(self.0.len()))?;
         for api in self.0 {
             for path in &api.paths {
-                s.serialize_entry(path.path, path)?;
+                match self.1 {
+                    Some(p) => s.serialize_entry(&format!("{}{}", p, path.path), path)?,
+                    None => s.serialize_entry(path.path, path)?,
+                }
             }
         }
         s.end()
@@ -80,6 +83,7 @@ pub(crate) struct Document<'a> {
     pub(crate) webhooks: Vec<MetaWebhook>,
     pub(crate) registry: Registry,
     pub(crate) external_document: Option<&'a MetaExternalDocument>,
+    pub(crate) url_prefix: Option<&'a str>,
 }
 
 impl<'a> Serialize for Document<'a> {
@@ -101,7 +105,7 @@ impl<'a> Serialize for Document<'a> {
         if !self.webhooks.is_empty() {
             s.serialize_entry("webhooks", &WebhookMap(&self.webhooks))?;
         }
-        s.serialize_entry("paths", &PathMap(&self.apis))?;
+        s.serialize_entry("paths", &PathMap(&self.apis, self.url_prefix))?;
         s.serialize_entry(
             "components",
             &Components {
