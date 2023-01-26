@@ -7,6 +7,7 @@ license.workspace = true
 documentation.workspace = true
 homepage.workspace = true
 repository.workspace = true
+readme = "README.md"
 description = "GRPC support for Poem."
 keywords = ["http", "async", "grpc"]
 categories = ["network-programming", "asynchronous"]
