@@ -73,7 +73,7 @@ fn ws(
         tokio::spawn(async move {
             while let Some(Ok(msg)) = stream.next().await {
                 if let Message::Text(text) = msg {
-                    if sender.send(format!("{}: {}", name, text)).is_err() {
+                    if sender.send(format!("{name}: {text}")).is_err() {
                         break;
                     }
                 }
