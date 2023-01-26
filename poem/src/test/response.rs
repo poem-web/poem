@@ -60,7 +60,7 @@ impl TestResponse {
             .0
             .headers()
             .get(&key)
-            .unwrap_or_else(|| panic!("expect header `{}`", key));
+            .unwrap_or_else(|| panic!("expect header `{key}`"));
 
         assert_eq!(value2, value);
     }
@@ -83,7 +83,7 @@ impl TestResponse {
             .0
             .headers()
             .get(&key)
-            .unwrap_or_else(|| panic!("expect header `{}`", key));
+            .unwrap_or_else(|| panic!("expect header `{key}`"));
         let values = value
             .to_str()
             .expect("valid header value")

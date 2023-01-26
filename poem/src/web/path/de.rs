@@ -27,7 +27,7 @@ impl fmt::Display for PathDeserializerError {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PathDeserializerError(msg) => write!(f, "{}", msg),
+            PathDeserializerError(msg) => write!(f, "{msg}"),
         }
     }
 }

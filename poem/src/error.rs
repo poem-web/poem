@@ -204,7 +204,7 @@ impl Debug for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(msg) = &self.msg {
-            return write!(f, "{}", msg);
+            return write!(f, "{msg}");
         }
 
         match &self.source {

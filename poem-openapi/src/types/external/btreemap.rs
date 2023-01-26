@@ -61,7 +61,7 @@ where
             for (key, value) in value {
                 let key = key
                     .parse()
-                    .map_err(|err| ParseError::custom(format!("object key: {}", err)))?;
+                    .map_err(|err| ParseError::custom(format!("object key: {err}")))?;
                 let value = V::parse_from_json(Some(value)).map_err(ParseError::propagate)?;
                 obj.insert(key, value);
             }

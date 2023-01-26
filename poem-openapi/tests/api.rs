@@ -328,7 +328,7 @@ async fn bad_request_handler() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {err}")))
     }
 
     struct Api;
@@ -372,7 +372,7 @@ async fn bad_request_handler_for_validator() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {err}")))
     }
 
     struct Api;

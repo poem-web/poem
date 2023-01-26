@@ -187,7 +187,7 @@ impl<'a> TestJsonArray<'a> {
     /// Returns the element at index `idx`.
     pub fn get(&self, idx: usize) -> TestJsonValue<'a> {
         self.get_opt(idx)
-            .unwrap_or_else(|| panic!("expect index `{}`", idx))
+            .unwrap_or_else(|| panic!("expect index `{idx}`"))
     }
 
     /// Returns the element at index `idx`, or `None` if the element does not
@@ -249,7 +249,7 @@ impl<'a> TestJsonObject<'a> {
     pub fn get(&self, name: impl AsRef<str>) -> TestJsonValue<'a> {
         let name = name.as_ref();
         self.get_opt(name)
-            .unwrap_or_else(|| panic!("expect key `{}`", name))
+            .unwrap_or_else(|| panic!("expect key `{name}`"))
     }
 
     /// Returns the element corresponding to the `name`, or `None` if the

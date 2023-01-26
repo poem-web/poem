@@ -247,7 +247,7 @@ impl Route {
                     let path =
                         &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..];
                     uri_parts.path_and_query = Some(if !path.starts_with('/') {
-                        PathAndQuery::from_str(&format!("/{}", path)).unwrap()
+                        PathAndQuery::from_str(&format!("/{path}")).unwrap()
                     } else {
                         PathAndQuery::from_str(path).unwrap()
                     });
@@ -275,7 +275,7 @@ impl Route {
         };
 
         self.tree.add(
-            &format!("{}*--poem-rest", path),
+            &format!("{path}*--poem-rest"),
             Box::new(Nest {
                 inner: ep.clone(),
                 root: false,
