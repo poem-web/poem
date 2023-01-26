@@ -1,8 +1,8 @@
 [package]
 name = "example-handling-404"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
 poem = { path = "../../../poem" }
