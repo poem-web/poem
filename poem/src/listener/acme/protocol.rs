@@ -104,10 +104,7 @@ impl FetchAuthorizationResponse {
             .iter()
             .find(|c| c.ty == ty.to_string())
             .ok_or_else(|| {
-                IoError::new(
-                    ErrorKind::Other,
-                    format!("unable to find `{}` challenge", ty),
-                )
+                IoError::new(ErrorKind::Other, format!("unable to find `{ty}` challenge"))
             })
     }
 }
