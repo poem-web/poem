@@ -21,20 +21,19 @@ use crate::{
     Body,
 };
 
-pub(crate) struct AcmeClient {
+/// A client for ACME-supporting TLS certificate services.
+pub struct AcmeClient {
     client: Client<HttpsConnector<HttpConnector>>,
     directory: Directory,
-    key_pair: Arc<KeyPair>,
+    pub(crate) key_pair: Arc<KeyPair>,
     contacts: Vec<String>,
     kid: Option<String>,
 }
 
 impl AcmeClient {
-    pub(crate) async fn try_new(
-        directory_url: &Uri,
-        key_pair: Arc<KeyPair>,
-        contacts: Vec<String>,
-    ) -> IoResult<Self> {
+    /// Create a new client. `directory_url` is the url for the ACME provider. `contacts` is a list
+    /// of URLS (ex: `mailto:`) the ACME service can use to reach you if there's issues with your certificates.
+    pub async fn try_new(directory_url: &Uri, contacts: Vec<String>) -> IoResult<Self> {
         let client = Client::builder().build(
             HttpsConnectorBuilder::new()
                 .with_native_roots()
@@ -46,7 +45,7 @@ impl AcmeClient {
         Ok(Self {
             client,
             directory,
-            key_pair,
+            key_pair: Arc::new(KeyPair::generate()?),
             contacts,
             kid: None,
         })

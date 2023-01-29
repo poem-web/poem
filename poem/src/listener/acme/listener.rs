@@ -1,10 +1,12 @@
 use std::{
+    collections::HashMap,
     io::{Error as IoError, ErrorKind, Result as IoResult},
     sync::{Arc, Weak},
     time::{Duration, UNIX_EPOCH},
 };
 
 use http::uri::Scheme;
+use parking_lot::RwLock;
 use rcgen::{
     Certificate, CertificateParams, CustomExtension, DistinguishedName, PKCS_ECDSA_P256_SHA256,
 };
@@ -31,6 +33,59 @@ use crate::{
     web::{LocalAddr, RemoteAddr},
 };
 
+pub(crate) async fn auto_cert_acceptor<T: Listener>(
+    base_listener: T,
+    cert_resolver: Arc<ResolveServerCert>,
+    challenge_type: ChallengeType,
+) -> IoResult<AutoCertAcceptor<T::Acceptor>> {
+    let mut server_config = ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth()
+        .with_cert_resolver(cert_resolver);
+    server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+    if challenge_type == ChallengeType::TlsAlpn01 {
+        server_config
+            .alpn_protocols
+            .push(ACME_TLS_ALPN_NAME.to_vec());
+    }
+    let acceptor = TlsAcceptor::from(Arc::new(server_config));
+    Ok(AutoCertAcceptor {
+        inner: base_listener.into_acceptor().await?,
+        acceptor,
+    })
+}
+
+/// A listener that uses the TLS cert provided by the cert resolver.
+pub struct ResolvedCertListener<T> {
+    inner: T,
+    cert_resolver: Arc<ResolveServerCert>,
+    challenge_type: ChallengeType,
+}
+
+impl<T> ResolvedCertListener<T> {
+    /// Create a new `ResolvedCertListener`.
+    pub fn new(
+        inner: T,
+        cert_resolver: Arc<ResolveServerCert>,
+        challenge_type: ChallengeType,
+    ) -> Self {
+        Self {
+            inner,
+            cert_resolver,
+            challenge_type,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<T: Listener> Listener for ResolvedCertListener<T> {
+    type Acceptor = AutoCertAcceptor<T::Acceptor>;
+
+    async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
+        auto_cert_acceptor(self.inner, self.cert_resolver, self.challenge_type).await
+    }
+}
+
 /// A wrapper around an underlying listener which implements the ACME.
 pub struct AutoCertListener<T> {
     inner: T,
@@ -50,15 +105,12 @@ impl<T: Listener> Listener for AutoCertListener<T> {
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         let mut client = AcmeClient::try_new(
             &self.auto_cert.directory_url,
-            self.auto_cert.key_pair.clone(),
             self.auto_cert.contacts.clone(),
         )
         .await?;
-
         let (cache_certs, cert_key) = {
             let mut certs = None;
             let mut key = None;
-
             if let Some(cache_cert) = &self.auto_cert.cache_cert {
                 match rustls_pemfile::certs(&mut cache_cert.as_slice()) {
                     Ok(c) => certs = Some(c),
@@ -67,7 +119,6 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                     }
                 };
             }
-
             if let Some(cache_key) = &self.auto_cert.cache_key {
                 match rustls_pemfile::pkcs8_private_keys(&mut cache_key.as_slice()) {
                     Ok(k) => key = k.into_iter().next(),
@@ -76,18 +127,14 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                     }
                 };
             }
-
             (certs, key)
         };
-
         let cert_resolver = Arc::new(ResolveServerCert::default());
-
         if let (Some(certs), Some(key)) = (cache_certs, cert_key) {
             let certs = certs
                 .into_iter()
                 .map(tokio_rustls::rustls::Certificate)
                 .collect::<Vec<_>>();
-
             let expires_at = match certs
                 .first()
                 .and_then(|cert| X509Certificate::from_der(cert.as_ref()).ok())
@@ -97,7 +144,6 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 Some(expires_at) => chrono::DateTime::<chrono::Utc>::from(expires_at).to_string(),
                 None => "unknown".to_string(),
             };
-
             tracing::debug!(
                 expires_at = expires_at.as_str(),
                 "using cached tls certificates"
@@ -107,39 +153,47 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 any_ecdsa_type(&PrivateKey(key)).unwrap(),
             )));
         }
-
         let weak_cert_resolver = Arc::downgrade(&cert_resolver);
-        let mut server_config = ServerConfig::builder()
-            .with_safe_defaults()
-            .with_no_client_auth()
-            .with_cert_resolver(cert_resolver);
-
-        server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
-
-        if self.auto_cert.challenge_type == ChallengeType::TlsAlpn01 {
-            server_config
-                .alpn_protocols
-                .push(ACME_TLS_ALPN_NAME.to_vec());
-        }
-
-        let acceptor = TlsAcceptor::from(Arc::new(server_config));
-        let auto_cert = self.auto_cert;
-
+        let challenge_type = self.auto_cert.challenge_type;
+        let domains = self.auto_cert.domains;
+        let keys_for_http01 = self.auto_cert.keys_for_http01;
+        let cache_path = self.auto_cert.cache_path;
         tokio::spawn(async move {
             while let Some(cert_resolver) = Weak::upgrade(&weak_cert_resolver) {
                 if cert_resolver.is_expired() {
-                    if let Err(err) = issue_cert(&mut client, &auto_cert, &cert_resolver).await {
-                        tracing::error!(error = %err, "failed to issue certificate");
+                    match issue_cert(
+                        &mut client,
+                        &cert_resolver,
+                        &domains,
+                        challenge_type,
+                        keys_for_http01.as_ref(),
+                    )
+                    .await
+                    {
+                        Ok((pkey_pem, acme_cert_pem, cert_key)) => {
+                            *cert_resolver.cert.write() = Some(cert_key);
+                            if let Some(cache_path) = &cache_path {
+                                let pkey_path = cache_path.join("key.pem");
+                                tracing::debug!(path =% pkey_path.display(), "write private key to cache path");
+                                if let Err(err) = std::fs::write(pkey_path, pkey_pem) {
+                                    tracing::error!(error =% err, "failed to write key pem to cache dir");
+                                }
+                                let cert_path = cache_path.join("cert.pem");
+                                tracing::debug!(path =% cert_path.display(), "write certificate to cache path");
+                                if let Err(err) = std::fs::write(cert_path, acme_cert_pem) {
+                                    tracing::error!(error =% err, "failed to write cert pem to cache dir");
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            tracing::error!(error =% err, "failed to issue certificate");
+                        }
                     }
                 }
                 tokio::time::sleep(Duration::from_secs(60 * 5)).await;
             }
         });
-
-        Ok(AutoCertAcceptor {
-            inner: self.inner.into_acceptor().await?,
-            acceptor,
-        })
+        Ok(auto_cert_acceptor(self.inner, cert_resolver, challenge_type).await?)
     }
 }
 
@@ -181,63 +235,57 @@ fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
     ))
 }
 
-async fn issue_cert(
+/// Generate a new certificate via ACME protocol.  Returns the pub cert and private
+/// key in PEM format, and the private key as a Rustls object.
+///
+/// It is up to the caller to make use of the returned certificate, this function does
+/// nothing outside for the ACME protocol procedure.
+pub async fn issue_cert(
     client: &mut AcmeClient,
-    auto_cert: &AutoCert,
     resolver: &ResolveServerCert,
-) -> IoResult<()> {
+    domains: &Vec<String>,
+    challenge_type: ChallengeType,
+    keys_for_http01: Option<&Arc<RwLock<HashMap<String, String>>>>,
+) -> IoResult<(String, Vec<u8>, Arc<CertifiedKey>)> {
     tracing::debug!("issue certificate");
-
-    let order_resp = client.new_order(&auto_cert.domains).await?;
+    let order_resp = client.new_order(&domains).await?;
 
     // trigger challenge
     let mut valid = false;
-
     for i in 1..5 {
         let mut all_valid = true;
-
         for auth_url in &order_resp.authorizations {
             let resp = client.fetch_authorization(auth_url).await?;
-
             if resp.status == "valid" {
                 continue;
             }
-
             all_valid = false;
-
             if resp.status == "pending" {
-                let challenge = resp.find_challenge(auto_cert.challenge_type)?;
-
-                match auto_cert.challenge_type {
+                let challenge = resp.find_challenge(challenge_type)?;
+                match challenge_type {
                     ChallengeType::Http01 => {
-                        if let Some(keys) = &auto_cert.keys_for_http01 {
+                        if let Some(keys) = &keys_for_http01 {
                             let mut keys = keys.write();
                             let key_authorization =
-                                jose::key_authorization(&auto_cert.key_pair, &challenge.token)?;
+                                jose::key_authorization(&client.key_pair, &challenge.token)?;
                             keys.insert(challenge.token.to_string(), key_authorization);
                         }
                     }
                     ChallengeType::TlsAlpn01 => {
                         let key_authorization_sha256 =
-                            jose::key_authorization_sha256(&auto_cert.key_pair, &challenge.token)?;
+                            jose::key_authorization_sha256(&client.key_pair, &challenge.token)?;
                         let auth_key = gen_acme_cert(
                             &resp.identifier.value,
                             key_authorization_sha256.as_ref(),
                         )?;
-
                         resolver
                             .acme_keys
                             .write()
                             .insert(resp.identifier.value.to_string(), Arc::new(auth_key));
                     }
                 }
-
                 client
-                    .trigger_challenge(
-                        &resp.identifier.value,
-                        auto_cert.challenge_type,
-                        &challenge.url,
-                    )
+                    .trigger_challenge(&resp.identifier.value, challenge_type, &challenge.url)
                     .await?;
             } else if resp.status == "invalid" {
                 return Err(IoError::new(
@@ -253,15 +301,12 @@ async fn issue_cert(
                 ));
             }
         }
-
         if all_valid {
             valid = true;
             break;
         }
-
         tokio::time::sleep(Duration::from_secs(i * 10)).await;
     }
-
     if !valid {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -270,7 +315,7 @@ async fn issue_cert(
     }
 
     // send csr
-    let mut params = CertificateParams::new(auto_cert.domains.clone());
+    let mut params = CertificateParams::new(domains.clone());
     params.distinguished_name = DistinguishedName::new();
     params.alg = &PKCS_ECDSA_P256_SHA256;
     let cert = Certificate::from_params(params).map_err(|err| {
@@ -286,9 +331,7 @@ async fn issue_cert(
             format!("failed to serialize request der {}", err),
         )
     })?;
-
     let order_resp = client.send_csr(&order_resp.finalize, &csr).await?;
-
     if order_resp.status == "invalid" {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -302,7 +345,6 @@ async fn issue_cert(
             ),
         ));
     }
-
     if order_resp.status != "valid" {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -329,20 +371,6 @@ async fn issue_cert(
         .map(tokio_rustls::rustls::Certificate)
         .collect();
     let cert_key = CertifiedKey::new(cert_chain, pk);
-
-    *resolver.cert.write() = Some(Arc::new(cert_key));
-
     tracing::debug!("certificate obtained");
-
-    if let Some(cache_path) = &auto_cert.cache_path {
-        let pkey_path = cache_path.join("key.pem");
-        tracing::debug!(path = %pkey_path.display(), "write private key to cache path");
-        std::fs::write(pkey_path, pkey_pem)?;
-
-        let cert_path = cache_path.join("cert.pem");
-        tracing::debug!(path = %cert_path.display(), "write certificate to cache path");
-        std::fs::write(cert_path, acme_cert_pem)?;
-    }
-
-    Ok(())
+    Ok((pkey_pem, acme_cert_pem, Arc::new(cert_key)))
 }

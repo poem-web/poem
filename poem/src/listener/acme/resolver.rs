@@ -13,28 +13,37 @@ use x509_parser::prelude::{FromDer, X509Certificate};
 
 pub(crate) const ACME_TLS_ALPN_NAME: &[u8] = b"acme-tls/1";
 
+/// Returns the number of seconds until the certificate expires or 0
+/// if there's no certificate in the key.
+pub fn seconds_until_expiry(cert: &CertifiedKey) -> i64 {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let expires_at = cert
+        .cert
+        .first()
+        .and_then(|cert| X509Certificate::from_der(cert.as_ref()).ok())
+        .map(|(_, cert)| cert.validity().not_after.timestamp())
+        .unwrap_or(0);
+    expires_at - now
+}
+
+/// Shared ACME key state.
 #[derive(Default)]
-pub(crate) struct ResolveServerCert {
-    pub(crate) cert: RwLock<Option<Arc<CertifiedKey>>>,
+pub struct ResolveServerCert {
+    /// The current TLS certificate. Swap it with `Arc::write`.
+    pub cert: RwLock<Option<Arc<CertifiedKey>>>,
     pub(crate) acme_keys: RwLock<HashMap<String, Arc<CertifiedKey>>>,
 }
 
 impl ResolveServerCert {
     pub(crate) fn is_expired(&self) -> bool {
-        let cert = self.cert.read();
-        match cert
+        self.cert
+            .read()
             .as_ref()
-            .and_then(|cert| cert.cert.first())
-            .and_then(|cert| X509Certificate::from_der(cert.as_ref()).ok())
-            .map(|(_, cert)| cert.validity().not_after.timestamp())
-        {
-            Some(valid_until) => {
-                let now = SystemTime::now();
-                let now = now.duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-                now + 60 * 60 * 12 > valid_until
-            }
-            None => true,
-        }
+            .map(|cert| seconds_until_expiry(cert) < 60 * 60 * 12)
+            .unwrap_or(true)
     }
 }
 

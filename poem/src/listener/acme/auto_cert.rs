@@ -8,16 +8,13 @@ use std::{
 use http::Uri;
 use parking_lot::RwLock;
 
-use crate::listener::acme::{
-    builder::AutoCertBuilder, endpoint::Http01Endpoint, keypair::KeyPair, ChallengeType,
-};
+use crate::listener::acme::{builder::AutoCertBuilder, endpoint::Http01Endpoint, ChallengeType};
 
 /// ACME configuration
 pub struct AutoCert {
     pub(crate) directory_url: Uri,
     pub(crate) domains: Vec<String>,
     pub(crate) contacts: Vec<String>,
-    pub(crate) key_pair: Arc<KeyPair>,
     pub(crate) challenge_type: ChallengeType,
     pub(crate) keys_for_http01: Option<Arc<RwLock<HashMap<String, String>>>>,
     pub(crate) cache_path: Option<PathBuf>,
