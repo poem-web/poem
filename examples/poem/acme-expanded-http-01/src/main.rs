@@ -1,3 +1,7 @@
+//! If you want to manage certificates yourself (sharing between servers,
+//! sending over the network, etc) you can use this expanded ACME
+//! certificate generation process which gives you access to the
+//! generated certificates.
 use std::{sync::Arc, time::Duration};
 
 use poem::{
@@ -50,7 +54,7 @@ async fn main() -> Result<(), std::io::Error> {
                     )
                     .await
                     {
-                        Ok((_, _, cert)) => cert,
+                        Ok((_pub_cert_pem, _priv_key_pem, cert)) => cert,
                         Err(err) => {
                             eprintln!("failed to issue certificate: {}", err);
                             sleep(Duration::from_secs(60 * 5)).await;
