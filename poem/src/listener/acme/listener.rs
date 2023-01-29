@@ -108,9 +108,11 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             self.auto_cert.contacts.clone(),
         )
         .await?;
+
         let (cache_certs, cert_key) = {
             let mut certs = None;
             let mut key = None;
+
             if let Some(cache_cert) = &self.auto_cert.cache_cert {
                 match rustls_pemfile::certs(&mut cache_cert.as_slice()) {
                     Ok(c) => certs = Some(c),
@@ -119,6 +121,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                     }
                 };
             }
+
             if let Some(cache_key) = &self.auto_cert.cache_key {
                 match rustls_pemfile::pkcs8_private_keys(&mut cache_key.as_slice()) {
                     Ok(k) => key = k.into_iter().next(),
@@ -127,14 +130,18 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                     }
                 };
             }
+
             (certs, key)
         };
+
         let cert_resolver = Arc::new(ResolveServerCert::default());
+
         if let (Some(certs), Some(key)) = (cache_certs, cert_key) {
             let certs = certs
                 .into_iter()
                 .map(tokio_rustls::rustls::Certificate)
                 .collect::<Vec<_>>();
+
             let expires_at = match certs
                 .first()
                 .and_then(|cert| X509Certificate::from_der(cert.as_ref()).ok())
@@ -144,6 +151,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 Some(expires_at) => chrono::DateTime::<chrono::Utc>::from(expires_at).to_string(),
                 None => "unknown".to_string(),
             };
+
             tracing::debug!(
                 expires_at = expires_at.as_str(),
                 "using cached tls certificates"
@@ -153,6 +161,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 any_ecdsa_type(&PrivateKey(key)).unwrap(),
             )));
         }
+
         let weak_cert_resolver = Arc::downgrade(&cert_resolver);
         let challenge_type = self.auto_cert.challenge_type;
         let domains = self.auto_cert.domains;
@@ -252,16 +261,22 @@ pub async fn issue_cert(
 
     // trigger challenge
     let mut valid = false;
+
     for i in 1..5 {
         let mut all_valid = true;
+
         for auth_url in &order_resp.authorizations {
             let resp = client.fetch_authorization(auth_url).await?;
+
             if resp.status == "valid" {
                 continue;
             }
+
             all_valid = false;
+
             if resp.status == "pending" {
                 let challenge = resp.find_challenge(challenge_type)?;
+
                 match challenge_type {
                     ChallengeType::Http01 => {
                         if let Some(keys) = &keys_for_http01 {
@@ -278,12 +293,14 @@ pub async fn issue_cert(
                             &resp.identifier.value,
                             key_authorization_sha256.as_ref(),
                         )?;
+
                         resolver
                             .acme_keys
                             .write()
                             .insert(resp.identifier.value.to_string(), Arc::new(auth_key));
                     }
                 }
+
                 client
                     .trigger_challenge(&resp.identifier.value, challenge_type, &challenge.url)
                     .await?;
@@ -301,12 +318,15 @@ pub async fn issue_cert(
                 ));
             }
         }
+
         if all_valid {
             valid = true;
             break;
         }
+
         tokio::time::sleep(Duration::from_secs(i * 10)).await;
     }
+
     if !valid {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -331,7 +351,9 @@ pub async fn issue_cert(
             format!("failed to serialize request der {}", err),
         )
     })?;
+
     let order_resp = client.send_csr(&order_resp.finalize, &csr).await?;
+
     if order_resp.status == "invalid" {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -345,6 +367,7 @@ pub async fn issue_cert(
             ),
         ));
     }
+
     if order_resp.status != "valid" {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -371,6 +394,8 @@ pub async fn issue_cert(
         .map(tokio_rustls::rustls::Certificate)
         .collect();
     let cert_key = CertifiedKey::new(cert_chain, pk);
+
     tracing::debug!("certificate obtained");
+
     Ok((pkey_pem, acme_cert_pem, Arc::new(cert_key)))
 }
