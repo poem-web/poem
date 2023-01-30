@@ -79,7 +79,7 @@ impl AutoCertBuilder {
     /// Consumes this builder and returns a [`AutoCert`] object.
     pub fn build(self) -> IoResult<AutoCert> {
         let directory_url = self.directory_url.parse().map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("invalid directory url: {}", err))
+            IoError::new(ErrorKind::Other, format!("invalid directory url: {err}"))
         })?;
         if self.domains.is_empty() {
             return Err(IoError::new(

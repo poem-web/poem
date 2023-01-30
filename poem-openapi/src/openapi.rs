@@ -617,7 +617,7 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
         {
             if let Some(operation_id) = operation.operation_id {
                 if !operation_ids.insert(operation_id) {
-                    panic!("duplicate operation id: {}", operation_id);
+                    panic!("duplicate operation id: {operation_id}");
                 }
             }
         }

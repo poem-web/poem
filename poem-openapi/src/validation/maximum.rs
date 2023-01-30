@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "maximum({}, exclusive: {})", n, exclusive)]
+#[display(fmt = "maximum({n}, exclusive: {exclusive})")]
 pub struct Maximum {
     n: f64,
     exclusive: bool,

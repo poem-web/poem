@@ -4,17 +4,12 @@ use http::{header::HeaderName, HeaderMap};
 
 use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 enum AppliedTo {
     RequestOnly,
     ResponseOnly,
+    #[default]
     Both,
-}
-
-impl Default for AppliedTo {
-    fn default() -> Self {
-        AppliedTo::Both
-    }
 }
 
 /// Middleware for mark headers value represents sensitive information.

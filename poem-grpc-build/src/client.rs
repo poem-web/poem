@@ -12,7 +12,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         .iter()
         .map(|expr| {
             syn::parse_str::<Expr>(expr)
-                .unwrap_or_else(|_| panic!("invalid server middleware: `{}`", expr))
+                .unwrap_or_else(|_| panic!("invalid server middleware: `{expr}`"))
         })
         .collect::<Vec<_>>();
     let crate_name = get_crate_name(config.internal);

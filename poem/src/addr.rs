@@ -91,13 +91,13 @@ impl Addr {
 impl Display for Addr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Addr::SocketAddr(addr) => write!(f, "socket://{}", addr),
+            Addr::SocketAddr(addr) => write!(f, "socket://{addr}"),
             #[cfg(unix)]
             Addr::Unix(addr) => match addr.as_pathname() {
                 Some(path) => write!(f, "unix://{}", path.display()),
                 None => f.write_str("unix://unknown"),
             },
-            Addr::Custom(scheme, addr) => write!(f, "{}://{}", scheme, addr),
+            Addr::Custom(scheme, addr) => write!(f, "{scheme}://{addr}"),
         }
     }
 }

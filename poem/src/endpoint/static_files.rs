@@ -257,7 +257,7 @@ impl Endpoint for StaticFilesEndpoint {
                             percent_encoding::NON_ALPHANUMERIC,
                         );
                         template.files.push(FileRef {
-                            url: format!("{}{}", base_url, filename),
+                            url: format!("{base_url}{filename}"),
                             filename: filename.to_string(),
                             is_dir: entry.path().is_dir(),
                         });

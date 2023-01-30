@@ -5,7 +5,7 @@ use poem::{
 
 #[handler]
 fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
+    format!("hello: {name}")
 }
 
 #[tokio::main]

@@ -144,7 +144,7 @@ fn parse_quality(value: &str) -> Option<u16> {
 
 #[cfg(test)]
 mod tests {
-    use unic_langid::{langid, langids};
+    use unic_langid::langids;
 
     use super::*;
 

@@ -276,14 +276,14 @@ async fn issue_cert(
     let cert = Certificate::from_params(params).map_err(|err| {
         IoError::new(
             ErrorKind::Other,
-            format!("failed create certificate request: {}", err),
+            format!("failed create certificate request: {err}"),
         )
     })?;
     let pk = any_ecdsa_type(&PrivateKey(cert.serialize_private_key_der())).unwrap();
     let csr = cert.serialize_request_der().map_err(|err| {
         IoError::new(
             ErrorKind::Other,
-            format!("failed to serialize request der {}", err),
+            format!("failed to serialize request der {err}"),
         )
     })?;
 
@@ -324,7 +324,7 @@ async fn issue_cert(
         .await?;
     let pkey_pem = cert.serialize_private_key_pem();
     let cert_chain = rustls_pemfile::certs(&mut acme_cert_pem.as_slice())
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {}", err)))?
+        .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))?
         .into_iter()
         .map(tokio_rustls::rustls::Certificate)
         .collect();

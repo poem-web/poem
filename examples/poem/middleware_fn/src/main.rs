@@ -19,7 +19,7 @@ async fn log<E: Endpoint>(next: E, req: Request) -> Result<Response> {
             Ok(resp)
         }
         Err(err) => {
-            println!("error: {}", err);
+            println!("error: {err}");
             Err(err)
         }
     }

@@ -181,7 +181,7 @@ impl AcmeClient {
         resp.into_body().into_vec().await.map_err(|err| {
             IoError::new(
                 ErrorKind::Other,
-                format!("failed to download certificate: {}", err),
+                format!("failed to download certificate: {err}"),
             )
         })
     }
@@ -194,10 +194,7 @@ async fn get_directory(
     tracing::debug!("loading directory");
 
     let resp = client.get(directory_url.clone()).await.map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed to load directory: {}", err),
-        )
+        IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
     })?;
 
     if !resp.status().is_success() {
@@ -211,10 +208,7 @@ async fn get_directory(
         .into_json::<Directory>()
         .await
         .map_err(|err| {
-            IoError::new(
-                ErrorKind::Other,
-                format!("failed to load directory: {}", err),
-            )
+            IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
         })?;
 
     tracing::debug!(
@@ -235,7 +229,7 @@ async fn get_nonce(
     let resp = client
         .get(directory.new_nonce.clone())
         .await
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("failed to get nonce: {}", err)))?;
+        .map_err(|err| IoError::new(ErrorKind::Other, format!("failed to get nonce: {err}")))?;
 
     if !resp.status().is_success() {
         return Err(IoError::new(
