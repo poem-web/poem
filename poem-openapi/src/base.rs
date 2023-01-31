@@ -396,7 +396,7 @@ pub trait OpenApi: Sized {
     fn register(registry: &mut Registry);
 
     /// Adds all API endpoints to the routing object.
-    fn add_routes(self, route_table: &mut HashMap<Method, HashMap<String, BoxEndpoint<'static>>>);
+    fn add_routes(self, route_table: &mut HashMap<String, HashMap<Method, BoxEndpoint<'static>>>);
 }
 
 macro_rules! impl_openapi_for_tuple {
@@ -417,7 +417,7 @@ macro_rules! impl_openapi_for_tuple {
                 )*
             }
 
-            fn add_routes(self, route_table: &mut HashMap<Method, HashMap<String, BoxEndpoint<'static>>>) {
+            fn add_routes(self, route_table: &mut HashMap<String, HashMap<Method, BoxEndpoint<'static>>>) {
                 self.$hn.add_routes(route_table);
                 $(
                 self.$tn.add_routes(route_table);
@@ -467,7 +467,7 @@ impl OpenApi for () {
 
     fn register(_registry: &mut Registry) {}
 
-    fn add_routes(self, _route_table: &mut HashMap<Method, HashMap<String, BoxEndpoint<'static>>>) {
+    fn add_routes(self, _route_table: &mut HashMap<String, HashMap<Method, BoxEndpoint<'static>>>) {
     }
 }
 

@@ -627,12 +627,14 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
 
         let route = items
             .into_iter()
-            .fold(RouteMethod::new(), |route_method, (method, paths)| {
-                route_method.method(
-                    method,
+            .fold(Route::new(), |route, (path, paths)| {
+                route.at(
+                    path,
                     paths
                         .into_iter()
-                        .fold(Route::new(), |route, (path, ep)| route.at(path, ep)),
+                        .fold(RouteMethod::new(), |route_method, (method, ep)| {
+                            route_method.method(method, ep)
+                        }),
                 )
             });
 
