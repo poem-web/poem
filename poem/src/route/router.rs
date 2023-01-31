@@ -264,6 +264,14 @@ impl Route {
             path.find('*').is_none(),
             "wildcards are not allowed in the nest path."
         );
+        assert!(
+            path.find(':').is_none(),
+            "captures are not allowed in the nest path."
+        );
+        assert!(
+            path.find('<').is_none(),
+            "regexs are not allowed in the nest path."
+        );
 
         let prefix_len = match strip {
             false => 0,
