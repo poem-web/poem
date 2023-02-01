@@ -17,4 +17,4 @@ license = "MIT/Apache-2.0"
 documentation = "https://docs.rs/poem/"
 homepage = "https://github.com/poem-web/poem"
 repository = "https://github.com/poem-web/poem"
-
+rust-version = "1.64"

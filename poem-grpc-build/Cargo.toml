@@ -7,6 +7,7 @@ license.workspace = true
 documentation.workspace = true
 homepage.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 description = "Codegen module of poem-grpc."
 keywords = ["http", "async", "grpc"]
 categories = ["network-programming", "asynchronous"]
