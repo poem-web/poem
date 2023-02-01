@@ -1,13 +1,14 @@
 [package]
 name = "poem-openapi-derive"
 version = "2.0.23"
-authors = ["sunli <scott_s829@163.com>"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 description = "Macros for poem-openapi"
-license = "MIT/Apache-2.0"
-documentation = "https://docs.rs/poem/"
-homepage = "https://github.com/poem-web/poem"
-repository = "https://github.com/poem-web/poem"
 keywords = ["http", "async", "openapi", "swagger"]
 categories = ["network-programming", "asynchronous"]
 

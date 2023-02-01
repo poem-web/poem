@@ -1,14 +1,15 @@
 [package]
 name = "poem-grpc"
 version = "0.2.16"
-edition = "2021"
-authors = ["sunli <scott_s829@163.com>"]
-description = "GRPC support for Poem."
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 readme = "README.md"
-license = "MIT/Apache-2.0"
-documentation = "https://docs.rs/poem/"
-homepage = "https://github.com/poem-web/poem"
-repository = "https://github.com/poem-web/poem"
+description = "GRPC support for Poem."
 keywords = ["http", "async", "grpc"]
 categories = ["network-programming", "asynchronous"]
 

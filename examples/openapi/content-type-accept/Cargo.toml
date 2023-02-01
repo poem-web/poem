@@ -1,7 +1,8 @@
 [package]
 name = "example-openapi-content-type-accept"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
 bcs = "0.1.3"

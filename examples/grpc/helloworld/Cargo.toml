@@ -1,7 +1,8 @@
 [package]
-version = "0.1.0"
-name = "grpc-helloworld"
-edition = "2021"
+name = "example-grpc-helloworld"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
 poem = { path = "../../../poem" }
