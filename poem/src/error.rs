@@ -204,13 +204,13 @@ impl Debug for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(msg) = &self.msg {
-            return write!(f, "{}", msg);
+            return write!(f, "{msg}");
         }
 
         match &self.source {
             Some(ErrorSource::BoxedError(err)) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
-            Some(ErrorSource::Anyhow(err)) => write!(f, "{:#}", err),
+            Some(ErrorSource::Anyhow(err)) => write!(f, "{err:#}"),
             #[cfg(feature = "eyre06")]
             Some(ErrorSource::Eyre06(err)) => Display::fmt(err, f),
             None => write!(f, "{}", self.status()),

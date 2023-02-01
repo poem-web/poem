@@ -930,7 +930,7 @@ mod test {
         #[handler(internal)]
         async fn index(data: Option<Data<&i32>>) -> String {
             match data.as_deref() {
-                Some(value) => format!("{}", value),
+                Some(value) => format!("{value}"),
                 None => "none".to_string(),
             }
         }

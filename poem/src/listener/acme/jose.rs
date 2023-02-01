@@ -35,7 +35,7 @@ impl<'a> Protected<'a> {
             url,
         };
         let protected = serde_json::to_vec(&protected).map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {}", err))
+            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         Ok(base64::encode_config(protected, URL_SAFE_NO_PAD))
     }
@@ -81,7 +81,7 @@ impl Jwk {
             y: &self.y,
         };
         let json = serde_json::to_vec(&jwk_thumb).map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {}", err))
+            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         let hash = sha256(json);
         Ok(base64::encode_config(hash, URL_SAFE_NO_PAD))
@@ -114,10 +114,7 @@ pub(crate) async fn request(
     let protected = Protected::base64(jwk, kid, nonce, &uri.to_string())?;
     let payload = match payload {
         Some(payload) => serde_json::to_vec(&payload).map_err(|err| {
-            IoError::new(
-                ErrorKind::Other,
-                format!("failed to encode payload: {}", err),
-            )
+            IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
         })?,
         None => Vec::new(),
     };
@@ -141,7 +138,7 @@ pub(crate) async fn request(
     let resp = cli.request(req.into()).await.map_err(|err| {
         IoError::new(
             ErrorKind::Other,
-            format!("failed to send http request: {}", err),
+            format!("failed to send http request: {err}"),
         )
     })?;
     if !resp.status().is_success() {
@@ -173,7 +170,7 @@ where
         .await
         .map_err(|_| IoError::new(ErrorKind::Other, "failed to read response"))?;
     serde_json::from_str(&data)
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {}", err)))
+        .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {err}")))
 }
 
 pub(crate) fn key_authorization(key: &KeyPair, token: &str) -> IoResult<String> {

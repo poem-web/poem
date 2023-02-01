@@ -328,7 +328,7 @@ async fn bad_request_handler() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {err}")))
     }
 
     struct Api;
@@ -372,7 +372,7 @@ async fn bad_request_handler_for_validator() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {err}")))
     }
 
     struct Api;
@@ -839,4 +839,28 @@ fn issue_405() {
     fn my_transformer(ep: impl Endpoint) -> impl Endpoint {
         ep.map_to_response()
     }
+}
+
+#[tokio::test]
+async fn issue_489() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        async fn get_hello(&self) {}
+
+        #[oai(path = "/hello", method = "delete")]
+        async fn delete_hello(&self) {}
+
+        #[oai(path = "/goodbye", method = "get")]
+        async fn get_goodbye(&self) {}
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+    cli.delete("/goodbye")
+        .send()
+        .await
+        .assert_status(StatusCode::METHOD_NOT_ALLOWED);
 }

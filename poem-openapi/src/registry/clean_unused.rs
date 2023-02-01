@@ -15,7 +15,7 @@ impl<'a> Document<'a> {
                 self.registry
                     .schemas
                     .get(name.as_str())
-                    .unwrap_or_else(|| panic!("Schema `{}` does not registered", name))
+                    .unwrap_or_else(|| panic!("Schema `{name}` does not registered"))
             }
             MetaSchemaRef::Inline(schema) => schema,
         };

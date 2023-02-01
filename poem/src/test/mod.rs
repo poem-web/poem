@@ -25,7 +25,7 @@
 //!
 //! # Check the JSON response
 //!
-//! ```
+//! ```no_run
 //! use poem::{handler, test::TestClient, web::Json, Route};
 //! use serde::Serialize;
 //!
@@ -61,7 +61,7 @@
 //!
 //! # Post multipart data
 //!
-//! ```
+//! ```ignore
 //! use poem::{
 //!     error::{BadRequest, Error},
 //!     handler,

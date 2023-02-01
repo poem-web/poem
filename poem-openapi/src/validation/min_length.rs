@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "minLength({})", len)]
+#[display(fmt = "minLength({len})")]
 pub struct MinLength {
     len: usize,
 }
