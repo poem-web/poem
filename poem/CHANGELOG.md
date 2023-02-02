@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [1.3.53] 2023-01-31
 
 - fix: static_files percent encode filename [#495](https://github.com/poem-web/poem/pull/495)
+- bump `tokio-tungstenite` from `0.17.1`to `0.18.0` [#463](https://github.com/poem-web/poem/pull/463)
+- bump base64 from `0.13.0` to `0.21.0`
 
 # [1.3.52] 2023-01-13
 
