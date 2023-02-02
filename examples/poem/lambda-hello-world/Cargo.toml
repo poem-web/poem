@@ -5,7 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-poem = { workspace = true, default-features = false }
+poem = { path  = "../../../poem", default-features = false }
 poem-lambda.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
