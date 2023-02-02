@@ -37,7 +37,7 @@ poem = { workspace = true, default_features = true, features = [
 tokio = { workspace = true, features = ["fs"] }
 serde_json.workspace = true
 serde_yaml = "0.9.0"
-quick-xml = { version = "0.26.0", features = ["serialize"] }
+quick-xml = { version = "0.27.1", features = ["serialize"] }
 serde_urlencoded = "0.7.1"
 base64 = "0.21.0"
 serde.workspace = true
