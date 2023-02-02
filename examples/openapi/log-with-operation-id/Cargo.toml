@@ -5,6 +5,6 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
+poem.workspace = true
+poem-openapi.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

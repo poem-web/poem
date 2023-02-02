@@ -21,11 +21,11 @@ proc-macro-crate = "1.1.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
 syn = { version = "1.0.77", features = ["full", "visit-mut"] }
-thiserror = "1.0.29"
+thiserror.workspace = true
 indexmap = "1.8.2"
-regex = "1.5.5"
+regex.workspace = true
 http = "0.2.5"
-mime = "0.3.16"
+mime.workspace = true
 
 [package.metadata.workspaces]
 independent = true
