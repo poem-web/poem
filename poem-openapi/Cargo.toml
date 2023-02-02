@@ -39,7 +39,7 @@ serde_json.workspace = true
 serde_yaml = "0.9.0"
 quick-xml = { version = "0.26.0", features = ["serialize"] }
 serde_urlencoded = "0.7.1"
-base64 = "0.13.0"
+base64 = "0.21.0"
 serde.workspace = true
 derive_more = "0.99.16"
 num-traits = "0.2.14"

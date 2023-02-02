@@ -29,7 +29,7 @@ itoa = "1.0.2"
 percent-encoding = "2.1.0"
 bytes.workspace = true
 prost = "0.11.0"
-base64 = "0.13.0"
+base64 = "0.21.0"
 prost-types = "0.11.0"
 tokio-stream = { workspace = true, features = ["sync"] }
 hyper-rustls = { version = "0.23.0", features = ["webpki-roots", "http2"] }
