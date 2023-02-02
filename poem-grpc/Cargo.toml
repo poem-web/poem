@@ -18,7 +18,7 @@ default = []
 json-codec = ["serde", "serde_json"]
 
 [dependencies]
-poem.workspace = true
+poem = { workspace = true, default-features = true }
 
 futures-util.workspace = true
 hyper = { version = "0.14.20", features = ["client"] }
