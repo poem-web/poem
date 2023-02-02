@@ -52,7 +52,7 @@ jobs:
           - 5432:5432
         options: -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=test_poem_sessions
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       # Use nightly Rust to check the format
       - uses: actions-rs/toolchain@v1
@@ -60,7 +60,7 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clippy
-      - name: Check format
+      - name: Check Format
         run: cargo fmt --all -- --check
       # Switch to stable Rust
       - uses: actions-rs/toolchain@v1
@@ -69,23 +69,23 @@ jobs:
           override: true
           components: rustfmt, clippy
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
       # Do tests
-      - name: Check with clippy
+      - name: Check With Clippy
         run: cargo clippy ${{ matrix.package.options }}
         working-directory: ${{ matrix.package.path }}
 
-      - name: Run tests
+      - name: Run Tests
         run: cargo test ${{ matrix.package.options }}
         working-directory: ${{ matrix.package.path }}
 
   check-examples:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
@@ -95,7 +95,7 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clippy
-      - name: Check format
+      - name: Check Format
         run: cargo fmt --all -- --check
         working-directory: examples
       # Switch to stable Rust
@@ -105,7 +105,7 @@ jobs:
           override: true
           components: rustfmt, clippy
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
-      - name: Check with clippy
+        uses: Swatinem/rust-cache@v2
+      - name: Check With Clippy
         run: cargo clippy
         working-directory: examples
