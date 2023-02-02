@@ -5,8 +5,8 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
+poem.workspace = true
+poem-openapi.workspace = true
 sqlx = { version = "0.6.0", features = ["runtime-tokio-rustls", "sqlite"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-tokio-stream = "0.1.8"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-stream.workspace = true

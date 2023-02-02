@@ -6,8 +6,8 @@ publish.workspace = true
 
 [dependencies]
 bcs = "0.1.3"
-mime = { version = "0.3.16" }
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
-serde = { version = "1.0.139", features = ["derive"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "sync"] }
+mime.workspace = true
+poem.workspace = true
+poem-openapi.workspace = true
+serde.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
