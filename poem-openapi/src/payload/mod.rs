@@ -10,6 +10,7 @@ mod json;
 mod plain_text;
 mod response;
 mod xml;
+mod yaml;
 
 use poem::{Request, RequestBody, Result};
 
