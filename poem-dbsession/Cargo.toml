@@ -46,7 +46,7 @@ __sqlx-rustls = [
 ]
 
 [dependencies]
-poem = { workspace = true, features = ["session"] }
+poem = { workspace = true, features = ["session"], default_features = true }
 
 chrono = { workspace = true, default-features = false, features = ["clock"] }
 serde_json.workspace = true
