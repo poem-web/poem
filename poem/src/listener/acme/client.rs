@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use base64::URL_SAFE_NO_PAD;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http::{header, Uri};
 use hyper::{client::HttpConnector, Client};
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
@@ -158,7 +158,7 @@ impl AcmeClient {
             &nonce,
             url,
             Some(CsrRequest {
-                csr: base64::encode_config(csr, URL_SAFE_NO_PAD),
+                csr: URL_SAFE_NO_PAD.encode(csr),
             }),
         )
         .await

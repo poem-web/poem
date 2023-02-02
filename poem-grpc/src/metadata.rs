@@ -2,6 +2,7 @@
 
 use std::str::FromStr;
 
+use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine};
 use hyper::header::HeaderName;
 use poem::http::{HeaderMap, HeaderValue};
 
@@ -75,7 +76,7 @@ impl Metadata {
     pub fn get_bin(&self, key: impl AsRef<str>) -> Option<Vec<u8>> {
         self.headers
             .get(format!("{}-bin", key.as_ref()))
-            .and_then(|value| base64::decode_config(value.as_bytes(), base64::STANDARD_NO_PAD).ok())
+            .and_then(|value| STANDARD_NO_PAD.decode(value.as_bytes()).ok())
     }
 
     /// Returns a view of all ascii values associated with a key.
@@ -123,8 +124,7 @@ impl Metadata {
     pub fn append_bin(&mut self, key: impl AsRef<str>, value: impl AsRef<[u8]>) {
         self.headers.append(
             HeaderName::from_str(&format!("{}-bin", key.as_ref())).expect("valid name"),
-            HeaderValue::from_maybe_shared(base64::encode_config(value, base64::STANDARD_NO_PAD))
-                .expect("valid value"),
+            HeaderValue::from_maybe_shared(STANDARD_NO_PAD.encode(value)).expect("valid value"),
         );
     }
 
@@ -140,8 +140,7 @@ impl Metadata {
     pub fn insert_bin(&mut self, key: impl AsRef<str>, value: impl AsRef<[u8]>) {
         self.headers.insert(
             HeaderName::from_str(&format!("{}-bin", key.as_ref())).expect("valid name"),
-            HeaderValue::from_maybe_shared(base64::encode_config(value, base64::STANDARD_NO_PAD))
-                .expect("valid value"),
+            HeaderValue::from_maybe_shared(STANDARD_NO_PAD.encode(value)).expect("valid value"),
         );
     }
 }
@@ -174,7 +173,7 @@ impl<'a> Iterator for GetBinaryAll<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for value in &mut self.iter {
-            if let Ok(value) = base64::decode_config(value.as_bytes(), base64::STANDARD_NO_PAD) {
+            if let Ok(value) = STANDARD_NO_PAD.decode(value.as_bytes()) {
                 return Some(value);
             }
         }

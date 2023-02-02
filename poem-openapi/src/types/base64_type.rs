@@ -3,6 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use base64::engine::{general_purpose::STANDARD, Engine};
 use bytes::Bytes;
 use serde_json::Value;
 
@@ -63,7 +64,7 @@ impl ParseFromJSON for Base64<Vec<u8>> {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
         if let Value::String(value) = value {
-            Ok(Self(base64::decode(value)?))
+            Ok(Self(STANDARD.decode(value)?))
         } else {
             Err(ParseError::expected_type(value))
         }
@@ -74,7 +75,7 @@ impl ParseFromJSON for Base64<Bytes> {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
         if let Value::String(value) = value {
-            Ok(Self(base64::decode(value).map(Into::into)?))
+            Ok(Self(STANDARD.decode(value).map(Into::into)?))
         } else {
             Err(ParseError::expected_type(value))
         }
@@ -83,18 +84,18 @@ impl ParseFromJSON for Base64<Bytes> {
 
 impl ParseFromParameter for Base64<Vec<u8>> {
     fn parse_from_parameter(value: &str) -> ParseResult<Self> {
-        Ok(Self(base64::decode(value)?))
+        Ok(Self(STANDARD.decode(value)?))
     }
 }
 
 impl ParseFromParameter for Base64<Bytes> {
     fn parse_from_parameter(value: &str) -> ParseResult<Self> {
-        Ok(Self(base64::decode(value).map(Into::into)?))
+        Ok(Self(STANDARD.decode(value).map(Into::into)?))
     }
 }
 
 impl<T: AsRef<[u8]> + Send + Sync> ToJSON for Base64<T> {
     fn to_json(&self) -> Option<Value> {
-        Some(Value::String(base64::encode(self.0.as_ref())))
+        Some(Value::String(STANDARD.encode(self.0.as_ref())))
     }
 }

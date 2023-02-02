@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use base64::URL_SAFE_NO_PAD;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -42,7 +42,7 @@ impl<T: SessionStorage, E: Endpoint> Middleware<E> for ServerSession<T> {
 /// [OWASP recommendations]: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-entropy
 fn generate_session_id() -> String {
     let random_bytes = thread_rng().gen::<[u8; 32]>();
-    base64::encode_config(random_bytes, URL_SAFE_NO_PAD)
+    URL_SAFE_NO_PAD.encode(random_bytes)
 }
 
 /// Endpoint for `ServerSession` middleware.
