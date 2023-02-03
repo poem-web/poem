@@ -24,7 +24,7 @@ static-files = ["poem/static-files"]
 websocket = ["poem/websocket"]
 
 [dependencies]
-poem-openapi-derive = { path = "../poem-openapi-derive", version = "2.0.24" }
+poem-openapi-derive.workspace = true
 poem = { workspace = true, default_features = true, features = [
   "multipart",
   "tempfile",
