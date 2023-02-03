@@ -1,12 +1,12 @@
 [package]
 name = "example-json"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+poem.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+serde.workspace = true
+serde_json.workspace = true
+tracing-subscriber.workspace = true

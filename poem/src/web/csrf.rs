@@ -1,5 +1,6 @@
 use std::{ops::Deref, sync::Arc};
 
+use base64::engine::{general_purpose::STANDARD, Engine};
 use libcsrf::{AesGcmCsrfProtection, CsrfProtection, UnencryptedCsrfCookie};
 
 use crate::{FromRequest, Request, RequestBody, Result};
@@ -65,7 +66,7 @@ impl CsrfVerifier {
             None => return false,
         };
 
-        let token_data = match base64::decode(token) {
+        let token_data = match STANDARD.decode(token) {
             Ok(data) => data,
             Err(_) => return false,
         };

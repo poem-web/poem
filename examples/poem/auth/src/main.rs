@@ -14,7 +14,7 @@ fn signin_ui() -> impl IntoResponse {
         r#"
     <!DOCTYPE html>
     <html>
-    <head><meta charset="UTF-8"><title>Example CSRF</title></head>
+    <head><meta charset="UTF-8"><title>Example Session Auth</title></head>
     <body>
     <form action="/signin" method="post">
         <div>
@@ -50,7 +50,7 @@ fn signin(Form(params): Form<SigninParams>, session: &Session) -> impl IntoRespo
             r#"
     <!DOCTYPE html>
     <html>
-    <head><meta charset="UTF-8"><title>Example CSRF</title></head>
+    <head><meta charset="UTF-8"><title>Example Session Auth</title></head>
     <body>
     no such user
     </body>
@@ -68,14 +68,13 @@ fn index(session: &Session) -> impl IntoResponse {
             r#"
     <!DOCTYPE html>
     <html>
-    <head><meta charset="UTF-8"><title>Example CSRF</title></head>
+    <head><meta charset="UTF-8"><title>Example Session Auth</title></head>
     <body>
-    <div>hello {}, you are viewing a restricted resource</div>
+    <div>hello {username}, you are viewing a restricted resource</div>
     <a href="/logout">click here to logout</a>
     </body>
     </html>
-    "#,
-            username
+    "#
         ))
         .into_response(),
         None => Response::builder()

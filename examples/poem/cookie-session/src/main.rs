@@ -9,7 +9,7 @@ use poem::{
 async fn count(session: &Session) -> String {
     let count = session.get::<i32>("count").unwrap_or(0) + 1;
     session.set("count", count);
-    format!("Hello!\nHow many times have seen you: {}", count)
+    format!("Hello!\nHow many times have seen you: {count}")
 }
 
 #[tokio::main]

@@ -1,2 +1,23 @@
 [workspace]
 members = ["poem/*", "openapi/*", "grpc/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+poem = { path = "../poem" }
+poem-grpc = { path = "../poem-grpc" }
+poem-openapi = { path = "../poem-openapi", features = ["swagger-ui"] }
+poem-lambda = { path = "../poem-lambda" }
+poem-grpc-build = { path = "../poem-grpc-build" }
+
+tokio = "1.17.0"
+tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+serde_json = "1.0.68"
+serde = { version = "1.0.140", features = ["derive"] }
+mime = "0.3.16"
+futures-util = "0.3.21"
+tokio-stream = "0.1.8"
+prost = "0.11.0"

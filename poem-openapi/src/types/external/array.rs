@@ -49,8 +49,7 @@ impl<T: ParseFromJSON, const LEN: usize> ParseFromJSON for [T; LEN] {
             Value::Array(values) => {
                 if values.len() != LEN {
                     return Err(ParseError::custom(format!(
-                        "the length of the list must be `{}`.",
-                        LEN
+                        "the length of the list must be `{LEN}`."
                     )));
                 }
 
@@ -85,8 +84,7 @@ impl<T: ParseFromParameter, const LEN: usize> ParseFromParameter for [T; LEN] {
 
         if values.len() != LEN {
             return Err(ParseError::custom(format!(
-                "the length of the list must be `{}`.",
-                LEN
+                "the length of the list must be `{LEN}`."
             )));
         }
 

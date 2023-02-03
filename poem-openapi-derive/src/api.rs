@@ -150,7 +150,7 @@ pub(crate) fn generate(
                 #(#register_items)*
             }
 
-            fn add_routes(self, route_table: &mut ::std::collections::HashMap<#crate_name::__private::poem::http::Method, ::std::collections::HashMap<::std::string::String, #crate_name::__private::poem::endpoint::BoxEndpoint<'static>>>) {
+            fn add_routes(self, route_table: &mut ::std::collections::HashMap<::std::string::String, ::std::collections::HashMap<#crate_name::__private::poem::http::Method, #crate_name::__private::poem::endpoint::BoxEndpoint<'static>>>) {
                 let api_obj = ::std::sync::Arc::new(self);
                 #(#add_routes)*
             }
@@ -410,9 +410,9 @@ fn generate_operation(
         });
 
         ctx.add_routes.push(quote! {
-            route_table.entry(#crate_name::__private::poem::http::Method::#http_method)
+            route_table.entry(::std::string::ToString::to_string(#new_path))
                 .or_default()
-                .insert(::std::string::ToString::to_string(#new_path), {
+                .insert(#crate_name::__private::poem::http::Method::#http_method, {
                     let api_obj = ::std::clone::Clone::clone(&api_obj);
                     let ep = #crate_name::__private::poem::endpoint::make(move |request| {
                         let api_obj = ::std::clone::Clone::clone(&api_obj);

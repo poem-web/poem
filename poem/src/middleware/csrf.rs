@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use libcsrf::{
     AesGcmCsrfProtection, CsrfCookie as RawCsrfCookie, CsrfProtection, CsrfToken as RawCsrfToken,
     UnencryptedCsrfCookie,
@@ -206,13 +207,13 @@ impl<E: Endpoint> Endpoint for CsrfEndpoint<E> {
         let existing_cookie = req
             .cookie()
             .get(&self.cookie_name)
-            .and_then(|cookie| base64::decode(cookie.value_str()).ok())
+            .and_then(|cookie| STANDARD.decode(cookie.value_str()).ok())
             .and_then(|value| self.protect.parse_cookie(&value).ok());
 
         let (token, cookie) = self.generate_token(existing_cookie.as_ref());
         let csrf_cookie = {
             let mut cookie =
-                Cookie::new_with_str(&self.cookie_name, base64::encode(cookie.value()));
+                Cookie::new_with_str(&self.cookie_name, STANDARD.encode(cookie.value()));
             cookie.set_secure(self.secure);
             cookie.set_http_only(self.http_only);
             cookie.set_same_site(self.same_site);
@@ -222,7 +223,7 @@ impl<E: Endpoint> Endpoint for CsrfEndpoint<E> {
 
         req.cookie().add(csrf_cookie);
         req.extensions_mut()
-            .insert(CsrfToken(base64::encode(token.value())));
+            .insert(CsrfToken(STANDARD.encode(token.value())));
         req.extensions_mut()
             .insert(CsrfVerifier::new(existing_cookie, self.protect.clone()));
 
@@ -291,14 +292,14 @@ mod tests {
             .unwrap();
         let token = resp.into_body().into_string().await.unwrap();
 
-        let mut token = base64::decode(token).unwrap();
+        let mut token = STANDARD.decode(token).unwrap();
         token[0] = token[0].wrapping_add(1);
 
         assert_eq!(
             app.call(
                 Request::builder()
                     .method(Method::POST)
-                    .header(CSRF_TOKEN_NAME, base64::encode(token))
+                    .header(CSRF_TOKEN_NAME, STANDARD.encode(token))
                     .header(header::COOKIE, cookie)
                     .finish(),
             )

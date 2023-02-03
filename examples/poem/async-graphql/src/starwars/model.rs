@@ -233,7 +233,7 @@ where
                 slice
                     .iter()
                     .enumerate()
-                    .map(|(idx, item)| Edge::new(start + idx, (map_to)(*item))),
+                    .map(|(idx, item)| Edge::new(start + idx, (map_to)(item))),
             );
             Ok::<_, Error>(connection)
         },

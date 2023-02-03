@@ -1,12 +1,12 @@
 [package]
 name = "example-async-graphql"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
+poem.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 async-graphql = "4.0.6"
 slab = "0.4.4"
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+tracing-subscriber.workspace = true

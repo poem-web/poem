@@ -1,10 +1,10 @@
 [package]
 name = "example-acme-http-01"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem", features = ["acme"] }
-tokio = { version = "1.12.0", features = ["rt-multi-thread", "macros"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+poem = { workspace = true, features = ["acme"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true

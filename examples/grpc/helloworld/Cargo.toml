@@ -1,16 +1,17 @@
 [package]
-version = "0.1.0"
-name = "grpc-helloworld"
-edition = "2021"
+name = "example-grpc-helloworld"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-poem-grpc = { path = "../../../poem-grpc" }
-prost = "0.11.0"
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
+poem.workspace = true
+poem-grpc.workspace = true
+prost.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 
 [build-dependencies]
-poem-grpc-build = { path = "../../../poem-grpc-build" }
+poem-grpc-build.workspace = true
 
 [[bin]]
 name = "grpc-helloworld-client"

@@ -1,13 +1,13 @@
 [package]
 name = "example-opentelemetry"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem", features = ["opentelemetry", "prometheus"] }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
-tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
+poem = { workspace = true, features = ["opentelemetry", "prometheus"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true
 opentelemetry = { version = "0.18.0", features = ["metrics"] }
 opentelemetry-http = { version = "0.7.0" }
 opentelemetry-jaeger = { version = "0.17.0", features = [

@@ -1,12 +1,13 @@
 [package]
 name = "example-openapi-sse"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
 async-stream = "0.3.2"
-futures-util = "0.3.19"
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "time"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+futures-util.workspace = true
+poem.workspace = true
+poem-openapi.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+tracing-subscriber.workspace = true

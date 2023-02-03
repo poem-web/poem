@@ -30,7 +30,7 @@ impl<E: Endpoint> Endpoint for LogImpl<E> {
                 Ok(resp)
             }
             Err(err) => {
-                println!("error: {}", err);
+                println!("error: {err}");
                 Err(err)
             }
         }

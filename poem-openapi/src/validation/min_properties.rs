@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "minProperties({})", len)]
+#[display(fmt = "minProperties({len})")]
 pub struct MinProperties {
     len: usize,
 }

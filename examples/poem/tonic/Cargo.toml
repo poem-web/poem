@@ -1,15 +1,15 @@
 [package]
 name = "example-tonic"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem", features = ["tower-compat"] }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
+poem = { workspace = true, features = ["tower-compat"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 prost = "0.9.0"
 tonic = "0.6.2"
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+tracing-subscriber.workspace = true
 
 [build-dependencies]
 tonic-build = "0.5.2"

@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "maxLength({})", len)]
+#[display(fmt = "maxLength({len})")]
 pub struct MaxLength {
     len: usize,
 }

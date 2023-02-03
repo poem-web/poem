@@ -6,9 +6,10 @@ use regex::Regex;
 use crate::{Endpoint, Middleware, Request, Result};
 
 /// Determines the behavior of the [`NormalizePath`] middleware.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum TrailingSlash {
     /// Trim trailing slashes from the end of the path.
+    #[default]
     Trim,
 
     /// Only merge any present multiple trailing slashes.
@@ -16,12 +17,6 @@ pub enum TrailingSlash {
 
     /// Always add a trailing slash to the end of the path.
     Always,
-}
-
-impl Default for TrailingSlash {
-    fn default() -> Self {
-        TrailingSlash::Trim
-    }
 }
 
 /// Middleware for normalizing a request's path so that routes can be matched
@@ -96,7 +91,7 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
 
         if !original_path.is_empty() {
             let path = match self.style {
-                TrailingSlash::Always => format!("{}/", original_path),
+                TrailingSlash::Always => format!("{original_path}/"),
                 TrailingSlash::MergeOnly => original_path.to_string(),
                 TrailingSlash::Trim => original_path.trim_end_matches('/').to_string(),
             };
@@ -109,7 +104,7 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
                 let mut uri_parts = parts.uri.into_parts();
                 let query = uri_parts.path_and_query.as_ref().and_then(|pq| pq.query());
                 let path = match query {
-                    Some(query) => format!("{}?{}", path, query),
+                    Some(query) => format!("{path}?{query}"),
                     None => path.to_string(),
                 };
                 uri_parts.path_and_query = Some(PathAndQuery::from_str(&path).unwrap());
@@ -164,7 +159,7 @@ mod tests {
 
         for uri in test_uris {
             let resp = cli.get(uri).send().await;
-            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
+            assert!(resp.0.status().is_success(), "Failed uri: {uri}");
         }
     }
 
@@ -186,7 +181,7 @@ mod tests {
 
         for uri in test_uris {
             let resp = cli.get(uri).send().await;
-            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
+            assert!(resp.0.status().is_success(), "Failed uri: {uri}");
         }
     }
 
@@ -224,7 +219,7 @@ mod tests {
 
         for uri in test_uris {
             let resp = cli.get(uri).send().await;
-            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
+            assert!(resp.0.status().is_success(), "Failed uri: {uri}");
         }
     }
 
@@ -247,7 +242,7 @@ mod tests {
 
         for uri in test_uris {
             let resp = cli.get(uri).send().await;
-            assert!(resp.0.status().is_success(), "Failed uri: {}", uri);
+            assert!(resp.0.status().is_success(), "Failed uri: {uri}");
         }
     }
 
@@ -291,14 +286,9 @@ mod tests {
             let resp = cli.get(uri).send().await;
 
             if success {
-                assert_eq!(resp.0.status(), StatusCode::OK, "Failed uri: {}", uri);
+                assert_eq!(resp.0.status(), StatusCode::OK, "Failed uri: {uri}");
             } else {
-                assert_eq!(
-                    resp.0.status(),
-                    StatusCode::NOT_FOUND,
-                    "Failed uri: {}",
-                    uri
-                );
+                assert_eq!(resp.0.status(), StatusCode::NOT_FOUND, "Failed uri: {uri}");
             }
         }
     }

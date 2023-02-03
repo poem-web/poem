@@ -49,7 +49,7 @@ impl DataFrameDecoder {
             1 => true,
             0 => false,
             compressed => Err(Status::new(Code::Internal)
-                .with_message(format!("unsupported compressed flag: {}", compressed)))?,
+                .with_message(format!("unsupported compressed flag: {compressed}")))?,
         };
 
         let len = u32::from_be_bytes(self.buf[1..5].try_into().unwrap()) as usize;

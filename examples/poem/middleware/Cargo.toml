@@ -1,10 +1,10 @@
 [package]
 name = "example-middleware"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+poem.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true

@@ -1,6 +1,6 @@
 use std::io::{Error as IoError, ErrorKind, Result as IoResult};
 
-use base64::URL_SAFE_NO_PAD;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http::{Method, Uri};
 use hyper::{client::HttpConnector, Client};
 use hyper_rustls::HttpsConnector;
@@ -35,9 +35,9 @@ impl<'a> Protected<'a> {
             url,
         };
         let protected = serde_json::to_vec(&protected).map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {}", err))
+            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
-        Ok(base64::encode_config(protected, URL_SAFE_NO_PAD))
+        Ok(URL_SAFE_NO_PAD.encode(protected))
     }
 }
 
@@ -60,8 +60,8 @@ impl Jwk {
             crv: "P-256",
             kty: "EC",
             u: "sig",
-            x: base64::encode_config(x, URL_SAFE_NO_PAD),
-            y: base64::encode_config(y, URL_SAFE_NO_PAD),
+            x: URL_SAFE_NO_PAD.encode(x),
+            y: URL_SAFE_NO_PAD.encode(y),
         }
     }
 
@@ -81,10 +81,10 @@ impl Jwk {
             y: &self.y,
         };
         let json = serde_json::to_vec(&jwk_thumb).map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {}", err))
+            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         let hash = sha256(json);
-        Ok(base64::encode_config(hash, URL_SAFE_NO_PAD))
+        Ok(URL_SAFE_NO_PAD.encode(hash))
     }
 }
 
@@ -114,16 +114,13 @@ pub(crate) async fn request(
     let protected = Protected::base64(jwk, kid, nonce, &uri.to_string())?;
     let payload = match payload {
         Some(payload) => serde_json::to_vec(&payload).map_err(|err| {
-            IoError::new(
-                ErrorKind::Other,
-                format!("failed to encode payload: {}", err),
-            )
+            IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
         })?,
         None => Vec::new(),
     };
-    let payload = base64::encode_config(payload, URL_SAFE_NO_PAD);
+    let payload = URL_SAFE_NO_PAD.encode(payload);
     let combined = format!("{}.{}", &protected, &payload);
-    let signature = base64::encode_config(key_pair.sign(combined.as_bytes())?, URL_SAFE_NO_PAD);
+    let signature = URL_SAFE_NO_PAD.encode(key_pair.sign(combined.as_bytes())?);
     let body = serde_json::to_vec(&Body {
         protected,
         payload,
@@ -141,7 +138,7 @@ pub(crate) async fn request(
     let resp = cli.request(req.into()).await.map_err(|err| {
         IoError::new(
             ErrorKind::Other,
-            format!("failed to send http request: {}", err),
+            format!("failed to send http request: {err}"),
         )
     })?;
     if !resp.status().is_success() {
@@ -173,7 +170,7 @@ where
         .await
         .map_err(|_| IoError::new(ErrorKind::Other, "failed to read response"))?;
     serde_json::from_str(&data)
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {}", err)))
+        .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {err}")))
 }
 
 pub(crate) fn key_authorization(key: &KeyPair, token: &str) -> IoResult<String> {
