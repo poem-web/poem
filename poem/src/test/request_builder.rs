@@ -125,7 +125,7 @@ impl<'a, E> TestRequestBuilder<'a, E> {
     #[must_use]
     pub fn body_yaml(self, body: &impl Serialize) -> Self {
         self.content_type("application/yaml")
-            .body(serde_yaml::to_string(&body).expect("valid json"))
+            .body(serde_yaml::to_string(&body).expect("valid yaml"))
     }
 
     /// Sets the XML body for this request with `application/xml` content
