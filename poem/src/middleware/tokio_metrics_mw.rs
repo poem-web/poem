@@ -5,7 +5,8 @@ use serde::Serialize;
 use tokio_metrics::{TaskMetrics, TaskMonitor};
 
 use crate::{
-    endpoint::make_sync, Endpoint, IntoResponse, Middleware, Request, Response, Result, RouteMethod,
+    endpoint::make_sync, web::Json, Endpoint, IntoResponse, Middleware, Request, Response, Result,
+    RouteMethod,
 };
 
 /// Middleware for metrics with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.
@@ -39,9 +40,9 @@ impl TokioMetrics {
     pub fn exporter(&self) -> impl Endpoint {
         let metrics = self.metrics.clone();
         RouteMethod::new().get(make_sync(move |_| {
-            serde_json::to_string(&*metrics.lock())
-                .unwrap()
-                .with_content_type("application/json")
+            let inner: Metrics = metrics.lock().clone();
+            let data = Json(inner);
+            ().with_content_type("application/json")
         }))
     }
 }
@@ -90,7 +91,7 @@ impl<E: Endpoint> Endpoint for TokioMetricsEndpoint<E> {
     }
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Default, Clone)]
 struct Metrics {
     instrumented_count: u64,
     dropped_count: u64,
