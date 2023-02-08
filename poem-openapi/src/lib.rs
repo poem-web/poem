@@ -113,6 +113,7 @@
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
+#![recursion_limit = "512"]
 
 /// Macros to help with building custom payload types.
 #[macro_use]
