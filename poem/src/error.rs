@@ -1101,6 +1101,22 @@ impl ResponseError for I18NError {
     }
 }
 
+/// A possible error value occurred when deal with redis session.
+#[cfg(feature = "redis-session")]
+#[derive(Debug, thiserror::Error)]
+pub enum RedisSessionError {
+    /// Redis error.
+    #[error("redis: {0}")]
+    Redis(redis::RedisError),
+}
+
+#[cfg(feature = "redis-session")]
+impl ResponseError for RedisSessionError {
+    fn status(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::{Error as IoError, ErrorKind};
