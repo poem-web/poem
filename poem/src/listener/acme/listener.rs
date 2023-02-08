@@ -179,17 +179,17 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                     )
                     .await
                     {
-                        Ok((pkey_pem, acme_cert_pem, cert_key)) => {
-                            *cert_resolver.cert.write() = Some(cert_key);
+                        Ok(res) => {
+                            *cert_resolver.cert.write() = Some(res.rustls_key);
                             if let Some(cache_path) = &cache_path {
                                 let pkey_path = cache_path.join("key.pem");
                                 tracing::debug!(path =% pkey_path.display(), "write private key to cache path");
-                                if let Err(err) = std::fs::write(pkey_path, pkey_pem) {
+                                if let Err(err) = std::fs::write(pkey_path, res.private_pem) {
                                     tracing::error!(error =% err, "failed to write key pem to cache dir");
                                 }
                                 let cert_path = cache_path.join("cert.pem");
                                 tracing::debug!(path =% cert_path.display(), "write certificate to cache path");
-                                if let Err(err) = std::fs::write(cert_path, acme_cert_pem) {
+                                if let Err(err) = std::fs::write(cert_path, res.public_pem) {
                                     tracing::error!(error =% err, "failed to write cert pem to cache dir");
                                 }
                             }
@@ -244,6 +244,12 @@ fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
     ))
 }
 
+pub struct IssueCertResult {
+    pub private_pem: String,
+    pub public_pem: Vec<u8>,
+    pub rustls_key: Arc<CertifiedKey>,
+}
+
 /// Generate a new certificate via ACME protocol.  Returns the pub cert and private
 /// key in PEM format, and the private key as a Rustls object.
 ///
@@ -255,7 +261,7 @@ pub async fn issue_cert(
     domains: &Vec<String>,
     challenge_type: ChallengeType,
     keys_for_http01: Option<&Arc<RwLock<HashMap<String, String>>>>,
-) -> IoResult<(String, Vec<u8>, Arc<CertifiedKey>)> {
+) -> IoResult<IssueCertResult> {
     tracing::debug!("issue certificate");
     let order_resp = client.new_order(&domains).await?;
 
@@ -397,5 +403,9 @@ pub async fn issue_cert(
 
     tracing::debug!("certificate obtained");
 
-    Ok((pkey_pem, acme_cert_pem, Arc::new(cert_key)))
+    Ok(IssueCertResult {
+        private_pem: pkey_pem,
+        public_pem: acme_cert_pem,
+        rustls_key: Arc::new(cert_key),
+    })
 }
