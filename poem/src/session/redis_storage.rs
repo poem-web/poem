@@ -86,7 +86,6 @@ mod tests {
         };
         if !client.check_connection() {
             panic!("redis server is not running");
-            return;
         }
 
         let app = Route::new().at("/:action", index).with(ServerSession::new(
