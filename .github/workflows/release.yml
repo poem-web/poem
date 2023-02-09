@@ -40,10 +40,9 @@ jobs:
             registryName: poem-grpc
             path: poem-grpc
     steps:
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          override: true
       - name: Checkout
         uses: actions/checkout@v3
       - name: Install Protoc
