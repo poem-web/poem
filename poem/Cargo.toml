@@ -27,9 +27,9 @@ multipart = ["multer"]
 rustls = ["server", "tokio-rustls", "rustls-pemfile"]
 native-tls = ["server", "tokio-native-tls"]
 openssl-tls = ["server", "tokio-openssl", "openssl"]
-sse = ["dep:tokio-stream"]
-static-files = ["httpdate", "dep:mime_guess", "tokio/io-util", "tokio/fs"]
-compression = ["dep:async-compression"]
+sse = ["tokio-stream"]
+static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
+compression = ["async-compression"]
 tower-compat = ["tokio/rt", "tower"]
 cookie = ["libcookie", "chrono", "time"]
 session = ["tokio/rt", "cookie", "rand", "priority-queue", "base64"]
@@ -61,10 +61,9 @@ acme = [
     "x509-parser",
     "chrono",
 ]
-embed = ["dep:rust-embed", "dep:hex", "dep:mime_guess"]
-xml = ["dep:quick-xml"]
-yaml = ["dep:serde_yaml"]
-tokio-metrics = ["dep:tokio-metrics"]
+embed = ["rust-embed", "hex", "mime_guess"]
+xml = ["quick-xml"]
+yaml = ["serde_yaml"]
 
 [dependencies]
 poem-derive.workspace = true
@@ -160,8 +159,8 @@ anyhow = { version = "1.0.0", optional = true }
 eyre06 = { package = "eyre", version = "0.6", optional = true }
 
 [dev-dependencies]
+async-stream = "0.3.2"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-poem = { workspace = true, features = ["test"] }
 
 [package.metadata.docs.rs]
 all-features = true
