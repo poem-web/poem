@@ -19,10 +19,10 @@ impl<'a> I18NArgs<'a> {
     }
 }
 
-impl<'a, K, V> From<HashMap<K, V>> for I18NArgs<'a> 
+impl<'a, K, V> From<HashMap<K, V>> for I18NArgs<'a>
 where
-K: Into<Cow<'a, str>>,
-V: Into<FluentValue<'a>>,
+    K: Into<Cow<'a, str>>,
+    V: Into<FluentValue<'a>>,
 {
     fn from(map: HashMap<K, V>) -> Self {
         let mut args = FluentArgs::new();

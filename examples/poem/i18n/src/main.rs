@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use poem::{
     get, handler,
     i18n::{I18NResources, Locale},
