@@ -40,13 +40,13 @@ jobs:
             registryName: poem-grpc
             path: poem-grpc
     steps:
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          override: true
       - name: Checkout
         uses: actions/checkout@v3
       - name: Install Protoc
+        if: matrix.package.name == 'poem-grpc'
         uses: arduino/setup-protoc@v1
       - name: Get Version
         working-directory: ${{ matrix.package.path }}
