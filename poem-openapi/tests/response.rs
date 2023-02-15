@@ -8,16 +8,17 @@ use poem::{
     Error, IntoResponse,
 };
 use poem_openapi::{
-    payload::{Binary, Json, Payload, PlainText},
+    payload::{Binary, Json, Payload, PlainText, Yaml},
     registry::{
         MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry,
     },
     types::{ToJSON, Type},
     ApiResponse, Object, OpenApi, OpenApiService,
 };
+use serde::Deserialize;
 use serde_json::Value;
 
-#[derive(Debug, Object)]
+#[derive(PartialEq, Deserialize, Clone, Debug, Object)]
 struct BadRequestResult {
     error_code: i32,
     message: String,
@@ -34,6 +35,9 @@ enum MyResponse {
     /// C
     #[oai(status = 400)]
     BadRequest(Json<BadRequestResult>),
+    /// yaml response
+    #[oai(status = 400)]
+    BadRequestYaml(Yaml<BadRequestResult>),
     Default(StatusCode, PlainText<String>),
 }
 
@@ -59,6 +63,15 @@ fn meta() {
                     headers: vec![]
                 },
                 MetaResponse {
+                    description: "yaml response",
+                    status: Some(400),
+                    content: vec![MetaMediaType {
+                        content_type: "application/yaml; charset=utf-8",
+                        schema: MetaSchemaRef::Reference("BadRequestResult".to_string())
+                    }],
+                    headers: vec![]
+                },
+                MetaResponse {
                     description: "",
                     status: None,
                     content: vec![MetaMediaType {
@@ -77,19 +90,28 @@ async fn into_response() {
     let resp = MyResponse::Ok.into_response();
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let mut resp = MyResponse::BadRequest(Json(BadRequestResult {
+    let resp = BadRequestResult {
         error_code: 123,
         message: "abc".to_string(),
-    }))
-    .into_response();
+    };
+    let mut json_resp = MyResponse::BadRequest(Json(resp.clone())).into_response();
+    let mut yaml_resp = MyResponse::BadRequestYaml(Yaml(resp.clone())).into_response();
     assert_eq!(
-        serde_json::from_slice::<Value>(&resp.take_body().into_bytes().await.unwrap()).unwrap(),
+        serde_json::from_slice::<Value>(&json_resp.take_body().into_bytes().await.unwrap())
+            .unwrap(),
         serde_json::json!({
             "error_code": 123,
             "message": "abc",
         })
     );
-    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        serde_yaml::from_slice::<BadRequestResult>(
+            &yaml_resp.take_body().into_bytes().await.unwrap()
+        )
+        .unwrap(),
+        resp.clone()
+    );
+    assert_eq!(json_resp.status(), StatusCode::BAD_REQUEST);
 
     let mut resp = MyResponse::Default(StatusCode::BAD_GATEWAY, PlainText("abcdef".to_string()))
         .into_response();
