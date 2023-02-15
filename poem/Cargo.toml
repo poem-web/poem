@@ -27,7 +27,7 @@ multipart = ["multer"]
 rustls = ["server", "tokio-rustls", "rustls-pemfile"]
 native-tls = ["server", "tokio-native-tls"]
 openssl-tls = ["server", "tokio-openssl", "openssl"]
-sse = []
+sse = ["tokio-stream"]
 static-files = ["httpdate", "mime_guess", "tokio/io-util", "tokio/fs"]
 compression = ["async-compression"]
 tower-compat = ["tokio/rt", "tower"]
@@ -77,8 +77,7 @@ tokio = { workspace = true, features = ["sync", "time", "macros", "net"] }
 tokio-util = { version = "0.7.0", features = ["io"] }
 serde.workspace = true
 serde_json.workspace = true
-serde_urlencoded = "0.7.0"
-tokio-stream.workspace = true
+serde_urlencoded.workspace = true
 parking_lot = "0.12.0"
 pin-project-lite = "0.2.7"
 percent-encoding = "2.1.0"
@@ -135,7 +134,7 @@ priority-queue = { version = "1.2.0", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
 tokio-openssl = { version = "0.6.3", optional = true }
 openssl = { version = "0.10", optional = true }
-base64 = { version = "0.21.0", optional = true }
+base64 = { workspace = true, optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
 sse-codec = { version = "0.3.2", optional = true }
@@ -151,8 +150,9 @@ x509-parser = { version = "0.14.0", optional = true }
 tokio-metrics = { version = "0.1.0", optional = true }
 rust-embed = { version = "6.3", optional = true }
 hex = { version = "0.4", optional = true }
-quick-xml = { version = "0.26.0", optional = true, features = ["serialize"] }
-serde_yaml = { version = "0.9", optional = true }
+quick-xml = { workspace = true, optional = true }
+serde_yaml = { workspace = true, optional = true }
+tokio-stream = { workspace = true, optional = true }
 
 # Feature optional dependencies
 anyhow = { version = "1.0.0", optional = true }

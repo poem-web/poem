@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
+use mime as _;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};

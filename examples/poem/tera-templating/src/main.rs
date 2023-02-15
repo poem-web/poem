@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use poem::{
     error::InternalServerError,
     get, handler,
@@ -7,22 +8,17 @@ use poem::{
 };
 use tera::{Context, Tera};
 
-#[macro_use]
-extern crate lazy_static;
-
-lazy_static! {
-    pub static ref TEMPLATES: Tera = {
-        let mut tera = match Tera::new("templates/**/*") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {e}");
-                ::std::process::exit(1);
-            }
-        };
-        tera.autoescape_on(vec![".html", ".sql"]);
-        tera
+static TEMPLATES: Lazy<Tera> = Lazy::new(|| {
+    let mut tera = match Tera::new("templates/**/*") {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Parsing error(s): {e}");
+            ::std::process::exit(1);
+        }
     };
-}
+    tera.autoescape_on(vec![".html", ".sql"]);
+    tera
+});
 
 #[handler]
 fn hello(Path(name): Path<String>) -> Result<Html<String>, poem::Error> {
