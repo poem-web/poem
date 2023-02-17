@@ -5,7 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-poem.workspace = true
+poem = { workspace = true, features = ["tera"] }
 tokio = { workspace = true, features = ["full"] }
 tera = "1.17.1"
 once_cell = "1.17.0"
