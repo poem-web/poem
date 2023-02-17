@@ -1,6 +1,6 @@
 use tera::Tera;
 
-use crate::{Endpoint, Request, Result, FromRequest, RequestBody};
+use crate::{Endpoint, error::IntoResult, Request, Result, FromRequest, RequestBody, error::InternalServerError, web::Html};
 
 /// Tera Templating Endpoint
 pub struct TeraTemplatingEndpoint<E> {
@@ -29,5 +29,16 @@ impl<'a> FromRequest<'a> for Tera {
             .clone();
 
         Ok(tera)
+    }
+}
+
+/// Shortcut (or not) for a Tera Templating handler Response
+pub type TeraTemplatingResult = tera::Result<String>;
+
+impl IntoResult<Html<String>> for TeraTemplatingResult {
+    fn into_result(self) -> Result<Html<String>> {
+        self
+            .map_err(InternalServerError)
+            .map(Html)
     }
 }
