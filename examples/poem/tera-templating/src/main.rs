@@ -4,9 +4,8 @@ use poem::{
     web::Path,
     Route, Server,
     EndpointExt,
-    tera::{TeraTemplating, TeraTemplate}
+    tera::{TeraTemplating, TeraTemplate, Tera, Context}
 };
-use tera::{Context, Tera};
 
 #[handler]
 fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {

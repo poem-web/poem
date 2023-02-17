@@ -25,6 +25,8 @@
 mod endpoint;
 mod middleware;
 
+pub use tera::{Tera, Context};
+
 pub use self::{
     endpoint::{TeraTemplatingEndpoint, TeraTemplatingResult as TeraTemplate},
     middleware::TeraTemplatingMiddleware as TeraTemplating
