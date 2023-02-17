@@ -25,7 +25,7 @@ websocket = ["poem/websocket"]
 
 [dependencies]
 poem-openapi-derive.workspace = true
-poem = { workspace = true, default_features = true, features = [
+poem = { workspace = true, default-features = true, features = [
   "multipart",
   "tempfile",
   "cookie",
