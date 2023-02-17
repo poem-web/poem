@@ -278,6 +278,9 @@ pub mod session;
 #[cfg_attr(docsrs, doc(cfg(feature = "test")))]
 pub mod test;
 pub mod web;
+#[cfg(feature = "tera")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tera")))]
+pub mod tera;
 
 #[doc(inline)]
 pub use http;

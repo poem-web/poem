@@ -51,7 +51,7 @@ which are disabled by default:
 
 | Feature       | Description                                                                               |
 |---------------|-------------------------------------------------------------------------------------------|
-| server        | Server and listener APIs (enabled by default)                                               |                                                     |
+| server        | Server and listener APIs (enabled by default)                                             |
 | compression   | Support decompress request body and compress response body                                |
 | cookie        | Support for Cookie                                                                        |
 | csrf          | Support for Cross-Site Request Forgery (CSRF) protection                                  |
@@ -75,7 +75,8 @@ which are disabled by default:
 | tokio-metrics | Integrate with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.           |
 | embed         | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate.                 |
 | xml           | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate.                   |
-| yaml           | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                   |
+| yaml          | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                 |
+| tera          | Support for [`tera`](https://crates.io/crates/tera) templating.                           |
 
 ## Safety
 
