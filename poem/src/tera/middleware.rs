@@ -118,6 +118,17 @@ impl IntoResult<Html<String>> for TeraTemplatingResult {
 }
 
 impl<E: Endpoint> TeraTemplatingEndpoint<E> {
+
+    /// Add a transformer that apply changes to each tera instances (for instance, registering a dynamic filter) 
+    /// before passing tera to request handlers
+    ///
+    /// ```no_compile
+    /// use poem::{Route, EndpointExt, tera::TeraTemplating};
+    /// 
+    /// let app = Route::new()
+    ///     .with(TeraTemplating::from_glob("templates/**/*"))
+    ///     .using(|tera, req| println!("{tera:?}\n{req:?}"));
+    /// ```
     pub fn using(mut self, transformer: fn(&mut Tera, &mut Request)) -> Self {
         self.transformers.push(transformer);
         self

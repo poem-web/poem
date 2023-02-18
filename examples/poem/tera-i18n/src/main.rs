@@ -29,7 +29,7 @@ async fn main() -> Result<(), std::io::Error> {
         .at("/", get(index))
         .at("/hello/:name", get(hello))
         .with(TeraTemplating::from_glob("templates/**/*"))
-        .using(filters::translate)
+        .using(filters::i18n::translate)
         .data(resources);
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
