@@ -1,15 +1,14 @@
 use poem::{
     ctx, get, handler,
     listener::TcpListener,
+    tera::{Tera, TeraTemplate, TeraTemplating},
     web::Path,
-    Route, Server,
-    EndpointExt,
-    tera::{TeraTemplating, TeraTemplate, Tera}
+    EndpointExt, Route, Server,
 };
 
 #[handler]
 fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
-    tera.render("index.html.tera", &ctx!{ "name": &name })
+    tera.render("index.html.tera", &ctx! { "name": &name })
 }
 
 #[tokio::main]
