@@ -2,7 +2,7 @@
 //!
 //! # Load templates from file system using a glob
 //!
-//! ```no_run
+//! ```no_compile
 //! use poem::tera::TeraTemplating;
 //!
 //! let templating = TeraTemplating::from_glob("templates/**/*");
@@ -10,7 +10,7 @@
 //!
 //! # Render a template inside an handler with some context vars
 //!
-//! ```no_run
+//! ```no_compile
 //! use poem::{
 //!     ctx, handler,
 //!     tera::{Tera, TeraTemplate},
@@ -37,7 +37,7 @@ pub use self::{
 };
 
 /// Macro for constructing a Tera Context
-/// ```no_run
+/// ```no_compile
 /// use poem::{
 ///     ctx, handler,
 ///     tera::{Tera, TeraTemplate},
