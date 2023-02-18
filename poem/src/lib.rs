@@ -309,4 +309,4 @@ pub use route::{
 };
 #[cfg(feature = "server")]
 pub use server::Server;
-pub use web::{FromRequest, FromRequestSync, IntoResponse, RequestBody};
+pub use web::{FromRequest, IntoResponse, RequestBody};

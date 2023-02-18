@@ -7,7 +7,7 @@ use unic_langid::LanguageIdentifier;
 use crate::{
     error::I18NError,
     i18n::{I18NArgs, I18NBundle, I18NResources},
-    FromRequestSync, Request, RequestBody, Result,
+    FromRequest, Request, RequestBody, Result,
 };
 
 type LanguageArray = SmallVec<[LanguageIdentifier; 8]>;
@@ -85,7 +85,7 @@ impl Locale {
 }
 
 #[async_trait::async_trait]
-impl<'a> FromRequestSync<'a> for Locale {
+impl<'a> FromRequest<'a> for Locale {
     fn from_request_sync(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let resources = req
             .extensions()
