@@ -11,8 +11,7 @@
 //! # Render a template inside an handler with some context vars
 //!
 //! ```no_run
-//! use poem::{handler, ctx, web::Path, tera::TeraTemplate};
-//! use tera::Tera;
+//! use poem::{handler, ctx, web::Path, tera::{TeraTemplate, Tera}};
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
@@ -32,7 +31,7 @@ pub use self::{
 
 /// Macro for constructing a Tera Context
 /// ```no_run
-/// use poem::{handler, ctx, web::Path, tera::TeraTemplate};
+/// use poem::{handler, ctx, web::Path, tera::{TeraTemplate, Tera}};
 /// use tera::Tera;
 ///
 /// #[handler]
