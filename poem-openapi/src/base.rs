@@ -1,8 +1,8 @@
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display},
+    marker::Send,
     ops::Deref,
-    marker::Send
 };
 
 use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
