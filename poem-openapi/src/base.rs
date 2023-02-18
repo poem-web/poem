@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fmt::{self, Debug, Display},
     ops::Deref,
+    marker::Send
 };
 
 use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
@@ -198,7 +199,7 @@ pub trait ApiExtractor<'a>: Sized {
 }
 
 #[poem::async_trait]
-impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
+impl<'a, T: FromRequest<'a> + Send> ApiExtractor<'a> for T {
     const TYPE: ApiExtractorType = ApiExtractorType::PoemExtractor;
 
     type ParamType = ();
