@@ -12,7 +12,7 @@ pub mod filters {
         };
         use tera::{self, Filter, Tera, Value};
 
-        use crate::{i18n::Locale, FromRequestSync, Request};
+        use crate::{i18n::Locale, FromRequest, Request};
 
         /// Tera Templating i18n filter
         ///
