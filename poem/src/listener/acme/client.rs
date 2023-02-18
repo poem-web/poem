@@ -35,13 +35,13 @@ impl AcmeClient {
         key_pair: Arc<KeyPair>,
         contacts: Vec<String>,
     ) -> IoResult<Self> {
-        let client = Client::builder().build(
-            HttpsConnectorBuilder::new()
-                .with_native_roots()
-                .https_or_http()
-                .enable_http1()
-                .build(),
-        );
+        let client_builder = HttpsConnectorBuilder::new();
+        #[cfg(feature = "acme-native-roots")]
+        let client_builder1 = client_builder.with_native_roots();
+        #[cfg(feature = "acme-webpki-roots")]
+        let client_builder1 = client_builder.with_webpki_roots();
+        let client =
+            Client::builder().build(client_builder1.https_or_http().enable_http1().build());
         let directory = get_directory(&client, directory_url).await?;
         Ok(Self {
             client,

@@ -1,7 +1,7 @@
 //! Commonly used listeners.
 
-#[cfg(feature = "acme")]
-#[cfg_attr(docsrs, doc(cfg(feature = "acme")))]
+#[cfg(feature = "acme-base")]
+#[cfg_attr(docsrs, doc(cfg(feature = "acme-base")))]
 pub mod acme;
 mod combined;
 #[cfg(any(feature = "native-tls", feature = "rustls", feature = "openssl-tls"))]
@@ -29,7 +29,7 @@ use futures_util::{future::BoxFuture, FutureExt, TryFutureExt};
 use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
-#[cfg(feature = "acme")]
+#[cfg(feature = "acme-base")]
 use self::acme::{AutoCert, AutoCertListener};
 #[cfg(any(feature = "native-tls", feature = "rustls", feature = "openssl-tls"))]
 pub use self::handshake_stream::HandshakeStream;
@@ -213,8 +213,8 @@ pub trait Listener: Send {
     ///         .unwrap(),
     /// );
     /// ```
-    #[cfg(feature = "acme")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "acme")))]
+    #[cfg(feature = "acme-base")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "acme-base")))]
     #[must_use]
     fn acme(self, auto_cert: AutoCert) -> AutoCertListener<Self>
     where
