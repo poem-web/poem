@@ -19,14 +19,14 @@
 //! }
 //! ```
 
-mod endpoint;
 mod middleware;
 
 pub use tera::{Tera, Context};
 
-pub use self::{
-    endpoint::{TeraTemplatingEndpoint, TeraTemplatingResult as TeraTemplate},
-    middleware::TeraTemplatingMiddleware as TeraTemplating
+pub use self::middleware::{
+    TeraTemplatingEndpoint, 
+    TeraTemplatingResult as TeraTemplate, 
+    TeraTemplatingMiddleware as TeraTemplating
 };
 
 /// Macro for constructing a Tera Context
