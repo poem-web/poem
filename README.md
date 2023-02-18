@@ -19,6 +19,9 @@
   <a href="https://deps.rs/repo/github/poem-web/poem">
     <img src="https://img.shields.io/librariesio/release/cargo/poem.svg" />
   </a>
+  <a href="https://crates.io/crates/poem">
+    <img src="https://img.shields.io/crates/d/poem.svg" />
+  </a>
 </div>
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>

@@ -1,3 +1,5 @@
+use std::task::Poll;
+
 use bytes::Bytes;
 use futures_util::{stream::BoxStream, Stream, StreamExt};
 use tokio::time::Duration;
@@ -68,14 +70,14 @@ impl IntoResponse for SSE {
             .boxed();
         if let Some(duration) = self.keep_alive {
             let comment = Bytes::from_static(b":\n\n");
-            stream = futures_util::stream::select(
-                stream,
-                tokio_stream::wrappers::IntervalStream::new(tokio::time::interval_at(
-                    tokio::time::Instant::now() + duration,
-                    duration,
-                ))
-                .map(move |_| Ok(comment.clone())),
-            )
+            let mut interval =
+                tokio::time::interval_at(tokio::time::Instant::now() + duration, duration);
+            stream = futures_util::stream::poll_fn(move |cx| {
+                if let Poll::Ready(msg) = stream.poll_next_unpin(cx) {
+                    return Poll::Ready(msg);
+                }
+                interval.poll_tick(cx).map(|_| Some(Ok(comment.clone())))
+            })
             .boxed();
         }
 
