@@ -4,31 +4,33 @@ pub mod filters {
     #[cfg(feature = "i18n")]
     #[cfg_attr(docsrs, doc(cfg(feature = "i18n")))]
     pub mod i18n {
-        use std::{collections::HashMap, borrow::Cow};
-        use tera::{self, Tera, Value, Filter};
+        use std::{borrow::Cow, collections::HashMap};
+
         use fluent::{
             types::{FluentNumber, FluentNumberOptions},
             FluentValue,
         };
-        use crate::{Request, i18n::Locale, FromRequestSync};
+        use tera::{self, Filter, Tera, Value};
+
+        use crate::{i18n::Locale, FromRequestSync, Request};
 
         /// Tera Templating i18n filter
-        /// 
+        ///
         /// ```no_compile
         /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, transformers::filters}};
-        /// 
+        ///
         /// let resources = I18NResources::builder()
         ///     .add_path("resources")
         ///     .build()
         ///     .unwrap();
-        /// 
+        ///
         /// let app = Route::new()
         ///     .with(TeraTemplating::from_glob("templates/**/*"))
         ///     .using(filters::i18n::translate)
         ///     .data(resources);
         /// ```
         pub struct TranslateFilter {
-            locale: Locale
+            locale: Locale,
         }
 
         impl Filter for TranslateFilter {
@@ -58,26 +60,29 @@ pub mod filters {
                 .map_err(|err| tera::Error::msg(err))
             }
         }
-        
+
         /// Tera Templating built-in filters
-        /// 
+        ///
         /// ```no_compile
         /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, transformers::filters}};
-        /// 
+        ///
         /// let resources = I18NResources::builder()
         ///     .add_path("resources")
         ///     .build()
         ///     .unwrap();
-        /// 
+        ///
         /// let app = Route::new()
         ///     .with(TeraTemplating::from_glob("templates/**/*"))
         ///     .using(filters::i18n::translate)
         ///     .data(resources);
         /// ```
         pub fn translate(tera: &mut Tera, req: &mut Request) {
-            tera.register_filter("translate", TranslateFilter {
-                locale: Locale::from_request_without_body_sync(req).unwrap()
-            });
+            tera.register_filter(
+                "translate",
+                TranslateFilter {
+                    locale: Locale::from_request_without_body_sync(req).unwrap(),
+                },
+            );
         }
     }
 }

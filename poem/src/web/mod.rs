@@ -756,7 +756,10 @@ impl<'a> FromRequest<'a> for &'a Request {
 }
 
 #[async_trait::async_trait]
-impl<'a, T> FromRequest<'a> for &'a T where &'a T: FromRequestSync<'a> {
+impl<'a, T> FromRequest<'a> for &'a T
+where
+    &'a T: FromRequestSync<'a>,
+{
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Self::from_request_sync(req, body)
     }

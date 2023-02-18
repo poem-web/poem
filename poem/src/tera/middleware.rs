@@ -1,20 +1,24 @@
 use tera::Tera;
 
-use crate::{Endpoint, Middleware, error::IntoResult, Request, Result, FromRequest, RequestBody, error::InternalServerError, web::Html};
+use crate::{
+    error::{InternalServerError, IntoResult},
+    web::Html,
+    Endpoint, FromRequest, Middleware, Request, RequestBody, Result,
+};
 
 /// Tera Templating Middleware
 pub struct TeraTemplatingMiddleware {
-    tera: Tera
+    tera: Tera,
 }
 
 impl TeraTemplatingMiddleware {
-
-    /// Create a new instance of TeraTemplating, containing all the parsed templates found in the glob
-    /// The errors are already handled. Use TeraTemplating::custom(tera: Tera) to modify tera settings.
+    /// Create a new instance of TeraTemplating, containing all the parsed
+    /// templates found in the glob The errors are already handled. Use
+    /// TeraTemplating::custom(tera: Tera) to modify tera settings.
     ///
     /// ```no_compile
     /// use poem::tera::TeraTemplating;
-    /// 
+    ///
     /// let templating = TeraTemplating::from_glob("templates/**/*");
     /// ```
     pub fn from_glob(glob: &str) -> Self {
@@ -26,16 +30,15 @@ impl TeraTemplatingMiddleware {
             }
         };
 
-        Self {
-            tera
-        }
+        Self { tera }
     }
 
-    /// Create a new instance of TeraTemplating, using the provided Tera instance
+    /// Create a new instance of TeraTemplating, using the provided Tera
+    /// instance
     ///
     /// ```no_compile
     /// use poem::tera::{TeraTemplating, Tera};
-    /// 
+    ///
     /// let mut tera = match Tera::new("templates/**/*") {
     ///     Ok(t) => t,
     ///     Err(e) => {
@@ -47,9 +50,7 @@ impl TeraTemplatingMiddleware {
     /// let templating = TeraTemplating::custom(tera);
     /// ```
     pub fn custom(tera: Tera) -> Self {
-        Self {
-            tera
-        }
+        Self { tera }
     }
 }
 
@@ -60,7 +61,7 @@ impl<E: Endpoint> Middleware<E> for TeraTemplatingMiddleware {
         Self::Output {
             tera: self.tera.clone(),
             inner,
-            transformers: Vec::new()
+            transformers: Vec::new(),
         }
     }
 }
@@ -69,7 +70,7 @@ impl<E: Endpoint> Middleware<E> for TeraTemplatingMiddleware {
 pub struct TeraTemplatingEndpoint<E> {
     tera: Tera,
     inner: E,
-    transformers: Vec<fn(&mut Tera, &mut Request)>
+    transformers: Vec<fn(&mut Tera, &mut Request)>,
 }
 
 #[async_trait::async_trait]
@@ -111,20 +112,18 @@ impl IntoResult<Html<String>> for TeraTemplatingResult {
             println!("{err:?}");
         }
 
-        self
-            .map_err(InternalServerError)
-            .map(Html)
+        self.map_err(InternalServerError).map(Html)
     }
 }
 
 impl<E: Endpoint> TeraTemplatingEndpoint<E> {
-
-    /// Add a transformer that apply changes to each tera instances (for instance, registering a dynamic filter) 
-    /// before passing tera to request handlers
+    /// Add a transformer that apply changes to each tera instances (for
+    /// instance, registering a dynamic filter) before passing tera to
+    /// request handlers
     ///
     /// ```no_compile
     /// use poem::{Route, EndpointExt, tera::TeraTemplating};
-    /// 
+    ///
     /// let app = Route::new()
     ///     .with(TeraTemplating::from_glob("templates/**/*"))
     ///     .using(|tera, req| println!("{tera:?}\n{req:?}"));

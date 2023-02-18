@@ -7,40 +7,47 @@
 //!
 //! let templating = TeraTemplating::from_glob("templates/**/*");
 //! ```
-//! 
+//!
 //! # Render a template inside an handler with some context vars
 //!
 //! ```no_run
-//! use poem::{handler, ctx, web::Path, tera::{TeraTemplate, Tera}};
+//! use poem::{
+//!     ctx, handler,
+//!     tera::{Tera, TeraTemplate},
+//!     web::Path,
+//! };
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
-//!     tera.render("index.html.tera", &ctx!{ "name": &name })
+//!     tera.render("index.html.tera", &ctx! { "name": &name })
 //! }
 //! ```
 
 mod middleware;
 mod transformers;
 
-pub use tera::{Tera, Context};
+pub use tera::{Context, Tera};
 
 pub use self::{
     middleware::{
-        TeraTemplatingEndpoint, 
-        TeraTemplatingResult as TeraTemplate, 
-        TeraTemplatingMiddleware as TeraTemplating,
+        TeraTemplatingEndpoint, TeraTemplatingMiddleware as TeraTemplating,
+        TeraTemplatingResult as TeraTemplate,
     },
-    transformers::filters
+    transformers::filters,
 };
 
 /// Macro for constructing a Tera Context
 /// ```no_run
-/// use poem::{handler, ctx, web::Path, tera::{TeraTemplate, Tera}};
+/// use poem::{
+///     ctx, handler,
+///     tera::{Tera, TeraTemplate},
+///     web::Path,
+/// };
 /// use tera::Tera;
 ///
 /// #[handler]
 /// fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
-///     tera.render("index.html.tera", &ctx!{ "name": &name })
+///     tera.render("index.html.tera", &ctx! { "name": &name })
 /// }
 /// ```
 #[macro_export]
