@@ -328,6 +328,26 @@ pub trait FromRequest<'a>: Sized {
     }
 }
 
+/// Represents an type that can be extract from requests synchronously.
+/// See [crate::web::FromRequest]
+pub trait FromRequestSync<'a>: Sized {
+    /// Extract from request head and body.
+    fn from_request_sync(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
+
+    /// Extract from request head.
+    ///
+    /// If you know that this type does not need to extract the body, then you
+    /// can just use it.
+    ///
+    /// For example [`Query`], [`Path`] they only extract the content from the
+    /// request head, using this method would be more convenient.
+    /// `String`,`Vec<u8>` they extract the body of the request, using this
+    /// method will cause `ReadBodyError` error.
+    fn from_request_without_body_sync(req: &'a Request) -> Result<Self> {
+        Self::from_request_sync(req, &mut Default::default())
+    }
+}
+
 /// Represents a type that can convert into response.
 ///
 /// # Provided Implementations
@@ -732,6 +752,13 @@ impl<T: Into<String> + Send> IntoResponse for Html<T> {
 impl<'a> FromRequest<'a> for &'a Request {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req)
+    }
+}
+
+#[async_trait::async_trait]
+impl<'a, T> FromRequest<'a> for &'a T where &'a T: FromRequestSync<'a> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Self::from_request_sync(req, body)
     }
 }
 

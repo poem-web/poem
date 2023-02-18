@@ -60,14 +60,16 @@ impl<E: Endpoint> Middleware<E> for TeraTemplatingMiddleware {
         Self::Output {
             tera: self.tera.clone(),
             inner,
+            transformers: Vec::new()
         }
     }
 }
 
 /// Tera Templating Endpoint
 pub struct TeraTemplatingEndpoint<E> {
-    pub(super) tera: Tera,
-    pub(super) inner: E
+    tera: Tera,
+    inner: E,
+    transformers: Vec<fn(&mut Tera, &mut Request)>
 }
 
 #[async_trait::async_trait]
@@ -75,7 +77,13 @@ impl<E: Endpoint> Endpoint for TeraTemplatingEndpoint<E> {
     type Output = E::Output;
 
     async fn call(&self, mut req: Request) -> Result<Self::Output> {
-        req.extensions_mut().insert(self.tera.clone());
+        let mut tera = self.tera.clone();
+
+        for transformer in &self.transformers {
+            transformer(&mut tera, &mut req);
+        }
+
+        req.extensions_mut().insert(tera);
 
         self.inner.call(req).await
     }
@@ -99,8 +107,19 @@ pub type TeraTemplatingResult = tera::Result<String>;
 
 impl IntoResult<Html<String>> for TeraTemplatingResult {
     fn into_result(self) -> Result<Html<String>> {
+        if let Err(err) = &self {
+            println!("{err:?}");
+        }
+
         self
             .map_err(InternalServerError)
             .map(Html)
+    }
+}
+
+impl<E: Endpoint> TeraTemplatingEndpoint<E> {
+    pub fn using(mut self, transformer: fn(&mut Tera, &mut Request)) -> Self {
+        self.transformers.push(transformer);
+        self
     }
 }

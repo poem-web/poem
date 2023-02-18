@@ -1,0 +1,1 @@
+<h1>{{ "welcome" | translate(name=name) }}</h1>

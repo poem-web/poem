@@ -275,13 +275,13 @@ pub mod middleware;
 #[cfg(feature = "session")]
 #[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;
+#[cfg(feature = "tera")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tera")))]
+pub mod tera;
 #[cfg(feature = "test")]
 #[cfg_attr(docsrs, doc(cfg(feature = "test")))]
 pub mod test;
 pub mod web;
-#[cfg(feature = "tera")]
-#[cfg_attr(docsrs, doc(cfg(feature = "tera")))]
-pub mod tera;
 
 #[doc(inline)]
 pub use http;
@@ -309,4 +309,4 @@ pub use route::{
 };
 #[cfg(feature = "server")]
 pub use server::Server;
-pub use web::{FromRequest, IntoResponse, RequestBody};
+pub use web::{FromRequest, FromRequestSync, IntoResponse, RequestBody};

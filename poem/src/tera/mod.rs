@@ -20,13 +20,17 @@
 //! ```
 
 mod middleware;
+mod transformers;
 
 pub use tera::{Tera, Context};
 
-pub use self::middleware::{
-    TeraTemplatingEndpoint, 
-    TeraTemplatingResult as TeraTemplate, 
-    TeraTemplatingMiddleware as TeraTemplating
+pub use self::{
+    middleware::{
+        TeraTemplatingEndpoint, 
+        TeraTemplatingResult as TeraTemplate, 
+        TeraTemplatingMiddleware as TeraTemplating,
+    },
+    transformers::filters
 };
 
 /// Macro for constructing a Tera Context
