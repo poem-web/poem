@@ -11,14 +11,12 @@
 //! # Render a template inside an handler with some context vars
 //!
 //! ```no_run
-//! use poem::{web::Path, tera::TeraTemplate};
+//! use poem::{handler, ctx, web::Path, tera::TeraTemplate};
 //! use tera::Tera;
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
-//!     let mut context = Context::new();
-//!     context.insert("name", &name);
-//!     tera.render("index.html.tera", &context)
+//!     tera.render("index.html.tera", &ctx!{ "name": &name })
 //! }
 //! ```
 
@@ -31,3 +29,26 @@ pub use self::{
     endpoint::{TeraTemplatingEndpoint, TeraTemplatingResult as TeraTemplate},
     middleware::TeraTemplatingMiddleware as TeraTemplating
 };
+
+/// Macro for constructing a Tera Context
+/// ```no_run
+/// use poem::{handler, ctx, web::Path, tera::TeraTemplate};
+/// use tera::Tera;
+///
+/// #[handler]
+/// fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
+///     tera.render("index.html.tera", &ctx!{ "name": &name })
+/// }
+/// ```
+#[macro_export]
+macro_rules! ctx {
+    { $( $key:literal: $value:expr ),* } => {
+        {
+            let mut context = ::poem::tera::Context::new();
+            $(
+                context.insert($key, $value);
+            )*
+            context
+        }
+    };
+}
