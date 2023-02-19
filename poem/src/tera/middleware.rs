@@ -25,7 +25,8 @@ impl TeraTemplatingMiddleware {
         let tera = match Tera::new(glob) {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {e}");
+                tracing::error!("Failed to parse Tera template: {err}");
+                tracing::debug!("Tera Parsing error: {err:?}");
                 ::std::process::exit(1);
             }
         };
@@ -109,7 +110,8 @@ pub type TeraTemplatingResult = tera::Result<String>;
 impl IntoResult<Html<String>> for TeraTemplatingResult {
     fn into_result(self) -> Result<Html<String>> {
         if let Err(err) = &self {
-            println!("{err:?}");
+            tracing::error!("Failed to render Tera template: {err}");
+            tracing::debug!("Tera Rendering error: {err:?}");
         }
 
         self.map_err(InternalServerError).map(Html)
