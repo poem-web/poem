@@ -7,7 +7,6 @@ mod router_method;
 mod router_scheme;
 
 pub(crate) use internal::radix_tree::PathParams;
-#[allow(unreachable_pub)]
 pub use router::{PathPattern, Route};
 #[allow(unreachable_pub)]
 pub use router_domain::RouteDomain;
