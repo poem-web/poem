@@ -306,7 +306,7 @@ impl Route {
     }
 }
 
-/// Container that can be used to obtain to obtain path pattern from the request.
+/// Container that can be used to obtain path pattern from the request.
 #[derive(Debug, Clone)]
 pub struct PathPattern(pub Arc<str>);
 
