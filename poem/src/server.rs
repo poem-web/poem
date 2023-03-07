@@ -130,14 +130,14 @@ where
                 },
                 res = acceptor.accept() => {
                     if let Ok((socket, local_addr, remote_addr, scheme)) = res {
+                        alive_connections.fetch_add(1, Ordering::SeqCst);
+
                         let ep = ep.clone();
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
                         let timeout_notify = timeout_notify.clone();
 
                         tokio::spawn(async move {
-                            alive_connections.fetch_add(1, Ordering::SeqCst);
-
                             if timeout.is_some() {
                                 tokio::select! {
                                     _ = serve_connection(socket, local_addr, remote_addr, scheme, ep) => {}
