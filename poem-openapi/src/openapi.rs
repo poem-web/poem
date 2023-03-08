@@ -171,6 +171,7 @@ impl ExternalDocumentObject {
 }
 
 /// An extra header
+#[derive(Debug, Clone)]
 pub struct ExtraHeader {
     name: String,
     description: Option<String>,
@@ -212,6 +213,7 @@ impl ExtraHeader {
 }
 
 /// An OpenAPI service for Poem.
+#[derive(Clone)]
 pub struct OpenApiService<T, W> {
     api: T,
     _webhook: PhantomData<W>,
