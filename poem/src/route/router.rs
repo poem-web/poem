@@ -170,7 +170,7 @@ impl Route {
     ///
     /// See [`Route::at`] for more details.
     #[must_use]
-    pub fn just_at(self, ep: E) -> Self
+    pub fn just_at<E>(self, ep: E) -> Self
     where
         E: IntoEndpoint,
         E::Endpoint: 'static,
