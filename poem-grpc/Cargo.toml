@@ -40,7 +40,7 @@ thiserror.workspace = true
 fastrand = "1.8.0"
 
 [build-dependencies]
-poem-grpc-build = { workspace = true, version = "0.2.14" }
+poem-grpc-build.workspace = true
 
 [package.metadata.workspaces]
 independent = true
