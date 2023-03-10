@@ -306,8 +306,11 @@ impl Route {
     }
 }
 
+/// Path pattern
+///
+/// When [`Route`] successfully matches the request path, this object will be insert in
+/// the extensions of [`Request`], you can use [`Request::data`] method to get it.
 #[derive(Debug, Clone)]
-#[allow(unreachable_pub)]
 pub struct PathPattern(pub Arc<str>);
 
 #[async_trait::async_trait]
