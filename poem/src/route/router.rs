@@ -306,8 +306,8 @@ impl Route {
     }
 }
 
+/// Container that can be used to obtain path pattern from the request.
 #[derive(Debug, Clone)]
-#[allow(unreachable_pub)]
 pub struct PathPattern(pub Arc<str>);
 
 #[async_trait::async_trait]
