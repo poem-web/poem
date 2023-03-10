@@ -495,7 +495,7 @@ pub struct MetaPath {
     pub operations: Vec<MetaOperation>,
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 pub struct MetaContact {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -505,7 +505,7 @@ pub struct MetaContact {
     pub email: Option<String>,
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 pub struct MetaLicense {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -514,7 +514,7 @@ pub struct MetaLicense {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaInfo {
     pub title: String,
@@ -531,7 +531,7 @@ pub struct MetaInfo {
     pub license: Option<MetaLicense>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct MetaServer {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
