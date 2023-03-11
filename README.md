@@ -17,7 +17,7 @@
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
   </a>
   <a href="https://deps.rs/repo/github/poem-web/poem">
-    <img src="https://img.shields.io/librariesio/release/cargo/poem.svg" />
+    <img src="https://deps.rs/repo/github/poem-web/poem/status.svg" />
   </a>
   <a href="https://crates.io/crates/poem">
     <img src="https://img.shields.io/crates/d/poem.svg" />
