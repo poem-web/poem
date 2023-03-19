@@ -23,7 +23,6 @@ pub trait TowerCompatExt {
                 Future = Fut,
             > + Clone
             + Send
-            + Sync
             + Sized
             + 'static,
         Fut: Future<Output = Result<hyper::Response<ResBody>, Err>> + Send + 'static,
@@ -52,7 +51,6 @@ where
             Future = Fut,
         > + Clone
         + Send
-        + Sync
         + 'static,
     Fut: Future<Output = Result<hyper::Response<ResBody>, Err>> + Send + 'static,
 {
