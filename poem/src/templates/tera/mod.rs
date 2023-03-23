@@ -33,6 +33,17 @@ pub use self::{
     transformers::filters,
 };
 
+enum Flavor {
+    Immutable(Tera),
+
+    #[cfg(feature = "live_reloading")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "live_reloading")))]
+    LiveReload {
+        tera: tokio::sync::RwLock<Tera>,
+        watcher: super::live_reloading::Watcher
+    }
+}
+
 /// Macro for constructing a Tera Context
 /// ```
 /// use poem::{

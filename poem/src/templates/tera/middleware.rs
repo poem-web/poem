@@ -1,5 +1,7 @@
 use tera::Tera;
 
+use super::Flavor;
+
 use crate::{
     templates::Template,
     error::{InternalServerError, IntoResult},
@@ -7,6 +9,9 @@ use crate::{
     Endpoint, Middleware, Request, Result,
     Response, IntoResponse,
 };
+
+#[cfg(feature = "live_reloading")]
+use crate::templates::live_reloading::{ Watcher, LiveReloading };
 
 /// Tera template with context.
 pub type TeraTemplate = Template<tera::Context>;
@@ -73,7 +78,7 @@ impl<E: Endpoint> Middleware<E> for TeraEngine {
 
     fn transform(&self, inner: E) -> Self::Output {
         Self::Output {
-            tera: self.tera.clone(),
+            tera: Flavor::Immutable(self.tera.clone()),
             inner,
             transformers: Vec::new(),
         }
@@ -82,9 +87,9 @@ impl<E: Endpoint> Middleware<E> for TeraEngine {
 
 /// Tera templates endpoint.
 pub struct TeraEndpoint<E> {
-    tera: Tera,
+    tera: Flavor,
     inner: E,
-    transformers: Vec<fn(&mut Tera, &mut Request)>,
+    transformers: Vec<Box<dyn Fn(&mut Tera, &mut Request) + Send + Sync + 'static>>,
 }
 
 #[async_trait::async_trait]
@@ -92,7 +97,31 @@ impl<E: Endpoint> Endpoint for TeraEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Result<Self::Output> {
-        let mut tera = self.tera.clone();
+        let mut tera = match &self.tera {
+            Flavor::Immutable(t) => t.clone(),
+
+            #[cfg(feature = "live_reloading")]
+            Flavor::LiveReload { tera, watcher } => {
+                let lock = if watcher.needs_reload() {
+                    tracing::info!("Detected changes to templates, reloading...");
+
+                    let mut lock = tera.write().await;
+
+                    if let Err(e) = lock.full_reload() {
+                        tracing::error!("Failed to reload templates: {e}");
+                        tracing::debug!("Reload templates error: {e:?}");
+
+                        return Err(InternalServerError(e));
+                    }
+
+                    lock.downgrade()
+                } else {
+                    tera.read().await
+                };
+
+                lock.clone()
+            }
+        };
 
         for transformer in &self.transformers {
             transformer(&mut tera, &mut req);
@@ -134,8 +163,10 @@ impl<E: Endpoint> TeraEndpoint<E> {
     ///     .with(TeraEngine::default())
     ///     .using(|tera, req| println!("{tera:?}\n{req:?}"));
     /// ```
-    pub fn using(mut self, transformer: fn(&mut Tera, &mut Request)) -> Self {
-        self.transformers.push(transformer);
+    pub fn using<F>(mut self, transformer: F) -> Self where
+        F: Fn(&mut Tera, &mut Request) + Send + Sync + 'static
+    {
+        self.transformers.push(Box::new(transformer));
         self
     }
 
@@ -147,12 +178,43 @@ impl<E: Endpoint> TeraEndpoint<E> {
     ///
     /// let app = Route::new()
     ///     .with(TeraEngine::default())
-    ///     .with_live_reloading(true);
+    ///     .with_live_reloading(LiveReloading::Disabled);
     /// ```
-    pub fn with_live_reloading(self, live_reloading: bool) -> Self {
-        tracing::debug!("Live Reloading for Tera templates is enabled");
 
-        todo!();
+    #[cfg(feature = "live_reloading")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "live_reloading")))]
+    pub fn with_live_reloading(mut self, live_reloading: LiveReloading) -> Self {
+        self.tera = match (self.tera, live_reloading) {
+            #[cfg(debug_assertions)]
+            (Flavor::Immutable(tera), LiveReloading::Debug(path)) => {
+                tracing::debug!("Live reloading for Tera templates is enabled");
+
+                Flavor::LiveReload { tera: tokio::sync::RwLock::new(tera), watcher: Watcher::new(path) }
+            },
+
+            (Flavor::Immutable(tera), LiveReloading::Enabled(path)) => {
+                tracing::debug!("Live reloading for Tera templates is enabled");
+
+                Flavor::LiveReload { tera: tokio::sync::RwLock::new(tera), watcher: Watcher::new(path) }
+            },
+
+            #[cfg(not(debug_assertions))]
+            (Flavor::LiveReload { tera, .. }, LiveReloading::Debug(_)) => {
+                tracing::debug!("Live reloading for Tera templates is disabled");
+
+                Flavor::Immutable(tera.into_inner())
+            },
+
+            (Flavor::LiveReload { tera, .. }, LiveReloading::Disabled) => {
+                tracing::debug!("Live reloading for Tera templates is disabled");
+
+                Flavor::Immutable(tera.into_inner())
+            },
+
+            // todo: enable changing watch path
+
+            (tera, _) => tera
+        };
 
         self
     }
