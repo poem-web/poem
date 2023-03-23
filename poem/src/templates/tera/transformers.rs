@@ -1,6 +1,6 @@
-/// Tera Templating built-in filters
+/// Tera templates built-in filters
 pub mod filters {
-    /// Tera Templating built-in i18n filters
+    /// Tera templates built-in i18n filters
     #[cfg(feature = "i18n")]
     #[cfg_attr(docsrs, doc(cfg(feature = "i18n")))]
     pub mod i18n {
@@ -14,10 +14,10 @@ pub mod filters {
 
         use crate::{i18n::Locale, FromRequest, Request};
 
-        /// Tera Templating i18n filter
+        /// Tera templates i18n filter
         ///
         /// ```no_run
-        /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, filters}};
+        /// use poem::{Route, EndpointExt, i18n::I18NResources, templates::tera::{TeraEngine, filters}};
         ///
         /// let resources = I18NResources::builder()
         ///     .add_path("resources")
@@ -25,7 +25,7 @@ pub mod filters {
         ///     .unwrap();
         ///
         /// let app = Route::new()
-        ///     .with(TeraTemplating::from_glob("templates/**/*"))
+        ///     .with(TeraEngine::default())
         ///     .using(filters::i18n::translate)
         ///     .data(resources);
         /// ```
@@ -64,7 +64,7 @@ pub mod filters {
         /// Tera Templating built-in filters
         ///
         /// ```no_run
-        /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, filters}};
+        /// use poem::{Route, EndpointExt, i18n::I18NResources, templates::tera::{TeraEngine, filters}};
         ///
         /// let resources = I18NResources::builder()
         ///     .add_path("resources")
@@ -72,7 +72,7 @@ pub mod filters {
         ///     .unwrap();
         ///
         /// let app = Route::new()
-        ///     .with(TeraTemplating::from_glob("templates/**/*"))
+        ///     .with(TeraEngine::default())
         ///     .using(filters::i18n::translate)
         ///     .data(resources);
         /// ```

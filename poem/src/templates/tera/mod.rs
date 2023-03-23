@@ -3,9 +3,9 @@
 //! # Load templates from file system using a glob
 //!
 //! ```no_run
-//! use poem::tera::TeraTemplating;
+//! use poem::templates::tera::TeraEngine;
 //!
-//! let templating = TeraTemplating::from_glob("templates/**/*");
+//! let tera = TeraEngine::default();
 //! ```
 //!
 //! # Render a template inside an handler with some context vars
@@ -13,26 +13,23 @@
 //! ```
 //! use poem::{
 //!     ctx, handler,
-//!     tera::{Tera, TeraTemplate},
+//!     templates::Template,
 //!     web::Path,
 //! };
 //!
 //! #[handler]
-//! fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
-//!     tera.render("index.html.tera", &ctx! { "name": &name })
+//! fn hello(Path(name): Path<String>) -> Template<_> {
+//!     Template::render("index.html.tera", &ctx! { "name": &name })
 //! }
 //! ```
 
 mod middleware;
 mod transformers;
 
-pub use tera::{Context, Tera};
+pub use tera::{ Context, Tera };
 
 pub use self::{
-    middleware::{
-        TeraTemplatingEndpoint, TeraTemplatingMiddleware as TeraTemplating,
-        TeraTemplatingResult as TeraTemplate,
-    },
+    middleware::{ TeraEndpoint, TeraEngine, TeraTemplate },
     transformers::filters,
 };
 
@@ -40,15 +37,18 @@ pub use self::{
 /// ```
 /// use poem::{
 ///     ctx, handler,
-///     tera::{Tera, TeraTemplate},
+///     templates::Template,
 ///     web::Path,
 /// };
 ///
 /// #[handler]
-/// fn hello(Path(name): Path<String>, tera: Tera) -> TeraTemplate {
-///     tera.render("index.html.tera", &ctx! { "name": &name })
+/// fn hello(Path(name): Path<String>) -> Template<_> {
+///     Template::render("index.html.tera", &ctx! { "name": &name })
 /// }
 /// ```
+
+// todo: create common macro with common context
+
 #[macro_export]
 macro_rules! ctx {
     { $( $key:literal: $value:expr ),* } => {

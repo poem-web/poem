@@ -67,7 +67,8 @@ acme-base = [
 embed = ["rust-embed", "hex", "mime_guess"]
 xml = ["quick-xml"]
 yaml = ["serde_yaml"]
-tera = ["dep:tera"]
+templates = []
+tera = ["dep:tera", "templates"]
 
 [dependencies]
 poem-derive.workspace = true

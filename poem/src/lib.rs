@@ -276,9 +276,9 @@ pub mod middleware;
 #[cfg(feature = "session")]
 #[cfg_attr(docsrs, doc(cfg(feature = "session")))]
 pub mod session;
-#[cfg(feature = "tera")]
-#[cfg_attr(docsrs, doc(cfg(feature = "tera")))]
-pub mod tera;
+#[cfg(feature = "templates")]
+#[cfg_attr(docsrs, doc(cfg(feature = "templates")))]
+pub mod templates;
 #[cfg(feature = "test")]
 #[cfg_attr(docsrs, doc(cfg(feature = "test")))]
 pub mod test;
