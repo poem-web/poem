@@ -8,3 +8,4 @@ publish.workspace = true
 poem = { workspace = true, features = ["tera"] }
 tokio = { workspace = true, features = ["full"] }
 once_cell = "1.17.0"
+tracing-subscriber.workspace = true

@@ -249,7 +249,8 @@
 //! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
 //! | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate. |
 //! | i18n          | Support for internationalization |
-//! | acme | Support for ACME(Automatic Certificate Management Environment) |
+//! | acme-native-roots | Support for ACME(Automatic Certificate Management Environment) |
+//! | acme-webpki-roots | Support for ACME using webpki TLS roots rather than native TLS roots |
 //! | tokio-metrics | Integrate with the [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate. |
 //! | embed  | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate. |
 //! | xml | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate. |

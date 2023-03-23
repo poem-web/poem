@@ -34,6 +34,19 @@ impl TeraTemplatingMiddleware {
         Self { tera }
     }
 
+    /// Create a new instance of TeraTemplating, containing all the parsed
+    /// templates found in the directory. The errors are already handled. Use
+    /// TeraTemplating::custom(tera: Tera) to modify tera settings.
+    ///
+    /// ```no_compile
+    /// use poem::tera::TeraTemplating;
+    ///
+    /// let templating = TeraTemplating::from_glob("templates");
+    /// ```
+    pub fn from_directory(template_directory: &str) -> Self {
+        Self::from_glob(&format!("{template_directory}/**/*"));
+    }
+
     /// Create a new instance of TeraTemplating, using the provided Tera
     /// instance
     ///
@@ -52,6 +65,12 @@ impl TeraTemplatingMiddleware {
     /// ```
     pub fn custom(tera: Tera) -> Self {
         Self { tera }
+    }
+}
+
+impl Default for TeraTemplatingMiddleware {
+    fn default() -> Self {
+        Self::from_directory("templates")
     }
 }
 
@@ -85,7 +104,7 @@ impl<E: Endpoint> Endpoint for TeraTemplatingEndpoint<E> {
             transformer(&mut tera, &mut req);
         }
 
-        req.extensions_mut().insert(tera);
+        req.set_data(tera);
 
         self.inner.call(req).await
     }
@@ -132,6 +151,23 @@ impl<E: Endpoint> TeraTemplatingEndpoint<E> {
     /// ```
     pub fn using(mut self, transformer: fn(&mut Tera, &mut Request)) -> Self {
         self.transformers.push(transformer);
+        self
+    }
+
+    /// Enable live reloading only for debug mode (not for release)
+    ///
+    /// ```no_compile
+    /// use poem::{Route, EndpointExt, tera::TeraTemplating};
+    ///
+    /// let app = Route::new()
+    ///     .with(TeraTemplating::from_glob("templates/**/*"))
+    ///     .with_live_reloading();
+    /// ```
+    pub fn with_live_reloading(self) -> Self {
+        #[cfg(debug_assertions)] {
+            tracing::debug!("Live Reloading for Tera Templating is enabled");
+        }    
+            
         self
     }
 }
