@@ -90,3 +90,10 @@ impl_type_for_ip!(
     (Ipv4Addr, "ipv4"),
     (Ipv6Addr, "ipv6")
 );
+
+#[cfg(feature = "ipnet")]
+impl_type_for_ip!(
+    (ipnet::IpNet, "ipv4net/ipv6net"),
+    (ipnet::Ipv4Net, "ipv4net"),
+    (ipnet::Ipv6Net, "ipv6net")
+);
