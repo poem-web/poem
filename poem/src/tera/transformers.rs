@@ -16,8 +16,8 @@ pub mod filters {
 
         /// Tera Templating i18n filter
         ///
-        /// ```no_compile
-        /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, transformers::filters}};
+        /// ```no_run
+        /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, filters}};
         ///
         /// let resources = I18NResources::builder()
         ///     .add_path("resources")
@@ -63,8 +63,8 @@ pub mod filters {
 
         /// Tera Templating built-in filters
         ///
-        /// ```no_compile
-        /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, transformers::filters}};
+        /// ```no_run
+        /// use poem::{Route, EndpointExt, i18n::I18NResources, tera::{TeraTemplating, filters}};
         ///
         /// let resources = I18NResources::builder()
         ///     .add_path("resources")

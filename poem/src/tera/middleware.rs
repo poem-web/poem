@@ -16,7 +16,7 @@ impl TeraTemplatingMiddleware {
     /// templates found in the glob The errors are already handled. Use
     /// TeraTemplating::custom(tera: Tera) to modify tera settings.
     ///
-    /// ```no_compile
+    /// ```no_run
     /// use poem::tera::TeraTemplating;
     ///
     /// let templating = TeraTemplating::from_glob("templates/**/*");
@@ -25,9 +25,9 @@ impl TeraTemplatingMiddleware {
         let tera = match Tera::new(glob) {
             Ok(t) => t,
             Err(e) => {
-                tracing::error!("Failed to parse Tera template: {err}");
-                tracing::debug!("Tera Parsing error: {err:?}");
-                ::std::process::exit(1);
+                // todo: move this up the stack via Result?
+                tracing::debug!("Tera Parsing error: {e:?}");
+                panic!("Failed to parse Tera template: {e}");
             }
         };
 
@@ -38,28 +38,23 @@ impl TeraTemplatingMiddleware {
     /// templates found in the directory. The errors are already handled. Use
     /// TeraTemplating::custom(tera: Tera) to modify tera settings.
     ///
-    /// ```no_compile
+    /// ```no_run
     /// use poem::tera::TeraTemplating;
     ///
     /// let templating = TeraTemplating::from_glob("templates");
     /// ```
     pub fn from_directory(template_directory: &str) -> Self {
-        Self::from_glob(&format!("{template_directory}/**/*"));
+        Self::from_glob(&format!("{template_directory}/**/*"))
     }
 
     /// Create a new instance of TeraTemplating, using the provided Tera
     /// instance
     ///
-    /// ```no_compile
+    /// ```no_run
     /// use poem::tera::{TeraTemplating, Tera};
     ///
-    /// let mut tera = match Tera::new("templates/**/*") {
-    ///     Ok(t) => t,
-    ///     Err(e) => {
-    ///         println!("Parsing error(s): {e}");
-    ///         ::std::process::exit(1);
-    ///     }
-    /// };
+    /// let mut tera = Tera::new("templates/**/*").expect("Failed to parse templates");
+    ///
     /// tera.autoescape_on(vec![".html", ".sql"]);
     /// let templating = TeraTemplating::custom(tera);
     /// ```
@@ -142,7 +137,7 @@ impl<E: Endpoint> TeraTemplatingEndpoint<E> {
     /// instance, registering a dynamic filter) before passing tera to
     /// request handlers
     ///
-    /// ```no_compile
+    /// ```no_run
     /// use poem::{Route, EndpointExt, tera::TeraTemplating};
     ///
     /// let app = Route::new()
@@ -156,7 +151,7 @@ impl<E: Endpoint> TeraTemplatingEndpoint<E> {
 
     /// Enable live reloading only for debug mode (not for release)
     ///
-    /// ```no_compile
+    /// ```no_run
     /// use poem::{Route, EndpointExt, tera::TeraTemplating};
     ///
     /// let app = Route::new()
@@ -166,8 +161,8 @@ impl<E: Endpoint> TeraTemplatingEndpoint<E> {
     pub fn with_live_reloading(self) -> Self {
         #[cfg(debug_assertions)] {
             tracing::debug!("Live Reloading for Tera Templating is enabled");
-        }    
-            
+        }
+
         self
     }
 }
