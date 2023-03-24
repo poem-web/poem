@@ -142,9 +142,7 @@ impl<E: Endpoint> Endpoint for TeraEndpoint<E> {
                     .map_err(InternalServerError)
             },
             None => {
-                // todo: double check if we should always error here
-                tracing::error!("Missing template response");
-
+                // todo: this destroys the type
                 response.into_result()
             }
         }
