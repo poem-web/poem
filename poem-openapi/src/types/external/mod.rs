@@ -4,6 +4,7 @@ mod bool;
 mod bson;
 mod btreemap;
 mod btreeset;
+mod char;
 #[cfg(feature = "chrono")]
 mod chrono;
 #[cfg(feature = "rust_decimal")]

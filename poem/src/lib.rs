@@ -262,6 +262,7 @@
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![warn(rustdoc::broken_intra_doc_links)]
 #![warn(missing_docs)]
 
 pub mod endpoint;
@@ -305,8 +306,8 @@ pub use poem_derive::handler;
 pub use request::{OnUpgrade, Request, RequestBuilder, RequestParts, Upgraded};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{
-    connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,
-    RouteScheme,
+    connect, delete, get, head, options, patch, post, put, trace, PathPattern, Route, RouteDomain,
+    RouteMethod, RouteScheme,
 };
 #[cfg(feature = "server")]
 pub use server::Server;
