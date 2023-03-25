@@ -14,8 +14,20 @@ use crate::{
     },
 };
 
+macro_rules! meta_scheme {
+    ($format:literal,) => {
+        MetaSchema::new_with_format("string", $format)
+    };
+    ($format:literal, $($oneof:ty),+) => {
+        MetaSchema {
+            one_of: vec![$(<$oneof as Type>::schema_ref()),+],
+            ..MetaSchema::ANY
+        }
+    };
+}
+
 macro_rules! impl_type_for_ip {
-    ($(($ty:ty, $format:literal)),*) => {
+    ($(($ty:ty, $format:literal $(,)? $($oneof:ty),*)),*) => {
         $(
         impl Type for $ty {
             const IS_REQUIRED: bool = true;
@@ -29,7 +41,7 @@ macro_rules! impl_type_for_ip {
             }
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", $format)))
+                MetaSchemaRef::Inline(Box::new(meta_scheme!($format, $($oneof),*)))
             }
 
             fn as_raw_value(&self) -> Option<&Self::RawValueType> {
@@ -86,14 +98,14 @@ macro_rules! impl_type_for_ip {
 }
 
 impl_type_for_ip!(
-    (IpAddr, "ipv4/ipv6"),
     (Ipv4Addr, "ipv4"),
-    (Ipv6Addr, "ipv6")
+    (Ipv6Addr, "ipv6"),
+    (IpAddr, "ip", Ipv4Addr, Ipv6Addr)
 );
 
 #[cfg(feature = "ipnet")]
 impl_type_for_ip!(
-    (ipnet::IpNet, "ipv4net/ipv6net"),
     (ipnet::Ipv4Net, "ipv4net"),
-    (ipnet::Ipv6Net, "ipv6net")
+    (ipnet::Ipv6Net, "ipv6net"),
+    (ipnet::IpNet, "ipnet", ipnet::Ipv4Net, ipnet::Ipv6Net)
 );
