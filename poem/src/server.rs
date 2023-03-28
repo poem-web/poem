@@ -95,6 +95,7 @@ where
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());
         let timeout_notify = Arc::new(Notify::new());
+        let conn_shutdown_notify = Arc::new(Notify::new());
 
         let mut acceptor = match listener {
             Either::Listener(listener) => listener.into_acceptor().await?.boxed(),
@@ -111,6 +112,7 @@ where
         loop {
             tokio::select! {
                 _ = &mut signal => {
+                    conn_shutdown_notify.notify_waiters();
                     if let Some(timeout) = timeout {
                         tracing::info!(
                             name = name,
@@ -136,15 +138,18 @@ where
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
                         let timeout_notify = timeout_notify.clone();
+                        let conn_shutdown_notify = conn_shutdown_notify.clone();
 
                         tokio::spawn(async move {
+                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, conn_shutdown_notify);
+
                             if timeout.is_some() {
                                 tokio::select! {
-                                    _ = serve_connection(socket, local_addr, remote_addr, scheme, ep) => {}
+                                    _ = serve_connection => {}
                                     _ = timeout_notify.notified() => {}
                                 }
                             } else {
-                                serve_connection(socket, local_addr, remote_addr, scheme, ep).await;
+                               serve_connection.await;
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
@@ -173,6 +178,7 @@ async fn serve_connection(
     remote_addr: RemoteAddr,
     scheme: Scheme,
     ep: Arc<dyn Endpoint<Output = Response>>,
+    conn_shutdown_notify: Arc<Notify>,
 ) {
     let service = hyper::service::service_fn({
         move |req: hyper::Request<hyper::Body>| {
@@ -190,8 +196,22 @@ async fn serve_connection(
         }
     });
 
-    let conn = Http::new()
+    let mut conn = Http::new()
         .serve_connection(socket, service)
         .with_upgrades();
+
+    tokio::select! {
+        _ = &mut conn => {
+            // Connection completed successfully.
+            return;
+        },
+        _ = conn_shutdown_notify.notified() => {
+            // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
+            let conn = Pin::new(&mut conn);
+            conn.graceful_shutdown();
+        }
+    };
+
+    // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
     let _ = conn.await;
 }
