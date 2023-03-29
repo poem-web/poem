@@ -11,9 +11,9 @@ use http::uri::Scheme;
 use hyper::server::conn::Http;
 use tokio::{
     io::{AsyncRead, AsyncWrite, Result as IoResult},
-    sync::Notify,
     time::Duration,
 };
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     listener::{Acceptor, AcceptorExt, Listener},
@@ -93,9 +93,9 @@ where
         let Server { listener, name } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
-        let notify = Arc::new(Notify::new());
-        let timeout_notify = Arc::new(Notify::new());
-        let conn_shutdown_notify = Arc::new(Notify::new());
+        let cancellation_token = CancellationToken::new();
+        let timeout_token = CancellationToken::new();
+        let conn_shutdown_token = CancellationToken::new();
 
         let mut acceptor = match listener {
             Either::Listener(listener) => listener.into_acceptor().await?.boxed(),
@@ -112,7 +112,7 @@ where
         loop {
             tokio::select! {
                 _ = &mut signal => {
-                    conn_shutdown_notify.notify_waiters();
+                    conn_shutdown_token.cancel();
                     if let Some(timeout) = timeout {
                         tracing::info!(
                             name = name,
@@ -120,10 +120,10 @@ where
                             "initiate graceful shutdown",
                         );
 
-                        let timeout_notify = timeout_notify.clone();
+                        let timeout_token = timeout_token.clone();
                         tokio::spawn(async move {
                             tokio::time::sleep(timeout).await;
-                            timeout_notify.notify_waiters();
+                            timeout_token.cancel();
                         });
                     } else {
                         tracing::info!(name = name, "initiate graceful shutdown");
@@ -136,24 +136,24 @@ where
 
                         let ep = ep.clone();
                         let alive_connections = alive_connections.clone();
-                        let notify = notify.clone();
-                        let timeout_notify = timeout_notify.clone();
-                        let conn_shutdown_notify = conn_shutdown_notify.clone();
+                        let cancellation_token = cancellation_token.clone();
+                        let timeout_token = timeout_token.clone();
+                        let conn_shutdown_token = conn_shutdown_token.clone();
 
                         tokio::spawn(async move {
-                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, conn_shutdown_notify);
+                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, conn_shutdown_token);
 
                             if timeout.is_some() {
                                 tokio::select! {
                                     _ = serve_connection => {}
-                                    _ = timeout_notify.notified() => {}
+                                    _ = timeout_token.cancelled() => {}
                                 }
                             } else {
                                serve_connection.await;
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
-                                notify.notify_one();
+                                cancellation_token.cancel();
                             }
                         });
                     }
@@ -164,7 +164,7 @@ where
         drop(acceptor);
         if alive_connections.load(Ordering::Acquire) > 0 {
             tracing::info!(name = name, "wait for all connections to close.");
-            notify.notified().await;
+            cancellation_token.cancelled().await;
         }
 
         tracing::info!(name = name, "server stopped");
@@ -178,7 +178,7 @@ async fn serve_connection(
     remote_addr: RemoteAddr,
     scheme: Scheme,
     ep: Arc<dyn Endpoint<Output = Response>>,
-    conn_shutdown_notify: Arc<Notify>,
+    conn_shutdown_token: CancellationToken,
 ) {
     let service = hyper::service::service_fn({
         move |req: hyper::Request<hyper::Body>| {
@@ -205,7 +205,7 @@ async fn serve_connection(
             // Connection completed successfully.
             return;
         },
-        _ = conn_shutdown_notify.notified() => {
+        _ = conn_shutdown_token.cancelled() => {
             // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
             let conn = Pin::new(&mut conn);
             conn.graceful_shutdown();
