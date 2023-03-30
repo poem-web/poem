@@ -11,6 +11,7 @@ use http::uri::Scheme;
 use hyper::server::conn::Http;
 use tokio::{
     io::{AsyncRead, AsyncWrite, Result as IoResult},
+    sync::Notify,
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
@@ -93,7 +94,7 @@ where
         let Server { listener, name } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
-        let cancellation_token = CancellationToken::new();
+        let notify = Arc::new(Notify::new());
         let timeout_token = CancellationToken::new();
         let conn_shutdown_token = CancellationToken::new();
 
@@ -136,7 +137,7 @@ where
 
                         let ep = ep.clone();
                         let alive_connections = alive_connections.clone();
-                        let cancellation_token = cancellation_token.clone();
+                        let notify = notify.clone();
                         let timeout_token = timeout_token.clone();
                         let conn_shutdown_token = conn_shutdown_token.clone();
 
@@ -153,7 +154,8 @@ where
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
-                                cancellation_token.cancel();
+                                // We have to notify only if there is a registered waiter on shutdown
+                                notify.notify_waiters();
                             }
                         });
                     }
@@ -164,7 +166,7 @@ where
         drop(acceptor);
         if alive_connections.load(Ordering::Acquire) > 0 {
             tracing::info!(name = name, "wait for all connections to close.");
-            cancellation_token.cancelled().await;
+            notify.notified().await;
         }
 
         tracing::info!(name = name, "server stopped");
