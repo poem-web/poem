@@ -26,7 +26,9 @@ mod utils;
 mod webhook;
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemImpl, ItemTrait};
+use syn::{
+    parse_macro_input, punctuated::Punctuated, DeriveInput, ItemImpl, ItemTrait, Meta, Token,
+};
 
 #[proc_macro_derive(Object, attributes(oai))]
 pub fn derive_object(input: TokenStream) -> TokenStream {
@@ -85,7 +87,7 @@ pub fn derive_response_content(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn OpenApi(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
+    let args = parse_macro_input!(args as Punctuated<Meta, Token![,]>);
     let item_impl = parse_macro_input!(input as ItemImpl);
     match api::generate(args, item_impl) {
         Ok(stream) => stream.into(),

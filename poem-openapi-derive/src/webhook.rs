@@ -6,7 +6,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ItemTrait, Pat, Path,
-    ReturnType, TraitItem, TraitItemMethod,
+    ReturnType, TraitItem, TraitItemFn,
 };
 
 use crate::{
@@ -80,7 +80,7 @@ pub(crate) fn generate(
     };
 
     for item in &mut trait_impl.items {
-        if let TraitItem::Method(method) = item {
+        if let TraitItem::Fn(method) = item {
             if let Some(operation_args) = parse_oai_attrs::<WebhookOperation>(&method.attrs)? {
                 if method.sig.asyncness.is_none() {
                     return Err(
@@ -125,7 +125,7 @@ fn generate_operation(
     crate_name: &TokenStream,
     webhook_args: &WebhookArgs,
     args: WebhookOperation,
-    trait_method: &mut TraitItemMethod,
+    trait_method: &mut TraitItemFn,
 ) -> GeneratorResult<()> {
     let WebhookOperation {
         name,

@@ -42,3 +42,4 @@ quick-xml = { version = "=0.26.0", features = [
 ] } # https://github.com/tafia/quick-xml/issues/540
 base64 = "0.21.0"
 serde_urlencoded = "0.7.1"
+syn = "2"

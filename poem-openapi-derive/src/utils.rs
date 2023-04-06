@@ -27,7 +27,7 @@ pub(crate) fn get_crate_name(internal: bool) -> TokenStream {
 pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
     let mut full_docs = String::new();
     for attr in attrs {
-        if attr.path.is_ident("doc") {
+        if attr.path().is_ident("doc") {
             if let Meta::NameValue(nv) = attr.parse_meta()? {
                 if let Lit::Str(doc) = nv.lit {
                     let doc = doc.value();
@@ -48,7 +48,7 @@ pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
 }
 
 pub(crate) fn remove_description(attrs: &mut Vec<Attribute>) {
-    attrs.retain(|attr| !attr.path.is_ident("doc"));
+    attrs.retain(|attr| !attr.path().is_ident("doc"));
 }
 
 pub(crate) fn get_summary_and_description(

@@ -1,7 +1,7 @@
 use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Lit, Meta, NestedMeta, Path};
+use syn::{meta::ParseNestedMeta, Lit, Meta, Path};
 
 #[derive(Debug, Copy, Clone, FromMeta)]
 #[allow(clippy::enum_variant_names)]

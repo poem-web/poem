@@ -3,8 +3,8 @@ use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
-    ItemImpl, Pat, Path, ReturnType, Type,
+    ext::IdentExt, punctuated::Punctuated, visit_mut::VisitMut, Error, FnArg, ImplItem, ImplItemFn,
+    ItemImpl, Meta, Pat, Path, ReturnType, Token, Type,
 };
 
 use crate::{
@@ -85,7 +85,7 @@ struct Context {
 }
 
 pub(crate) fn generate(
-    args: AttributeArgs,
+    args: Punctuated<Meta, Token![,]>,
     mut item_impl: ItemImpl,
 ) -> GeneratorResult<TokenStream> {
     let api_args = match APIArgs::from_list(&args) {
@@ -102,7 +102,7 @@ pub(crate) fn generate(
     };
 
     for item in &mut item_impl.items {
-        if let ImplItem::Method(method) = item {
+        if let ImplItem::Fn(method) = item {
             if let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)? {
                 if method.sig.asyncness.is_none() {
                     return Err(
@@ -165,7 +165,7 @@ fn generate_operation(
     crate_name: &TokenStream,
     api_args: &APIArgs,
     args: APIOperation,
-    item_method: &mut ImplItemMethod,
+    item_method: &mut ImplItemFn,
 ) -> GeneratorResult<()> {
     let APIOperation {
         path,
@@ -238,8 +238,8 @@ fn generate_operation(
             FnArg::Typed(pat) => {
                 let ident = match &*pat.pat {
                     Pat::Ident(ident) => ident,
-                    Pat::TupleStruct(tuple_struct) => match tuple_struct.pat.elems.first() {
-                        Some(Pat::Ident(ident)) if tuple_struct.pat.elems.len() == 1 => ident,
+                    Pat::TupleStruct(tuple_struct) => &match tuple_struct.elems.first() {
+                        Some(Pat::Ident(ident)) if tuple_struct.elems.len() == 1 => ident,
                         _ => {
                             return Err(Error::new_spanned(
                                 tuple_struct,
