@@ -32,7 +32,7 @@ prost = "0.11.0"
 base64 = "0.21.0"
 prost-types = "0.11.0"
 tokio-stream = { workspace = true, features = ["sync"] }
-hyper-rustls = { version = "0.23.0", features = ["webpki-roots", "http2"] }
+hyper-rustls = { version = "0.24.0", features = ["webpki-roots", "http2"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 rustls = "0.20.6"
