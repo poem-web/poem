@@ -136,11 +136,23 @@ impl<T: Serialize + Send> IntoResponse for Xml<T> {
     fn into_response(self) -> Response {
         let data = match quick_xml::se::to_string(&self.0) {
             Ok(data) => data,
-            Err(err) => {
-                return Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(err.to_string())
-            }
+            Err(err) => match err {
+                quick_xml::DeError::Unsupported(_) => {
+                    match quick_xml::se::to_string_with_root("root", &self.0) {
+                        Ok(data) => data,
+                        Err(err) => {
+                            return Response::builder()
+                                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                                .body(err.to_string());
+                        }
+                    }
+                }
+                _ => {
+                    return Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(err.to_string());
+                }
+            },
         };
         Response::builder()
             .header(header::CONTENT_TYPE, "application/xml; charset=utf-8")
