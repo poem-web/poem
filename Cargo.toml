@@ -42,3 +42,8 @@ quick-xml = { version = "=0.26.0", features = [
 ] } # https://github.com/tafia/quick-xml/issues/540
 base64 = "0.21.0"
 serde_urlencoded = "0.7.1"
+
+# rustls, update together
+hyper-rustls = { version = "0.24.0", default-features = false }
+rustls = "0.21.0"
+tokio-rustls = "0.24.0"
