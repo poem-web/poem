@@ -31,6 +31,7 @@ use crate::{
 ///
 /// #[derive(Deserialize)]
 /// struct User {
+///     #[serde(rename = "@name")]
 ///     name: String,
 /// }
 ///
@@ -67,6 +68,7 @@ use crate::{
 ///
 /// #[derive(Serialize)]
 /// struct User {
+///     #[serde(rename = "@name")]
 ///     name: String,
 /// }
 ///
