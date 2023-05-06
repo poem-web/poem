@@ -71,7 +71,7 @@ impl<E: Endpoint> TestClient<E> {
         self
     }
 
-    /// Upserts the default header for each requests.
+    /// Upsert on default_headers for the current client.
     ///
     /// # Examples
     ///
