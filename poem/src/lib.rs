@@ -244,6 +244,7 @@
 //! |session           | Support for session    |
 //! |sse               | Support Server-Sent Events (SSE)       |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
+//! |test              | Test utilities to test your endpoints. |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |websocket         | Support for WebSocket          |
 //! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
