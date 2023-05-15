@@ -24,4 +24,4 @@ proc-macro = true
 proc-macro-crate = "1.1.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
-syn = { version = "1.0.77", features = ["full"] }
+syn = { version = "2.0.16", features = ["full"] }
