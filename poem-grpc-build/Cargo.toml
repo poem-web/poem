@@ -13,7 +13,7 @@ keywords = ["http", "async", "grpc"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-prettyplease = "0.1.16"
+prettyplease = "0.2.5"
 proc-macro2 = "1.0.37"
 prost-build = "0.11.1"
 quote = "1.0.17"
