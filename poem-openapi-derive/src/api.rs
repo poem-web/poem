@@ -236,17 +236,28 @@ fn generate_operation(
         let arg = &mut item_method.sig.inputs[i];
         let (arg_ident, mut arg_ty, operation_param, param_description) = match arg {
             FnArg::Typed(pat) => {
-                if let Pat::Ident(ident) = &*pat.pat {
-                    let ident = ident.ident.clone();
-                    let operation_param =
-                        parse_oai_attrs::<APIOperationParam>(&pat.attrs)?.unwrap_or_default();
-                    let description = get_description(&pat.attrs)?;
-                    remove_oai_attrs(&mut pat.attrs);
-                    remove_description(&mut pat.attrs);
-                    (ident, pat.ty.clone(), operation_param, description)
-                } else {
-                    return Err(Error::new_spanned(pat, "Invalid param definition.").into());
-                }
+                let ident = match &*pat.pat {
+                    Pat::Ident(ident) => ident,
+                    Pat::TupleStruct(tuple_struct) => match tuple_struct.pat.elems.first() {
+                        Some(Pat::Ident(ident)) if tuple_struct.pat.elems.len() == 1 => ident,
+                        _ => {
+                            return Err(Error::new_spanned(
+                                tuple_struct,
+                                "Only single element tuple structs are supported",
+                            )
+                            .into())
+                        }
+                    },
+                    _ => return Err(Error::new_spanned(pat, "Invalid param definition").into()),
+                };
+
+                let ident = ident.ident.clone();
+                let operation_param =
+                    parse_oai_attrs::<APIOperationParam>(&pat.attrs)?.unwrap_or_default();
+                let description = get_description(&pat.attrs)?;
+                remove_oai_attrs(&mut pat.attrs);
+                remove_description(&mut pat.attrs);
+                (ident, pat.ty.clone(), operation_param, description)
             }
             FnArg::Receiver(_) => {
                 return Err(Error::new_spanned(item_method, "Invalid method definition.").into());

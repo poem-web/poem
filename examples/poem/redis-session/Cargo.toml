@@ -8,4 +8,4 @@ publish.workspace = true
 poem = { workspace = true, features = ["redis-session"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-redis = { version = "0.22.0", features = ["aio", "tokio-comp", "connection-manager"] }
+redis = { version = "0.23.0", features = ["aio", "tokio-comp", "connection-manager"] }

@@ -9,7 +9,7 @@ use crate::{error::RedisSessionError, session::session_storage::SessionStorage, 
 ///
 /// # Errors
 ///
-/// - [`error::RedisSessionError`]
+/// - [`RedisSessionError`]
 #[cfg_attr(docsrs, doc(cfg(feature = "redis-session")))]
 pub struct RedisStorage<T> {
     connection: T,

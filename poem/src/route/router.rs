@@ -164,6 +164,20 @@ impl Route {
         Ok(self)
     }
 
+    /// Add an [Endpoint] to the `/` path.
+    ///
+    /// Same as `self.at("/", ep)`.
+    ///
+    /// See [`Route::at`] for more details.
+    #[must_use]
+    pub fn just_at<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        self.at("/", ep)
+    }
+
     /// Nest a `Endpoint` to the specified path and strip the prefix.
     ///
     /// # Panics
@@ -306,8 +320,8 @@ impl Route {
     }
 }
 
+/// Container that can be used to obtain path pattern from the request.
 #[derive(Debug, Clone)]
-#[allow(unreachable_pub)]
 pub struct PathPattern(pub Arc<str>);
 
 #[async_trait::async_trait]

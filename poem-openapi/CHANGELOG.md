@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [2.0.27] 2023-06-06
+
+- feat: Implement Type on the char primitive [#518](https://github.com/poem-web/poem/pull/518)
+- Pattern matching in OpenAPI function args  [#517](https://github.com/poem-web/poem/pull/517)
+- chore: add Clone for `OpenApiService` [#527](https://github.com/poem-web/poem/pull/527)
+- Fix `#[derive(Multipart)]` for struct, so it will work with `#[derive(ApiRequest)]` #[551](https://github.com/poem-web/poem/pull/551)
+- feat: Allow more types to be prased into strings [#545](https://github.com/poem-web/poem/pull/545)
+- Support for ipnet crate + IpAddr [#544](https://github.com/poem-web/poem/pull/544)
+
 # [2.0.24] 2023-01-31
 
 - Allow optional prefix in generated spec [#473](https://github.com/poem-web/poem/pull/473)

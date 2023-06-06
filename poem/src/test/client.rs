@@ -71,6 +71,53 @@ impl<E: Endpoint> TestClient<E> {
         self
     }
 
+    /// Upsert on default_headers for the current client.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use poem::{handler, http::HeaderMap, test::TestClient, Route};
+    ///
+    /// #[handler]
+    /// fn index(headers: &HeaderMap) -> String {
+    ///     headers
+    ///         .get("X-Custom-Header")
+    ///         .and_then(|value| value.to_str().ok())
+    ///         .unwrap_or_default()
+    ///         .to_string()
+    /// }
+    ///
+    /// let app = Route::new().at("/", index);
+    /// let mut cli = TestClient::new(app).default_header("X-Custom-Header", "test");
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = cli.get("/").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("test").await;
+    /// # });
+    ///
+    /// cli.upsert_default_header("X-Custom-Header", "updated");
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// let resp = cli.get("/").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("updated").await;
+    /// # });
+    /// ```
+    #[must_use]
+    pub fn upsert_default_header<K, V>(&mut self, key: K, value: V)
+    where
+        K: TryInto<HeaderName>,
+        V: TryInto<HeaderValue>,
+    {
+        let key = key.try_into().map_err(|_| ()).expect("valid header name");
+        let value = value
+            .try_into()
+            .map_err(|_| ())
+            .expect("valid header value");
+        self.default_headers.insert(key, value);
+    }
+
     /// Sets the default content type for each requests.
     #[must_use]
     pub fn default_content_type(self, content_type: impl AsRef<str>) -> Self {

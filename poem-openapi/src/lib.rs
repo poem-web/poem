@@ -112,6 +112,7 @@
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![warn(rustdoc::broken_intra_doc_links)]
 #![warn(missing_docs)]
 
 /// Macros to help with building custom payload types.
