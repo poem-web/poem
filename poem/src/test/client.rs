@@ -88,7 +88,7 @@ impl<E: Endpoint> TestClient<E> {
     /// }
     ///
     /// let app = Route::new().at("/", index);
-    /// let cli = TestClient::new(app).default_header("X-Custom-Header", "test");
+    /// let mut cli = TestClient::new(app).default_header("X-Custom-Header", "test");
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = cli.get("/").send().await;
