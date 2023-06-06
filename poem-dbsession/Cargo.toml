@@ -1,6 +1,6 @@
 [package]
 name = "poem-dbsession"
-version = "0.3.55"
+version = "0.3.56"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
