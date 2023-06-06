@@ -217,6 +217,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         impl #impl_generics #crate_name::payload::Payload for #ident #ty_generics #where_clause {
             const CONTENT_TYPE: &'static str = "multipart/form-data";
 
+            fn check_content_type(content_type: &str) -> bool {
+                content_type.parse::<#crate_name::__private::mime::Mime>()
+                    .map(|mime| mime.essence_str() == Self::CONTENT_TYPE)
+                    .unwrap_or(false)
+            }
+
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
                 let schema = #crate_name::registry::MetaSchema {
                     required: {
@@ -282,16 +288,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             ) -> #crate_name::__private::poem::Result<Self> {
                 match request.content_type() {
                     ::std::option::Option::Some(content_type) => {
-                        let mime: #crate_name::__private::mime::Mime = match content_type.parse() {
-                            ::std::result::Result::Ok(mime) => mime,
-                            ::std::result::Result::Err(_) => {
-                                return ::std::result::Result::Err(::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
-                                    content_type: ::std::string::ToString::to_string(&content_type),
-                                }));
-                            }
-                        };
-
-                        if mime.essence_str() != <Self as #crate_name::payload::Payload>::CONTENT_TYPE {
+                        if !<Self as #crate_name::payload::Payload>::check_content_type(content_type) {
                             return ::std::result::Result::Err(::std::convert::Into::into(#crate_name::error::ContentTypeError::NotSupported {
                                 content_type: ::std::string::ToString::to_string(&content_type),
                             }));
