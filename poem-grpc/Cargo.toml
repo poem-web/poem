@@ -37,7 +37,7 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 rustls.workspace = true
 thiserror.workspace = true
-fastrand = "1.8.0"
+fastrand = "2.0.0"
 
 [build-dependencies]
 poem-grpc-build.workspace = true
