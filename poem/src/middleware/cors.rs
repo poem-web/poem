@@ -559,6 +559,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn allow_origins_fn_4() {
+        let ep = make_sync(|_| "hello").with(
+            Cors::new()
+                .allow_origins_wildcard(vec!["https://example.com", "https://*.example.com"]),
+        );
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, "https://example.fr")
+            .send()
+            .await;
+        resp.assert_status(StatusCode::FORBIDDEN);
+
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, "https://test.example.com")
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header_is_not_exist(header::VARY);
+
+        let resp = cli
+            .get("/")
+            .header(header::ORIGIN, "https://example.com")
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
+        resp.assert_header(header::VARY, "Origin");
+    }
+
+    #[tokio::test]
     async fn default_cors_middleware() {
         let ep = make_sync(|_| "hello").with(Cors::new());
         let cli = TestClient::new(ep);
