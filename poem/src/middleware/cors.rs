@@ -245,13 +245,16 @@ pub struct CorsEndpoint<E> {
 
 impl<E: Endpoint> CorsEndpoint<E> {
     fn is_valid_origin(&self, origin: &HeaderValue) -> (bool, bool) {
-        if self.allow_origins.contains(origin)
-            || self
-                .allow_origins_wildcard
-                .iter()
-                .any(|m| m.matches(origin.to_str().unwrap()))
-        {
+        if self.allow_origins.contains(origin) {
             return (true, false);
+        }
+
+        if self
+            .allow_origins_wildcard
+            .iter()
+            .any(|m| m.matches(origin.to_str().unwrap()))
+        {
+            return (true, true);
         }
 
         if let Some(allow_origins_fn) = &self.allow_origins_fn {
@@ -263,7 +266,9 @@ impl<E: Endpoint> CorsEndpoint<E> {
         }
 
         (
-            self.allow_origins.is_empty() && self.allow_origins_fn.is_none(),
+            self.allow_origins.is_empty()
+                && self.allow_origins_fn.is_none()
+                && self.allow_origins_wildcard.is_empty(),
             true,
         )
     }
@@ -560,15 +565,13 @@ mod tests {
 
     #[tokio::test]
     async fn allow_origins_fn_4() {
-        let ep = make_sync(|_| "hello").with(
-            Cors::new()
-                .allow_origins_wildcard(vec!["https://example.com", "https://*.example.com"]),
-        );
+        let ep =
+            make_sync(|_| "hello").with(Cors::new().allow_origin_regex("https://*example.com"));
         let cli = TestClient::new(ep);
 
         let resp = cli
             .get("/")
-            .header(header::ORIGIN, "https://example.fr")
+            .header(header::ORIGIN, "https://example.mx")
             .send()
             .await;
         resp.assert_status(StatusCode::FORBIDDEN);
@@ -579,7 +582,10 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header(header::ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW_ORIGIN);
+        resp.assert_header(
+            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+            "https://test.example.com",
+        );
         resp.assert_header_is_not_exist(header::VARY);
 
         let resp = cli
