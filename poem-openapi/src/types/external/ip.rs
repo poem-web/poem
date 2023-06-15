@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    net::{Ipv4Addr, Ipv6Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
 };
 
 use poem::{http::HeaderValue, web::Field};
@@ -14,132 +14,98 @@ use crate::{
     },
 };
 
-impl Type for Ipv4Addr {
-    const IS_REQUIRED: bool = true;
-
-    type RawValueType = Self;
-
-    type RawElementValueType = Self;
-
-    fn name() -> Cow<'static, str> {
-        "string(ipv4)".into()
-    }
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "ipv4")))
-    }
-
-    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
-        Some(self)
-    }
-
-    fn raw_element_iter<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-        Box::new(self.as_raw_value().into_iter())
-    }
-}
-
-impl ParseFromJSON for Ipv4Addr {
-    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
-        let value = value.unwrap_or_default();
-        if let Value::String(value) = value {
-            Ok(value.parse()?)
-        } else {
-            Err(ParseError::expected_type(value))
+macro_rules! meta_scheme {
+    ($format:literal,) => {
+        MetaSchema::new_with_format("string", $format)
+    };
+    ($format:literal, $($oneof:ty),+) => {
+        MetaSchema {
+            one_of: vec![$(<$oneof as Type>::schema_ref()),+],
+            ..MetaSchema::ANY
         }
-    }
+    };
 }
 
-impl ParseFromParameter for Ipv4Addr {
-    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
-        value.parse().map_err(ParseError::custom)
-    }
-}
+macro_rules! impl_type_for_ip {
+    ($(($ty:ty, $format:literal $(,)? $($oneof:ty),*)),*) => {
+        $(
+        impl Type for $ty {
+            const IS_REQUIRED: bool = true;
 
-#[poem::async_trait]
-impl ParseFromMultipartField for Ipv4Addr {
-    async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
-        match field {
-            Some(field) => Ok(field.text().await?.parse()?),
-            None => Err(ParseError::expected_input()),
+            type RawValueType = Self;
+
+            type RawElementValueType = Self;
+
+            fn name() -> Cow<'static, str> {
+                format!("string({})", $format).into()
+            }
+
+            fn schema_ref() -> MetaSchemaRef {
+                MetaSchemaRef::Inline(Box::new(meta_scheme!($format, $($oneof),*)))
+            }
+
+            fn as_raw_value(&self) -> Option<&Self::RawValueType> {
+                Some(self)
+            }
+
+            fn raw_element_iter<'a>(
+                &'a self,
+            ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
+                Box::new(self.as_raw_value().into_iter())
+            }
         }
-    }
-}
 
-impl ToJSON for Ipv4Addr {
-    fn to_json(&self) -> Option<Value> {
-        Some(Value::String(self.to_string()))
-    }
-}
-
-impl ToHeader for Ipv4Addr {
-    fn to_header(&self) -> Option<HeaderValue> {
-        HeaderValue::from_str(&self.to_string()).ok()
-    }
-}
-
-impl Type for Ipv6Addr {
-    const IS_REQUIRED: bool = true;
-
-    type RawValueType = Self;
-
-    type RawElementValueType = Self;
-
-    fn name() -> Cow<'static, str> {
-        "string(ipv6)".into()
-    }
-
-    fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("string", "ipv6")))
-    }
-
-    fn as_raw_value(&self) -> Option<&Self::RawValueType> {
-        Some(self)
-    }
-
-    fn raw_element_iter<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-        Box::new(self.as_raw_value().into_iter())
-    }
-}
-
-impl ParseFromJSON for Ipv6Addr {
-    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
-        let value = value.unwrap_or_default();
-        if let Value::String(value) = value {
-            Ok(value.parse()?)
-        } else {
-            Err(ParseError::expected_type(value))
+        impl ParseFromJSON for $ty {
+            fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+                let value = value.unwrap_or_default();
+                if let Value::String(value) = value {
+                    Ok(value.parse()?)
+                } else {
+                    Err(ParseError::expected_type(value))
+                }
+            }
         }
-    }
-}
 
-impl ParseFromParameter for Ipv6Addr {
-    fn parse_from_parameter(value: &str) -> ParseResult<Self> {
-        value.parse().map_err(ParseError::custom)
-    }
-}
-
-#[poem::async_trait]
-impl ParseFromMultipartField for Ipv6Addr {
-    async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
-        match field {
-            Some(field) => Ok(field.text().await?.parse()?),
-            None => Err(ParseError::expected_input()),
+        impl ParseFromParameter for $ty {
+            fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+                value.parse().map_err(ParseError::custom)
+            }
         }
+
+        #[poem::async_trait]
+        impl ParseFromMultipartField for $ty {
+            async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
+                match field {
+                    Some(field) => Ok(field.text().await?.parse()?),
+                    None => Err(ParseError::expected_input()),
+                }
+            }
+        }
+
+        impl ToJSON for $ty {
+            fn to_json(&self) -> Option<Value> {
+                Some(Value::String(self.to_string()))
+            }
+        }
+
+        impl ToHeader for $ty {
+            fn to_header(&self) -> Option<HeaderValue> {
+                HeaderValue::from_str(&self.to_string()).ok()
+            }
+        }
+        )*
     }
 }
 
-impl ToJSON for Ipv6Addr {
-    fn to_json(&self) -> Option<Value> {
-        Some(Value::String(self.to_string()))
-    }
-}
+impl_type_for_ip!(
+    (Ipv4Addr, "ipv4"),
+    (Ipv6Addr, "ipv6"),
+    (IpAddr, "ip", Ipv4Addr, Ipv6Addr)
+);
 
-impl ToHeader for Ipv6Addr {
-    fn to_header(&self) -> Option<HeaderValue> {
-        HeaderValue::from_str(&self.to_string()).ok()
-    }
-}
+#[cfg(feature = "ipnet")]
+impl_type_for_ip!(
+    (ipnet::Ipv4Net, "ipv4net"),
+    (ipnet::Ipv6Net, "ipv6net"),
+    (ipnet::IpNet, "ipnet", ipnet::Ipv4Net, ipnet::Ipv6Net)
+);

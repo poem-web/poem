@@ -22,13 +22,10 @@ use crate::{
 /// };
 /// use poem::{endpoint::PrometheusExporter, Route};
 ///
-/// let controller = controllers::basic(
-///     processors::factory(
-///         selectors::simple::histogram([1.0, 2.0, 5.0, 10.0, 20.0, 50.0]),
-///         aggregation::cumulative_temporality_selector(),
-///     )
-///     .with_memory(true),
-/// )
+/// let controller = controllers::basic(processors::factory(
+///     selectors::simple::histogram([1.0, 2.0, 5.0, 10.0, 20.0, 50.0]),
+///     aggregation::cumulative_temporality_selector(),
+/// ))
 /// .build();
 ///
 /// let app = Route::new().nest("/metrics", PrometheusExporter::with_controller(controller));
@@ -49,13 +46,10 @@ impl Default for PrometheusExporter {
 impl PrometheusExporter {
     /// Create a `PrometheusExporter` endpoint.
     pub fn new() -> Self {
-        let controller = controllers::basic(
-            processors::factory(
-                selectors::simple::histogram([1.0, 2.0, 5.0, 10.0, 20.0, 50.0]),
-                aggregation::cumulative_temporality_selector(),
-            )
-            .with_memory(true),
-        )
+        let controller = controllers::basic(processors::factory(
+            selectors::simple::histogram([1.0, 2.0, 5.0, 10.0, 20.0, 50.0]),
+            aggregation::cumulative_temporality_selector(),
+        ))
         .build();
 
         Self {

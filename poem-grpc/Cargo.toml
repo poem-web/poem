@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc"
-version = "0.2.19"
+version = "0.2.20"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -32,10 +32,10 @@ prost = "0.11.0"
 base64 = "0.21.0"
 prost-types = "0.11.0"
 tokio-stream = { workspace = true, features = ["sync"] }
-hyper-rustls = { version = "0.23.0", features = ["webpki-roots", "http2"] }
+hyper-rustls = { workspace = true, features = ["webpki-roots", "http2", "native-tokio"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-rustls = "0.20.6"
+rustls.workspace = true
 thiserror.workspace = true
 fastrand = "1.8.0"
 

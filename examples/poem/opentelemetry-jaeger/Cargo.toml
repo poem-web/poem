@@ -8,9 +8,9 @@ publish.workspace = true
 poem = { workspace = true, features = ["opentelemetry", "prometheus"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-opentelemetry = { version = "0.18.0", features = ["metrics"] }
-opentelemetry-http = { version = "0.7.0" }
-opentelemetry-jaeger = { version = "0.17.0", features = [
+opentelemetry = { version = "0.19.0", features = ["metrics"] }
+opentelemetry-http = { version = "0.8.0" }
+opentelemetry-jaeger = { version = "0.18.0", features = [
     "rt-tokio",
     "collector_client",
     "hyper_collector_client",
