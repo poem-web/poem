@@ -196,9 +196,8 @@ struct SecuritySchemeArgs {
     internal: bool,
     #[darling(default)]
     rename: Option<String>,
-    #[darling(rename = "type")]
     ty: AuthType,
-    #[darling(default, rename = "in")]
+    #[darling(default)]
     key_in: Option<ApiKeyInType>,
     #[darling(default)]
     key_name: Option<SpannedValue<String>>,

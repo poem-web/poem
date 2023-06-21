@@ -30,12 +30,11 @@
 
 This repo contains the following main components:
 
-| Crate                                                                                                             | Description                    | Documentation                        | ChangeLog                                  |
-|-------------------------------------------------------------------------------------------------------------------|--------------------------------|--------------------------------------|--------------------------------------------|
-| **poem** [![](https://img.shields.io/crates/v/poem)](https://crates.io/crates/poem)                               | Poem Web                       | [(README)](poem/README.md)           | [(CHANGELOG)](poem/CHANGELOG.md)           |
-| **poem-lambda** [![](https://img.shields.io/crates/v/poem-lambda)](https://crates.io/crates/poem-lambda)          | Poem for AWS Lambda            | [(README)](poem-lambda/README.md)    | [(CHANGELOG)](poem-lambda/CHANGELOG.md)    |
-| **poem-openapi** [![](https://img.shields.io/crates/v/poem-openapi)](https://crates.io/crates/poem-openapi)       | OpenAPI for Poem Web           | [(README)](poem-openapi/README.md)   | [(CHANGELOG)](poem-openapi/CHANGELOG.md)   |
-| **poem-dbsession** [![](https://img.shields.io/crates/v/poem-dbsession)](https://crates.io/crates/poem-dbsession) | Session storage using database | [(README)](poem-dbsession/README.md) | [(CHANGELOG)](poem-dbsession/CHANGELOG.md) |
+| Crate                                                                                                       | Description          | Documentation                      | ChangeLog                                |
+|-------------------------------------------------------------------------------------------------------------|----------------------|------------------------------------|------------------------------------------|
+| **poem** [![](https://img.shields.io/crates/v/poem)](https://crates.io/crates/poem)                         | Poem Web             | [(README)](poem/README.md)         | [(CHANGELOG)](poem/CHANGELOG.md)         |
+| **poem-lambda** [![](https://img.shields.io/crates/v/poem-lambda)](https://crates.io/crates/poem-lambda)    | Poem for AWS Lambda  | [(README)](poem-lambda/README.md)  | [(CHANGELOG)](poem-lambda/CHANGELOG.md)  |
+| **poem-openapi** [![](https://img.shields.io/crates/v/poem-openapi)](https://crates.io/crates/poem-openapi) | OpenAPI for Poem Web | [(README)](poem-openapi/README.md) | [(CHANGELOG)](poem-openapi/CHANGELOG.md) |
 
 ***
 

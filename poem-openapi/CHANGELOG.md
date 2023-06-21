@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.0.0] 2023-06-21
+
+- bump `syn` from `1.0` to `2.0`
+- bump `darling` from `0.14` to `0.20`
+
+## Breaking Changes
+
+- Since `syn 2.0` no longer supports keywords as meta path, renamed some parameters in macros.
+
+    | Macro              | Old Name | New Name |
+    |--------------------|----------|----------|
+    | SecuritySchema     | type     | ty       |
+    | SecuritySchema     | in       | key_in   |
+    | ApiResponse.header | type     | ty       |
+
+    https://github.com/dtolnay/syn/issues/1458
+    https://github.com/TedDriggs/darling/issues/238
+
 # [2.0.27] 2023-06-06
 
 - feat: Implement Type on the char primitive [#518](https://github.com/poem-web/poem/pull/518)

@@ -13,12 +13,12 @@ keywords = ["http", "async", "grpc"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-prettyplease = "0.1.16"
-proc-macro2 = "1.0.37"
+prettyplease = "0.2.9"
 prost-build = "0.11.1"
-quote = "1.0.17"
-syn = "1.0.91"
-proc-macro-crate = "1.1.0"
+quote.workspace = true
+proc-macro2.workspace = true
+syn.workspace = true
+proc-macro-crate.workspace = true
 
 [package.metadata.workspaces]
 independent = true

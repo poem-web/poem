@@ -17,24 +17,14 @@ jobs:
             path: poem-derive
           - name: poem
             path: poem
-            options: --all-features
           - name: poem-openapi-derive
             path: poem-openapi-derive
           - name: poem-openapi
             path: poem-openapi
-            options: --all-features
           - name: poem-lambda
             path: poem-lambda
-            options: --all-features
-          - name: poem-dbsession-rustls
-            path: poem-dbsession
-            options: --features __sqlx-rustls
-          - name: poem-dbsession-native-tls
-            path: poem-dbsession
-            options: --features __sqlx-native-tls
           - name: poem-grpc
             path: poem-grpc
-            options: --all-features
     services:
       redis:
         image: redis:5.0.7
@@ -74,11 +64,11 @@ jobs:
 
       # Do tests
       - name: Check With Clippy
-        run: cargo clippy ${{ matrix.package.options }}
+        run: cargo clippy --all-features
         working-directory: ${{ matrix.package.path }}
 
       - name: Run Tests
-        run: cargo test ${{ matrix.package.options }}
+        run: cargo test --all-features
         working-directory: ${{ matrix.package.path }}
 
   check-examples:

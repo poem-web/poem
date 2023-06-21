@@ -25,8 +25,27 @@ mod union;
 mod utils;
 mod webhook;
 
+use darling::FromMeta;
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemImpl, ItemTrait};
+use syn::{parse_macro_input, DeriveInput, ItemImpl, ItemTrait};
+
+macro_rules! parse_nested_meta {
+    ($ty:ty, $args:expr) => {{
+        let meta = match darling::ast::NestedMeta::parse_meta_list(proc_macro2::TokenStream::from(
+            $args,
+        )) {
+            Ok(v) => v,
+            Err(e) => {
+                return TokenStream::from(darling::Error::from(e).write_errors());
+            }
+        };
+
+        match <$ty>::from_list(&meta) {
+            Ok(object_args) => object_args,
+            Err(err) => return TokenStream::from(err.write_errors()),
+        }
+    }};
+}
 
 #[proc_macro_derive(Object, attributes(oai))]
 pub fn derive_object(input: TokenStream) -> TokenStream {
@@ -85,9 +104,9 @@ pub fn derive_response_content(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn OpenApi(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
+    let api_args = parse_nested_meta!(api::APIArgs, args);
     let item_impl = parse_macro_input!(input as ItemImpl);
-    match api::generate(args, item_impl) {
+    match api::generate(api_args, item_impl) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }
@@ -132,9 +151,9 @@ pub fn derive_security_scheme(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Webhook(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
+    let webhook_args = parse_nested_meta!(webhook::WebhookArgs, args);
     let item_trait = parse_macro_input!(input as ItemTrait);
-    match webhook::generate(args, item_trait) {
+    match webhook::generate(webhook_args, item_trait) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

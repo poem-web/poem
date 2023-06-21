@@ -24,9 +24,9 @@ struct User {
 /// ApiKey authorization
 #[derive(SecurityScheme)]
 #[oai(
-    type = "api_key",
+    ty = "api_key",
     key_name = "X-API-Key",
-    in = "header",
+    key_in = "header",
     checker = "api_checker"
 )]
 struct MyApiKeyAuthorization(User);

@@ -5,8 +5,8 @@ use indexmap::IndexMap;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ItemTrait, Pat, Path,
-    ReturnType, TraitItem, TraitItemMethod,
+    ext::IdentExt, visit_mut::VisitMut, Error, FnArg, ItemTrait, Pat, Path, ReturnType, TraitItem,
+    TraitItemFn,
 };
 
 use crate::{
@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(FromMeta)]
-struct WebhookArgs {
+pub(crate) struct WebhookArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default, multiple, rename = "tag")]
@@ -64,14 +64,10 @@ struct Context {
 }
 
 pub(crate) fn generate(
-    args: AttributeArgs,
+    args: WebhookArgs,
     mut trait_impl: ItemTrait,
 ) -> GeneratorResult<TokenStream> {
-    let webhook_args = match WebhookArgs::from_list(&args) {
-        Ok(args) => args,
-        Err(err) => return Ok(err.write_errors()),
-    };
-    let crate_name = get_crate_name(webhook_args.internal);
+    let crate_name = get_crate_name(args.internal);
     let ident = trait_impl.ident.clone();
     let mut ctx = Context {
         operations: Default::default(),
@@ -80,7 +76,7 @@ pub(crate) fn generate(
     };
 
     for item in &mut trait_impl.items {
-        if let TraitItem::Method(method) = item {
+        if let TraitItem::Fn(method) = item {
             if let Some(operation_args) = parse_oai_attrs::<WebhookOperation>(&method.attrs)? {
                 if method.sig.asyncness.is_none() {
                     return Err(
@@ -88,7 +84,7 @@ pub(crate) fn generate(
                     );
                 }
 
-                generate_operation(&mut ctx, &crate_name, &webhook_args, operation_args, method)?;
+                generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
                 remove_oai_attrs(&mut method.attrs);
             }
         }
@@ -125,7 +121,7 @@ fn generate_operation(
     crate_name: &TokenStream,
     webhook_args: &WebhookArgs,
     args: WebhookOperation,
-    trait_method: &mut TraitItemMethod,
+    trait_method: &mut TraitItemFn,
 ) -> GeneratorResult<()> {
     let WebhookOperation {
         name,
