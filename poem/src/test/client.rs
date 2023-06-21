@@ -104,7 +104,6 @@ impl<E: Endpoint> TestClient<E> {
     /// resp.assert_text("updated").await;
     /// # });
     /// ```
-    #[must_use]
     pub fn upsert_default_header<K, V>(&mut self, key: K, value: V)
     where
         K: TryInto<HeaderName>,
