@@ -21,20 +21,19 @@ use crate::{
     Body,
 };
 
-pub(crate) struct AcmeClient {
+/// A client for ACME-supporting TLS certificate services.
+pub struct AcmeClient {
     client: Client<HttpsConnector<HttpConnector>>,
     directory: Directory,
-    key_pair: Arc<KeyPair>,
+    pub(crate) key_pair: Arc<KeyPair>,
     contacts: Vec<String>,
     kid: Option<String>,
 }
 
 impl AcmeClient {
-    pub(crate) async fn try_new(
-        directory_url: &Uri,
-        key_pair: Arc<KeyPair>,
-        contacts: Vec<String>,
-    ) -> IoResult<Self> {
+    /// Create a new client. `directory_url` is the url for the ACME provider. `contacts` is a list
+    /// of URLS (ex: `mailto:`) the ACME service can use to reach you if there's issues with your certificates.
+    pub async fn try_new(directory_url: &Uri, contacts: Vec<String>) -> IoResult<Self> {
         let client_builder = HttpsConnectorBuilder::new();
         #[cfg(feature = "acme-native-roots")]
         let client_builder1 = client_builder.with_native_roots();
@@ -46,13 +45,16 @@ impl AcmeClient {
         Ok(Self {
             client,
             directory,
-            key_pair,
+            key_pair: Arc::new(KeyPair::generate()?),
             contacts,
             kid: None,
         })
     }
 
-    pub(crate) async fn new_order(&mut self, domains: &[String]) -> IoResult<NewOrderResponse> {
+    pub(crate) async fn new_order<T: AsRef<str>>(
+        &mut self,
+        domains: &[T],
+    ) -> IoResult<NewOrderResponse> {
         let kid = match &self.kid {
             Some(kid) => kid,
             None => {
@@ -83,7 +85,7 @@ impl AcmeClient {
                     .iter()
                     .map(|domain| Identifier {
                         ty: "dns".to_string(),
-                        value: domain.to_string(),
+                        value: domain.as_ref().to_string(),
                     })
                     .collect(),
             }),
