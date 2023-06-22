@@ -40,9 +40,9 @@ bytes = "1.1.0"
 futures-util = "0.3.17"
 tokio-stream = "0.1.8"
 serde_yaml = "0.9"
-quick-xml = { version = "=0.26.0", features = [
+quick-xml = { version = "0.28.1", features = [
     "serialize",
-] } # https://github.com/tafia/quick-xml/issues/540
+] }
 base64 = "0.21.0"
 serde_urlencoded = "0.7.1"
 
