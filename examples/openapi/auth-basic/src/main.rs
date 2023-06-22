@@ -6,7 +6,7 @@ use poem_openapi::{auth::Basic, payload::PlainText, OpenApi, OpenApiService, Sec
 /// - User: `test`
 /// - Password: `123456`
 #[derive(SecurityScheme)]
-#[oai(type = "basic")]
+#[oai(ty = "basic")]
 struct MyBasicAuthorization(Basic);
 
 struct Api;
