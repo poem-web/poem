@@ -17,7 +17,7 @@ mod serde;
 pub use auto_cert::AutoCert;
 pub use builder::AutoCertBuilder;
 pub use client::AcmeClient;
-pub use endpoint::{new_http01_key_map, Http01Endpoint};
+pub use endpoint::{Http01Endpoint, Http01TokensMap};
 pub use listener::{issue_cert, AutoCertAcceptor, AutoCertListener, ResolvedCertListener};
 pub use protocol::ChallengeType;
 pub use resolver::{seconds_until_expiry, ResolveServerCert};

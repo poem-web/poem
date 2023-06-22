@@ -51,7 +51,10 @@ impl AcmeClient {
         })
     }
 
-    pub(crate) async fn new_order(&mut self, domains: &[String]) -> IoResult<NewOrderResponse> {
+    pub(crate) async fn new_order<T: AsRef<str>>(
+        &mut self,
+        domains: &[T],
+    ) -> IoResult<NewOrderResponse> {
         let kid = match &self.kid {
             Some(kid) => kid,
             None => {
@@ -82,7 +85,7 @@ impl AcmeClient {
                     .iter()
                     .map(|domain| Identifier {
                         ty: "dns".to_string(),
-                        value: domain.to_string(),
+                        value: domain.as_ref().to_string(),
                     })
                     .collect(),
             }),

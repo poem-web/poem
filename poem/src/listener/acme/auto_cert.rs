@@ -1,14 +1,13 @@
 use std::{
-    collections::HashMap,
     fmt::{self, Debug, Formatter},
     path::PathBuf,
-    sync::Arc,
 };
 
 use http::Uri;
-use parking_lot::RwLock;
 
-use crate::listener::acme::{builder::AutoCertBuilder, endpoint::Http01Endpoint, ChallengeType};
+use crate::listener::acme::{
+    builder::AutoCertBuilder, endpoint::Http01Endpoint, ChallengeType, Http01TokensMap,
+};
 
 /// ACME configuration
 pub struct AutoCert {
@@ -16,7 +15,7 @@ pub struct AutoCert {
     pub(crate) domains: Vec<String>,
     pub(crate) contacts: Vec<String>,
     pub(crate) challenge_type: ChallengeType,
-    pub(crate) keys_for_http01: Option<Arc<RwLock<HashMap<String, String>>>>,
+    pub(crate) keys_for_http01: Option<Http01TokensMap>,
     pub(crate) cache_path: Option<PathBuf>,
     pub(crate) cache_cert: Option<Vec<u8>>,
     pub(crate) cache_key: Option<Vec<u8>>,

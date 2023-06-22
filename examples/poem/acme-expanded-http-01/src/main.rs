@@ -8,8 +8,8 @@ use poem::{
     get, handler,
     listener::{
         acme::{
-            issue_cert, new_http01_key_map, seconds_until_expiry, AcmeClient, ChallengeType,
-            Http01Endpoint, ResolveServerCert, ResolvedCertListener, LETS_ENCRYPT_PRODUCTION,
+            issue_cert, seconds_until_expiry, AcmeClient, ChallengeType, Http01Endpoint,
+            Http01TokensMap, ResolveServerCert, ResolvedCertListener, LETS_ENCRYPT_PRODUCTION,
         },
         Listener, TcpListener,
     },
@@ -35,7 +35,7 @@ async fn main() -> Result<(), std::io::Error> {
         AcmeClient::try_new(&LETS_ENCRYPT_PRODUCTION.parse().unwrap(), vec![]).await?;
     let cert_resolver = Arc::new(ResolveServerCert::default());
     let challenge = ChallengeType::Http01;
-    let keys_for_http_challenge = new_http01_key_map();
+    let keys_for_http_challenge = Http01TokensMap::new();
 
     {
         let domains = vec!["poem.rs".to_string()];
@@ -54,7 +54,7 @@ async fn main() -> Result<(), std::io::Error> {
                     )
                     .await
                     {
-                        Ok((_pub_cert_pem, _priv_key_pem, cert)) => cert,
+                        Ok(result) => result.rustls_key,
                         Err(err) => {
                             eprintln!("failed to issue certificate: {}", err);
                             sleep(Duration::from_secs(60 * 5)).await;

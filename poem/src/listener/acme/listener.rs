@@ -1,12 +1,10 @@
 use std::{
-    collections::HashMap,
     io::{Error as IoError, ErrorKind, Result as IoResult},
     sync::{Arc, Weak},
     time::{Duration, UNIX_EPOCH},
 };
 
 use http::uri::Scheme;
-use parking_lot::RwLock;
 use rcgen::{
     Certificate, CertificateParams, CustomExtension, DistinguishedName, PKCS_ECDSA_P256_SHA256,
 };
@@ -26,7 +24,7 @@ use crate::{
             client::AcmeClient,
             jose,
             resolver::{ResolveServerCert, ACME_TLS_ALPN_NAME},
-            AutoCert, ChallengeType,
+            AutoCert, ChallengeType, Http01TokensMap,
         },
         Acceptor, HandshakeStream, Listener,
     },
@@ -244,6 +242,7 @@ fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
     ))
 }
 
+/// The result of [`issue_cert`] function.
 pub struct IssueCertResult {
     pub private_pem: String,
     pub public_pem: Vec<u8>,
@@ -255,15 +254,15 @@ pub struct IssueCertResult {
 ///
 /// It is up to the caller to make use of the returned certificate, this function does
 /// nothing outside for the ACME protocol procedure.
-pub async fn issue_cert(
+pub async fn issue_cert<T: AsRef<str>>(
     client: &mut AcmeClient,
     resolver: &ResolveServerCert,
-    domains: &Vec<String>,
+    domains: &[T],
     challenge_type: ChallengeType,
-    keys_for_http01: Option<&Arc<RwLock<HashMap<String, String>>>>,
+    keys_for_http01: Option<&Http01TokensMap>,
 ) -> IoResult<IssueCertResult> {
     tracing::debug!("issue certificate");
-    let order_resp = client.new_order(&domains).await?;
+    let order_resp = client.new_order(domains).await?;
 
     // trigger challenge
     let mut valid = false;
@@ -286,7 +285,6 @@ pub async fn issue_cert(
                 match challenge_type {
                     ChallengeType::Http01 => {
                         if let Some(keys) = &keys_for_http01 {
-                            let mut keys = keys.write();
                             let key_authorization =
                                 jose::key_authorization(&client.key_pair, &challenge.token)?;
                             keys.insert(challenge.token.to_string(), key_authorization);
@@ -341,7 +339,12 @@ pub async fn issue_cert(
     }
 
     // send csr
-    let mut params = CertificateParams::new(domains.clone());
+    let mut params = CertificateParams::new(
+        domains
+            .iter()
+            .map(|domain| domain.as_ref().to_string())
+            .collect::<Vec<_>>(),
+    );
     params.distinguished_name = DistinguishedName::new();
     params.alg = &PKCS_ECDSA_P256_SHA256;
     let cert = Certificate::from_params(params).map_err(|err| {
