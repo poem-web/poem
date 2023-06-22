@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use base64::engine::{general_purpose::STANDARD, Engine};
 use bytes::Bytes;
 use futures_util::TryFutureExt;
 use poem::{IntoResponse, Request, RequestBody, Response, Result};
@@ -110,9 +111,11 @@ async fn read_base64(body: &mut RequestBody) -> Result<Vec<u8>> {
         .map_err(|err| ParseRequestPayloadError {
             reason: err.to_string(),
         })?;
-    let data = base64::decode(body).map_err(|err| ParseRequestPayloadError {
-        reason: err.to_string(),
-    })?;
+    let data = STANDARD
+        .decode(body)
+        .map_err(|err| ParseRequestPayloadError {
+            reason: err.to_string(),
+        })?;
     Ok(data)
 }
 
@@ -138,7 +141,7 @@ impl<T: AsRef<[u8]> + Send> IntoResponse for Base64<T> {
     fn into_response(self) -> Response {
         Response::builder()
             .content_type(Self::CONTENT_TYPE)
-            .body(base64::encode(self.0.as_ref()))
+            .body(STANDARD.encode(self.0.as_ref()))
     }
 }
 

@@ -5,7 +5,7 @@ use poem::{
     Endpoint, EndpointExt, Error,
 };
 use poem_openapi::{
-    param::Query,
+    param::{Path, Query},
     payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaExternalDocument, MetaOperation, MetaParamIn, MetaSchema, Registry},
     types::Type,
@@ -328,7 +328,7 @@ async fn bad_request_handler() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {err}")))
     }
 
     struct Api;
@@ -372,7 +372,7 @@ async fn bad_request_handler_for_validator() {
     }
 
     fn bad_request_handler(err: Error) -> MyResponse {
-        MyResponse::BadRequest(PlainText(format!("!!! {}", err)))
+        MyResponse::BadRequest(PlainText(format!("!!! {err}")))
     }
 
     struct Api;
@@ -408,18 +408,27 @@ async fn poem_extract() {
 
     #[OpenApi]
     impl Api {
-        #[oai(path = "/", method = "get")]
-        async fn test(&self, data: Data<&i32>) {
+        #[oai(path = "/test1", method = "get")]
+        async fn test1(&self, data: Data<&i32>) {
             assert_eq!(*data.0, 100);
+        }
+
+        #[oai(path = "/test2", method = "get")]
+        async fn test2(&self, Data(value): Data<&i32>) {
+            assert_eq!(*value, 100);
+        }
+
+        #[oai(path = "/test3/:user_id", method = "get")]
+        async fn test3(&self, Path(user_id): Path<i32>) {
+            assert_eq!(user_id, 7);
         }
     }
 
     let ep = OpenApiService::new(Api, "test", "1.0").data(100i32);
-    TestClient::new(ep)
-        .get("/")
-        .send()
-        .await
-        .assert_status_is_ok();
+    let client = TestClient::new(ep);
+    client.get("/test1").send().await.assert_status_is_ok();
+    client.get("/test2").send().await.assert_status_is_ok();
+    client.get("/test3/7").send().await.assert_status_is_ok();
 }
 
 #[tokio::test]
@@ -445,6 +454,11 @@ async fn returning_borrowed_value() {
         #[oai(path = "/value3", method = "get")]
         async fn value3<'a>(&self, data: Data<&'a i32>) -> Json<&'a i32> {
             Json(&data)
+        }
+
+        #[oai(path = "/value4", method = "get")]
+        async fn value4<'a>(&self, Data(value): Data<&'a i32>) -> Json<&'a i32> {
+            Json(value)
         }
 
         #[oai(path = "/values", method = "get")]
@@ -474,6 +488,10 @@ async fn returning_borrowed_value() {
     resp.assert_text("\"abc\"").await;
 
     let resp = cli.get("/value3").send().await;
+    resp.assert_status_is_ok();
+    resp.assert_text("888").await;
+
+    let resp = cli.get("/value4").send().await;
     resp.assert_status_is_ok();
     resp.assert_text("888").await;
 
@@ -550,8 +568,8 @@ async fn extra_response_headers_on_operation() {
         #[oai(
             path = "/",
             method = "get",
-            response_header(name = "A1", type = "String", description = "abc"),
-            response_header(name = "a2", type = "i32", deprecated = true)
+            response_header(name = "A1", ty = "String", description = "abc"),
+            response_header(name = "a2", ty = "i32", deprecated = true)
         )]
         async fn test(&self) {}
     }
@@ -576,8 +594,8 @@ async fn extra_response_headers_on_api() {
     struct Api;
 
     #[OpenApi(
-        response_header(name = "A1", type = "String", description = "abc"),
-        response_header(name = "a2", type = "i32", deprecated = true)
+        response_header(name = "A1", ty = "String", description = "abc"),
+        response_header(name = "a2", ty = "i32", deprecated = true)
     )]
     impl Api {
         #[oai(path = "/", method = "get")]
@@ -608,8 +626,8 @@ async fn extra_request_headers_on_operation() {
         #[oai(
             path = "/",
             method = "get",
-            request_header(name = "A1", type = "String", description = "abc"),
-            request_header(name = "a2", type = "i32", deprecated = true)
+            request_header(name = "A1", ty = "String", description = "abc"),
+            request_header(name = "a2", ty = "i32", deprecated = true)
         )]
         async fn test(&self) {}
     }
@@ -638,8 +656,8 @@ async fn extra_request_headers_on_api() {
     struct Api;
 
     #[OpenApi(
-        request_header(name = "A1", type = "String", description = "abc"),
-        request_header(name = "a2", type = "i32", deprecated = true)
+        request_header(name = "A1", ty = "String", description = "abc"),
+        request_header(name = "a2", ty = "i32", deprecated = true)
     )]
     impl Api {
         #[oai(path = "/", method = "get")]
@@ -839,4 +857,28 @@ fn issue_405() {
     fn my_transformer(ep: impl Endpoint) -> impl Endpoint {
         ep.map_to_response()
     }
+}
+
+#[tokio::test]
+async fn issue_489() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        async fn get_hello(&self) {}
+
+        #[oai(path = "/hello", method = "delete")]
+        async fn delete_hello(&self) {}
+
+        #[oai(path = "/goodbye", method = "get")]
+        async fn get_goodbye(&self) {}
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+    cli.delete("/goodbye")
+        .send()
+        .await
+        .assert_status(StatusCode::METHOD_NOT_ALLOWED);
 }

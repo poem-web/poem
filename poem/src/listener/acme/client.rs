@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use base64::URL_SAFE_NO_PAD;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http::{header, Uri};
 use hyper::{client::HttpConnector, Client};
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
@@ -34,13 +34,13 @@ impl AcmeClient {
     /// Create a new client. `directory_url` is the url for the ACME provider. `contacts` is a list
     /// of URLS (ex: `mailto:`) the ACME service can use to reach you if there's issues with your certificates.
     pub async fn try_new(directory_url: &Uri, contacts: Vec<String>) -> IoResult<Self> {
-        let client = Client::builder().build(
-            HttpsConnectorBuilder::new()
-                .with_native_roots()
-                .https_or_http()
-                .enable_http1()
-                .build(),
-        );
+        let client_builder = HttpsConnectorBuilder::new();
+        #[cfg(feature = "acme-native-roots")]
+        let client_builder1 = client_builder.with_native_roots();
+        #[cfg(all(feature = "acme-webpki-roots", not(feature = "acme-native-roots")))]
+        let client_builder1 = client_builder.with_webpki_roots();
+        let client =
+            Client::builder().build(client_builder1.https_or_http().enable_http1().build());
         let directory = get_directory(&client, directory_url).await?;
         Ok(Self {
             client,
@@ -157,7 +157,7 @@ impl AcmeClient {
             &nonce,
             url,
             Some(CsrRequest {
-                csr: base64::encode_config(csr, URL_SAFE_NO_PAD),
+                csr: URL_SAFE_NO_PAD.encode(csr),
             }),
         )
         .await
@@ -180,7 +180,7 @@ impl AcmeClient {
         resp.into_body().into_vec().await.map_err(|err| {
             IoError::new(
                 ErrorKind::Other,
-                format!("failed to download certificate: {}", err),
+                format!("failed to download certificate: {err}"),
             )
         })
     }
@@ -193,10 +193,7 @@ async fn get_directory(
     tracing::debug!("loading directory");
 
     let resp = client.get(directory_url.clone()).await.map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed to load directory: {}", err),
-        )
+        IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
     })?;
 
     if !resp.status().is_success() {
@@ -210,10 +207,7 @@ async fn get_directory(
         .into_json::<Directory>()
         .await
         .map_err(|err| {
-            IoError::new(
-                ErrorKind::Other,
-                format!("failed to load directory: {}", err),
-            )
+            IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
         })?;
 
     tracing::debug!(
@@ -234,7 +228,7 @@ async fn get_nonce(
     let resp = client
         .get(directory.new_nonce.clone())
         .await
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("failed to get nonce: {}", err)))?;
+        .map_err(|err| IoError::new(ErrorKind::Other, format!("failed to get nonce: {err}")))?;
 
     if !resp.status().is_success() {
         return Err(IoError::new(

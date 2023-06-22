@@ -447,6 +447,50 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
             }
         }
+
+        impl #impl_generics #crate_name::types::ParseFromXML for #ident #ty_generics #where_clause {
+            fn parse_from_xml(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                let value = value.unwrap_or_default();
+                match value {
+                    #crate_name::__private::serde_json::Value::Object(mut obj) => {
+                        #(#deserialize_fields)*
+                        #deny_unknown_fields
+                        ::std::result::Result::Ok(Self { #(#fields),* })
+                    }
+                    _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
+                }
+            }
+        }
+
+        impl #impl_generics #crate_name::types::ToXML for #ident #ty_generics #where_clause {
+            fn to_xml(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                let mut object = #crate_name::__private::serde_json::Map::new();
+                #(#serialize_fields)*
+                ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
+            }
+        }
+
+        impl #impl_generics #crate_name::types::ParseFromYAML for #ident #ty_generics #where_clause {
+            fn parse_from_yaml(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
+                let value = value.unwrap_or_default();
+                match value {
+                    #crate_name::__private::serde_json::Value::Object(mut obj) => {
+                        #(#deserialize_fields)*
+                        #deny_unknown_fields
+                        ::std::result::Result::Ok(Self { #(#fields),* })
+                    }
+                    _ => ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value)),
+                }
+            }
+        }
+
+        impl #impl_generics #crate_name::types::ToYAML for #ident #ty_generics #where_clause {
+            fn to_yaml(&self) -> ::std::option::Option<#crate_name::__private::serde_json::Value> {
+                let mut object = #crate_name::__private::serde_json::Map::new();
+                #(#serialize_fields)*
+                ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(object))
+            }
+        }
     };
 
     // remote

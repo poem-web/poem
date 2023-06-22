@@ -171,6 +171,7 @@ impl ExternalDocumentObject {
 }
 
 /// An extra header
+#[derive(Debug, Clone)]
 pub struct ExtraHeader {
     name: String,
     description: Option<String>,
@@ -212,6 +213,7 @@ impl ExtraHeader {
 }
 
 /// An OpenAPI service for Poem.
+#[derive(Clone)]
 pub struct OpenApiService<T, W> {
     api: T,
     _webhook: PhantomData<W>,
@@ -617,7 +619,7 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
         {
             if let Some(operation_id) = operation.operation_id {
                 if !operation_ids.insert(operation_id) {
-                    panic!("duplicate operation id: {}", operation_id);
+                    panic!("duplicate operation id: {operation_id}");
                 }
             }
         }
@@ -627,12 +629,14 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
 
         let route = items
             .into_iter()
-            .fold(RouteMethod::new(), |route_method, (method, paths)| {
-                route_method.method(
-                    method,
+            .fold(Route::new(), |route, (path, paths)| {
+                route.at(
+                    path,
                     paths
                         .into_iter()
-                        .fold(Route::new(), |route, (path, ep)| route.at(path, ep)),
+                        .fold(RouteMethod::new(), |route_method, (method, ep)| {
+                            route_method.method(method, ep)
+                        }),
                 )
             });
 

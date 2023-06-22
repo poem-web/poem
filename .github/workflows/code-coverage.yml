@@ -15,27 +15,26 @@ jobs:
           - 6379:6379
         options: --entrypoint redis-server
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install Stable Toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.62.0
-          override: true
+          toolchain: 1.65.0
           components: rustfmt
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: "0.18.0"
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1.0.2
+      - name: Upload To codecov.io
+        uses: codecov/codecov-action@v3
         with:
           token: ${{secrets.CODECOV_TOKEN}}
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v1
+      - name: Archive Code Coverage Results
+        uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
           path: cobertura.xml

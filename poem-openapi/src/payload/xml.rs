@@ -59,9 +59,11 @@ impl<T: ParseFromXML> ParsePayload for Xml<T> {
         let value = if data.is_empty() {
             Value::Null
         } else {
-            serde_json::from_slice(&data).map_err(|err| ParseRequestPayloadError {
-                reason: err.to_string(),
-            })?
+            quick_xml::de::from_str(&String::from_utf8(data).unwrap_or_default()).map_err(
+                |err| ParseRequestPayloadError {
+                    reason: err.to_string(),
+                },
+            )?
         };
 
         let value = T::parse_from_xml(Some(value)).map_err(|err| ParseRequestPayloadError {

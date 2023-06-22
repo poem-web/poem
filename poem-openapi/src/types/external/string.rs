@@ -44,10 +44,11 @@ impl Type for String {
 impl ParseFromJSON for String {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
-        if let Value::String(value) = value {
-            Ok(value)
-        } else {
-            Err(ParseError::expected_type(value))
+        match value {
+            Value::String(val) => Ok(val),
+            Value::Number(num) => Ok(num.to_string()),
+            Value::Bool(val) => Ok(val.to_string()),
+            _ => Err(ParseError::expected_type(value)),
         }
     }
 }

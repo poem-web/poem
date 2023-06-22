@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "minItems({})", len)]
+#[display(fmt = "minItems({len})")]
 pub struct MinItems {
     len: usize,
 }

@@ -923,12 +923,12 @@ mod tests {
         #[cfg(feature = "xml")]
         {
             // Xml
-            let resp = Xml(serde_json::json!({ "a": 1, "b": 2})).into_response();
+            let resp = Xml(serde_json::json!({"a": 1, "b": 2})).into_response();
             assert_eq!(resp.status(), StatusCode::OK);
             assert_eq!(resp.content_type(), Some("application/xml; charset=utf-8"));
             assert_eq!(
                 resp.into_body().into_string().await.unwrap(),
-                r#"<a>1</a><b>2</b>"#
+                r#"<root><a>1</a><b>2</b></root>"#
             );
         }
 

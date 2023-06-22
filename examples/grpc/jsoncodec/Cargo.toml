@@ -1,15 +1,16 @@
 [package]
-version = "0.1.0"
-name = "grpc-jsoncodec"
-edition = "2021"
+name = "example-grpc-jsoncodec"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-poem-grpc = { path = "../../../poem-grpc", features = ["json-codec"] }
-prost = "0.11.0"
-serde = { version = "1.0.140", features = ["derive"] }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
-tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
+poem.workspace = true
+poem-grpc = { workspace = true, features = ["json-codec"] }
+prost.workspace = true
+serde.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true
 
 [build-dependencies]
-poem-grpc-build = { path = "../../../poem-grpc-build" }
+poem-grpc-build.workspace = true

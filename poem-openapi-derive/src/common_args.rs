@@ -1,7 +1,7 @@
-use darling::{util::SpannedValue, FromMeta};
+use darling::{ast::NestedMeta, util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Lit, Meta, NestedMeta, Path};
+use syn::{Lit, Meta, Path};
 
 #[derive(Debug, Copy, Clone, FromMeta)]
 #[allow(clippy::enum_variant_names)]
@@ -212,7 +212,6 @@ impl ExternalDocument {
 #[derive(FromMeta)]
 pub(crate) struct ExtraHeader {
     pub(crate) name: String,
-    #[darling(rename = "type")]
     pub(crate) ty: SpannedValue<String>,
     #[darling(default)]
     pub(crate) description: Option<String>,

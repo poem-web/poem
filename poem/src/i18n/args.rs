@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use fluent::{FluentArgs, FluentValue};
 
@@ -16,6 +16,20 @@ impl<'a> I18NArgs<'a> {
     {
         self.0.set(key, value);
         self
+    }
+}
+
+impl<'a, K, V> From<HashMap<K, V>> for I18NArgs<'a>
+where
+    K: Into<Cow<'a, str>>,
+    V: Into<FluentValue<'a>>,
+{
+    fn from(map: HashMap<K, V>) -> Self {
+        let mut args = FluentArgs::new();
+        for (key, value) in map {
+            args.set(key, value);
+        }
+        Self(args)
     }
 }
 

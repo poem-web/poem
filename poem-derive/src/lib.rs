@@ -11,9 +11,7 @@ mod utils;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{
-    parse_macro_input, AttributeArgs, FnArg, GenericParam, ItemFn, Member, Meta, NestedMeta, Result,
-};
+use syn::{parse_macro_input, FnArg, GenericParam, ItemFn, Member, Result};
 
 /// Wrap an asynchronous function as an `Endpoint`.
 ///
@@ -26,14 +24,15 @@ use syn::{
 /// ```
 #[proc_macro_attribute]
 pub fn handler(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args: AttributeArgs = parse_macro_input!(args as AttributeArgs);
     let mut internal = false;
 
-    for arg in args {
-        if matches!(arg,NestedMeta::Meta(Meta::Path(p)) if p.is_ident("internal")) {
+    let arg_parser = syn::meta::parser(|meta| {
+        if meta.path.is_ident("internal") {
             internal = true;
         }
-    }
+        Ok(())
+    });
+    parse_macro_input!(args with arg_parser);
 
     match generate_handler(internal, input) {
         Ok(stream) => stream,
@@ -49,7 +48,7 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
     let docs = item_fn
         .attrs
         .iter()
-        .filter(|attr| attr.path.is_ident("doc"))
+        .filter(|attr| attr.path().is_ident("doc"))
         .cloned()
         .collect::<Vec<_>>();
     let ident = &item_fn.sig.ident;

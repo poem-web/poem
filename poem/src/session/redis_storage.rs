@@ -1,15 +1,15 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use redis::{aio::ConnectionLike, AsyncCommands, Cmd};
+use redis::{aio::ConnectionLike, Cmd};
 use serde_json::Value;
 
-use crate::{error::InternalServerError, session::session_storage::SessionStorage, Result};
+use crate::{error::RedisSessionError, session::session_storage::SessionStorage, Result};
 
 /// A session storage using redis.
 ///
 /// # Errors
 ///
-/// - [`redis::RedisError`]
+/// - [`RedisSessionError`]
 #[cfg_attr(docsrs, doc(cfg(feature = "redis-session")))]
 pub struct RedisStorage<T> {
     connection: T,
@@ -25,12 +25,11 @@ impl<T> RedisStorage<T> {
 #[async_trait::async_trait]
 impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T> {
     async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
-        let data: Option<String> = self
-            .connection
-            .clone()
-            .get(session_id)
+        let data: Option<String> = Cmd::get(session_id)
+            .query_async(&mut self.connection.clone())
             .await
-            .map_err(InternalServerError)?;
+            .map_err(RedisSessionError::Redis)?;
+
         match data {
             Some(data) => match serde_json::from_str::<BTreeMap<String, Value>>(&data) {
                 Ok(entries) => Ok(Some(entries)),
@@ -53,7 +52,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
         };
         cmd.query_async(&mut self.connection.clone())
             .await
-            .map_err(InternalServerError)?;
+            .map_err(RedisSessionError::Redis)?;
         Ok(())
     }
 
@@ -61,7 +60,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
         Cmd::del(session_id)
             .query_async(&mut self.connection.clone())
             .await
-            .map_err(InternalServerError)?;
+            .map_err(RedisSessionError::Redis)?;
         Ok(())
     }
 }
@@ -86,7 +85,7 @@ mod tests {
             Err(_) => return,
         };
         if !client.check_connection() {
-            return;
+            panic!("redis server is not running");
         }
 
         let app = Route::new().at("/:action", index).with(ServerSession::new(

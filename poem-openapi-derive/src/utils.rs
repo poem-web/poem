@@ -5,8 +5,8 @@ use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::{
-    visit_mut, visit_mut::VisitMut, Attribute, Error, GenericParam, Generics, Lifetime, Lit, Meta,
-    Result,
+    visit_mut, visit_mut::VisitMut, Attribute, Error, Expr, ExprLit, GenericParam, Generics,
+    Lifetime, Lit, Meta, Result,
 };
 
 use crate::error::GeneratorResult;
@@ -27,9 +27,12 @@ pub(crate) fn get_crate_name(internal: bool) -> TokenStream {
 pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
     let mut full_docs = String::new();
     for attr in attrs {
-        if attr.path.is_ident("doc") {
-            if let Meta::NameValue(nv) = attr.parse_meta()? {
-                if let Lit::Str(doc) = nv.lit {
+        if attr.path().is_ident("doc") {
+            if let Meta::NameValue(nv) = &attr.meta {
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(doc), ..
+                }) = &nv.value
+                {
                     let doc = doc.value();
                     let doc_str = doc.trim();
                     if !full_docs.is_empty() {
@@ -48,7 +51,7 @@ pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
 }
 
 pub(crate) fn remove_description(attrs: &mut Vec<Attribute>) {
-    attrs.retain(|attr| !attr.path.is_ident("doc"));
+    attrs.retain(|attr| !attr.path().is_ident("doc"));
 }
 
 pub(crate) fn get_summary_and_description(
@@ -91,7 +94,7 @@ pub(crate) fn remove_oai_attrs(attrs: &mut Vec<Attribute>) {
     if let Some((idx, _)) = attrs
         .iter()
         .enumerate()
-        .find(|(_, a)| a.path.is_ident("oai"))
+        .find(|(_, a)| a.path().is_ident("oai"))
     {
         attrs.remove(idx);
     }
@@ -99,9 +102,8 @@ pub(crate) fn remove_oai_attrs(attrs: &mut Vec<Attribute>) {
 
 pub(crate) fn parse_oai_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResult<Option<T>> {
     for attr in attrs {
-        if attr.path.is_ident("oai") {
-            let meta = attr.parse_meta()?;
-            return Ok(Some(T::from_meta(&meta)?));
+        if attr.path().is_ident("oai") {
+            return Ok(Some(T::from_meta(&attr.meta)?));
         }
     }
     Ok(None)

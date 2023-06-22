@@ -3,8 +3,8 @@ use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
-    ItemImpl, Pat, Path, ReturnType, Type,
+    ext::IdentExt, visit_mut::VisitMut, Error, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat, Path,
+    ReturnType, Type,
 };
 
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[derive(FromMeta)]
-struct APIArgs {
+pub(crate) struct APIArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
@@ -84,15 +84,8 @@ struct Context {
     register_items: Vec<TokenStream>,
 }
 
-pub(crate) fn generate(
-    args: AttributeArgs,
-    mut item_impl: ItemImpl,
-) -> GeneratorResult<TokenStream> {
-    let api_args = match APIArgs::from_list(&args) {
-        Ok(args) => args,
-        Err(err) => return Ok(err.write_errors()),
-    };
-    let crate_name = get_crate_name(api_args.internal);
+pub(crate) fn generate(args: APIArgs, mut item_impl: ItemImpl) -> GeneratorResult<TokenStream> {
+    let crate_name = get_crate_name(args.internal);
     let ident = item_impl.self_ty.clone();
     let (impl_generics, _, where_clause) = item_impl.generics.split_for_impl();
     let mut ctx = Context {
@@ -102,7 +95,7 @@ pub(crate) fn generate(
     };
 
     for item in &mut item_impl.items {
-        if let ImplItem::Method(method) = item {
+        if let ImplItem::Fn(method) = item {
             if let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)? {
                 if method.sig.asyncness.is_none() {
                     return Err(
@@ -110,7 +103,7 @@ pub(crate) fn generate(
                     );
                 }
 
-                generate_operation(&mut ctx, &crate_name, &api_args, operation_args, method)?;
+                generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
                 remove_oai_attrs(&mut method.attrs);
             }
         }
@@ -150,7 +143,7 @@ pub(crate) fn generate(
                 #(#register_items)*
             }
 
-            fn add_routes(self, route_table: &mut ::std::collections::HashMap<#crate_name::__private::poem::http::Method, ::std::collections::HashMap<::std::string::String, #crate_name::__private::poem::endpoint::BoxEndpoint<'static>>>) {
+            fn add_routes(self, route_table: &mut ::std::collections::HashMap<::std::string::String, ::std::collections::HashMap<#crate_name::__private::poem::http::Method, #crate_name::__private::poem::endpoint::BoxEndpoint<'static>>>) {
                 let api_obj = ::std::sync::Arc::new(self);
                 #(#add_routes)*
             }
@@ -165,7 +158,7 @@ fn generate_operation(
     crate_name: &TokenStream,
     api_args: &APIArgs,
     args: APIOperation,
-    item_method: &mut ImplItemMethod,
+    item_method: &mut ImplItemFn,
 ) -> GeneratorResult<()> {
     let APIOperation {
         path,
@@ -236,17 +229,28 @@ fn generate_operation(
         let arg = &mut item_method.sig.inputs[i];
         let (arg_ident, mut arg_ty, operation_param, param_description) = match arg {
             FnArg::Typed(pat) => {
-                if let Pat::Ident(ident) = &*pat.pat {
-                    let ident = ident.ident.clone();
-                    let operation_param =
-                        parse_oai_attrs::<APIOperationParam>(&pat.attrs)?.unwrap_or_default();
-                    let description = get_description(&pat.attrs)?;
-                    remove_oai_attrs(&mut pat.attrs);
-                    remove_description(&mut pat.attrs);
-                    (ident, pat.ty.clone(), operation_param, description)
-                } else {
-                    return Err(Error::new_spanned(pat, "Invalid param definition.").into());
-                }
+                let ident = match &*pat.pat {
+                    Pat::Ident(ident) => ident,
+                    Pat::TupleStruct(tuple_struct) => match tuple_struct.elems.first() {
+                        Some(Pat::Ident(ident)) if tuple_struct.elems.len() == 1 => ident,
+                        _ => {
+                            return Err(Error::new_spanned(
+                                tuple_struct,
+                                "Only single element tuple structs are supported",
+                            )
+                            .into())
+                        }
+                    },
+                    _ => return Err(Error::new_spanned(pat, "Invalid param definition").into()),
+                };
+
+                let ident = ident.ident.clone();
+                let operation_param =
+                    parse_oai_attrs::<APIOperationParam>(&pat.attrs)?.unwrap_or_default();
+                let description = get_description(&pat.attrs)?;
+                remove_oai_attrs(&mut pat.attrs);
+                remove_description(&mut pat.attrs);
+                (ident, pat.ty.clone(), operation_param, description)
             }
             FnArg::Receiver(_) => {
                 return Err(Error::new_spanned(item_method, "Invalid method definition.").into());
@@ -410,9 +414,9 @@ fn generate_operation(
         });
 
         ctx.add_routes.push(quote! {
-            route_table.entry(#crate_name::__private::poem::http::Method::#http_method)
+            route_table.entry(::std::string::ToString::to_string(#new_path))
                 .or_default()
-                .insert(::std::string::ToString::to_string(#new_path), {
+                .insert(#crate_name::__private::poem::http::Method::#http_method, {
                     let api_obj = ::std::clone::Clone::clone(&api_obj);
                     let ep = #crate_name::__private::poem::endpoint::make(move |request| {
                         let api_obj = ::std::clone::Clone::clone(&api_obj);

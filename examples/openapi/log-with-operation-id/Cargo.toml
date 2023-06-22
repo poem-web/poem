@@ -1,10 +1,10 @@
 [package]
 name = "example-openapi-log-with-operation-id"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
+poem.workspace = true
+poem-openapi.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

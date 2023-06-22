@@ -15,7 +15,7 @@ use crate::headers::Authorization;
 #[test]
 fn rename() {
     #[derive(SecurityScheme)]
-    #[oai(rename = "ABC", type = "basic")]
+    #[oai(rename = "ABC", ty = "basic")]
     struct MySecurityScheme(Basic);
 
     assert_eq!(MySecurityScheme::security_scheme().unwrap(), "ABC");
@@ -24,7 +24,7 @@ fn rename() {
 #[test]
 fn default_rename() {
     #[derive(SecurityScheme)]
-    #[oai(type = "basic")]
+    #[oai(ty = "basic")]
     struct MySecurityScheme(Basic);
 
     assert_eq!(
@@ -39,7 +39,7 @@ fn desc() {
     ///
     /// D
     #[derive(SecurityScheme)]
-    #[oai(type = "basic")]
+    #[oai(ty = "basic")]
     struct MySecurityScheme(Basic);
 
     let mut registry = Registry::new();
@@ -77,7 +77,7 @@ async fn no_auth() {
 #[tokio::test]
 async fn basic_auth() {
     #[derive(SecurityScheme)]
-    #[oai(type = "basic")]
+    #[oai(ty = "basic")]
     struct MySecurityScheme(Basic);
 
     let mut registry = Registry::new();
@@ -119,7 +119,7 @@ async fn basic_auth() {
 #[tokio::test]
 async fn bearer_auth() {
     #[derive(SecurityScheme)]
-    #[oai(type = "bearer")]
+    #[oai(ty = "bearer")]
     struct MySecurityScheme(Bearer);
 
     let mut registry = Registry::new();
@@ -161,15 +161,15 @@ async fn bearer_auth() {
 #[tokio::test]
 async fn api_key_auth() {
     #[derive(SecurityScheme)]
-    #[oai(type = "api_key", key_name = "X-API-Key", in = "header")]
+    #[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
     struct MySecuritySchemeInHeader(ApiKey);
 
     #[derive(SecurityScheme)]
-    #[oai(type = "api_key", key_name = "key", in = "query")]
+    #[oai(ty = "api_key", key_name = "key", key_in = "query")]
     struct MySecuritySchemeInQuery(ApiKey);
 
     #[derive(SecurityScheme)]
-    #[oai(type = "api_key", key_name = "key", in = "cookie")]
+    #[oai(ty = "api_key", key_name = "key", key_in = "cookie")]
     struct MySecuritySchemeInCookie(ApiKey);
 
     let mut registry = Registry::new();
@@ -369,7 +369,7 @@ async fn oauth2_auth() {
 
     #[derive(SecurityScheme)]
     #[oai(
-        type = "oauth2",
+        ty = "oauth2",
         flows(
             implicit(
                 authorization_url = "https://test.com/authorize",

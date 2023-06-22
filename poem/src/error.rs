@@ -204,13 +204,13 @@ impl Debug for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(msg) = &self.msg {
-            return write!(f, "{}", msg);
+            return write!(f, "{msg}");
         }
 
         match &self.source {
             Some(ErrorSource::BoxedError(err)) => Display::fmt(err, f),
             #[cfg(feature = "anyhow")]
-            Some(ErrorSource::Anyhow(err)) => write!(f, "{:#}", err),
+            Some(ErrorSource::Anyhow(err)) => write!(f, "{err:#}"),
             #[cfg(feature = "eyre06")]
             Some(ErrorSource::Eyre06(err)) => Display::fmt(err, f),
             None => write!(f, "{}", self.status()),
@@ -1096,6 +1096,22 @@ pub enum I18NError {
 
 #[cfg(feature = "i18n")]
 impl ResponseError for I18NError {
+    fn status(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
+/// A possible error value occurred when deal with redis session.
+#[cfg(feature = "redis-session")]
+#[derive(Debug, thiserror::Error)]
+pub enum RedisSessionError {
+    /// Redis error.
+    #[error("redis: {0}")]
+    Redis(redis::RedisError),
+}
+
+#[cfg(feature = "redis-session")]
+impl ResponseError for RedisSessionError {
     fn status(&self) -> StatusCode {
         StatusCode::INTERNAL_SERVER_ERROR
     }

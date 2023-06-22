@@ -15,7 +15,7 @@ impl Serialize for MetaSchemaRef {
             MetaSchemaRef::Inline(schema) => schema.serialize(serializer),
             MetaSchemaRef::Reference(name) => {
                 let mut s = serializer.serialize_map(None)?;
-                s.serialize_entry("$ref", &format!("#/components/schemas/{}", name))?;
+                s.serialize_entry("$ref", &format!("#/components/schemas/{name}"))?;
                 s.end()
             }
         }
@@ -56,7 +56,7 @@ impl Serialize for MetaResponses {
         let mut s = serializer.serialize_map(None)?;
         for resp in &self.responses {
             match resp.status {
-                Some(status) => s.serialize_entry(&format!("{}", status), resp)?,
+                Some(status) => s.serialize_entry(&format!("{status}"), resp)?,
                 None => s.serialize_entry("default", resp)?,
             }
         }

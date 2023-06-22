@@ -67,7 +67,7 @@ mod tests {
             let _ = Server::new_with_acceptor(acceptor).run(index).await;
         });
 
-        let (_, resp) = tokio_tungstenite::connect_async(format!("ws://{}", addr))
+        let (_, resp) = tokio_tungstenite::connect_async(format!("ws://{addr}"))
             .await
             .unwrap();
         assert_eq!(resp.headers().get(header::SEC_WEBSOCKET_PROTOCOL), None);
@@ -75,7 +75,7 @@ mod tests {
         async fn check(addr: SocketAddr, protocol: &str, value: Option<&HeaderValue>) {
             let (_, resp) = tokio_tungstenite::connect_async(
                 http::Request::builder()
-                    .uri(format!("ws://{}", addr))
+                    .uri(format!("ws://{addr}"))
                     .header(header::SEC_WEBSOCKET_PROTOCOL, protocol)
                     .header(header::SEC_WEBSOCKET_KEY, "test_key")
                     .header(header::UPGRADE, "websocket")
@@ -132,7 +132,7 @@ mod tests {
             let _ = server.run(index).await;
         });
 
-        let (mut client_stream, _) = tokio_tungstenite::connect_async(format!("ws://{}", addr))
+        let (mut client_stream, _) = tokio_tungstenite::connect_async(format!("ws://{addr}"))
             .await
             .unwrap();
 

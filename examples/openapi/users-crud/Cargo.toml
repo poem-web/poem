@@ -1,12 +1,12 @@
 [package]
 name = "example-openapi-users-crud"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui", "email"] }
+poem.workspace = true
+poem-openapi = { workspace = true, features = ["swagger-ui", "email"] }
 slab = "0.4.4"
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "sync"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tracing-subscriber.workspace = true

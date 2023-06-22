@@ -74,7 +74,7 @@
 //! In the following example, the `index` function uses 3 extractors to extract
 //! the remote address, HTTP method and URI.
 //!
-//! ```rust
+//! ```
 //! use poem::{
 //!     handler,
 //!     http::{Method, Uri},
@@ -244,21 +244,25 @@
 //! |session           | Support for session    |
 //! |sse               | Support Server-Sent Events (SSE)       |
 //! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
+//! |test              | Test utilities to test your endpoints. |
 //! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
 //! |websocket         | Support for WebSocket          |
 //! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
 //! | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate. |
 //! | i18n          | Support for internationalization |
-//! | acme | Support for ACME(Automatic Certificate Management Environment) |
+//! | acme-native-roots | Support for ACME(Automatic Certificate Management Environment) |
+//! | acme-webpki-roots | Support for ACME using webpki TLS roots rather than native TLS roots |
 //! | tokio-metrics | Integrate with the [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate. |
 //! | embed  | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate. |
 //! | xml | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate. |
+//! | yaml | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                   |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
 #![deny(private_in_public, unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![warn(rustdoc::broken_intra_doc_links)]
 #![warn(missing_docs)]
 
 pub mod endpoint;
@@ -299,8 +303,8 @@ pub use poem_derive::handler;
 pub use request::{OnUpgrade, Request, RequestBuilder, RequestParts, Upgraded};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{
-    connect, delete, get, head, options, patch, post, put, trace, Route, RouteDomain, RouteMethod,
-    RouteScheme,
+    connect, delete, get, head, options, patch, post, put, trace, PathPattern, Route, RouteDomain,
+    RouteMethod, RouteScheme,
 };
 #[cfg(feature = "server")]
 pub use server::Server;

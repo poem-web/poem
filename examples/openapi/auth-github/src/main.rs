@@ -20,7 +20,7 @@ enum GithubScopes {
 /// - client_secret: `622cfd4c7168c43e09b0db1a18675dbcc5c0808b`
 #[derive(SecurityScheme)]
 #[oai(
-    type = "oauth2",
+    ty = "oauth2",
     flows(authorization_code(
         authorization_url = "https://github.com/login/oauth/authorize",
         token_url = "http://localhost:3000/proxy",

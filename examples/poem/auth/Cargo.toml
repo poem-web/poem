@@ -1,11 +1,11 @@
 [package]
 name = "example-auth"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-poem = { path = "../../../poem", features = ["session"] }
-serde = { version = "1.0.130", features = ["derive"] }
-tokio = { version = "1.17.0", features = ["rt-multi-thread", "macros"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+poem = { workspace = true, features = ["session"] }
+serde.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true

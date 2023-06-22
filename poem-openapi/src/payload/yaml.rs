@@ -59,7 +59,7 @@ impl<T: ParseFromYAML> ParsePayload for Yaml<T> {
         let value = if data.is_empty() {
             Value::Null
         } else {
-            serde_json::from_slice(&data).map_err(|err| ParseRequestPayloadError {
+            serde_yaml::from_slice(&data).map_err(|err| ParseRequestPayloadError {
                 reason: err.to_string(),
             })?
         };

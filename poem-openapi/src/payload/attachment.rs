@@ -74,7 +74,7 @@ impl<T: Into<Body> + Send> Attachment<T> {
                 .replace('\r', "\\\r")
                 .replace('\n', "\\\n")
         }) {
-            _ = write!(content_disposition, "; filename=\"{}\"", legal_filename);
+            _ = write!(content_disposition, "; filename=\"{legal_filename}\"");
         }
 
         content_disposition

@@ -142,23 +142,23 @@ enum MyTags {
 }
 
 #[derive(::poem_openapi::SecurityScheme)]
-#[oai(type = "basic")]
+#[oai(ty = "basic")]
 struct BasicSecurityScheme(::poem_openapi::auth::Basic);
 
 #[derive(::poem_openapi::SecurityScheme)]
-#[oai(type = "bearer")]
+#[oai(ty = "bearer")]
 struct MyBearerScheme(::poem_openapi::auth::Bearer);
 
 #[derive(::poem_openapi::SecurityScheme)]
-#[oai(type = "api_key", key_name = "X-API-Key", in = "header")]
+#[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
 struct MySecuritySchemeInHeader(::poem_openapi::auth::ApiKey);
 
 #[derive(::poem_openapi::SecurityScheme)]
-#[oai(type = "api_key", key_name = "key", in = "query")]
+#[oai(ty = "api_key", key_name = "key", key_in = "query")]
 struct MySecuritySchemeInQuery(::poem_openapi::auth::ApiKey);
 
 #[derive(::poem_openapi::SecurityScheme)]
-#[oai(type = "api_key", key_name = "key", in = "cookie")]
+#[oai(ty = "api_key", key_name = "key", key_in = "cookie")]
 struct MySecuritySchemeInCookie(::poem_openapi::auth::ApiKey);
 
 #[derive(::poem_openapi::OAuthScopes)]
@@ -169,7 +169,7 @@ enum GithubScopes {
 
 #[derive(::poem_openapi::SecurityScheme)]
 #[oai(
-    type = "oauth2",
+    ty = "oauth2",
     flows(
         implicit(
             authorization_url = "https://test.com/authorize",

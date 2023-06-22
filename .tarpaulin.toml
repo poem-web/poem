@@ -2,11 +2,10 @@
 workspace = true
 avoid_cfg_tarpaulin = true
 all-features = true
-exclude = ["poem-dbsession"]
+exclude = []
 exclude-files = [
   "examples/**/*",
   "poem-derive/**/*",
   "poem-openapi-derive/**/*",
-  "poem-dbsession/**/*",
   "poem-grpc-build/**/*",
 ]

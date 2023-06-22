@@ -1,15 +1,15 @@
 [package]
 name = "example-openapi-auth-apikey"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
 jwt = "0.15.0"
-poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+poem.workspace = true
+poem-openapi.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber.workspace = true
 hmac = "0.11"
 sha2 = "0.9"
-serde = { version = "1.0.133", features = ["derive"] }
+serde.workspace = true

@@ -16,7 +16,7 @@ use crate::{
 /// # Errors
 ///
 /// - [`ReadBodyError`](crate::error::ReadBodyError)
-/// - [`ParseJsonError`]
+/// - [`ParseYamlError`]
 ///
 /// ```
 /// use poem::{

@@ -164,6 +164,20 @@ impl Route {
         Ok(self)
     }
 
+    /// Add an [Endpoint] to the `/` path.
+    ///
+    /// Same as `self.at("/", ep)`.
+    ///
+    /// See [`Route::at`] for more details.
+    #[must_use]
+    pub fn just_at<E>(self, ep: E) -> Self
+    where
+        E: IntoEndpoint,
+        E::Endpoint: 'static,
+    {
+        self.at("/", ep)
+    }
+
     /// Nest a `Endpoint` to the specified path and strip the prefix.
     ///
     /// # Panics
@@ -247,7 +261,7 @@ impl Route {
                     let path =
                         &uri_parts.path_and_query.as_ref().unwrap().as_str()[self.prefix_len..];
                     uri_parts.path_and_query = Some(if !path.starts_with('/') {
-                        PathAndQuery::from_str(&format!("/{}", path)).unwrap()
+                        PathAndQuery::from_str(&format!("/{path}")).unwrap()
                     } else {
                         PathAndQuery::from_str(path).unwrap()
                     });
@@ -264,6 +278,14 @@ impl Route {
             path.find('*').is_none(),
             "wildcards are not allowed in the nest path."
         );
+        assert!(
+            path.find(':').is_none(),
+            "captures are not allowed in the nest path."
+        );
+        assert!(
+            path.find('<').is_none(),
+            "regexs are not allowed in the nest path."
+        );
 
         let prefix_len = match strip {
             false => 0,
@@ -275,7 +297,7 @@ impl Route {
         };
 
         self.tree.add(
-            &format!("{}*--poem-rest", path),
+            &format!("{path}*--poem-rest"),
             Box::new(Nest {
                 inner: ep.clone(),
                 root: false,
@@ -298,8 +320,8 @@ impl Route {
     }
 }
 
+/// Container that can be used to obtain path pattern from the request.
 #[derive(Debug, Clone)]
-#[allow(unreachable_pub)]
 pub struct PathPattern(pub Arc<str>);
 
 #[async_trait::async_trait]

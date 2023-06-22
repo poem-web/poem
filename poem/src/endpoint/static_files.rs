@@ -99,7 +99,7 @@ impl StaticFilesEndpoint {
             path: path.into(),
             show_files_listing: false,
             index_file: None,
-            fallback_to_index: true,
+            fallback_to_index: false,
             prefer_utf8: true,
             redirect_to_slash: false,
         }
@@ -252,8 +252,12 @@ impl Endpoint for StaticFilesEndpoint {
                         if !base_url.ends_with('/') {
                             base_url.push('/');
                         }
+                        let filename_url = percent_encoding::percent_encode(
+                            filename.as_bytes(),
+                            percent_encoding::NON_ALPHANUMERIC,
+                        );
                         template.files.push(FileRef {
-                            url: format!("{}{}", base_url, filename),
+                            url: format!("{base_url}{filename_url}"),
                             filename: filename.to_string(),
                             is_dir: entry.path().is_dir(),
                         });
