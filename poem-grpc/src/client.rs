@@ -4,8 +4,8 @@ use futures_util::TryStreamExt;
 use hyper_rustls::HttpsConnectorBuilder;
 use poem::{
     http::{
-        header, header::InvalidHeaderValue, uri::InvalidUri, Extensions, HeaderValue, StatusCode,
-        Uri, Version,
+        header, header::InvalidHeaderValue, uri::InvalidUri, Extensions, HeaderValue, Method,
+        StatusCode, Uri, Version,
     },
     Endpoint, EndpointExt, IntoEndpoint, Middleware, Request as HttpRequest,
     Response as HttpResponse,
@@ -352,6 +352,7 @@ fn create_http_request<T: Codec>(
 ) -> HttpRequest {
     let mut http_request = HttpRequest::builder()
         .uri_str(path)
+        .method(Method::POST)
         .version(Version::HTTP_2)
         .content_type(T::CONTENT_TYPES[0])
         .header(header::TE, "trailers")
