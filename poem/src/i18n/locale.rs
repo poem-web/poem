@@ -86,7 +86,7 @@ impl Locale {
 
 #[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Locale {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+    fn from_request_sync(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let resources = req
             .extensions()
             .get::<I18NResources>()

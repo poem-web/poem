@@ -312,7 +312,9 @@ impl RequestBody {
 #[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
     /// Extract from request head and body.
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+        Self::from_request_sync(req, body)
+    }
 
     /// Extract from request head.
     ///
@@ -325,6 +327,16 @@ pub trait FromRequest<'a>: Sized {
     /// method will cause `ReadBodyError` error.
     async fn from_request_without_body(req: &'a Request) -> Result<Self> {
         Self::from_request(req, &mut Default::default()).await
+    }
+
+    /// Extract from request head and body synchronously.
+    fn from_request_sync(_req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
+        panic!("Not implemented, please implement one of from_request and from_request_sync");
+    }
+
+    /// Extract from request head synchronously.
+    fn from_request_without_body_sync(req: &'a Request) -> Result<Self> {
+        Self::from_request_sync(req, &mut Default::default())
     }
 }
 
@@ -807,14 +819,14 @@ impl<'a> FromRequest<'a> for &'a LocalAddr {
 }
 
 #[async_trait::async_trait]
-impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
+impl<'a, T: FromRequest<'a> + Send> FromRequest<'a> for Option<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await.ok())
     }
 }
 
 #[async_trait::async_trait]
-impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
+impl<'a, T: FromRequest<'a> + Send> FromRequest<'a> for Result<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await)
     }
