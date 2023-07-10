@@ -1,21 +1,24 @@
-use std::{convert::Infallible, future::Future, io, sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-}};
-use std::io::IoSlice;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::{
+    convert::Infallible,
+    future::Future,
+    io,
+    io::IoSlice,
+    pin::Pin,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    task::{Context, Poll},
+};
 
 use http::uri::Scheme;
 use hyper::server::conn::Http;
 use pin_project_lite::pin_project;
 use tokio::{
-    io::{AsyncRead, AsyncWrite, Result as IoResult},
-    sync::Notify,
+    io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult},
+    sync::{oneshot, Notify},
     time::Duration,
 };
-use tokio::io::ReadBuf;
-use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -106,7 +109,11 @@ where
         E::Endpoint: 'static,
     {
         let ep = Arc::new(ep.into_endpoint().map_to_response());
-        let Server { listener, name, idle_timeout } = self;
+        let Server {
+            listener,
+            name,
+            idle_timeout,
+        } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());
@@ -201,8 +208,8 @@ pin_project! {
 }
 
 impl<T> AsyncRead for ClosingInactiveConnection<T>
-    where
-        T: AsyncRead,
+where
+    T: AsyncRead,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -223,8 +230,8 @@ impl<T> AsyncRead for ClosingInactiveConnection<T>
 }
 
 impl<T> AsyncWrite for ClosingInactiveConnection<T>
-    where
-        T: AsyncWrite,
+where
+    T: AsyncWrite,
 {
     fn poll_write(
         self: Pin<&mut Self>,
@@ -265,9 +272,9 @@ impl<T> AsyncWrite for ClosingInactiveConnection<T>
 
 impl<T> ClosingInactiveConnection<T> {
     fn new<F, Fut>(inner: T, timeout: Duration, mut f: F) -> ClosingInactiveConnection<T>
-        where
-            F: Send + FnMut() -> Fut + 'static,
-            Fut: Future + Send + 'static
+    where
+        F: Send + FnMut() -> Fut + 'static,
+        Fut: Future + Send + 'static,
     {
         let alive = Arc::new(Notify::new());
         let (stop_tx, stop_rx) = oneshot::channel();
@@ -300,13 +307,12 @@ impl<T> ClosingInactiveConnection<T> {
     }
 }
 
-
 async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
     local_addr: LocalAddr,
     remote_addr: RemoteAddr,
     scheme: Scheme,
-    ep: Arc<dyn Endpoint<Output=Response>>,
+    ep: Arc<dyn Endpoint<Output = Response>>,
     app_graceful_shutdown_token: CancellationToken,
     idle_connection_close_timeout: Option<Duration>,
 ) {
@@ -341,9 +347,7 @@ async fn serve_connection(
                 }
             }))
         }
-        None => {
-            tokio_util::either::Either::Right(socket)
-        }
+        None => tokio_util::either::Either::Right(socket),
     };
 
     let mut conn = Http::new()
