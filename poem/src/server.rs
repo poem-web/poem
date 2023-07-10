@@ -1,19 +1,21 @@
-use std::{
-    convert::Infallible,
-    future::Future,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-};
+use std::{convert::Infallible, future::Future, io, sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+}};
+use std::io::IoSlice;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use http::uri::Scheme;
 use hyper::server::conn::Http;
+use pin_project_lite::pin_project;
 use tokio::{
     io::{AsyncRead, AsyncWrite, Result as IoResult},
     sync::Notify,
     time::Duration,
 };
+use tokio::io::ReadBuf;
+use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -32,6 +34,7 @@ enum Either<L, A> {
 pub struct Server<L, A> {
     listener: Either<L, A>,
     name: Option<String>,
+    idle_timeout: Option<Duration>,
 }
 
 impl<L: Listener> Server<L, Infallible> {
@@ -40,6 +43,7 @@ impl<L: Listener> Server<L, Infallible> {
         Self {
             listener: Either::Listener(listener),
             name: None,
+            idle_timeout: None,
         }
     }
 }
@@ -50,6 +54,7 @@ impl<A: Acceptor> Server<Infallible, A> {
         Self {
             listener: Either::Acceptor(acceptor),
             name: None,
+            idle_timeout: None,
         }
     }
 }
@@ -65,6 +70,16 @@ where
     pub fn name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
+            ..self
+        }
+    }
+
+    /// Specify connection idle timeout. Connections will be terminated if there was no activity
+    /// within this period of time
+    #[must_use]
+    pub fn idle_timeout(self, timeout: Duration) -> Self {
+        Self {
+            idle_timeout: Some(timeout),
             ..self
         }
     }
@@ -91,12 +106,12 @@ where
         E::Endpoint: 'static,
     {
         let ep = Arc::new(ep.into_endpoint().map_to_response());
-        let Server { listener, name } = self;
+        let Server { listener, name, idle_timeout } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());
         let timeout_token = CancellationToken::new();
-        let conn_shutdown_token = CancellationToken::new();
+        let app_graceful_shutdown_token = CancellationToken::new();
 
         let mut acceptor = match listener {
             Either::Listener(listener) => listener.into_acceptor().await?.boxed(),
@@ -113,7 +128,7 @@ where
         loop {
             tokio::select! {
                 _ = &mut signal => {
-                    conn_shutdown_token.cancel();
+                    app_graceful_shutdown_token.cancel();
                     if let Some(timeout) = timeout {
                         tracing::info!(
                             name = name,
@@ -139,10 +154,10 @@ where
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
                         let timeout_token = timeout_token.clone();
-                        let conn_shutdown_token = conn_shutdown_token.clone();
+                        let app_graceful_shutdown_token = app_graceful_shutdown_token.clone();
 
                         tokio::spawn(async move {
-                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, conn_shutdown_token);
+                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, app_graceful_shutdown_token, idle_timeout);
 
                             if timeout.is_some() {
                                 tokio::select! {
@@ -174,14 +189,129 @@ where
     }
 }
 
+pin_project! {
+    struct ClosingInactiveConnection<T> {
+        #[pin]
+        inner: T,
+        #[pin]
+        alive: Arc<Notify>,
+        timeout: Duration,
+        stop_tx: oneshot::Sender<()>,
+    }
+}
+
+impl<T> AsyncRead for ClosingInactiveConnection<T>
+    where
+        T: AsyncRead,
+{
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        let this = self.project();
+
+        match this.inner.poll_read(cx, buf) {
+            Poll::Ready(Ok(())) => {
+                this.alive.notify_waiters();
+                Poll::Ready(Ok(()))
+            }
+            Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+impl<T> AsyncWrite for ClosingInactiveConnection<T>
+    where
+        T: AsyncWrite,
+{
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, io::Error>> {
+        let this = self.project();
+        this.alive.notify_waiters();
+        this.inner.poll_write(cx, buf)
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+        let this = self.project();
+        this.alive.notify_waiters();
+        this.inner.poll_flush(cx)
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+        let this = self.project();
+        this.alive.notify_waiters();
+        this.inner.poll_shutdown(cx)
+    }
+
+    fn poll_write_vectored(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[IoSlice<'_>],
+    ) -> Poll<Result<usize, io::Error>> {
+        let this = self.project();
+        this.alive.notify_waiters();
+        this.inner.poll_write_vectored(cx, bufs)
+    }
+
+    fn is_write_vectored(&self) -> bool {
+        self.inner.is_write_vectored()
+    }
+}
+
+impl<T> ClosingInactiveConnection<T> {
+    fn new<F, Fut>(inner: T, timeout: Duration, mut f: F) -> ClosingInactiveConnection<T>
+        where
+            F: Send + FnMut() -> Fut + 'static,
+            Fut: Future + Send + 'static
+    {
+        let alive = Arc::new(Notify::new());
+        let (stop_tx, stop_rx) = oneshot::channel();
+        tokio::spawn({
+            let alive = alive.clone();
+
+            async move {
+                let check_timeout = async {
+                    loop {
+                        match tokio::time::timeout(timeout, alive.notified()).await {
+                            Ok(()) => {}
+                            Err(_) => {
+                                f().await;
+                            }
+                        }
+                    }
+                };
+                tokio::select! {
+                    _ = stop_rx => {},
+                    _ = check_timeout => {}
+                }
+            }
+        });
+        Self {
+            inner,
+            alive,
+            timeout,
+            stop_tx,
+        }
+    }
+}
+
+
 async fn serve_connection(
     socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
     local_addr: LocalAddr,
     remote_addr: RemoteAddr,
     scheme: Scheme,
-    ep: Arc<dyn Endpoint<Output = Response>>,
-    conn_shutdown_token: CancellationToken,
+    ep: Arc<dyn Endpoint<Output=Response>>,
+    app_graceful_shutdown_token: CancellationToken,
+    idle_connection_close_timeout: Option<Duration>,
 ) {
+    let connection_shutdown_token = CancellationToken::new();
+
     let service = hyper::service::service_fn({
         move |req: hyper::Request<hyper::Body>| {
             let ep = ep.clone();
@@ -198,6 +328,24 @@ async fn serve_connection(
         }
     });
 
+    let socket = match idle_connection_close_timeout {
+        Some(timeout) => {
+            tokio_util::either::Either::Left(ClosingInactiveConnection::new(socket, timeout, {
+                let connection_shutdown_token = connection_shutdown_token.clone();
+
+                move || {
+                    let connection_shutdown_token = connection_shutdown_token.clone();
+                    async move {
+                        connection_shutdown_token.cancel();
+                    }
+                }
+            }))
+        }
+        None => {
+            tokio_util::either::Either::Right(socket)
+        }
+    };
+
     let mut conn = Http::new()
         .serve_connection(socket, service)
         .with_upgrades();
@@ -207,12 +355,16 @@ async fn serve_connection(
             // Connection completed successfully.
             return;
         },
-        _ = conn_shutdown_token.cancelled() => {
-            // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
-            let conn = Pin::new(&mut conn);
-            conn.graceful_shutdown();
+        _ = connection_shutdown_token.cancelled() => {
+            tracing::info!("closing connection due to inactivity");
         }
-    };
+        _ = app_graceful_shutdown_token.cancelled() => {
+            tracing::info!("global shutdown signal received. initiate graceful shutdown");
+        }
+    }
+
+    // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
+    Pin::new(&mut conn).graceful_shutdown();
 
     // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
     let _ = conn.await;
