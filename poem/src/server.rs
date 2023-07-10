@@ -118,7 +118,7 @@ where
         let alive_connections = Arc::new(AtomicUsize::new(0));
         let notify = Arc::new(Notify::new());
         let timeout_token = CancellationToken::new();
-        let app_graceful_shutdown_token = CancellationToken::new();
+        let server_graceful_shutdown_token = CancellationToken::new();
 
         let mut acceptor = match listener {
             Either::Listener(listener) => listener.into_acceptor().await?.boxed(),
@@ -135,7 +135,7 @@ where
         loop {
             tokio::select! {
                 _ = &mut signal => {
-                    app_graceful_shutdown_token.cancel();
+                    server_graceful_shutdown_token.cancel();
                     if let Some(timeout) = timeout {
                         tracing::info!(
                             name = name,
@@ -161,10 +161,10 @@ where
                         let alive_connections = alive_connections.clone();
                         let notify = notify.clone();
                         let timeout_token = timeout_token.clone();
-                        let app_graceful_shutdown_token = app_graceful_shutdown_token.clone();
+                        let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
 
                         tokio::spawn(async move {
-                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, app_graceful_shutdown_token, idle_timeout);
+                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token, idle_timeout);
 
                             if timeout.is_some() {
                                 tokio::select! {
@@ -313,7 +313,7 @@ async fn serve_connection(
     remote_addr: RemoteAddr,
     scheme: Scheme,
     ep: Arc<dyn Endpoint<Output = Response>>,
-    app_graceful_shutdown_token: CancellationToken,
+    server_graceful_shutdown_token: CancellationToken,
     idle_connection_close_timeout: Option<Duration>,
 ) {
     let connection_shutdown_token = CancellationToken::new();
@@ -362,7 +362,7 @@ async fn serve_connection(
         _ = connection_shutdown_token.cancelled() => {
             tracing::info!("closing connection due to inactivity");
         }
-        _ = app_graceful_shutdown_token.cancelled() => {
+        _ = server_graceful_shutdown_token.cancelled() => {
             tracing::info!("global shutdown signal received. initiate graceful shutdown");
         }
     }
