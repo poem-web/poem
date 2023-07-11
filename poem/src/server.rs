@@ -319,6 +319,8 @@ async fn serve_connection(
     let connection_shutdown_token = CancellationToken::new();
 
     let service = hyper::service::service_fn({
+        let remote_addr = remote_addr.clone();
+
         move |req: hyper::Request<hyper::Body>| {
             let ep = ep.clone();
             let local_addr = local_addr.clone();
@@ -354,17 +356,16 @@ async fn serve_connection(
         .serve_connection(socket, service)
         .with_upgrades();
 
+
     tokio::select! {
         _ = &mut conn => {
             // Connection completed successfully.
             return;
         },
         _ = connection_shutdown_token.cancelled() => {
-            tracing::info!("closing connection due to inactivity");
+            tracing::info!(remote_addr=%remote_addr, "closing connection due to inactivity");
         }
-        _ = server_graceful_shutdown_token.cancelled() => {
-            tracing::info!("global shutdown signal received. initiate graceful shutdown");
-        }
+        _ = server_graceful_shutdown_token.cancelled() => {}
     }
 
     // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
