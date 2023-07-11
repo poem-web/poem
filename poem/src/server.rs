@@ -356,7 +356,6 @@ async fn serve_connection(
         .serve_connection(socket, service)
         .with_upgrades();
 
-
     tokio::select! {
         _ = &mut conn => {
             // Connection completed successfully.
