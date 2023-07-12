@@ -223,7 +223,7 @@ fn generate_operation(
         let explode = operation_param.explode.unwrap_or(true);
 
         params_meta.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
+            if ::std::matches!(<#arg_ty as #crate_name::ApiExtractor>::TYPE, #crate_name::ApiExtractorType::Parameter | #crate_name::ApiExtractorType::SecuritySchemeAndParameter) {
                 let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
 
                 let mut patch_schema = {

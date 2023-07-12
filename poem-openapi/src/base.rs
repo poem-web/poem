@@ -28,6 +28,9 @@ pub enum ApiExtractorType {
 
     /// A poem extractor.
     PoemExtractor,
+
+    /// A combined request parameter + security scheme
+    SecuritySchemeAndParameter,
 }
 
 #[doc(hidden)]
