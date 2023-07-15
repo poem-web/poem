@@ -298,7 +298,7 @@ fn generate_operation(
         let validator = operation_param.validator.clone().unwrap_or_default();
         let param_checker = validator.create_param_checker(crate_name, &res_ty, &param_name)?.map(|stream| {
             quote! {
-                if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
+                if ::std::matches!(<#arg_ty as #crate_name::ApiExtractor>::TYPE, #crate_name::ApiExtractorType::Parameter | #crate_name::ApiExtractorType::SecuritySchemeAndParameter) {
                     if let ::std::option::Option::Some(value) = #crate_name::ApiExtractor::param_raw_type(&#pname) {
                         #stream
                     }
@@ -333,7 +333,7 @@ fn generate_operation(
         let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
+            if ::std::matches!(<#arg_ty as #crate_name::ApiExtractor>::TYPE, #crate_name::ApiExtractorType::Parameter | #crate_name::ApiExtractorType::SecuritySchemeAndParameter) {
                 let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
 
                 let mut patch_schema = {
@@ -366,7 +366,7 @@ fn generate_operation(
         // security meta
         let scopes = &operation_param.scopes;
         security.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::SecurityScheme {
+            if ::std::matches!(<#arg_ty as #crate_name::ApiExtractor>::TYPE, #crate_name::ApiExtractorType::SecurityScheme | #crate_name::ApiExtractorType::SecuritySchemeAndParameter) {
                 security = ::std::vec![<::std::collections::HashMap<&'static str, ::std::vec::Vec<&'static str>> as ::std::convert::From<_>>::from([
                     (<#arg_ty as #crate_name::ApiExtractor>::security_scheme().unwrap(), ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
                 ])];
