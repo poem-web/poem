@@ -223,7 +223,7 @@ fn generate_operation(
         let explode = operation_param.explode.unwrap_or(true);
 
         params_meta.push(quote! {
-            if ::std::matches!(<#arg_ty as #crate_name::ApiExtractor>::TYPE, #crate_name::ApiExtractorType::Parameter | #crate_name::ApiExtractorType::SecuritySchemeAndParameter) {
+            if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::Parameter) {
                 let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
 
                 let mut patch_schema = {
@@ -248,7 +248,7 @@ fn generate_operation(
 
         // request object meta
         request_meta.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::RequestObject {
+            if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::RequestObject) {
                 request = <#arg_ty as #crate_name::ApiExtractor>::request_meta();
             }
         });

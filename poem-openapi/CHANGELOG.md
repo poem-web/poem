@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - bump `syn` from `1.0` to `2.0`
 - bump `darling` from `0.14` to `0.20`
+- feat: introduce idle timeout [#603](https://github.com/poem-web/poem/pull/603)
 
 ## Breaking Changes
 
@@ -22,12 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     https://github.com/dtolnay/syn/issues/1458
     https://github.com/TedDriggs/darling/issues/238
 
+- Change `ApiExtractor::TYPE` to `ApiExtractor::TYPES` to allow implementing multiple extractor in single type.
+
 # [2.0.27] 2023-06-06
 
 - feat: Implement Type on the char primitive [#518](https://github.com/poem-web/poem/pull/518)
 - Pattern matching in OpenAPI function args  [#517](https://github.com/poem-web/poem/pull/517)
 - chore: add Clone for `OpenApiService` [#527](https://github.com/poem-web/poem/pull/527)
-- Fix `#[derive(Multipart)]` for struct, so it will work with `#[derive(ApiRequest)]` #[551](https://github.com/poem-web/poem/pull/551)
+- Fix `#[derive(Multipart)]` for struct, so it will work with `#[derive(ApiRequest)]` [#551](https://github.com/poem-web/poem/pull/551)
 - feat: Allow more types to be prased into strings [#545](https://github.com/poem-web/poem/pull/545)
 - Support for ipnet crate + IpAddr [#544](https://github.com/poem-web/poem/pull/544)
 

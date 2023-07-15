@@ -28,9 +28,6 @@ pub enum ApiExtractorType {
 
     /// A poem extractor.
     PoemExtractor,
-
-    /// A combined request parameter + security scheme
-    SecuritySchemeAndParameter,
 }
 
 #[doc(hidden)]
@@ -153,7 +150,7 @@ impl<T> Default for ExtractParamOptions<T> {
 #[allow(unused_variables)]
 pub trait ApiExtractor<'a>: Sized {
     /// The type of API extractor.
-    const TYPE: ApiExtractorType;
+    const TYPES: &'static [ApiExtractorType];
 
     /// If it is `true`, it means that this parameter is required.
     const PARAM_IS_REQUIRED: bool = false;
@@ -202,7 +199,7 @@ pub trait ApiExtractor<'a>: Sized {
 
 #[poem::async_trait]
 impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
-    const TYPE: ApiExtractorType = ApiExtractorType::PoemExtractor;
+    const TYPES: &'static [ApiExtractorType] = &[ApiExtractorType::PoemExtractor];
 
     type ParamType = ();
     type ParamRawType = ();
