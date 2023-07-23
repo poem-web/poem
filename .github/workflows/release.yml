@@ -30,9 +30,6 @@ jobs:
           - name: poem-openapi
             registryName: poem-openapi
             path: poem-openapi
-          - name: poem-dbsession
-            registryName: poem-dbsession
-            path: poem-dbsession
           - name: poem-grpc-build
             registryName: poem-grpc-build
             path: poem-grpc-build

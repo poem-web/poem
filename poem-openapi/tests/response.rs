@@ -362,8 +362,8 @@ async fn header_deprecated() {
 async fn extra_headers_on_response() {
     #[derive(ApiResponse, Debug, Eq, PartialEq)]
     #[oai(
-        header(name = "A1", type = "String"),
-        header(name = "a2", type = "i32", description = "abc", deprecated = true)
+        header(name = "A1", ty = "String"),
+        header(name = "a2", ty = "i32", description = "abc", deprecated = true)
     )]
     #[allow(dead_code)]
     pub enum Resp {
@@ -398,8 +398,8 @@ async fn extra_headers_on_item() {
     pub enum Resp {
         #[oai(
             status = 200,
-            header(name = "A1", type = "String"),
-            header(name = "a2", type = "i32", description = "abc", deprecated = true)
+            header(name = "A1", ty = "String"),
+            header(name = "a2", ty = "i32", description = "abc", deprecated = true)
         )]
         A(Json<i32>, #[oai(header = "A")] String),
     }

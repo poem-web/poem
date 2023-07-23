@@ -28,7 +28,7 @@ Define a OpenAPI response.
 | Attribute   | description        | Type   | Optional |
 |-------------|--------------------|--------|----------|
 | name        | Header name        | String | N        |
-| type        | Header type        | String | N        |
+| ty          | Header type        | String | N        |
 | description | Header description | String | Y        |
 | deprecated  | Header deprecated  | bool   | Y        |
 
@@ -53,11 +53,11 @@ use poem_openapi::ApiResponse;
 
 #[derive(ApiResponse)]
 #[oai(
-    header(name = "X-ExtraHeader-1", type = "String"),
-    header(name = "X-ExtraHeader-2", type = "i32"),
+    header(name = "X-ExtraHeader-1", ty = "String"),
+    header(name = "X-ExtraHeader-2", ty = "i32"),
 )]
 enum CreateUserResponse {
-    #[oai(status = 200, header(name = "X-ExtraHeader-3", type = "f32"))]
+    #[oai(status = 200, header(name = "X-ExtraHeader-3", ty = "f32"))]
     Ok,
 }
 ```

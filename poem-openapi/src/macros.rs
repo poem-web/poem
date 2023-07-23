@@ -9,7 +9,7 @@ macro_rules! impl_apirequest_for_payload {
     ($ty:ty, $($bounds:tt)*) => {
         #[poem::async_trait]
         impl<'a, $($bounds)*> $crate::ApiExtractor<'a> for $ty {
-            const TYPE: $crate::ApiExtractorType = $crate::ApiExtractorType::RequestObject;
+            const TYPES: &'static [$crate::ApiExtractorType] = &[$crate::ApiExtractorType::RequestObject];
 
             type ParamType = ();
             type ParamRawType = ();

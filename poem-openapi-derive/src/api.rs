@@ -3,8 +3,8 @@ use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, AttributeArgs, Error, FnArg, ImplItem, ImplItemMethod,
-    ItemImpl, Pat, Path, ReturnType, Type,
+    ext::IdentExt, visit_mut::VisitMut, Error, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat, Path,
+    ReturnType, Type,
 };
 
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[derive(FromMeta)]
-struct APIArgs {
+pub(crate) struct APIArgs {
     #[darling(default)]
     internal: bool,
     #[darling(default)]
@@ -84,15 +84,8 @@ struct Context {
     register_items: Vec<TokenStream>,
 }
 
-pub(crate) fn generate(
-    args: AttributeArgs,
-    mut item_impl: ItemImpl,
-) -> GeneratorResult<TokenStream> {
-    let api_args = match APIArgs::from_list(&args) {
-        Ok(args) => args,
-        Err(err) => return Ok(err.write_errors()),
-    };
-    let crate_name = get_crate_name(api_args.internal);
+pub(crate) fn generate(args: APIArgs, mut item_impl: ItemImpl) -> GeneratorResult<TokenStream> {
+    let crate_name = get_crate_name(args.internal);
     let ident = item_impl.self_ty.clone();
     let (impl_generics, _, where_clause) = item_impl.generics.split_for_impl();
     let mut ctx = Context {
@@ -102,7 +95,7 @@ pub(crate) fn generate(
     };
 
     for item in &mut item_impl.items {
-        if let ImplItem::Method(method) = item {
+        if let ImplItem::Fn(method) = item {
             if let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)? {
                 if method.sig.asyncness.is_none() {
                     return Err(
@@ -110,7 +103,7 @@ pub(crate) fn generate(
                     );
                 }
 
-                generate_operation(&mut ctx, &crate_name, &api_args, operation_args, method)?;
+                generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
                 remove_oai_attrs(&mut method.attrs);
             }
         }
@@ -165,7 +158,7 @@ fn generate_operation(
     crate_name: &TokenStream,
     api_args: &APIArgs,
     args: APIOperation,
-    item_method: &mut ImplItemMethod,
+    item_method: &mut ImplItemFn,
 ) -> GeneratorResult<()> {
     let APIOperation {
         path,
@@ -238,8 +231,8 @@ fn generate_operation(
             FnArg::Typed(pat) => {
                 let ident = match &*pat.pat {
                     Pat::Ident(ident) => ident,
-                    Pat::TupleStruct(tuple_struct) => match tuple_struct.pat.elems.first() {
-                        Some(Pat::Ident(ident)) if tuple_struct.pat.elems.len() == 1 => ident,
+                    Pat::TupleStruct(tuple_struct) => match tuple_struct.elems.first() {
+                        Some(Pat::Ident(ident)) if tuple_struct.elems.len() == 1 => ident,
                         _ => {
                             return Err(Error::new_spanned(
                                 tuple_struct,
@@ -305,7 +298,7 @@ fn generate_operation(
         let validator = operation_param.validator.clone().unwrap_or_default();
         let param_checker = validator.create_param_checker(crate_name, &res_ty, &param_name)?.map(|stream| {
             quote! {
-                if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
+                if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::Parameter) {
                     if let ::std::option::Option::Some(value) = #crate_name::ApiExtractor::param_raw_type(&#pname) {
                         #stream
                     }
@@ -340,7 +333,7 @@ fn generate_operation(
         let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
         params_meta.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::Parameter {
+            if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::Parameter) {
                 let mut original_schema = <#arg_ty as #crate_name::ApiExtractor>::param_schema_ref().unwrap();
 
                 let mut patch_schema = {
@@ -365,7 +358,7 @@ fn generate_operation(
 
         // request object meta
         request_meta.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::RequestObject {
+            if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::RequestObject) {
                 request = <#arg_ty as #crate_name::ApiExtractor>::request_meta();
             }
         });
@@ -373,7 +366,7 @@ fn generate_operation(
         // security meta
         let scopes = &operation_param.scopes;
         security.push(quote! {
-            if <#arg_ty as #crate_name::ApiExtractor>::TYPE == #crate_name::ApiExtractorType::SecurityScheme {
+            if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::SecurityScheme) {
                 security = ::std::vec![<::std::collections::HashMap<&'static str, ::std::vec::Vec<&'static str>> as ::std::convert::From<_>>::from([
                     (<#arg_ty as #crate_name::ApiExtractor>::security_scheme().unwrap(), ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
                 ])];

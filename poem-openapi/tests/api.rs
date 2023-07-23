@@ -568,8 +568,8 @@ async fn extra_response_headers_on_operation() {
         #[oai(
             path = "/",
             method = "get",
-            response_header(name = "A1", type = "String", description = "abc"),
-            response_header(name = "a2", type = "i32", deprecated = true)
+            response_header(name = "A1", ty = "String", description = "abc"),
+            response_header(name = "a2", ty = "i32", deprecated = true)
         )]
         async fn test(&self) {}
     }
@@ -594,8 +594,8 @@ async fn extra_response_headers_on_api() {
     struct Api;
 
     #[OpenApi(
-        response_header(name = "A1", type = "String", description = "abc"),
-        response_header(name = "a2", type = "i32", deprecated = true)
+        response_header(name = "A1", ty = "String", description = "abc"),
+        response_header(name = "a2", ty = "i32", deprecated = true)
     )]
     impl Api {
         #[oai(path = "/", method = "get")]
@@ -626,8 +626,8 @@ async fn extra_request_headers_on_operation() {
         #[oai(
             path = "/",
             method = "get",
-            request_header(name = "A1", type = "String", description = "abc"),
-            request_header(name = "a2", type = "i32", deprecated = true)
+            request_header(name = "A1", ty = "String", description = "abc"),
+            request_header(name = "a2", ty = "i32", deprecated = true)
         )]
         async fn test(&self) {}
     }
@@ -656,8 +656,8 @@ async fn extra_request_headers_on_api() {
     struct Api;
 
     #[OpenApi(
-        request_header(name = "A1", type = "String", description = "abc"),
-        request_header(name = "a2", type = "i32", deprecated = true)
+        request_header(name = "A1", ty = "String", description = "abc"),
+        request_header(name = "a2", ty = "i32", deprecated = true)
     )]
     impl Api {
         #[oai(path = "/", method = "get")]

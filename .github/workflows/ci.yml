@@ -17,24 +17,14 @@ jobs:
             path: poem-derive
           - name: poem
             path: poem
-            options: --all-features
           - name: poem-openapi-derive
             path: poem-openapi-derive
           - name: poem-openapi
             path: poem-openapi
-            options: --all-features
           - name: poem-lambda
             path: poem-lambda
-            options: --all-features
-          - name: poem-dbsession-rustls
-            path: poem-dbsession
-            options: --features __sqlx-rustls
-          - name: poem-dbsession-native-tls
-            path: poem-dbsession
-            options: --features __sqlx-native-tls
           - name: poem-grpc
             path: poem-grpc
-            options: --all-features
     services:
       redis:
         image: redis:5.0.7
@@ -55,17 +45,19 @@ jobs:
       - uses: actions/checkout@v3
 
       # Use nightly Rust to check the format
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           components: rustfmt, clippy
+          override: true
       - name: Check Format
         run: cargo fmt --all -- --check
       # Switch to stable Rust
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rs/toolchain@v1
         with:
           toolchain: 1.67.0
           components: rustfmt, clippy
+          override: true
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
       - name: Install Protoc
@@ -74,11 +66,11 @@ jobs:
 
       # Do tests
       - name: Check With Clippy
-        run: cargo clippy ${{ matrix.package.options }}
+        run: cargo clippy --all-features
         working-directory: ${{ matrix.package.path }}
 
       - name: Run Tests
-        run: cargo test ${{ matrix.package.options }}
+        run: cargo test --all-features
         working-directory: ${{ matrix.package.path }}
 
   check-examples:
@@ -89,7 +81,7 @@ jobs:
         uses: arduino/setup-protoc@v1
 
       # Use nightly Rust to check the format
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           components: rustfmt, clippy
@@ -97,7 +89,7 @@ jobs:
         run: cargo fmt --all -- --check
         working-directory: examples
       # Switch to stable Rust
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rs/toolchain@v1
         with:
           toolchain: 1.67.0
           components: rustfmt, clippy

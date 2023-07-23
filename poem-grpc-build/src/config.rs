@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsString,
     io::Result,
     path::{Path, PathBuf},
 };
@@ -324,6 +325,12 @@ impl Config {
     /// Apply a middleware to GRPC server
     pub fn server_middleware(mut self, expr: impl Into<String>) -> Self {
         self.grpc_config.server_middlewares.push(expr.into());
+        self
+    }
+
+    /// Add an argument to the `protoc` protobuf compilation invocation.
+    pub fn protoc_arg(mut self, arg: impl Into<OsString>) -> Self {
+        self.prost_config.protoc_arg(arg.into());
         self
     }
 

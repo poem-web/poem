@@ -2,10 +2,9 @@ use std::{
     collections::HashSet,
     io::{Error as IoError, ErrorKind, Result as IoResult},
     path::PathBuf,
-    sync::Arc,
 };
 
-use crate::listener::acme::{keypair::KeyPair, AutoCert, ChallengeType, LETS_ENCRYPT_PRODUCTION};
+use crate::listener::acme::{AutoCert, ChallengeType, LETS_ENCRYPT_PRODUCTION};
 
 /// ACME configuration builder
 pub struct AutoCertBuilder {
@@ -109,7 +108,6 @@ impl AutoCertBuilder {
             directory_url,
             domains: self.domains.into_iter().collect(),
             contacts: self.contacts.into_iter().collect(),
-            key_pair: Arc::new(KeyPair::generate()?),
             challenge_type: self.challenge_type,
             keys_for_http01: match self.challenge_type {
                 ChallengeType::Http01 => Some(Default::default()),
