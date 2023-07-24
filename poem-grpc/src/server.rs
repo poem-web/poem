@@ -44,7 +44,7 @@ impl<T: Codec> GrpcServer<T> {
             None => Err(Status::new(Code::Internal).with_message("missing request message")),
         };
 
-        let mut resp = Response::default();
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
 
         match res {
             Ok(grpc_resp) => {
@@ -81,7 +81,7 @@ impl<T: Codec> GrpcServer<T> {
             })
             .await;
 
-        let mut resp = Response::default();
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
 
         match res {
             Ok(grpc_resp) => {
@@ -124,7 +124,7 @@ impl<T: Codec> GrpcServer<T> {
             None => Err(Status::new(Code::Internal).with_message("missing request message")),
         };
 
-        let mut resp = Response::default();
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
 
         match res {
             Ok(grpc_resp) => {
@@ -158,7 +158,7 @@ impl<T: Codec> GrpcServer<T> {
             })
             .await;
 
-        let mut resp = Response::default();
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
 
         match res {
             Ok(grpc_resp) => {

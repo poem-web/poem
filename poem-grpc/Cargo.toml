@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc"
-version = "0.2.20"
+version = "0.2.21"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
