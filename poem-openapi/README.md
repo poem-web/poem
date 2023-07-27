@@ -119,10 +119,10 @@ Open `http://localhost:3000/` in your browser, you will see the `Swagger UI` tha
 ```shell
 > cargo run --example hello_world
 
-> curl http://localhost:3000
+> curl http://localhost:3000/api/hello
 hello!
 
-> curl http://localhost:3000\?name\=sunli
+> curl http://localhost:3000/api/hello?name=sunli
 hello, sunli!        
 ```
 
