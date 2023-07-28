@@ -224,7 +224,7 @@ impl<T> Node<T> {
     ) -> bool {
         match self.find_static_child(name[0]) {
             Some(pos) => {
-                let mut child = &mut self.children[pos];
+                let child = &mut self.children[pos];
                 let n = longest_common_prefix(&child.name, name);
 
                 if n < child.name.len() {
