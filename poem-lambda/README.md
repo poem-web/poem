@@ -49,7 +49,7 @@ This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.64.0`.
+The minimum supported Rust version for this crate is `1.67.0`.
 
 ## Contributing
 
