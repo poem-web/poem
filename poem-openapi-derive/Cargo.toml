@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi-derive"
-version = "3.0.0"
+version = "3.0.1"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
