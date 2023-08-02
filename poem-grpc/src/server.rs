@@ -57,7 +57,7 @@ impl<T: Codec> GrpcServer<T> {
                 resp.set_body(body);
             }
             Err(status) => {
-                *resp.headers_mut() = status.to_headers();
+                resp.headers_mut().extend(status.to_headers());
             }
         }
 
@@ -94,7 +94,7 @@ impl<T: Codec> GrpcServer<T> {
                 resp.set_body(body);
             }
             Err(status) => {
-                *resp.headers_mut() = status.to_headers();
+                resp.headers_mut().extend(status.to_headers());
             }
         }
 
@@ -134,7 +134,7 @@ impl<T: Codec> GrpcServer<T> {
                 resp.set_body(body);
             }
             Err(status) => {
-                *resp.headers_mut() = status.to_headers();
+                resp.headers_mut().extend(status.to_headers());
             }
         }
 
@@ -168,7 +168,7 @@ impl<T: Codec> GrpcServer<T> {
                 resp.set_body(body);
             }
             Err(status) => {
-                *resp.headers_mut() = status.to_headers();
+                resp.headers_mut().extend(status.to_headers());
             }
         }
 
