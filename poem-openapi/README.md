@@ -55,7 +55,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | chrono           | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).            |
 | time             | Integrate with the [`time` crate](https://crates.io/crates/time).                |
 | humantime        | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)       |
-| openapi-explorer | Add OpenAPI Explorer support                                                           |
+| openapi-explorer | Add OpenAPI Explorer support                                                     |
 | swagger-ui       | Add swagger UI support                                                           |
 | rapidoc          | Add RapiDoc UI support                                                           |
 | redoc            | Add Redoc UI support                                                             |
@@ -119,16 +119,16 @@ Open `http://localhost:3000/` in your browser, you will see the `Swagger UI` tha
 ```shell
 > cargo run --example hello_world
 
-> curl http://localhost:3000
+> curl http://localhost:3000/api/hello
 hello!
 
-> curl http://localhost:3000\?name\=sunli
+> curl http://localhost:3000/api/hello?name=sunli
 hello, sunli!        
 ```
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.64.0`.
+The minimum supported Rust version for this crate is `1.67.0`.
 
 ## Contributing
 

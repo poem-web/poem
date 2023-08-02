@@ -88,7 +88,7 @@ where
     T: Serialize + Send + 'static,
     U: DeserializeOwned + Send + 'static,
 {
-    const CONTENT_TYPES: &'static [&'static str] = &["application/json", "application/grpc+json"];
+    const CONTENT_TYPES: &'static [&'static str] = &["application/grpc+json", "application/json"];
 
     type Encode = T;
     type Decode = U;

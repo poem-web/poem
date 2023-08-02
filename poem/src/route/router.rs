@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::{
     endpoint::BoxEndpoint,
-    error::{NotFoundError, RouteError},
+    error::{NotFoundError, ParsePathError, RouteError},
     http::{uri::PathAndQuery, Uri},
     route::{check_result, internal::radix_tree::RadixTree},
     Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
@@ -250,9 +250,12 @@ impl Route {
 
             async fn call(&self, mut req: Request) -> Result<Self::Output> {
                 if !self.root {
-                    let idx = req.state().match_params.len() - 1;
-                    let (name, _) = req.state_mut().match_params.remove(idx);
-                    assert_eq!(name, "--poem-rest");
+                    let params = &mut req.state_mut().match_params;
+                    if params.last().map(|(name, _)| name.as_str()) != Some("--poem-rest") {
+                        return Err(ParsePathError.into());
+                    }
+
+                    params.pop().expect("can't be empty due to a check above");
                 }
 
                 let new_uri = {
@@ -532,6 +535,17 @@ mod tests {
                 .await
                 .status(),
             StatusCode::NOT_FOUND
+        );
+    }
+
+    #[tokio::test]
+    async fn issue_471() {
+        let app = Route::new().nest("/", make_sync(|_| "hello"));
+        assert_eq!(
+            app.get_response(Request::builder().uri(Uri::from_static("/%d0")).finish())
+                .await
+                .status(),
+            StatusCode::BAD_REQUEST
         );
     }
 

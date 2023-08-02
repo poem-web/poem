@@ -48,7 +48,7 @@ impl DataFrameDecoder {
         let compressed = match self.buf[0] {
             1 => true,
             0 => false,
-            compressed => Err(Status::new(Code::Internal)
+            compressed => Err(Status::new(Code::Unimplemented)
                 .with_message(format!("unsupported compressed flag: {compressed}")))?,
         };
 

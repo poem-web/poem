@@ -1,0 +1,15 @@
+[package]
+name = "example-openapi-auth-multiple"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+jwt = "0.15.0"
+poem.workspace = true
+poem-openapi.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber.workspace = true
+hmac = "0.11"
+sha2 = "0.9"
+serde.workspace = true
