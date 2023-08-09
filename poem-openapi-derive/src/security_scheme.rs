@@ -444,34 +444,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let output = match path {
         Some(_) => quote! {
-            /// Facilitates the conversion of `Option` into `Results`, so users can use return either.
-            enum CheckerReturn<T> {
-                Result(#crate_name::__private::poem::Result<T>),
-                Option(::std::option::Option<T>)
-            }
-
-            impl<T> CheckerReturn<T> {
-                pub fn into_result(self) -> #crate_name::__private::poem::Result<T> {
-                    match self {
-                        Self::Result(result) => result,
-                        Self::Option(option) => ::std::result::Result::Ok(::std::option::Option::ok_or(option, #crate_name::error::AuthorizationError)?)
-                    }
-                }
-            }
-
-            impl<T> ::core::convert::From<#crate_name::__private::poem::Result<T>> for CheckerReturn<T> {
-                fn from(result: #crate_name::__private::poem::Result<T>) -> Self {
-                    Self::Result(result)
-                }
-            }
-
-            impl<T> ::core::convert::From<::std::option::Option<T>> for CheckerReturn<T> {
-                fn from(option: ::std::option::Option<T>) -> Self {
-                    Self::Option(option)
-                }
-            }
-
-            let output = CheckerReturn::from(#path(&req, #from_request?).await).into_result()?;
+            let output = #crate_name::__private::CheckerReturn::from(#path(&req, #from_request?).await).into_result()?;
         },
         None => quote! {
             let output = #from_request?;
