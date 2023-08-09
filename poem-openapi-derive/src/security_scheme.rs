@@ -449,7 +449,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 Result(#crate_name::__private::poem::Result<T>),
                 Option(::std::option::Option<T>)
             }
-    
+
             impl<T> CheckerReturn<T> {
                 pub fn into_result(self) -> #crate_name::__private::poem::Result<T> {
                     match self {
@@ -458,19 +458,19 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     }
                 }
             }
-    
+
             impl<T> ::core::convert::From<#crate_name::__private::poem::Result<T>> for CheckerReturn<T> {
                 fn from(result: #crate_name::__private::poem::Result<T>) -> Self {
                     Self::Result(result)
                 }
             }
-    
+
             impl<T> ::core::convert::From<::std::option::Option<T>> for CheckerReturn<T> {
                 fn from(option: ::std::option::Option<T>) -> Self {
                     Self::Option(option)
                 }
             }
-    
+
             let output = CheckerReturn::from(#path(&req, #from_request?).await).into_result()?;
         },
         None => quote! {
@@ -498,7 +498,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 req: &'a #crate_name::__private::poem::Request,
                 body: &mut #crate_name::__private::poem::RequestBody,
                 _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
-            ) -> #crate_name::__private::poem::Result<Self> {                
+            ) -> #crate_name::__private::poem::Result<Self> {
                 let query = req.extensions().get::<#crate_name::__private::UrlQuery>().unwrap();
                 #output
                 ::std::result::Result::Ok(Self(output))
