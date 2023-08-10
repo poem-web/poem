@@ -440,11 +440,16 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let register_security_scheme =
         args.generate_register_security_scheme(&crate_name, &oai_typename)?;
     let from_request = args.generate_from_request(&crate_name);
-    let checker = args.checker.as_ref().map(|path| {
-        quote! {
-            let output = ::std::option::Option::ok_or(#path(&req, output).await, #crate_name::error::AuthorizationError)?;
-        }
-    });
+    let path = args.checker.as_ref();
+
+    let output = match path {
+        Some(_) => quote! {
+            let output = #crate_name::__private::CheckerReturn::from(#path(&req, #from_request?).await).into_result()?;
+        },
+        None => quote! {
+            let output = #from_request?;
+        },
+    };
 
     let expanded = quote! {
         #[#crate_name::__private::poem::async_trait]
@@ -468,8 +473,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 _param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
             ) -> #crate_name::__private::poem::Result<Self> {
                 let query = req.extensions().get::<#crate_name::__private::UrlQuery>().unwrap();
-                let output = #from_request?;
-                #checker
+                #output
                 ::std::result::Result::Ok(Self(output))
             }
         }
