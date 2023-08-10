@@ -183,34 +183,5 @@ pub mod __private {
     pub use serde;
     pub use serde_json;
 
-    pub use crate::base::UrlQuery;
-
-    /// Facilitates the conversion of `Option` into `Results`, for `SecuritySchema` checker.
-    pub enum CheckerReturn<T> {
-        Result(poem::Result<T>),
-        Option(::std::option::Option<T>),
-    }
-
-    impl<T> CheckerReturn<T> {
-        pub fn into_result(self) -> poem::Result<T> {
-            match self {
-                Self::Result(result) => result,
-                Self::Option(option) => {
-                    Result::Ok(Option::ok_or(option, crate::error::AuthorizationError)?)
-                }
-            }
-        }
-    }
-
-    impl<T> ::core::convert::From<poem::Result<T>> for CheckerReturn<T> {
-        fn from(result: poem::Result<T>) -> Self {
-            Self::Result(result)
-        }
-    }
-
-    impl<T> ::core::convert::From<::std::option::Option<T>> for CheckerReturn<T> {
-        fn from(option: ::std::option::Option<T>) -> Self {
-            Self::Option(option)
-        }
-    }
+    pub use crate::{auth::CheckerReturn, base::UrlQuery};
 }
