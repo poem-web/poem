@@ -463,6 +463,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::assertions_on_constants)]
+    #[allow(unused_allocation)]
     fn box_type() {
         assert!(Box::<i32>::IS_REQUIRED);
         assert_eq!(Box::<i32>::name(), "integer(int32)");

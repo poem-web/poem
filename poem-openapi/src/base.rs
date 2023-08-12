@@ -57,6 +57,7 @@ impl UrlQuery {
 }
 
 /// Options for the parameter extractor.
+#[derive(Clone)]
 pub struct ExtractParamOptions<T> {
     /// The name of this parameter.
     pub name: &'static str,
@@ -164,9 +165,9 @@ pub trait ApiExtractor<'a>: Sized {
     /// Register related types to registry.
     fn register(registry: &mut Registry) {}
 
-    /// Returns name of security scheme if this extractor is security scheme.
-    fn security_scheme() -> Option<&'static str> {
-        None
+    /// Returns names of security scheme if this extractor is security scheme.
+    fn security_schemes() -> Vec<&'static str> {
+        vec![]
     }
 
     /// Returns the location of the parameter if this extractor is parameter.

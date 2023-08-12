@@ -367,9 +367,11 @@ fn generate_operation(
         let scopes = &operation_param.scopes;
         security.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::SecurityScheme) {
-                security.push(<::std::collections::HashMap<&'static str, ::std::vec::Vec<&'static str>> as ::std::convert::From<_>>::from([
-                    (<#arg_ty as #crate_name::ApiExtractor>::security_scheme().unwrap(), ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
-                ]));
+                for security_name in <#arg_ty as #crate_name::ApiExtractor>::security_schemes() {
+                    security.push(<::std::collections::HashMap<&'static str, ::std::vec::Vec<&'static str>> as ::std::convert::From<_>>::from([
+                        (security_name, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
+                    ]));
+                }
             }
         });
     }
