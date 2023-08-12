@@ -20,7 +20,7 @@ fn rename() {
     #[oai(rename = "ABC", ty = "basic")]
     struct MySecurityScheme(Basic);
 
-    assert_eq!(MySecurityScheme::security_scheme().unwrap(), "ABC");
+    assert_eq!(MySecurityScheme::security_schemes(), &["ABC"]);
 }
 
 #[test]
@@ -29,10 +29,7 @@ fn default_rename() {
     #[oai(ty = "basic")]
     struct MySecurityScheme(Basic);
 
-    assert_eq!(
-        MySecurityScheme::security_scheme().unwrap(),
-        "MySecurityScheme"
-    );
+    assert_eq!(MySecurityScheme::security_schemes(), &["MySecurityScheme"]);
 }
 
 #[test]
@@ -462,9 +459,6 @@ async fn checker_result() {
         }
     }
 
-    let mut registry = Registry::new();
-    MySecurityScheme::register(&mut registry);
-
     struct MyApi;
 
     #[OpenApi]
@@ -483,7 +477,7 @@ async fn checker_result() {
         .send()
         .await;
     resp.assert_status_is_ok();
-    resp.assert_text("Authed: Enabled".to_string()).await;
+    resp.assert_text("Authed: Enabled").await;
 
     let resp = client
         .get("/test")
@@ -508,9 +502,6 @@ async fn checker_option() {
         }
     }
 
-    let mut registry = Registry::new();
-    MySecurityScheme::register(&mut registry);
-
     struct MyApi;
 
     #[OpenApi]
@@ -529,12 +520,67 @@ async fn checker_option() {
         .send()
         .await;
     resp.assert_status_is_ok();
-    resp.assert_text("Authed: Enabled".to_string()).await;
+    resp.assert_text("Authed: Enabled").await;
 
     let resp = client
         .get("/test")
         .typed_header(headers::Authorization::basic("Disabled", "password"))
         .send()
         .await;
+    resp.assert_status(StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn multiple_auth_methods() {
+    #[derive(SecurityScheme)]
+    #[oai(ty = "basic")]
+    struct MySecurityScheme1(Basic);
+
+    #[derive(SecurityScheme)]
+    #[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
+    struct MySecurityScheme2(ApiKey);
+
+    #[derive(SecurityScheme)]
+    enum MySecurityScheme {
+        MySecurityScheme1(MySecurityScheme1),
+        MySecurityScheme2(MySecurityScheme2),
+    }
+
+    struct MyApi;
+
+    #[OpenApi]
+    impl MyApi {
+        #[oai(path = "/test", method = "get")]
+        async fn test(&self, auth: MySecurityScheme) -> PlainText<String> {
+            match auth {
+                MySecurityScheme::MySecurityScheme1(auth) => {
+                    PlainText(format!("basic: {}", auth.0.username))
+                }
+                MySecurityScheme::MySecurityScheme2(auth) => {
+                    PlainText(format!("api-key: {}", auth.0.key))
+                }
+            }
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let client = TestClient::new(service);
+    let resp = client
+        .get("/test")
+        .typed_header(headers::Authorization::basic("sunli", "password"))
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("basic: sunli").await;
+
+    let resp = client
+        .get("/test")
+        .header("X-API-Key", "abcdef")
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("api-key: abcdef").await;
+
+    let resp = client.get("/test").send().await;
     resp.assert_status(StatusCode::UNAUTHORIZED);
 }
