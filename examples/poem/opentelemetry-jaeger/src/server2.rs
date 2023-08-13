@@ -3,7 +3,6 @@ use opentelemetry::{
     sdk::{propagation::TraceContextPropagator, trace::Tracer},
 };
 use poem::{
-    endpoint::PrometheusExporter,
     get, handler,
     listener::TcpListener,
     middleware::{OpenTelemetryMetrics, OpenTelemetryTracing},
@@ -36,7 +35,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new()
         .at("/api2", get(index))
-        .at("/metrics", PrometheusExporter::new())
         .data(tracer.clone())
         .with(OpenTelemetryMetrics::new())
         .with(OpenTelemetryTracing::new(tracer));
