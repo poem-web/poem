@@ -13,12 +13,12 @@ fn parse_accept(headers: &HeaderMap) -> Vec<Mime> {
         .iter()
         .filter_map(|hval| hval.to_str().ok())
         .flat_map(|s| s.split(',').map(str::trim))
-        .filter_map(|v| {
-            let (e, q) = match v.split_once(";q=") {
-                Some((e, q)) => (e, (q.parse::<f32>().ok()? * 1000.0) as i32),
-                None => (v, 1000),
-            };
-            let mime: Mime = e.parse().ok()?;
+        .filter_map(|item| {
+            let mime: Mime = item.parse().ok()?;
+            let q = mime
+                .get_param("q")
+                .and_then(|value| Some((value.as_str().parse::<f32>().ok()? * 1000.0) as i32))
+                .unwrap_or(1000);
             Some((mime, q))
         })
         .collect::<Vec<_>>();
@@ -55,9 +55,9 @@ mod tests {
             &[
                 Mime::from_str("text/html").unwrap(),
                 Mime::from_str("application/xhtml+xml").unwrap(),
-                Mime::from_str("application/xml").unwrap(),
-                Mime::from_str("text/yaml").unwrap(),
-                Mime::from_str("*/*").unwrap()
+                Mime::from_str("application/xml;q=0.9").unwrap(),
+                Mime::from_str("text/yaml;q=0.5").unwrap(),
+                Mime::from_str("*/*;q=0.1").unwrap()
             ]
         );
     }
