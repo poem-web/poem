@@ -563,6 +563,7 @@ impl PartialEq for MetaTag {
 
 impl Eq for MetaTag {}
 
+#[allow(clippy::incorrect_partial_ord_impl_on_ord_type)]
 impl PartialOrd for MetaTag {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.name.partial_cmp(other.name)
