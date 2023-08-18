@@ -44,7 +44,7 @@ impl<A: Acceptor, B: Acceptor> Acceptor for Combined<A, B> {
         self.a
             .local_addr()
             .into_iter()
-            .chain(self.b.local_addr().into_iter())
+            .chain(self.b.local_addr())
             .collect()
     }
 
