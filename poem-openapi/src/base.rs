@@ -42,15 +42,15 @@ impl Deref for UrlQuery {
 }
 
 impl UrlQuery {
-    #[allow(missing_docs)]
-    pub fn get_all<'a, 'b: 'a>(&'b self, name: &'a str) -> impl Iterator<Item = &'b String> + 'a {
+    /// Returns all values with the specified name.
+    pub fn get_all<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a String> + 'a {
         self.0
             .iter()
             .filter(move |(n, _)| n == name)
             .map(|(_, value)| value)
     }
 
-    #[allow(missing_docs)]
+    /// Returns the first value with the specified name.
     pub fn get(&self, name: &str) -> Option<&String> {
         self.get_all(name).next()
     }

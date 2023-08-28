@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     sync::Arc,
     task::{Context, Poll},
 };
@@ -11,11 +12,11 @@ use crate::{Endpoint, Error, IntoResponse, Middleware, Request, Result};
 
 #[doc(hidden)]
 #[derive(Debug, thiserror::Error)]
-#[error("wrapper error")]
-pub struct WrapperError(Error);
+#[error("{0}")]
+pub struct WrappedError(Error);
 
 fn boxed_err_to_poem_err(err: BoxError) -> Error {
-    match err.downcast::<WrapperError>() {
+    match err.downcast::<WrappedError>() {
         Ok(err) => (*err).0,
         Err(err) => Error::from_string(err.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
     }
@@ -65,7 +66,7 @@ where
     E: Endpoint + 'static,
 {
     type Response = E::Output;
-    type Error = WrapperError;
+    type Error = WrappedError;
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -74,7 +75,7 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let ep = self.0.clone();
-        async move { ep.call(req).await.map_err(WrapperError) }.boxed()
+        async move { ep.call(req).await.map_err(WrappedError) }.boxed()
     }
 }
 
