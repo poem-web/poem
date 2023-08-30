@@ -43,7 +43,7 @@ impl Deref for UrlQuery {
 
 impl UrlQuery {
     /// Returns all values with the specified name.
-    pub fn get_all<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a String> + 'a {
+    pub fn get_all<'a, 'b: 'a>(&'b self, name: &'a str) -> impl Iterator<Item = &'b String> + 'a {
         self.0
             .iter()
             .filter(move |(n, _)| n == name)
