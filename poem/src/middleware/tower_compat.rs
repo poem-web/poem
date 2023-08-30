@@ -1,5 +1,4 @@
 use std::{
-    fmt,
     sync::Arc,
     task::{Context, Poll},
 };

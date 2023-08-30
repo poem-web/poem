@@ -565,7 +565,7 @@ impl Eq for MetaTag {}
 
 impl PartialOrd for MetaTag {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.name.partial_cmp(other.name)
+        Some(self.name.cmp(other.name))
     }
 }
 
