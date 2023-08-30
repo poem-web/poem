@@ -51,7 +51,7 @@ impl UrlQuery {
     }
 
     /// Returns the first value with the specified name.
-    pub fn get(&self, name: &str) -> Option<&String> {
+    pub fn get<'a>(&'a self, name: &'a str) -> Option<&String> {
         self.get_all(name).next()
     }
 }
