@@ -1,11 +1,11 @@
 [package]
 name = "example-redis-session"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["redis-session"] }
+poem = { path = "../../../poem", features = ["redis-session"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
 redis = { version = "0.23.0", features = ["aio", "tokio-comp", "connection-manager"] }

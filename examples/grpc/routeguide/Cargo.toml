@@ -1,14 +1,14 @@
 [package]
 name = "example-grpc-routeguide"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
 async-stream = "0.3.3"
 futures-util.workspace = true
-poem.workspace = true
-poem-grpc.workspace = true
+poem = { path = "../../../poem" }
+poem-grpc = { path = "../../../poem-grpc" }
 prost.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -16,4 +16,4 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
 
 [build-dependencies]
-poem-grpc-build.workspace = true
+poem-grpc-build = { path = "../../../poem-grpc-build" }

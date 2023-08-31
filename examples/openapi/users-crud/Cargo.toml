@@ -1,12 +1,12 @@
 [package]
 name = "example-openapi-users-crud"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem.workspace = true
-poem-openapi = { workspace = true, features = ["swagger-ui", "email"] }
+poem = { path = "../../../poem" }
+poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui", "email"] }
 slab = "0.4.4"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true

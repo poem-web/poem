@@ -1,11 +1,11 @@
 [package]
 name = "example-graceful-shutdown"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["sse"] }
+poem = { path = "../../../poem", features = ["sse"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
 futures-util.workspace = true
 tokio-stream.workspace = true

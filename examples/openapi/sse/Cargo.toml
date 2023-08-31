@@ -1,13 +1,13 @@
 [package]
 name = "example-openapi-sse"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
 async-stream = "0.3.2"
 futures-util.workspace = true
-poem.workspace = true
-poem-openapi.workspace = true
+poem = { path = "../../../poem" }
+poem-openapi = { path = "../../../poem-openapi" }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 tracing-subscriber.workspace = true

@@ -1,11 +1,11 @@
 [package]
 name = "example-opentelemetry"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["opentelemetry"] }
+poem = { path = "../../../poem", features = ["opentelemetry"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
 opentelemetry = { version = "0.20.0", features = ["metrics"] }

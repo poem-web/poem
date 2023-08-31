@@ -1,11 +1,11 @@
 [package]
 name = "example-tower-layer"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["tower-compat"] }
+poem = { path = "../../../poem", features = ["tower-compat"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tower = { version = "0.4.8", default-features = false, features = ["limit"] }
 tracing-subscriber.workspace = true

@@ -1,11 +1,11 @@
 [package]
 name = "example-tls-reload"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
 async-stream = "0.3.2"
-poem = { workspace = true, features = ["rustls"]}
+poem = { path = "../../../poem", features = ["rustls"]}
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tracing-subscriber.workspace = true

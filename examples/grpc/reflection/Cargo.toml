@@ -1,15 +1,15 @@
 [package]
 name = "example-grpc-reflection"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem.workspace = true
-poem-grpc.workspace = true
+poem = { path = "../../../poem" }
+poem-grpc = { path = "../../../poem-grpc" }
 prost.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
 
 [build-dependencies]
-poem-grpc-build.workspace = true
+poem-grpc-build = { path = "../../../poem-grpc-build" }

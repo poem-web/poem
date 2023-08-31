@@ -1,10 +1,10 @@
 [package]
 name = "example-upload"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["multipart"] }
+poem = { path = "../../../poem", features = ["multipart"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true

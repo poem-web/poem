@@ -1,11 +1,11 @@
 [package]
 name = "example-csrf"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["csrf"] }
+poem = { path = "../../../poem", features = ["csrf"] }
 serde.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true

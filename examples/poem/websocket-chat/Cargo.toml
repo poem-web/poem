@@ -1,11 +1,11 @@
 [package]
 name = "example-websocket-chat"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["websocket"]}
+poem = { path = "../../../poem", features = ["websocket"]}
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 futures-util.workspace = true
 tracing-subscriber.workspace = true

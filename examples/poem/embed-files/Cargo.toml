@@ -1,11 +1,11 @@
 [package]
 name = "example-embed-files"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["embed"] }
+poem = { path = "../../../poem", features = ["embed"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
 rust-embed = "6.3"

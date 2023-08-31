@@ -1,13 +1,13 @@
 [package]
 name = "example-openapi-auth-multiple"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
 jwt = "0.15.0"
-poem.workspace = true
-poem-openapi.workspace = true
+poem = { path = "../../../poem" }
+poem-openapi = { path = "../../../poem-openapi" }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber.workspace = true
 hmac = "0.11"

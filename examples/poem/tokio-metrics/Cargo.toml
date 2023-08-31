@@ -1,10 +1,10 @@
 [package]
 name = "example-tokio-metrics"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-poem = { workspace = true, features = ["tokio-metrics"] }
+poem = { path = "../../../poem", features = ["tokio-metrics"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tracing-subscriber.workspace = true

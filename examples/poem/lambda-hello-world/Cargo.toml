@@ -1,11 +1,11 @@
 [package]
 name = "example-lambda-hello-world"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [dependencies]
 poem = { path  = "../../../poem", default-features = false }
-poem-lambda.workspace = true
+poem-lambda = { path = "../../../poem-lambda" }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
