@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [3.0.4] 2023-09-02
 
-- poem-openapi: allow using expressions as `prefix_path` parameter [#635](https://github.com/poem-web/poem/issues/635)
+- allow using expressions as `prefix_path` parameter [#635](https://github.com/poem-web/poem/issues/635)
+- bump `quick-xml` from `0.29.0` to `0.30.0`
 
 # [3.0.3] 2023-08-18
 

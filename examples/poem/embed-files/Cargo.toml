@@ -8,4 +8,4 @@ publish.workspace = true
 poem = { workspace = true, features = ["embed"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-rust-embed = "6.3"
+rust-embed = "8.0"
