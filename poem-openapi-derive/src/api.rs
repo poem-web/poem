@@ -1,10 +1,9 @@
 use darling::{util::SpannedValue, FromMeta};
-use indexmap::IndexMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, Error, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat, Path,
-    ReturnType, Type,
+    ext::IdentExt, visit_mut::VisitMut, Error, Expr, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat,
+    Path, ReturnType, Type,
 };
 
 use crate::{
@@ -22,8 +21,8 @@ use crate::{
 pub(crate) struct APIArgs {
     #[darling(default)]
     internal: bool,
-    #[darling(default)]
-    prefix_path: Option<SpannedValue<String>>,
+    #[darling(default, with = "crate::utils::preserve_str_literal")]
+    prefix_path: Option<Expr>,
     #[darling(default, multiple, rename = "tag")]
     common_tags: Vec<Path>,
     #[darling(default, multiple, rename = "response_header")]
@@ -80,7 +79,7 @@ struct APIOperationParam {
 
 struct Context {
     add_routes: Vec<TokenStream>,
-    operations: IndexMap<String, Vec<TokenStream>>,
+    operations: Vec<(TokenStream, TokenStream)>,
     register_items: Vec<TokenStream>,
 }
 
@@ -120,10 +119,7 @@ pub(crate) fn generate(args: APIArgs, mut item_impl: ItemImpl) -> GeneratorResul
 
         for (path, operation) in operations {
             paths.push(quote! {
-                #crate_name::registry::MetaPath {
-                    path: #path,
-                    operations: ::std::vec![#(#operation),*],
-                }
+                paths_map.entry(#path).or_default().push(#operation);
             });
         }
         paths
@@ -135,7 +131,15 @@ pub(crate) fn generate(args: APIArgs, mut item_impl: ItemImpl) -> GeneratorResul
         impl #impl_generics #crate_name::OpenApi for #ident #where_clause {
             fn meta() -> ::std::vec::Vec<#crate_name::registry::MetaApi> {
                 ::std::vec![#crate_name::registry::MetaApi {
-                    paths: ::std::vec![#(#paths),*],
+                    paths: {
+                        use ::std::iter::{IntoIterator, Iterator};
+                        let mut paths_map = #crate_name::__private::indexmap::IndexMap::<::std::string::String, ::std::vec::Vec<#crate_name::registry::MetaOperation>>::new();
+                        #(#paths)*
+                        paths_map.into_iter().map(|(path, operations)| #crate_name::registry::MetaPath {
+                            path,
+                            operations,
+                        }).collect()
+                    },
                 }]
             }
 
@@ -186,8 +190,16 @@ fn generate_operation(
     let summary = optional_literal(&summary);
     let description = optional_literal(&description);
     let tags = api_args.common_tags.iter().chain(&tags);
-
-    let (oai_path, new_path) = convert_oai_path(&path, &api_args.prefix_path)?;
+    let prefix_path = &api_args.prefix_path;
+    let (oai_path, new_path) = convert_oai_path(&path)?;
+    let oai_path = prefix_path
+        .as_ref()
+        .map(|prefix| quote! { (::std::string::ToString::to_string(#prefix) + #oai_path) })
+        .unwrap_or_else(|| quote! { ::std::string::ToString::to_string(#oai_path) });
+    let new_path: TokenStream = prefix_path
+        .as_ref()
+        .map(|prefix| quote! { (::std::string::ToString::to_string(#prefix) + #new_path) })
+        .unwrap_or_else(|| quote! { ::std::string::ToString::to_string(#new_path) });
 
     if item_method.sig.inputs.is_empty() {
         return Err(Error::new_spanned(
@@ -416,7 +428,7 @@ fn generate_operation(
         });
 
         ctx.add_routes.push(quote! {
-            route_table.entry(::std::string::ToString::to_string(#new_path))
+            route_table.entry(#new_path)
                 .or_default()
                 .insert(#crate_name::__private::poem::http::Method::#http_method, {
                     let api_obj = ::std::clone::Clone::clone(&api_obj);
@@ -538,42 +550,40 @@ fn generate_operation(
     if !hidden {
         for method in &methods {
             let http_method = method.to_http_method();
-            ctx.operations
-                .entry(oai_path.clone())
-                .or_default()
-                .push(quote! {
-                    #crate_name::registry::MetaOperation {
-                        tags: ::std::vec![#(#tag_names),*],
-                        method: #crate_name::__private::poem::http::Method::#http_method,
-                        summary: #summary,
-                        description: #description,
-                        external_docs: #external_docs,
-                        params: {
-                            let mut params = ::std::vec::Vec::new();
-                            #(#update_extra_request_headers)*
-                            #(#params_meta)*
-                            params
-                        },
-                        request: {
-                            let mut request = ::std::option::Option::None;
-                            #(#request_meta)*
-                            request
-                        },
-                        responses: {
-                            let mut meta = #resp_meta;
-                            #(#update_extra_response_headers)*
-                            meta
-                        },
-                        deprecated: #deprecated,
-                        security: {
-                            let mut security = ::std::vec![];
-                            #(#security)*
-                            security
-                        },
-                        operation_id: #operation_id,
-                        code_samples: ::std::vec![#(#code_samples),*],
-                    }
-                });
+            let meta_operation = quote! {
+                #crate_name::registry::MetaOperation {
+                    tags: ::std::vec![#(#tag_names),*],
+                    method: #crate_name::__private::poem::http::Method::#http_method,
+                    summary: #summary,
+                    description: #description,
+                    external_docs: #external_docs,
+                    params: {
+                        let mut params = ::std::vec::Vec::new();
+                        #(#update_extra_request_headers)*
+                        #(#params_meta)*
+                        params
+                    },
+                    request: {
+                        let mut request = ::std::option::Option::None;
+                        #(#request_meta)*
+                        request
+                    },
+                    responses: {
+                        let mut meta = #resp_meta;
+                        #(#update_extra_response_headers)*
+                        meta
+                    },
+                    deprecated: #deprecated,
+                    security: {
+                        let mut security = ::std::vec![];
+                        #(#security)*
+                        security
+                    },
+                    operation_id: #operation_id,
+                    code_samples: ::std::vec![#(#code_samples),*],
+                }
+            };
+            ctx.operations.push((oai_path.clone(), meta_operation));
         }
     }
 

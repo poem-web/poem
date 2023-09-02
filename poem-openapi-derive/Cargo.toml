@@ -22,7 +22,7 @@ proc-macro2.workspace = true
 quote.workspace = true
 syn = { workspace = true, features = ["full", "visit-mut"] }
 thiserror.workspace = true
-indexmap = "2.0.0"
+indexmap.workspace = true
 regex.workspace = true
 http = "0.2.5"
 mime.workspace = true

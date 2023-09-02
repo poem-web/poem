@@ -109,40 +109,13 @@ pub(crate) fn parse_oai_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResu
     Ok(None)
 }
 
-pub(crate) fn convert_oai_path<'a, 'b: 'a>(
-    path: &'a SpannedValue<String>,
-    prefix_path: &'b Option<SpannedValue<String>>,
-) -> Result<(String, String)> {
+pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, String)> {
     if !path.starts_with('/') {
         return Err(Error::new(path.span(), "The path must start with '/'."));
     }
 
     let mut oai_path = String::new();
     let mut new_path = String::new();
-
-    if let Some(prefix_path) = prefix_path {
-        handle_path(prefix_path, &mut oai_path, &mut new_path)?;
-    }
-
-    handle_path(path, &mut oai_path, &mut new_path)?;
-
-    if oai_path.is_empty() {
-        oai_path += "/";
-    }
-
-    if new_path.is_empty() {
-        new_path += "/";
-    }
-
-    Ok((oai_path, new_path))
-}
-
-#[allow(clippy::needless_lifetimes)]
-fn handle_path<'a>(
-    path: &'a SpannedValue<String>,
-    oai_path: &mut String,
-    new_path: &mut String,
-) -> Result<()> {
     let mut vars = HashSet::new();
 
     for s in path.split('/') {
@@ -172,7 +145,16 @@ fn handle_path<'a>(
             new_path.push_str(s);
         }
     }
-    Ok(())
+
+    if oai_path.is_empty() {
+        oai_path += "/";
+    }
+
+    if new_path.is_empty() {
+        new_path += "/";
+    }
+
+    Ok((oai_path, new_path))
 }
 
 pub(crate) struct RemoveLifetime;
@@ -219,5 +201,13 @@ pub(crate) fn create_object_name(
 
             name
         })
+    }
+}
+
+pub(crate) fn preserve_str_literal(meta: &Meta) -> darling::Result<Option<Expr>> {
+    match meta {
+        Meta::Path(_) => Err(darling::Error::unsupported_format("path").with_span(meta)),
+        Meta::List(_) => Err(darling::Error::unsupported_format("list").with_span(meta)),
+        Meta::NameValue(nv) => Ok(Some(nv.value.clone())),
     }
 }

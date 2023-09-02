@@ -178,6 +178,7 @@ pub use validation::Validator;
 
 #[doc(hidden)]
 pub mod __private {
+    pub use indexmap;
     pub use mime;
     pub use poem;
     pub use serde;
