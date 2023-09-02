@@ -77,8 +77,9 @@ impl Config {
     ///
     /// ```rust
     /// # let mut config = poem_grpc_build::Config::new();
-    /// config.codec("::poem_grpc::codec::ProstCodec");
-    /// config.codec("::poem_grpc::codec::JsonCodec");
+    /// config
+    ///     .codec("::poem_grpc::codec::ProstCodec")
+    ///     .codec("::poem_grpc::codec::JsonCodec");
     /// ```
     pub fn codec(mut self, path: impl Into<String>) -> Self {
         self.grpc_config.codec_list.push(path.into());
@@ -107,29 +108,23 @@ impl Config {
     /// ```rust
     /// # let mut config = poem_grpc_build::Config::new();
     /// // Match a specific field in a message type.
-    /// config.btree_map(&[".my_messages.MyMessageType.my_map_field"]);
-    ///
-    /// // Match all map fields in a message type.
-    /// config.btree_map(&[".my_messages.MyMessageType"]);
-    ///
-    /// // Match all map fields in a package.
-    /// config.btree_map(&[".my_messages"]);
-    ///
-    /// // Match all map fields. Specially useful in `no_std` contexts.
-    /// config.btree_map(&["."]);
-    ///
-    /// // Match all map fields in a nested message.
-    /// config.btree_map(&[".my_messages.MyMessageType.MyNestedMessageType"]);
-    ///
-    /// // Match all fields named 'my_map_field'.
-    /// config.btree_map(&["my_map_field"]);
-    ///
-    /// // Match all fields named 'my_map_field' in messages named 'MyMessageType', regardless of
-    /// // package or nesting.
-    /// config.btree_map(&["MyMessageType.my_map_field"]);
-    ///
-    /// // Match all fields named 'my_map_field', and all fields in the 'foo.bar' package.
-    /// config.btree_map(&["my_map_field", ".foo.bar"]);
+    /// config
+    ///     .btree_map(&[".my_messages.MyMessageType.my_map_field"])
+    ///     // Match all map fields in a message type.
+    ///     .btree_map(&[".my_messages.MyMessageType"])
+    ///     // Match all map fields in a package.
+    ///     .btree_map(&[".my_messages"])
+    ///     // Match all map fields. Specially useful in `no_std` contexts.
+    ///     .btree_map(&["."])
+    ///     // Match all map fields in a nested message.
+    ///     .btree_map(&[".my_messages.MyMessageType.MyNestedMessageType"])
+    ///     // Match all fields named 'my_map_field'.
+    ///     .btree_map(&["my_map_field"])
+    ///     // Match all fields named 'my_map_field' in messages named 'MyMessageType', regardless of
+    ///     // package or nesting.
+    ///     .btree_map(&["MyMessageType.my_map_field"])
+    ///     // Match all fields named 'my_map_field', and all fields in the 'foo.bar' package.
+    ///     .btree_map(&["my_map_field", ".foo.bar"]);
     /// ```
     ///
     /// [1]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
@@ -166,29 +161,23 @@ impl Config {
     /// ```rust
     /// # let mut config = poem_grpc_build::Config::new();
     /// // Match a specific field in a message type.
-    /// config.bytes(&[".my_messages.MyMessageType.my_bytes_field"]);
-    ///
-    /// // Match all bytes fields in a message type.
-    /// config.bytes(&[".my_messages.MyMessageType"]);
-    ///
-    /// // Match all bytes fields in a package.
-    /// config.bytes(&[".my_messages"]);
-    ///
-    /// // Match all bytes fields. Specially useful in `no_std` contexts.
-    /// config.bytes(&["."]);
-    ///
-    /// // Match all bytes fields in a nested message.
-    /// config.bytes(&[".my_messages.MyMessageType.MyNestedMessageType"]);
-    ///
-    /// // Match all fields named 'my_bytes_field'.
-    /// config.bytes(&["my_bytes_field"]);
-    ///
-    /// // Match all fields named 'my_bytes_field' in messages named 'MyMessageType', regardless of
-    /// // package or nesting.
-    /// config.bytes(&["MyMessageType.my_bytes_field"]);
-    ///
-    /// // Match all fields named 'my_bytes_field', and all fields in the 'foo.bar' package.
-    /// config.bytes(&["my_bytes_field", ".foo.bar"]);
+    /// config
+    ///     .bytes(&[".my_messages.MyMessageType.my_bytes_field"])
+    ///     // Match all bytes fields in a message type.
+    ///     .bytes(&[".my_messages.MyMessageType"])
+    ///     // Match all bytes fields in a package.
+    ///     .bytes(&[".my_messages"])
+    ///     // Match all bytes fields. Specially useful in `no_std` contexts.
+    ///     .bytes(&["."])
+    ///     // Match all bytes fields in a nested message.
+    ///     .bytes(&[".my_messages.MyMessageType.MyNestedMessageType"])
+    ///     // Match all fields named 'my_bytes_field'.
+    ///     .bytes(&["my_bytes_field"])
+    ///     // Match all fields named 'my_bytes_field' in messages named 'MyMessageType', regardless of
+    ///     // package or nesting.
+    ///     .bytes(&["MyMessageType.my_bytes_field"])
+    ///     // Match all fields named 'my_bytes_field', and all fields in the 'foo.bar' package.
+    ///     .bytes(&["my_bytes_field", ".foo.bar"]);
     /// ```
     ///
     /// [1]: https://docs.rs/bytes/latest/bytes/struct.Bytes.html
@@ -227,16 +216,17 @@ impl Config {
     /// ```rust
     /// # let mut config = poem_grpc_build::Config::new();
     /// // Nothing around uses floats, so we can derive real `Eq` in addition to `PartialEq`.
-    /// config.type_attribute(".", "#[derive(Eq)]");
-    /// // Some messages want to be serializable with serde as well.
-    /// config.type_attribute(
-    ///     "my_messages.MyMessageType",
-    ///     "#[derive(Serialize)] #[serde(rename-all = \"snake_case\")]",
-    /// );
-    /// config.type_attribute(
-    ///     "my_messages.MyMessageType.MyNestedMessageType",
-    ///     "#[derive(Serialize)] #[serde(rename-all = \"snake_case\")]",
-    /// );
+    /// config
+    ///     .type_attribute(".", "#[derive(Eq)]")
+    ///     // Some messages want to be serializable with serde as well.
+    ///     .type_attribute(
+    ///         "my_messages.MyMessageType",
+    ///         "#[derive(Serialize)] #[serde(rename-all = \"snake_case\")]",
+    ///     )
+    ///     .type_attribute(
+    ///         "my_messages.MyMessageType.MyNestedMessageType",
+    ///         "#[derive(Serialize)] #[serde(rename-all = \"snake_case\")]",
+    ///     );
     /// ```
     ///
     /// # Oneof fields

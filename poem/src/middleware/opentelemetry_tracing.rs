@@ -77,10 +77,10 @@ where
         attributes.push(resource::TELEMETRY_SDK_NAME.string(env!("CARGO_CRATE_NAME")));
         attributes.push(resource::TELEMETRY_SDK_VERSION.string(env!("CARGO_PKG_VERSION")));
         attributes.push(resource::TELEMETRY_SDK_LANGUAGE.string("rust"));
-        attributes.push(trace::HTTP_METHOD.string(req.method().to_string()));
-        attributes.push(trace::HTTP_URL.string(req.original_uri().to_string()));
-        attributes.push(trace::HTTP_CLIENT_IP.string(remote_addr));
-        attributes.push(trace::HTTP_FLAVOR.string(format!("{:?}", req.version())));
+        attributes.push(trace::HTTP_REQUEST_METHOD.string(req.method().to_string()));
+        attributes.push(trace::URL_FULL.string(req.original_uri().to_string()));
+        attributes.push(trace::CLIENT_ADDRESS.string(remote_addr));
+        attributes.push(trace::NETWORK_PROTOCOL_VERSION.string(format!("{:?}", req.version())));
 
         if let Some(path_pattern) = req.data::<PathPattern>() {
             const HTTP_PATH_PATTERN: Key = Key::from_static_str("http.path_pattern");
@@ -105,18 +105,22 @@ where
                 Ok(resp) => {
                     let resp = resp.into_response();
                     span.add_event("request.completed".to_string(), vec![]);
-                    span.set_attribute(trace::HTTP_STATUS_CODE.i64(resp.status().as_u16() as i64));
+                    span.set_attribute(
+                        trace::HTTP_RESPONSE_STATUS_CODE.i64(resp.status().as_u16() as i64),
+                    );
                     if let Some(content_length) =
                         resp.headers().typed_get::<headers::ContentLength>()
                     {
                         span.set_attribute(
-                            trace::HTTP_RESPONSE_CONTENT_LENGTH.i64(content_length.0 as i64),
+                            trace::HTTP_RESPONSE_BODY_SIZE.i64(content_length.0 as i64),
                         );
                     }
                     Ok(resp)
                 }
                 Err(err) => {
-                    span.set_attribute(trace::HTTP_STATUS_CODE.i64(err.status().as_u16() as i64));
+                    span.set_attribute(
+                        trace::HTTP_RESPONSE_STATUS_CODE.i64(err.status().as_u16() as i64),
+                    );
                     span.add_event(
                         "request.error".to_string(),
                         vec![trace::EXCEPTION_MESSAGE.string(err.to_string())],

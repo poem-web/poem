@@ -186,9 +186,13 @@ pub(crate) enum ApiKeyInType {
 }
 
 #[derive(FromVariant)]
+#[darling(attributes(oai), forward_attrs(doc))]
 struct SecuritySchemeItem {
     ident: Ident,
     fields: Fields<syn::Type>,
+
+    #[darling(default)]
+    fallback: bool,
 }
 
 #[derive(FromDeriveInput)]
@@ -436,11 +440,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
 
             if fields.style != Style::Tuple || fields.fields.len() != 1 {
-                return Err(Error::new_spanned(
-                    ident,
-                    "Only one unnamed field is allowed in the SecurityScheme struct.",
-                )
-                .into());
+                return Err(Error::new_spanned(ident, "Must be a tuple of length 1.").into());
             }
 
             args.validate()?;
@@ -490,6 +490,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             Ok(expanded)
         }
         Data::Enum(items) => {
+            if items.iter().filter(|item| item.fallback).count() > 1 {
+                return Err(Error::new_spanned(ident, "Cannot be more than one fallback.").into());
+            }
+
             let mut registers = Vec::new();
             let mut security_schemes = Vec::new();
             let mut from_requests = Vec::new();
@@ -499,12 +503,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             for item in items {
+                if item.fallback {
+                    continue;
+                }
+
                 if item.fields.style != Style::Tuple || item.fields.fields.len() != 1 {
-                    return Err(Error::new_spanned(
-                        ident,
-                        "Only one unnamed field is allowed in the SecurityScheme enum.",
-                    )
-                    .into());
+                    return Err(
+                        Error::new_spanned(&item.ident, "Must be a tuple of length 1.").into(),
+                    );
                 }
 
                 let item_ident = &item.ident;
@@ -523,6 +529,20 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     }
                 })
             }
+
+            let fallback = items.iter().find(|item| item.fallback);
+            let fallback = match fallback {
+                Some(item) => {
+                    if item.fields.style != Style::Unit {
+                        return Err(
+                            Error::new_spanned(&item.ident, "Should be a unit variant.").into()
+                        );
+                    }
+                    let item_ident = &item.ident;
+                    quote! { ::std::result::Result::Ok(#ident::#item_ident) }
+                }
+                None => quote! { ::std::result::Result::Err(last_err.unwrap()) },
+            };
 
             let expanded = quote! {
                 #[#crate_name::__private::poem::async_trait]
@@ -549,7 +569,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     ) -> #crate_name::__private::poem::Result<Self> {
                         let mut last_err = ::std::option::Option::None;
                         #(#from_requests)*
-                        ::std::result::Result::Err(last_err.unwrap())
+                        #fallback
                     }
                 }
             };

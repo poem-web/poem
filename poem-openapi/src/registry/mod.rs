@@ -491,7 +491,7 @@ pub struct MetaOperation {
 
 #[derive(Debug, PartialEq)]
 pub struct MetaPath {
-    pub path: &'static str,
+    pub path: String,
     pub operations: Vec<MetaOperation>,
 }
 
@@ -565,7 +565,7 @@ impl Eq for MetaTag {}
 
 impl PartialOrd for MetaTag {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.name.partial_cmp(other.name)
+        Some(self.name.cmp(other.name))
     }
 }
 

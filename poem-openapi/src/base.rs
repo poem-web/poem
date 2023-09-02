@@ -42,7 +42,7 @@ impl Deref for UrlQuery {
 }
 
 impl UrlQuery {
-    #[allow(missing_docs)]
+    /// Returns all values with the specified name.
     pub fn get_all<'a, 'b: 'a>(&'b self, name: &'a str) -> impl Iterator<Item = &'b String> + 'a {
         self.0
             .iter()
@@ -50,7 +50,7 @@ impl UrlQuery {
             .map(|(_, value)| value)
     }
 
-    #[allow(missing_docs)]
+    /// Returns the first value with the specified name.
     pub fn get(&self, name: &str) -> Option<&String> {
         self.get_all(name).next()
     }

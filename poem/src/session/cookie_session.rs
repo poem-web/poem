@@ -53,7 +53,7 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
             .get_cookie_value(&cookie_jar)
             .and_then(|value| serde_json::from_str::<BTreeMap<String, Value>>(&value).ok())
             .map(Session::new)
-            .unwrap_or_else(Session::default);
+            .unwrap_or_default();
 
         req.extensions_mut().insert(session.clone());
         let resp = self.inner.call(req).await?;

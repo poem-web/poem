@@ -703,7 +703,7 @@ impl<T: IntoResponse> IntoResponse for (StatusCode, HeaderMap, T) {
     fn into_response(self) -> Response {
         let mut resp = self.2.into_response();
         resp.set_status(self.0);
-        resp.headers_mut().extend(self.1.into_iter());
+        resp.headers_mut().extend(self.1);
         resp
     }
 }
@@ -711,7 +711,7 @@ impl<T: IntoResponse> IntoResponse for (StatusCode, HeaderMap, T) {
 impl<T: IntoResponse> IntoResponse for (HeaderMap, T) {
     fn into_response(self) -> Response {
         let mut resp = self.1.into_response();
-        resp.headers_mut().extend(self.0.into_iter());
+        resp.headers_mut().extend(self.0);
         resp
     }
 }

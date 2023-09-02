@@ -31,7 +31,7 @@ impl<'a> Serialize for PathMap<'a> {
             for path in &api.paths {
                 match self.1 {
                     Some(p) => s.serialize_entry(&format!("{}{}", p, path.path), path)?,
-                    None => s.serialize_entry(path.path, path)?,
+                    None => s.serialize_entry(&path.path, path)?,
                 }
             }
         }

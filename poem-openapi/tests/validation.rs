@@ -187,8 +187,8 @@ fn test_pattern() {
     );
 
     let mut schema = MetaSchema::new("string");
-    validation::Pattern::new(r#"\[.*\]"#).update_meta(&mut schema);
-    assert_eq!(schema.pattern.as_deref(), Some(r#"\[.*\]"#));
+    validation::Pattern::new(r"\[.*\]").update_meta(&mut schema);
+    assert_eq!(schema.pattern.as_deref(), Some(r"\[.*\]"));
 }
 
 #[test]

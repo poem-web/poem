@@ -8,7 +8,6 @@ use opentelemetry::{
 };
 use opentelemetry_http::HeaderInjector;
 use poem::{
-    endpoint::PrometheusExporter,
     get, handler,
     http::Method,
     listener::TcpListener,
@@ -77,7 +76,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new()
         .at("/api1", get(index))
-        .at("/metrics", PrometheusExporter::new())
         .data(tracer.clone())
         .with(OpenTelemetryMetrics::new())
         .with(OpenTelemetryTracing::new(tracer));
