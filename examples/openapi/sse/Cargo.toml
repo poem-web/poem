@@ -8,6 +8,6 @@ publish = false
 async-stream = "0.3.2"
 futures-util.workspace = true
 poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi" }
+poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 tracing-subscriber.workspace = true

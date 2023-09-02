@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 poem = { path = "../../../poem" }
-poem-openapi = { path = "../../../poem-openapi" }
+poem-openapi = { path = "../../../poem-openapi", features = ["swagger-ui"] }
 sqlx = { version = "0.6.0", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tokio-stream.workspace = true
