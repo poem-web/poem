@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use poem::{http::HeaderValue, web::Field};
-use serde_json::{Number, Value};
+use serde_json::Value;
 
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
@@ -72,7 +72,7 @@ macro_rules! impl_type_for_floats {
 
         impl ToJSON for $ty {
             fn to_json(&self) -> Option<Value> {
-                Some(Value::Number(Number::from_f64(*self as f64).unwrap()))
+                Some(Value::from(*self))
             }
         }
 
