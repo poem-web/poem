@@ -906,3 +906,34 @@ async fn issue_489() {
         .await
         .assert_status(StatusCode::METHOD_NOT_ALLOWED);
 }
+
+#[tokio::test]
+/// should allow path be an empty string
+async fn empty_path() {
+    struct Api;
+
+    #[OpenApi(prefix_path = "/empty_path")]
+    impl Api {
+        #[oai(path = "", method = "get")]
+        async fn get_empty_path(&self) -> PlainText<String> {
+            PlainText(String::from("empty"))
+        }
+        #[oai(path = "/", method = "get")]
+        async fn get_empty_path_slash(&self) -> PlainText<String> {
+            PlainText(String::from("slash"))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+    cli.get("/empty_path")
+        .send()
+        .await
+        .assert_text("empty")
+        .await;
+    cli.get("/empty_path/")
+        .send()
+        .await
+        .assert_text("slash")
+        .await;
+}

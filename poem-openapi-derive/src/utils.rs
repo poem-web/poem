@@ -110,6 +110,9 @@ pub(crate) fn parse_oai_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResu
 }
 
 pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, String)> {
+    if path.is_empty() {
+        return Ok((String::new(), String::new()));
+    }
     if !path.starts_with('/') {
         return Err(Error::new(path.span(), "The path must start with '/'."));
     }
