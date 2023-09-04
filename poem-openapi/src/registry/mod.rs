@@ -491,7 +491,7 @@ pub struct MetaOperation {
 
 #[derive(Debug, PartialEq)]
 pub struct MetaPath {
-    pub path: &'static str,
+    pub path: String,
     pub operations: Vec<MetaOperation>,
 }
 

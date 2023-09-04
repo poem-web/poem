@@ -104,6 +104,30 @@ async fn common_attributes() {
         .send()
         .await
         .assert_status_is_ok();
+
+    const PREFIX: &str = "/hello2";
+
+    struct Api2;
+
+    #[OpenApi(prefix_path = PREFIX, tag = "MyTags::CommonOperations")]
+    impl Api2 {
+        #[oai(path = "/world", method = "get", tag = "MyTags::UserOperations")]
+        async fn test(&self) {}
+    }
+
+    let meta: MetaApi = Api2::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/hello2/world");
+    assert_eq!(
+        meta.paths[0].operations[0].tags,
+        vec!["CommonOperations", "UserOperations"]
+    );
+
+    let ep = OpenApiService::new(Api2, "test", "1.0");
+    TestClient::new(ep)
+        .get("/hello2/world")
+        .send()
+        .await
+        .assert_status_is_ok();
 }
 
 #[tokio::test]
