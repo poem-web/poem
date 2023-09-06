@@ -22,6 +22,7 @@ email = ["email_address"]
 hostname = ["hostname-validator"]
 static-files = ["poem/static-files"]
 websocket = ["poem/websocket"]
+arbitrary_precision = ["serde_json/arbitrary_precision"]
 
 [dependencies]
 poem-openapi-derive.workspace = true
