@@ -194,11 +194,11 @@ fn generate_operation(
     let (oai_path, new_path) = convert_oai_path(&path)?;
     let oai_path = prefix_path
         .as_ref()
-        .map(|prefix| quote! { (::std::string::ToString::to_string(#prefix) + #oai_path) })
+        .map(|prefix| quote! { #crate_name::__private::join_path(#prefix, #oai_path) })
         .unwrap_or_else(|| quote! { ::std::string::ToString::to_string(#oai_path) });
     let new_path: TokenStream = prefix_path
         .as_ref()
-        .map(|prefix| quote! { (::std::string::ToString::to_string(#prefix) + #new_path) })
+        .map(|prefix| quote! { #crate_name::__private::join_path(#prefix, #new_path) })
         .unwrap_or_else(|| quote! { ::std::string::ToString::to_string(#new_path) });
 
     if item_method.sig.inputs.is_empty() {
