@@ -114,7 +114,10 @@ pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, S
         return Ok((String::new(), String::new()));
     }
     if !path.starts_with('/') {
-        return Err(Error::new(path.span(), "The path must start with '/' or be empty."));
+        return Err(Error::new(
+            path.span(),
+            "The path must start with '/' or be empty.",
+        ));
     }
 
     let mut oai_path = String::new();
