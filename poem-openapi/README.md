@@ -67,6 +67,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | rust_decimal     | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
 | static-files     | Support for static file response                                                 |
 | websocket        | Support for websocket                                                            |
+| arbitrary_precision | Support the `arbitrary_precision` feature inside [`serde_json` crate](https://crates.io/crates/serde_json) |
 
 ## Safety
 
