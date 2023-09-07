@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.0.6] 2023-09-07
+
+- for `read-only` properties, can use `default` to specify a function for creating a default value. [#647](https://github.com/poem-web/poem/issues/647)
+
+```rust
+fn default_offset_datetime() -> OffsetDateTime {
+    OffsetDateTime::now_utc()
+}
+
+#[derive(Debug, Object, PartialEq)]
+struct Obj {
+    #[oai(read_only, default = "default_offset_datetime")]
+    time: OffsetDateTime,
+}
+```
+
 # [3.0.5] 2023-09-06
 
 - fixes [#648](https://github.com/poem-web/poem/issues/648)

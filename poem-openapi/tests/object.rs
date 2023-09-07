@@ -4,6 +4,7 @@ use poem_openapi::{
     Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
+use time::OffsetDateTime;
 
 fn get_meta<T: Type>() -> MetaSchema {
     let mut registry = Registry::new();
@@ -386,6 +387,31 @@ fn read_only() {
         .unwrap_err()
         .into_message(),
         r#"failed to parse "Obj": properties `id` is read only."#,
+    );
+}
+
+#[test]
+fn read_only_with_default() {
+    fn default_offset_datetime() -> OffsetDateTime {
+        OffsetDateTime::from_unix_timestamp(1694045893).unwrap()
+    }
+
+    #[derive(Debug, Object, PartialEq)]
+    struct Obj {
+        #[oai(read_only, default = "default_offset_datetime")]
+        time: OffsetDateTime,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.properties[0].0, "time");
+    assert!(meta.properties[0].1.unwrap_inline().read_only);
+    assert!(meta.properties[0].1.unwrap_inline().default.is_none());
+
+    assert_eq!(
+        Obj::parse_from_json(Some(serde_json::json!({}))).unwrap(),
+        Obj {
+            time: OffsetDateTime::from_unix_timestamp(1694045893).unwrap()
+        }
     );
 }
 
