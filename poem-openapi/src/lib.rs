@@ -134,6 +134,7 @@ pub mod validation;
 
 mod base;
 mod openapi;
+mod path_util;
 #[cfg(any(
     feature = "swagger-ui",
     feature = "rapidoc",
@@ -185,5 +186,5 @@ pub mod __private {
     pub use serde;
     pub use serde_json;
 
-    pub use crate::{auth::CheckerReturn, base::UrlQuery};
+    pub use crate::{auth::CheckerReturn, base::UrlQuery, path_util::join_path};
 }

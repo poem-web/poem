@@ -76,7 +76,7 @@ fn tag() {
 }
 
 #[tokio::test]
-async fn common_attributes() {
+async fn common_tags() {
     #[derive(Tags)]
     enum MyTags {
         UserOperations,
@@ -97,6 +97,24 @@ async fn common_attributes() {
         meta.paths[0].operations[0].tags,
         vec!["CommonOperations", "UserOperations"]
     );
+}
+
+#[tokio::test]
+async fn prefix_path() {
+    struct Api;
+
+    #[OpenApi(prefix_path = "/hello")]
+    impl Api {
+        #[oai(path = "/world", method = "get")]
+        async fn test(&self) {}
+
+        #[oai(path = "/", method = "get")]
+        async fn test1(&self) {}
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/hello/world");
+    assert_eq!(meta.paths[1].path, "/hello");
 
     let ep = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(ep)
@@ -105,26 +123,98 @@ async fn common_attributes() {
         .await
         .assert_status_is_ok();
 
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(ep)
+        .get("/hello")
+        .send()
+        .await
+        .assert_status_is_ok();
+
     const PREFIX: &str = "/hello2";
 
     struct Api2;
 
-    #[OpenApi(prefix_path = PREFIX, tag = "MyTags::CommonOperations")]
+    #[OpenApi(prefix_path = PREFIX)]
     impl Api2 {
-        #[oai(path = "/world", method = "get", tag = "MyTags::UserOperations")]
+        #[oai(path = "/world", method = "get")]
         async fn test(&self) {}
+
+        #[oai(path = "/", method = "get")]
+        async fn test1(&self) {}
     }
 
     let meta: MetaApi = Api2::meta().remove(0);
     assert_eq!(meta.paths[0].path, "/hello2/world");
-    assert_eq!(
-        meta.paths[0].operations[0].tags,
-        vec!["CommonOperations", "UserOperations"]
-    );
+    assert_eq!(meta.paths[1].path, "/hello2");
 
     let ep = OpenApiService::new(Api2, "test", "1.0");
     TestClient::new(ep)
         .get("/hello2/world")
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    let ep = OpenApiService::new(Api2, "test", "1.0");
+    TestClient::new(ep)
+        .get("/hello2")
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    struct Api3;
+
+    #[OpenApi(prefix_path = "/hello3/")]
+    impl Api3 {
+        #[oai(path = "/world", method = "get")]
+        async fn test(&self) {}
+
+        #[oai(path = "/", method = "get")]
+        async fn test1(&self) {}
+    }
+
+    let meta: MetaApi = Api3::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/hello3/world");
+    assert_eq!(meta.paths[1].path, "/hello3/");
+
+    let ep = OpenApiService::new(Api3, "test", "1.0");
+    TestClient::new(ep)
+        .get("/hello3/world")
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    let ep = OpenApiService::new(Api3, "test", "1.0");
+    TestClient::new(ep)
+        .get("/hello3/")
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    struct Api4;
+
+    #[OpenApi(prefix_path = "")]
+    impl Api4 {
+        #[oai(path = "/world", method = "get")]
+        async fn test(&self) {}
+
+        #[oai(path = "/", method = "get")]
+        async fn test1(&self) {}
+    }
+
+    let meta: MetaApi = Api4::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/world");
+    assert_eq!(meta.paths[1].path, "/");
+
+    let ep = OpenApiService::new(Api4, "test", "1.0");
+    TestClient::new(ep)
+        .get("/world")
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    let ep = OpenApiService::new(Api4, "test", "1.0");
+    TestClient::new(ep)
+        .get("/")
         .send()
         .await
         .assert_status_is_ok();
