@@ -107,7 +107,6 @@
 //! | bson        | Integrate with the [`bson` crate](https://crates.io/crates/bson) |
 //! | rust_decimal | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
 //! | static-files | Support for static file response |
-//! | arbitrary_precision | Support the `arbitrary_precision` feature inside [`serde_json` crate](https://crates.io/crates/serde_json) |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
