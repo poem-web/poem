@@ -20,9 +20,9 @@ impl MaxProperties {
     }
 }
 
-impl<K, V> Validator<HashMap<K, V>> for MaxProperties {
+impl<K, V, R> Validator<HashMap<K, V, R>> for MaxProperties {
     #[inline]
-    fn check(&self, value: &HashMap<K, V>) -> bool {
+    fn check(&self, value: &HashMap<K, V, R>) -> bool {
         value.len() <= self.len
     }
 }
