@@ -1,5 +1,10 @@
-use std::{borrow::Cow, collections::HashMap, fmt::Display, hash::Hash, str::FromStr};
-use std::hash::BuildHasher;
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    fmt::Display,
+    hash::{BuildHasher, Hash},
+    str::FromStr,
+};
 
 use serde_json::Value;
 
