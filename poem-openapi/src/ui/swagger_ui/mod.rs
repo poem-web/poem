@@ -12,7 +12,6 @@ const SWAGGER_UI_TEMPLATE: &str = r#"
     <style charset="UTF-8">{:style}</style>
     <script charset="UTF-8">{:script}</script>
 </head>
-</html>
 <body>
 
 <div id="ui"></div>
@@ -41,6 +40,7 @@ const SWAGGER_UI_TEMPLATE: &str = r#"
 </script>
 
 </body>
+</html>
 "#;
 
 pub(crate) fn create_html(document: &str) -> String {
