@@ -20,9 +20,9 @@ impl MinProperties {
     }
 }
 
-impl<K, V> Validator<HashMap<K, V>> for MinProperties {
+impl<K, V, R> Validator<HashMap<K, V, R>> for MinProperties {
     #[inline]
-    fn check(&self, value: &HashMap<K, V>) -> bool {
+    fn check(&self, value: &HashMap<K, V, R>) -> bool {
         value.len() >= self.len
     }
 }
