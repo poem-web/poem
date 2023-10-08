@@ -1,6 +1,12 @@
-use std::{io::Result, path::Path};
+use std::{
+    fs::{set_permissions, Permissions},
+    io::Result,
+    path::Path,
+};
 
 use http::uri::Scheme;
+use nix::unistd::chown;
+use nix::unistd::{Gid, Uid};
 use tokio::{
     io::Result as IoResult,
     net::{UnixListener as TokioUnixListener, UnixStream},
@@ -15,21 +21,63 @@ use crate::{
 #[cfg_attr(docsrs, doc(cfg(unix)))]
 pub struct UnixListener<T> {
     path: T,
+    permissions: Option<Permissions>,
+    owner: Option<(Option<Uid>, Option<Gid>)>,
 }
 
 impl<T> UnixListener<T> {
     /// Binds to the provided address, and returns a [`UnixListener<T>`].
     pub fn bind(path: T) -> Self {
-        Self { path }
+        Self {
+            path,
+            permissions: None,
+            owner: None,
+        }
+    }
+
+    /// Provides permissions to be set on actual bind
+    pub fn with_permissions(self, permissions: Permissions) -> Self {
+        Self {
+            permissions: Some(permissions),
+            ..self
+        }
+    }
+
+    #[cfg(unix)]
+    /// Provides owner to be set on actual bind
+    pub fn with_owner(self, uid: Option<u32>, gid: Option<u32>) -> Self {
+        Self {
+            owner: Some((uid.map(|v| Uid::from_raw(v)), gid.map(|v| Gid::from_raw(v)))),
+            ..self
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl<T: AsRef<Path> + Send> Listener for UnixListener<T> {
+impl<T: AsRef<Path> + Send + Clone> Listener for UnixListener<T> {
     type Acceptor = UnixAcceptor;
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
-        let listener = TokioUnixListener::bind(self.path)?;
+        let listener = match (self.permissions, self.owner) {
+            (Some(permissions), Some((uid, gid))) => {
+                let listener = TokioUnixListener::bind(self.path.clone())?;
+                set_permissions(self.path.clone(), permissions)?;
+                chown(self.path.as_ref().as_os_str().into(), uid, gid)?;
+                listener
+            }
+            (Some(permissions), None) => {
+                let listener = TokioUnixListener::bind(self.path.clone())?;
+                set_permissions(self.path.clone(), permissions)?;
+                listener
+            }
+            (None, Some((uid, gid))) => {
+                let listener = TokioUnixListener::bind(self.path.clone())?;
+                chown(self.path.as_ref().as_os_str().into(), uid, gid)?;
+                listener
+            }
+            (None, None) => TokioUnixListener::bind(self.path)?,
+        };
+
         let local_addr = listener.local_addr().map(|addr| LocalAddr(addr.into()))?;
         Ok(UnixAcceptor {
             local_addr,
