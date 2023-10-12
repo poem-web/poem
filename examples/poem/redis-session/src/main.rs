@@ -20,13 +20,13 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let client = Client::open("redis://127.0.0.1/").unwrap();
+    let client = Client::open("redis://0.0.0.0/").unwrap();
 
     let app = Route::new().at("/", get(count)).with(ServerSession::new(
         CookieConfig::default().secure(false),
         RedisStorage::new(ConnectionManager::new(client).await.unwrap()),
     ));
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
 }

@@ -61,7 +61,7 @@
 //! let app = Route::new().nest("/", api_service).nest("/docs", ui);
 //!
 //! # tokio::runtime::Runtime::new().unwrap().block_on(async {
-//! Server::new(TcpListener::bind("127.0.0.1:3000"))
+//! Server::new(TcpListener::bind("0.0.0.0:3000"))
 //!     .run(app)
 //!     .await;
 //! # });

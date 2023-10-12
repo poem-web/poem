@@ -51,7 +51,7 @@ async fn main() -> Result<(), std::io::Error> {
         .at("/welcome_hashmap/:name", get(welcome_hashmap))
         .with(Tracing)
         .data(resources);
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .name("hello-world")
         .run(app)
         .await

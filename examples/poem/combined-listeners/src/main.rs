@@ -17,8 +17,8 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let app = Route::new().at("/", get(hello));
-    let listener = TcpListener::bind("127.0.0.1:3000")
-        .combine(TcpListener::bind("127.0.0.1:3001"))
-        .combine(TcpListener::bind("127.0.0.1:3002"));
+    let listener = TcpListener::bind("0.0.0.0:3000")
+        .combine(TcpListener::bind("0.0.0.0:3001"))
+        .combine(TcpListener::bind("0.0.0.0:3002"));
     Server::new(listener).run(app).await
 }

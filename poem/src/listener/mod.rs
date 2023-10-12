@@ -143,7 +143,7 @@ pub trait Listener: Send {
     /// ```
     /// use poem::listener::{Listener, TcpListener};
     ///
-    /// let listener = TcpListener::bind("127.0.0.1:80").combine(TcpListener::bind("127.0.0.1:81"));
+    /// let listener = TcpListener::bind("0.0.0.0:80").combine(TcpListener::bind("0.0.0.0:81"));
     /// ```
     #[must_use]
     fn combine<T>(self, other: T) -> Combined<Self, T>
