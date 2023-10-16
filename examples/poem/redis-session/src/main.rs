@@ -20,7 +20,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let client = Client::open("redis://0.0.0.0/").unwrap();
+    let client = Client::open("redis://127.0.0.1/").unwrap();
 
     let app = Route::new().at("/", get(count)).with(ServerSession::new(
         CookieConfig::default().secure(false),

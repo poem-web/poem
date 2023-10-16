@@ -42,7 +42,7 @@ fn index() -> Html<&'static str> {
             sendForm.hidden = false;
             msgsArea.hidden = false;
             msgInput.focus();
-            ws = new WebSocket("ws://0.0.0.0:3000/ws/" + nameInput.value);
+            ws = new WebSocket("ws://127.0.0.1:3000/ws/" + nameInput.value);
             ws.onmessage = function(event) {
                 msgsArea.value += event.data + "\r\n";
             }

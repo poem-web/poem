@@ -60,7 +60,7 @@ async fn main() -> io::Result<()> {
     }
     tracing_subscriber::fmt::init();
 
-    let mongodb = Client::with_uri_str("mongodb://0.0.0.0:27017")
+    let mongodb = Client::with_uri_str("mongodb://127.0.0.1:27017")
         .await
         .unwrap()
         .database("test");
