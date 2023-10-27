@@ -745,7 +745,7 @@ impl<T: Endpoint> IntoEndpoint for T {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use http::{HeaderValue, Uri};
 
     use crate::{
