@@ -3,22 +3,64 @@ name: Rust
 on:
   push:
     branches: [ "master" ]
+    paths:
+      - "**/Cargo.toml"
   pull_request:
     branches: [ "master" ]
+    paths:
+      - "**/Cargo.toml"
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
-    steps:
-    - uses: actions/checkout@v3
-    - name: Env
-      run: apt-get install protobuf-compiler
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    strategy:
+          fail-fast: false
+          max-parallel: 1
+          matrix:
+            package:
+              - name: poem-derive
+                registryName: poem-derive
+                path: poem-derive
+              - name: poem
+                registryName: poem
+                path: poem
+              - name: poem-lambda
+                registryName: poem-lambda
+                path: poem-lambda
+              - name: poem-openapi-derive
+                registryName: poem-openapi-derive
+                path: poem-openapi-derive
+              - name: poem-openapi
+                registryName: poem-openapi
+                path: poem-openapi
+              - name: poem-grpc-build
+                registryName: poem-grpc-build
+                path: poem-grpc-build
+              - name: poem-grpc
+                registryName: poem-grpc
+                path: poem-grpc
+        steps:
+          - uses: dtolnay/rust-toolchain@stable
+            with:
+              toolchain: stable
+          - name: Checkout
+            uses: actions/checkout@v3
+          - name: Install Protoc
+            if: matrix.package.name == 'poem-grpc'
+            uses: arduino/setup-protoc@v1
+          - name: Get Version
+            working-directory: ${{ matrix.package.path }}
+            run: echo PACKAGE_VERSION=$(sed -nE 's/^\s*version = "(.*?)"/\1/p' Cargo.toml) >> $GITHUB_ENV
+          - name: Check Published Version
+            run: echo PUBLISHED_VERSION=$(cargo search ${{ matrix.package.registryName }} --limit 1 | sed -nE 's/^[^"]*"//; s/".*//1p' -) >> $GITHUB_ENV
+          - name: Cargo Package
+            if: env.PACKAGE_VERSION != env.PUBLISHED_VERSION
+            working-directory: ${{ matrix.package.path }}
+            run: |
+              cargo package
+              echo "We will publish:" $PACKAGE_VERSION
+              echo "This is current latest:" $PUBLISHED_VERSION
