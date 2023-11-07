@@ -151,6 +151,12 @@ impl<T> MaybeUndefined<T> {
         matches!(self, MaybeUndefined::Value(_))
     }
 
+    /// Returns true if the `MaybeUndefined<T>` contains value or is null.
+    #[inline]
+    pub const fn is_value_or_null(&self) -> bool {
+        matches!(self, MaybeUndefined::Value(_)) || matches!(self, MaybeUndefined::Null)
+    }
+
     /// Returns `None` if the the `MaybeUndefined<T>` is
     /// `undefined` or `null`, otherwise returns `Some(&T)`.
     #[inline]
