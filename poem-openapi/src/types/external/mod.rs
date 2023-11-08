@@ -28,3 +28,5 @@ mod url;
 #[cfg(feature = "uuid")]
 mod uuid;
 mod vec;
+#[cfg(feature = "prost-wkt-types")]
+mod prost_wkt_types;
