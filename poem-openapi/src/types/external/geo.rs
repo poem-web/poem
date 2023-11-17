@@ -82,3 +82,34 @@ impl_geojson_types!(LineString, "LineString", Vec<[T; 2]>);
 impl_geojson_types!(MultiLineString, "MultiLineString", Vec<Vec<[T; 2]>>);
 impl_geojson_types!(Polygon, "Polygon", Vec<Vec<[T; 2]>>);
 impl_geojson_types!(MultiPolygon, "MultiPolygon", Vec<Vec<Vec<[T; 2]>>>);
+
+#[cfg(test)]
+mod tests {
+    use geo_types::Point;
+
+    use crate::types::{ParseFromJSON, ToJSON};
+
+    fn point_geo() -> Point {
+        Point::new(1.0, 2.0)
+    }
+
+    fn point_json() -> serde_json::Value {
+        serde_json::json!({
+            "type": "Point",
+            "coordinates": [1.0, 2.0]
+        })
+    }
+
+    #[test]
+    fn serializes_geo_to_json() {
+        assert_eq!(point_json(), point_geo().to_json().unwrap())
+    }
+
+    #[test]
+    fn deserializes_json_to_geo() {
+        assert_eq!(
+            Point::parse_from_json(Some(point_json())).unwrap(),
+            point_geo()
+        )
+    }
+}
