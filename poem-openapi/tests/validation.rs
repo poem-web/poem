@@ -128,6 +128,18 @@ fn test_max_length() {
         }
     );
     assert_eq!(
+        A::parse_from_json(Some(json!({ "value": "abcde" }))).unwrap(),
+        A {
+            value: "abcde".to_string()
+        }
+    );
+    assert_eq!(
+        A::parse_from_json(Some(json!({ "value": "שלום!" }))).unwrap(),
+        A {
+            value: "שלום!".to_string()
+        }
+    );
+    assert_eq!(
         A::parse_from_json(Some(json!({ "value": "abcdef" })))
             .unwrap_err()
             .into_message(),
@@ -148,6 +160,12 @@ fn test_min_length() {
     }
 
     assert_eq!(
+        A::parse_from_json(Some(json!({ "value": "abcde" }))).unwrap(),
+        A {
+            value: "abcde".to_string()
+        }
+    );
+    assert_eq!(
         A::parse_from_json(Some(json!({ "value": "abcdef" }))).unwrap(),
         A {
             value: "abcdef".to_string()
@@ -155,6 +173,12 @@ fn test_min_length() {
     );
     assert_eq!(
         A::parse_from_json(Some(json!({ "value": "abcd" })))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"A\": field `value` verification failed. minLength(5)"
+    );
+    assert_eq!(
+        A::parse_from_json(Some(json!({ "value": "שלום" })))
             .unwrap_err()
             .into_message(),
         "failed to parse \"A\": field `value` verification failed. minLength(5)"
