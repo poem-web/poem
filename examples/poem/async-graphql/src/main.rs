@@ -39,7 +39,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     println!("Playground: http://localhost:3000");
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
 }

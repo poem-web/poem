@@ -19,7 +19,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new().at("/", get(index));
 
-    let listener = TcpListener::bind("127.0.0.1:3000").rustls(async_stream::stream! {
+    let listener = TcpListener::bind("0.0.0.0:3000").rustls(async_stream::stream! {
         loop {
             if let Ok(tls_config) = load_tls_config() {
                 yield tls_config;
