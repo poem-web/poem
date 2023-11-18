@@ -2,8 +2,10 @@ use std::borrow::Cow;
 
 use prost_wkt_types::Value;
 
-use crate::registry::{MetaSchema, MetaSchemaRef};
-use crate::types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type};
+use crate::{
+    registry::{MetaSchema, MetaSchemaRef},
+    types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type},
+};
 
 impl Type for prost_wkt_types::Struct {
     const IS_REQUIRED: bool = true;
@@ -29,7 +31,7 @@ impl Type for prost_wkt_types::Struct {
 
     fn raw_element_iter<'a>(
         &'a self,
-    ) -> Box<dyn Iterator<Item=&'a Self::RawElementValueType> + 'a> {
+    ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
         self.fields.raw_element_iter()
     }
 
@@ -42,7 +44,8 @@ impl ParseFromJSON for prost_wkt_types::Struct {
     fn parse_from_json(value: Option<serde_json::Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
         if let serde_json::Value::Object(_) = &value {
-            serde_json::from_value::<prost_wkt_types::Struct>(value).map_err(|e| ParseError::custom(e.to_string()))
+            serde_json::from_value::<prost_wkt_types::Struct>(value)
+                .map_err(|e| ParseError::custom(e.to_string()))
         } else {
             Err(ParseError::expected_type(value))
         }
@@ -75,7 +78,8 @@ mod tests {
                 "f5": {"fa": "Hello"},
                 "f6": [1,2,3]
             }
-        ))).unwrap();
+        )))
+        .unwrap();
 
         assert_eq!(
             prost_struct.fields.get("f1").unwrap(),
@@ -85,27 +89,22 @@ mod tests {
             prost_struct.fields.get("f2").unwrap(),
             &Value::string("Hi".to_string())
         );
-        assert_eq!(
-            prost_struct.fields.get("f3").unwrap(),
-            &Value::bool(true)
-        );
-        assert_eq!(
-            prost_struct.fields.get("f4").unwrap(),
-            &Value::null()
-        );
+        assert_eq!(prost_struct.fields.get("f3").unwrap(), &Value::bool(true));
+        assert_eq!(prost_struct.fields.get("f4").unwrap(), &Value::null());
         assert_eq!(
             prost_struct.fields.get("f5").unwrap(),
-            &Value::pb_struct(
-                HashMap::from([("fa".into(), Value::string("Hello".into()))])
-            )
+            &Value::pb_struct(HashMap::from([(
+                "fa".into(),
+                Value::string("Hello".into())
+            )]))
         );
         assert_eq!(
             prost_struct.fields.get("f6").unwrap(),
-            &Value::pb_list(
-                vec![Value::number(1_f64),
-                     Value::number(2_f64),
-                     Value::number(3_f64)]
-            )
+            &Value::pb_list(vec![
+                Value::number(1_f64),
+                Value::number(2_f64),
+                Value::number(3_f64)
+            ])
         );
     }
 }

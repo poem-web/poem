@@ -19,6 +19,8 @@ mod humantime;
 mod integers;
 mod ip;
 mod optional;
+#[cfg(feature = "prost-wkt-types")]
+mod prost_wkt_types;
 mod regex;
 mod slice;
 mod string;
@@ -30,5 +32,3 @@ mod url;
 #[cfg(feature = "uuid")]
 mod uuid;
 mod vec;
-#[cfg(feature = "prost-wkt-types")]
-mod prost_wkt_types;

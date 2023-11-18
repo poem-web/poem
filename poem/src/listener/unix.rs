@@ -5,8 +5,7 @@ use std::{
 };
 
 use http::uri::Scheme;
-use nix::unistd::chown;
-use nix::unistd::{Gid, Uid};
+use nix::unistd::{chown, Gid, Uid};
 use tokio::{
     io::Result as IoResult,
     net::{UnixListener as TokioUnixListener, UnixStream},
