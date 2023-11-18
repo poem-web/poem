@@ -10,7 +10,7 @@ use proto::{
 
 use crate::{include_file_descriptor_set, Code, Request, Response, Service, Status, Streaming};
 
-#[allow(private_in_public, unreachable_pub)]
+#[allow(unreachable_pub)]
 #[allow(clippy::enum_variant_names)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 mod proto {
