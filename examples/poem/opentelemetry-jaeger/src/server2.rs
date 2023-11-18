@@ -1,7 +1,5 @@
-use opentelemetry::{
-    global,
-    sdk::{propagation::TraceContextPropagator, trace::Tracer},
-};
+use opentelemetry::global;
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer};
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -15,7 +13,7 @@ fn init_tracer() -> Tracer {
         .with_service_name("poem")
         .with_endpoint("http://localhost:14268/api/traces")
         .with_hyper()
-        .install_batch(opentelemetry::runtime::Tokio)
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
         .unwrap()
 }
 

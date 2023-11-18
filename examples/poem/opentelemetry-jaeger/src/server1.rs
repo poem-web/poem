@@ -2,11 +2,11 @@ use std::str::FromStr;
 
 use opentelemetry::{
     global,
-    sdk::{propagation::TraceContextPropagator, trace::Tracer},
     trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _},
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer};
 use poem::{
     get, handler,
     http::Method,
@@ -23,7 +23,7 @@ fn init_tracer() -> Tracer {
         .with_service_name("poem")
         .with_endpoint("http://localhost:14268/api/traces")
         .with_hyper()
-        .install_batch(opentelemetry::runtime::Tokio)
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
         .unwrap()
 }
 
