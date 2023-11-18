@@ -34,7 +34,7 @@ async fn main() -> Result<(), std::io::Error> {
         .at("/a", get(a).with(metrics_a))
         .at("/b", get(b).with(metrics_b))
         .with(Tracing);
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
 }

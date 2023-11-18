@@ -91,7 +91,7 @@ async fn main() -> Result<(), std::io::Error> {
         OpenApiService::new(Api, "Authorization Demo", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(
             Route::new()
                 .at("/proxy", oauth_token_url_proxy)

@@ -102,7 +102,7 @@ async fn main() -> Result<(), std::io::Error> {
         get(ws.data(tokio::sync::broadcast::channel::<String>(32).0)),
     );
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
 }

@@ -63,6 +63,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | hostname         | Support for hostname string                                                      |
 | uuid             | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                 |
 | url              | Integrate with the [`url` crate](https://crates.io/crates/url)                   |
+| geo              | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)       |
 | bson             | Integrate with the [`bson` crate](https://crates.io/crates/bson)                 |
 | rust_decimal     | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
 | static-files     | Support for static file response                                                 |
@@ -98,7 +99,7 @@ async fn main() -> Result<(), std::io::Error> {
     let ui = api_service.swagger_ui();
     let app = Route::new().nest("/api", api_service).nest("/", ui);
 
-    poem::Server::new(TcpListener::bind("127.0.0.1:3000"))
+    poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
 }

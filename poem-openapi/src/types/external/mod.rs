@@ -10,6 +10,8 @@ mod chrono;
 #[cfg(feature = "rust_decimal")]
 mod decimal;
 mod floats;
+#[cfg(feature = "geo")]
+mod geo;
 mod hashmap;
 mod hashset;
 #[cfg(feature = "humantime")]
