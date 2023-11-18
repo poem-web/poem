@@ -24,7 +24,7 @@ syn = { workspace = true, features = ["full", "visit-mut"] }
 thiserror.workspace = true
 indexmap.workspace = true
 regex.workspace = true
-http = "0.2.5"
+http = "1.0.0"
 mime.workspace = true
 
 [package.metadata.workspaces]

@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use libopentelemetry::{
     global,
+    propagation::Extractor,
     trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
     Context, Key,
 };
-use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{resource, trace};
 
 use crate::{
@@ -50,6 +50,21 @@ where
 pub struct OpenTelemetryTracingEndpoint<T, E> {
     tracer: Arc<T>,
     inner: E,
+}
+
+struct HeaderExtractor<'a>(&'a http::HeaderMap);
+
+impl<'a> Extractor for HeaderExtractor<'a> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|value| value.to_str().ok())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0
+            .keys()
+            .map(|value| value.as_str())
+            .collect::<Vec<_>>()
+    }
 }
 
 #[async_trait::async_trait]

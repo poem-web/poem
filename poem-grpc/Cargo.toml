@@ -21,9 +21,8 @@ json-codec = ["serde", "serde_json"]
 poem = { workspace = true, default-features = true }
 
 futures-util.workspace = true
-hyper = { version = "0.14.20", features = ["client"] }
 async-stream = "0.3.3"
-tokio = { workspace = true, features = ["io-util", "rt", "sync"] }
+tokio = { workspace = true, features = ["io-util", "rt", "sync", "net"] }
 flate2 = "1.0.24"
 itoa = "1.0.2"
 percent-encoding = "2.1.0"
@@ -32,16 +31,18 @@ prost = "0.12.0"
 base64 = "0.21.0"
 prost-types = "0.12.0"
 tokio-stream = { workspace = true, features = ["sync"] }
-hyper-rustls = { workspace = true, features = [
-    "webpki-roots",
-    "http2",
-    "native-tokio",
-] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-rustls.workspace = true
+rustls = { workspace = true }
 thiserror.workspace = true
 fastrand = "2.0.0"
+http = "1.0.0"
+hyper = { version = "1.0.0", features = ["http1", "http2"] }
+hyper-util = { version = "0.1.1", features = ["client-legacy", "tokio"] }
+http-body-util = "0.1.0"
+tokio-rustls.workspace = true
+tower-service = "0.3.2"
+webpki-roots = "0.26"
 
 [build-dependencies]
 poem-grpc-build.workspace = true

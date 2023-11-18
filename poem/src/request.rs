@@ -1,5 +1,4 @@
 use std::{
-    any::Any,
     fmt::{self, Debug, Formatter},
     future::Future,
     io::Error,
@@ -9,6 +8,8 @@ use std::{
 };
 
 use http::uri::Scheme;
+use http_body_util::BodyExt;
+use hyper::{body::Incoming, rt::Write as _};
 use parking_lot::Mutex;
 use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -16,7 +17,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
 use crate::{
-    body::Body,
+    body::{Body, BoxBody},
     error::{ParsePathError, ParseQueryError, UpgradeError},
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
@@ -108,10 +109,10 @@ impl Debug for Request {
     }
 }
 
-impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr, Scheme)> for Request {
+impl From<(http::Request<Incoming>, LocalAddr, RemoteAddr, Scheme)> for Request {
     fn from(
         (req, local_addr, remote_addr, scheme): (
-            http::Request<hyper::Body>,
+            http::Request<Incoming>,
             LocalAddr,
             RemoteAddr,
             Scheme,
@@ -131,7 +132,7 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr, Scheme)> for Reque
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body: Body(body),
+            body: Body(body.map_err(|err| Error::other(err)).boxed()),
             state: RequestState {
                 local_addr,
                 remote_addr,
@@ -146,13 +147,13 @@ impl From<(http::Request<hyper::Body>, LocalAddr, RemoteAddr, Scheme)> for Reque
     }
 }
 
-impl From<Request> for hyper::Request<hyper::Body> {
+impl From<Request> for hyper::Request<BoxBody> {
     fn from(req: Request) -> Self {
         let mut hyper_req = http::Request::builder()
             .method(req.method)
             .uri(req.uri)
             .version(req.version)
-            .body(req.body.into())
+            .body(req.body.0)
             .unwrap();
         *hyper_req.headers_mut() = req.headers;
         *hyper_req.extensions_mut() = req.extensions;
@@ -372,7 +373,7 @@ impl Request {
     /// Inserts a value to extensions, similar to
     /// `self.extensions().insert(data)`.
     #[inline]
-    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+    pub fn set_data(&mut self, data: impl Clone + Send + Sync + 'static) {
         self.extensions.insert(data);
     }
 
@@ -490,7 +491,7 @@ impl AsyncRead for Upgraded {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<std::io::Result<()>> {
-        self.project().stream.poll_read(cx, buf)
+        Pin::new(&mut hyper_util::rt::TokioIo::new(self.project().stream)).poll_read(cx, buf)
     }
 }
 
@@ -597,7 +598,7 @@ impl RequestBuilder {
     #[must_use]
     pub fn extension<T>(mut self, extension: T) -> Self
     where
-        T: Any + Send + Sync + 'static,
+        T: Clone + Send + Sync + 'static,
     {
         self.extensions.insert(extension);
         self

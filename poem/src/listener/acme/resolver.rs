@@ -30,7 +30,7 @@ pub fn seconds_until_expiry(cert: &CertifiedKey) -> i64 {
 }
 
 /// Shared ACME key state.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ResolveServerCert {
     /// The current TLS certificate. Swap it with `Arc::write`.
     pub cert: RwLock<Option<Arc<CertifiedKey>>>,

@@ -21,7 +21,7 @@ categories = [
 [features]
 default = ["server"]
 
-server = ["tokio/rt", "tokio/net", "hyper/server", "hyper/runtime"]
+server = ["tokio/rt", "tokio/net", "hyper/server"]
 websocket = ["tokio/rt", "tokio-tungstenite", "base64"]
 multipart = ["multer"]
 rustls = ["server", "tokio-rustls", "rustls-pemfile"]
@@ -51,14 +51,13 @@ i18n = [
     "intl-memoizer",
 ]
 acme = ["acme-native-roots"]
-acme-native-roots = ["acme-base", "hyper-rustls/native-tokio"]
-acme-webpki-roots = ["acme-base", "hyper-rustls/webpki-tokio"]
+acme-native-roots = ["acme-base", "reqwest/rustls-tls-native-roots"]
+acme-webpki-roots = ["acme-base", "reqwest/rustls-tls-webpki-roots"]
 acme-base = [
     "server",
-    "hyper/client",
+    "reqwest",
     "rustls",
     "ring",
-    "hyper-rustls",
     "base64",
     "rcgen",
     "x509-parser",
@@ -74,8 +73,10 @@ poem-derive.workspace = true
 async-trait = "0.1.51"
 bytes.workspace = true
 futures-util = { workspace = true, features = ["sink"] }
-http = "0.2.5"
-hyper = { version = "0.14.17", features = ["http1", "http2", "stream"] }
+http = "1.0.0"
+hyper = { version = "1.0.0", features = ["http1", "http2"] }
+hyper-util = { version = "0.1.1", features = ["server-auto", "tokio"] }
+http-body-util = "0.1.0"
 tokio = { workspace = true, features = ["sync", "time", "macros", "net"] }
 tokio-util = { version = "0.7.0", features = ["io"] }
 serde.workspace = true
@@ -87,15 +88,16 @@ percent-encoding = "2.1.0"
 regex.workspace = true
 smallvec = "1.6.1"
 tracing.workspace = true
-headers = "0.3.7"
+headers = "0.4.0"
 thiserror.workspace = true
 rfc7239 = "0.1.0"
 mime.workspace = true
 wildmatch = "2"
+sync_wrapper = { version = "0.1.2", features = ["futures"] }
 
 # Non-feature optional dependencies
-multer = { version = "2.1.0", features = ["tokio"], optional = true }
-tokio-tungstenite = { version = "0.20.0", optional = true }
+multer = { version = "3.0.0", features = ["tokio"], optional = true }
+tokio-tungstenite = { version = "0.21.0", optional = true }
 tokio-rustls = { workspace = true, optional = true }
 rustls-pemfile = { version = "1.0.0", optional = true }
 async-compression = { version = "0.4.0", optional = true, features = [
@@ -148,12 +150,7 @@ fluent-syntax = { version = "0.11.0", optional = true }
 unic-langid = { version = "0.9.0", optional = true, features = ["macros"] }
 intl-memoizer = { version = "0.5.1", optional = true }
 ring = { version = "0.16.20", optional = true }
-hyper-rustls = { workspace = true, optional = true, features = [
-    "http1",
-    "http2",
-    "tls12",
-    "logging",
-] }
+reqwest = { workspace = true, features = ["json"], optional = true }
 rcgen = { version = "0.11.1", optional = true }
 x509-parser = { version = "0.15.0", optional = true }
 tokio-metrics = { version = "0.3.0", optional = true }

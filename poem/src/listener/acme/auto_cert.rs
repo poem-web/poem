@@ -3,15 +3,13 @@ use std::{
     path::PathBuf,
 };
 
-use http::Uri;
-
 use crate::listener::acme::{
     builder::AutoCertBuilder, endpoint::Http01Endpoint, ChallengeType, Http01TokensMap,
 };
 
 /// ACME configuration
 pub struct AutoCert {
-    pub(crate) directory_url: Uri,
+    pub(crate) directory_url: String,
     pub(crate) domains: Vec<String>,
     pub(crate) contacts: Vec<String>,
     pub(crate) challenge_type: ChallengeType,

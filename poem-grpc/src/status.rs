@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use hyper::{header::HeaderValue, HeaderMap};
+use http::{header::HeaderValue, HeaderMap};
 use percent_encoding::{percent_decode_str, percent_encode, AsciiSet, CONTROLS};
 
 use crate::Metadata;
