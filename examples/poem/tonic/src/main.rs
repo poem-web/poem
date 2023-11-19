@@ -4,6 +4,7 @@ use hello_world::{
 };
 use poem::{endpoint::TowerCompatExt, listener::TcpListener, Route, Server};
 use tonic::{Request, Response, Status};
+use tower::buffer::Buffer;
 
 pub mod hello_world {
     tonic::include_proto!("helloworld");
@@ -31,13 +32,13 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app = Route::new().nest_no_strip(
-        "/",
+    let service = Buffer::new(
         tonic::transport::Server::builder()
             .add_service(GreeterServer::new(MyGreeter))
-            .into_service()
-            .compat(),
+            .into_service(),
+        1024,
     );
+    let app = Route::new().nest_no_strip("/", service.compat());
 
     Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
