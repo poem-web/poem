@@ -139,7 +139,7 @@ impl Cors {
 
     /// Add an allowed origin that supports '*' wildcard.
     /// Example: `rust cors.allow_origin_regex("https://*.domain.url")`
-    fn allow_origin_regex(mut self, origin: impl AsRef<str>) -> Self {
+    pub fn allow_origin_regex(mut self, origin: impl AsRef<str>) -> Self {
         self.allow_origins_wildcard
             .push(WildMatch::new(origin.as_ref()));
         self
@@ -568,7 +568,6 @@ mod tests {
         let ep =
             make_sync(|_| "hello").with(Cors::new().allow_origin_regex("https://*example.com"));
         let cli = TestClient::new(ep);
-
         let resp = cli
             .get("/")
             .header(header::ORIGIN, "https://example.mx")
@@ -586,7 +585,7 @@ mod tests {
             header::ACCESS_CONTROL_ALLOW_ORIGIN,
             "https://test.example.com",
         );
-        resp.assert_header_is_not_exist(header::VARY);
+        resp.assert_header(header::VARY, "Origin");
 
         let resp = cli
             .get("/")
