@@ -91,6 +91,7 @@ headers = "0.3.7"
 thiserror.workspace = true
 rfc7239 = "0.1.0"
 mime.workspace = true
+wildmatch = "2"
 
 # Non-feature optional dependencies
 multer = { version = "2.1.0", features = ["tokio"], optional = true }
