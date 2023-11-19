@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - added permissions and owner to UnixListener [#668](https://github.com/poem-web/poem/pull/668)
 - In the examples, listen on `0.0.0.0`` instead of `127.0.0.1``[#672](https://github.com/poem-web/poem/pull/672)
+- Add support for wildcard '*' in cors domains [#563](https://github.com/poem-web/poem/pull/563)
 
 
 # [1.3.58] 2023-09-02
