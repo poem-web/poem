@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "3.0.5"
+version = "3.0.6"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
