@@ -14,7 +14,7 @@ categories = ["network-programming", "asynchronous"]
 
 [dependencies]
 prettyplease = "0.2.9"
-prost-build = "0.11.1"
+prost-build = "0.12.0"
 quote.workspace = true
 proc-macro2.workspace = true
 syn.workspace = true
