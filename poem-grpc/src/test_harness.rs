@@ -1,4 +1,4 @@
-#[allow(private_in_public, unreachable_pub)]
+#[allow(unreachable_pub)]
 mod proto {
     include!(concat!(env!("OUT_DIR"), "/test_harness.rs"));
 }

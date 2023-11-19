@@ -61,7 +61,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
       - name: Install Protoc
-        if: matrix.package.name == 'poem-grpc'
+        if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
         uses: arduino/setup-protoc@v1
 
       # Do tests

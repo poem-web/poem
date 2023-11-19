@@ -22,7 +22,7 @@ async fn main() -> Result<(), std::io::Error> {
     tracing_subscriber::fmt::init();
 
     let app = Route::new().at("/hello", post(hello));
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
 }

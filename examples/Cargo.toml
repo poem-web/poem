@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = ["poem/*", "openapi/*", "grpc/*"]
 
 [workspace.package]
@@ -14,7 +15,7 @@ poem-lambda = { path = "../poem-lambda" }
 poem-grpc-build = { path = "../poem-grpc-build" }
 
 tokio = "1.17.0"
-tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 serde_json = "1.0.68"
 serde = { version = "1.0.140", features = ["derive"] }
 mime = "0.3.16"
