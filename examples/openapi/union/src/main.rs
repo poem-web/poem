@@ -41,7 +41,7 @@ async fn main() -> Result<(), std::io::Error> {
     let spec = api_service.spec_endpoint();
     let spec_yaml = api_service.spec_endpoint_yaml();
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(
             Route::new()
                 .nest("/api", api_service)

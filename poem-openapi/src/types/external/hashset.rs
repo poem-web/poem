@@ -1,4 +1,8 @@
-use std::{borrow::Cow, collections::HashSet, hash::Hash};
+use std::{
+    borrow::Cow,
+    collections::HashSet,
+    hash::{BuildHasher, Hash},
+};
 
 use poem::web::Field as PoemField;
 use serde_json::Value;
@@ -11,7 +15,7 @@ use crate::{
     },
 };
 
-impl<T: Type> Type for HashSet<T> {
+impl<T: Type, R: Send + Sync> Type for HashSet<T, R> {
     const IS_REQUIRED: bool = true;
 
     type RawValueType = Self;
@@ -48,12 +52,14 @@ impl<T: Type> Type for HashSet<T> {
     }
 }
 
-impl<T: ParseFromJSON + Hash + Eq> ParseFromJSON for HashSet<T> {
+impl<T: ParseFromJSON + Hash + Eq, R: Default + BuildHasher + Send + Sync> ParseFromJSON
+    for HashSet<T, R>
+{
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
         match value {
             Value::Array(values) => {
-                let mut res = HashSet::new();
+                let mut res = HashSet::with_hasher(Default::default());
                 for value in values {
                     res.insert(T::parse_from_json(Some(value)).map_err(ParseError::propagate)?);
                 }
@@ -64,7 +70,9 @@ impl<T: ParseFromJSON + Hash + Eq> ParseFromJSON for HashSet<T> {
     }
 }
 
-impl<T: ParseFromParameter + Hash + Eq> ParseFromParameter for HashSet<T> {
+impl<T: ParseFromParameter + Hash + Eq, R: Send + Sync + Default + BuildHasher> ParseFromParameter
+    for HashSet<T, R>
+{
     fn parse_from_parameter(_value: &str) -> ParseResult<Self> {
         unreachable!()
     }
@@ -72,7 +80,7 @@ impl<T: ParseFromParameter + Hash + Eq> ParseFromParameter for HashSet<T> {
     fn parse_from_parameters<I: IntoIterator<Item = A>, A: AsRef<str>>(
         iter: I,
     ) -> ParseResult<Self> {
-        let mut values = HashSet::new();
+        let mut values = HashSet::with_hasher(Default::default());
         for s in iter {
             values.insert(
                 T::parse_from_parameters(std::iter::once(s.as_ref()))
@@ -84,18 +92,20 @@ impl<T: ParseFromParameter + Hash + Eq> ParseFromParameter for HashSet<T> {
 }
 
 #[poem::async_trait]
-impl<T: ParseFromMultipartField + Hash + Eq> ParseFromMultipartField for HashSet<T> {
+impl<T: ParseFromMultipartField + Hash + Eq, R: Send + Sync + Default + BuildHasher>
+    ParseFromMultipartField for HashSet<T, R>
+{
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         match field {
             Some(field) => {
                 let item = T::parse_from_multipart(Some(field))
                     .await
                     .map_err(ParseError::propagate)?;
-                let mut values = HashSet::new();
+                let mut values = HashSet::with_hasher(Default::default());
                 values.insert(item);
                 Ok(values)
             }
-            None => Ok(HashSet::new()),
+            None => Ok(Default::default()),
         }
     }
 
@@ -108,7 +118,7 @@ impl<T: ParseFromMultipartField + Hash + Eq> ParseFromMultipartField for HashSet
     }
 }
 
-impl<T: ToJSON> ToJSON for HashSet<T> {
+impl<T: ToJSON, R: Send + Sync> ToJSON for HashSet<T, R> {
     fn to_json(&self) -> Option<Value> {
         let mut values = Vec::with_capacity(self.len());
         for item in self {

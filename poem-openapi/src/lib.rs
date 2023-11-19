@@ -55,16 +55,17 @@
 //!     }
 //! }
 //!
-//! let api_service =
-//!     OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000");
-//! let ui = api_service.swagger_ui();
-//! let app = Route::new().nest("/", api_service).nest("/docs", ui);
+//! #[tokio::main]
+//! async fn main() {
+//!     let api_service =
+//!         OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000");
+//!     let ui = api_service.swagger_ui();
+//!     let app = Route::new().nest("/", api_service).nest("/docs", ui);
 //!
-//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
-//! Server::new(TcpListener::bind("127.0.0.1:3000"))
-//!     .run(app)
-//!     .await;
-//! # });
+//!     Server::new(TcpListener::bind("127.0.0.1:3000"))
+//!         .run(app)
+//!         .await;
+//! }
 //! ```
 //!
 //! ## Check it
@@ -91,27 +92,30 @@
 //! To avoid compiling unused dependencies, Poem gates certain features, some of
 //! which are disabled by default:
 //!
-//! | Feature    | Description |
-//! |------------|-----------------------------------------------------------------------|
-//! | chrono     | Integrate with the [`chrono` crate](https://crates.io/crates/chrono) |
-//! | time  | Integrate with the [`time` crate](https://crates.io/crates/time). |
-//! | humantime  | Integrate with the [`humantime` crate](https://crates.io/crates/humantime) |
-//! | openapi-explorer | Add OpenAPI Explorer support |
-//! | swagger-ui | Add swagger UI support |
-//! | rapidoc    | Add RapiDoc UI support |
-//! | redoc      | Add Redoc UI support |
-//! | email      | Support for email address string |
-//! | hostname   | Support for hostname string |
-//! | uuid       | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)|
-//! | url        | Integrate with the [`url` crate](https://crates.io/crates/url) |
-//! | bson        | Integrate with the [`bson` crate](https://crates.io/crates/bson) |
-//! | rust_decimal | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal) |
-//! | static-files | Support for static file response |
+//! | Feature          | Description                                                                            |
+//! |------------------|----------------------------------------------------------------------------------------|
+//! | chrono           | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                  |
+//! | time             | Integrate with the [`time` crate](https://crates.io/crates/time).                      |
+//! | humantime        | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
+//! | openapi-explorer | Add OpenAPI Explorer support                                                           |
+//! | swagger-ui       | Add swagger UI support                                                                 |
+//! | rapidoc          | Add RapiDoc UI support                                                                 |
+//! | redoc            | Add Redoc UI support                                                                   |
+//! | email            | Support for email address string                                                       |
+//! | hostname         | Support for hostname string                                                            |
+//! | uuid             | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                       |
+//! | url              | Integrate with the [`url` crate](https://crates.io/crates/url)                         |
+//! | geo              | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)             |
+//! | bson             | Integrate with the [`bson` crate](https://crates.io/crates/bson)                       |
+//! | rust_decimal     | Integrate with the [`rust_decimal` crate](https://crates.io/crates/rust_decimal)       |
+//! | prost-wkt-types  | Integrate with the [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) |
+//! | static-files     | Support for static file response                                                       |
+//! | websocket        | Support for websocket                                                                  |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
-#![deny(private_in_public, unreachable_pub)]
+#![deny(unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(rustdoc::broken_intra_doc_links)]
 #![warn(missing_docs)]

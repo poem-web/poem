@@ -1,7 +1,5 @@
-use opentelemetry::{
-    global,
-    sdk::{propagation::TraceContextPropagator, trace::Tracer},
-};
+use opentelemetry::global;
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer};
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -15,7 +13,7 @@ fn init_tracer() -> Tracer {
         .with_service_name("poem")
         .with_endpoint("http://localhost:14268/api/traces")
         .with_hyper()
-        .install_batch(opentelemetry::runtime::Tokio)
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
         .unwrap()
 }
 
@@ -39,7 +37,7 @@ async fn main() -> Result<(), std::io::Error> {
         .with(OpenTelemetryMetrics::new())
         .with(OpenTelemetryTracing::new(tracer));
 
-    Server::new(TcpListener::bind("127.0.0.1:3002"))
+    Server::new(TcpListener::bind("0.0.0.0:3002"))
         .run(app)
         .await
 }

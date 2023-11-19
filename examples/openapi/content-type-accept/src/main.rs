@@ -142,7 +142,7 @@ async fn main() -> Result<(), std::io::Error> {
     let ui = api_service.swagger_ui();
     let yaml = api_service.spec_endpoint();
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(
             Route::new()
                 .nest("/api", api_service)

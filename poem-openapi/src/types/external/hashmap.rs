@@ -1,4 +1,10 @@
-use std::{borrow::Cow, collections::HashMap, fmt::Display, hash::Hash, str::FromStr};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    fmt::Display,
+    hash::{BuildHasher, Hash},
+    str::FromStr,
+};
 
 use serde_json::Value;
 
@@ -7,10 +13,11 @@ use crate::{
     types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type},
 };
 
-impl<K, V> Type for HashMap<K, V>
+impl<K, V, R> Type for HashMap<K, V, R>
 where
     K: ToString + FromStr + Eq + Hash + Sync + Send,
     V: Type,
+    R: Sync + Send,
 {
     const IS_REQUIRED: bool = true;
 
@@ -48,16 +55,17 @@ where
     }
 }
 
-impl<K, V> ParseFromJSON for HashMap<K, V>
+impl<K, V, R> ParseFromJSON for HashMap<K, V, R>
 where
     K: ToString + FromStr + Eq + Hash + Sync + Send,
     K::Err: Display,
     V: ParseFromJSON,
+    R: Sync + Send + Default + BuildHasher,
 {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
         if let Value::Object(value) = value {
-            let mut obj = HashMap::new();
+            let mut obj = HashMap::with_hasher(R::default());
             for (key, value) in value {
                 let key = key
                     .parse()
@@ -72,10 +80,11 @@ where
     }
 }
 
-impl<K, V> ToJSON for HashMap<K, V>
+impl<K, V, R> ToJSON for HashMap<K, V, R>
 where
     K: ToString + FromStr + Eq + Hash + Sync + Send,
     V: ToJSON,
+    R: Sync + Send,
 {
     fn to_json(&self) -> Option<Value> {
         let mut map = serde_json::Map::new();
