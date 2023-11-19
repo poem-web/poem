@@ -55,16 +55,17 @@
 //!     }
 //! }
 //!
-//! let api_service =
-//!     OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000");
-//! let ui = api_service.swagger_ui();
-//! let app = Route::new().nest("/", api_service).nest("/docs", ui);
+//! #[tokio::main]
+//! async fn main() {
+//!     let api_service =
+//!         OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000");
+//!     let ui = api_service.swagger_ui();
+//!     let app = Route::new().nest("/", api_service).nest("/docs", ui);
 //!
-//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
-//! Server::new(TcpListener::bind("0.0.0.0:3000"))
-//!     .run(app)
-//!     .await;
-//! # });
+//!     Server::new(TcpListener::bind("127.0.0.1:3000"))
+//!         .run(app)
+//!         .await;
+//! }
 //! ```
 //!
 //! ## Check it
