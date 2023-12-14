@@ -52,13 +52,13 @@ impl ParsePayload for PlainText<String> {
     }
 }
 
-impl<T: Into<String> + Send> IntoResponse for PlainText<T> {
+impl<T: ToString + Send> IntoResponse for PlainText<T> {
     fn into_response(self) -> Response {
-        self.0.into().into_response()
+        self.0.to_string().into_response()
     }
 }
 
-impl<T: Into<String> + Send> ApiResponse for PlainText<T> {
+impl<T: ToString + Send> ApiResponse for PlainText<T> {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
