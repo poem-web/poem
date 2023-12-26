@@ -1,6 +1,5 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, time::Duration};
 
-use humantime::Duration;
 use poem::{http::HeaderValue, web::Field};
 use serde_json::Value;
 
@@ -42,7 +41,7 @@ impl ParseFromJSON for Duration {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         let value = value.unwrap_or_default();
         if let Value::String(value) = value {
-            Ok(value.parse()?)
+            Ok(humantime::parse_duration(&value)?)
         } else {
             Err(ParseError::expected_type(value))
         }
@@ -51,7 +50,7 @@ impl ParseFromJSON for Duration {
 
 impl ParseFromParameter for Duration {
     fn parse_from_parameter(value: &str) -> ParseResult<Self> {
-        value.parse().map_err(ParseError::custom)
+        humantime::parse_duration(value).map_err(ParseError::custom)
     }
 }
 
@@ -59,7 +58,7 @@ impl ParseFromParameter for Duration {
 impl ParseFromMultipartField for Duration {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {
-            Some(field) => Ok(field.text().await?.parse()?),
+            Some(field) => Ok(humantime::parse_duration(&field.text().await?)?),
             None => Err(ParseError::expected_input()),
         }
     }
@@ -67,12 +66,12 @@ impl ParseFromMultipartField for Duration {
 
 impl ToJSON for Duration {
     fn to_json(&self) -> Option<Value> {
-        Some(Value::String(self.to_string()))
+        Some(Value::String(humantime::format_duration(*self).to_string()))
     }
 }
 
 impl ToHeader for Duration {
     fn to_header(&self) -> Option<HeaderValue> {
-        HeaderValue::from_str(&self.to_string()).ok()
+        HeaderValue::from_str(&humantime::format_duration(*self).to_string()).ok()
     }
 }
