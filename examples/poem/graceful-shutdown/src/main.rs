@@ -45,7 +45,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let app = Route::new().at("/", get(index)).at("/event", get(event));
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run_with_graceful_shutdown(
             app,
             async move {

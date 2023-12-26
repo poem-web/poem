@@ -10,6 +10,8 @@ mod chrono;
 #[cfg(feature = "rust_decimal")]
 mod decimal;
 mod floats;
+#[cfg(feature = "geo")]
+mod geo;
 mod hashmap;
 mod hashset;
 #[cfg(feature = "humantime")]
@@ -17,6 +19,8 @@ mod humantime;
 mod integers;
 mod ip;
 mod optional;
+#[cfg(feature = "prost-wkt-types")]
+mod prost_wkt_types;
 mod regex;
 mod slice;
 mod string;

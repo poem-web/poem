@@ -4,8 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [3.0.6] 2023-09-07
+# [3.0.6] 2023-11-19
 
+- add [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) support [#689](https://github.com/poem-web/poem/pull/689)
+- add [`geo-types` crate](https://crates.io/crates/geo-types) support [#693](https://github.com/poem-web/poem/pull/693)
+- count string length correctly in OpenAPI validators [#666](https://github.com/poem-web/poem/pull/666)
+- Support for custom hash functions for HashMap/HashSet [#654](https://github.com/poem-web/poem/pull/654)
+- Misplaced `</html>`` in swagger_ui HTML template [#660](https://github.com/poem-web/poem/issues/660)
 - for `read-only` properties, can use `default` to specify a function for creating a default value. [#647](https://github.com/poem-web/poem/issues/647)
 
 ```rust

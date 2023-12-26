@@ -3,7 +3,7 @@
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
-#![deny(private_in_public, unreachable_pub)]
+#![deny(unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 

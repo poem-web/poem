@@ -43,7 +43,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Install Protoc
-        if: matrix.package.name == 'poem-grpc'
+        if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
         uses: arduino/setup-protoc@v1
       - name: Get Version
         working-directory: ${{ matrix.package.path }}

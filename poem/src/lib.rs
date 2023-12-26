@@ -25,7 +25,7 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), std::io::Error> {
 //!     let app = Route::new().at("/hello/:name", get(hello));
-//!     Server::new(TcpListener::bind("127.0.0.1:3000"))
+//!     Server::new(TcpListener::bind("0.0.0.0:3000"))
 //!         .run(app)
 //!         .await
 //! }
@@ -260,7 +260,7 @@
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
 #![forbid(unsafe_code)]
-#![deny(private_in_public, unreachable_pub)]
+#![deny(unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(rustdoc::broken_intra_doc_links)]
 #![warn(missing_docs)]

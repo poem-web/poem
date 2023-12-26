@@ -158,7 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(Cors::new())
         .data(pool);
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(route)
         .await?;
     Ok(())

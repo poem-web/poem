@@ -196,7 +196,7 @@ impl RustlsConfig {
     ///
     /// let config =
     ///     RustlsConfig::new().fallback(RustlsCertificate::new().cert(cert_bytes).key(key_bytes));
-    /// let listener = TcpListener::bind("127.0.0.1:3000").rustls(config);
+    /// let listener = TcpListener::bind("0.0.0.0:3000").rustls(config);
     /// ```
     pub fn fallback(mut self, certificate: RustlsCertificate) -> Self {
         self.fallback = Some(certificate);
