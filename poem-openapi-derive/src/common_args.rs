@@ -171,6 +171,25 @@ impl FromMeta for DefaultValue {
     }
 }
 
+#[derive(Debug)]
+pub(crate) enum ExampleValue {
+    Default,
+    Function(Path),
+}
+
+impl FromMeta for ExampleValue {
+    fn from_word() -> darling::Result<Self> {
+        Ok(ExampleValue::Default)
+    }
+
+    fn from_value(value: &Lit) -> darling::Result<Self> {
+        match value {
+            Lit::Str(str) => Ok(ExampleValue::Function(syn::parse_str(&str.value())?)),
+            _ => Err(darling::Error::unexpected_lit_type(value).with_span(value)),
+        }
+    }
+}
+
 #[derive(FromMeta, Clone)]
 pub(crate) struct MaximumValidator {
     pub(crate) value: f64,
