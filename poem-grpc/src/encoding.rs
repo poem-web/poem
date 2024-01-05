@@ -136,7 +136,7 @@ pub(crate) fn create_encode_response_body<T: Encoder>(
     });
 
     BodyExt::boxed(StreamBody::new(
-        ReceiverStream::new(rx).map(|frame| Ok::<_, IoError>(frame)),
+        ReceiverStream::new(rx).map(Ok::<_, IoError>),
     ))
     .into()
 }
@@ -160,7 +160,7 @@ pub(crate) fn create_encode_request_body<T: Encoder>(
     });
 
     BodyExt::boxed(StreamBody::new(
-        ReceiverStream::new(rx).map(|frame| Ok::<_, IoError>(frame)),
+        ReceiverStream::new(rx).map(Ok::<_, IoError>),
     ))
     .into()
 }

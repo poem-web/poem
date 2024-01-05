@@ -440,7 +440,7 @@ fn create_client_endpoint(
 
             Ok::<_, poem::Error>(HttpResponse::from(hyper::Response::from_parts(
                 parts,
-                body.map_err(|err| IoError::other(err)),
+                body.map_err(IoError::other),
             )))
         }
     }))

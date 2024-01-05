@@ -245,14 +245,14 @@ impl RustlsConfig {
                     WebPkiClientVerifier::builder(read_trust_anchor(trust_anchor)?.into())
                         .allow_unauthenticated()
                         .build()
-                        .map_err(|err| IoError::other(err))?;
+                        .map_err(IoError::other)?;
                 builder.with_client_cert_verifier(verifier)
             }
             TlsClientAuth::Required(trust_anchor) => {
                 let verifier =
                     WebPkiClientVerifier::builder(read_trust_anchor(trust_anchor)?.into())
                         .build()
-                        .map_err(|err| IoError::other(err))?;
+                        .map_err(IoError::other)?;
                 builder.with_client_cert_verifier(verifier)
             }
         };

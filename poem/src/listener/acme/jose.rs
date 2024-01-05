@@ -109,7 +109,7 @@ pub(crate) async fn request(
         None => Some(Jwk::new(key_pair)),
         Some(_) => None,
     };
-    let protected = Protected::base64(jwk, kid, nonce, &uri.to_string())?;
+    let protected = Protected::base64(jwk, kid, nonce, uri)?;
     let payload = match payload {
         Some(payload) => serde_json::to_vec(&payload).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
@@ -145,7 +145,7 @@ pub(crate) async fn request(
             format!("unexpected status code: status = {}", resp.status()),
         ));
     }
-    Ok(resp.into())
+    Ok(resp)
 }
 
 pub(crate) async fn request_json<T, R>(

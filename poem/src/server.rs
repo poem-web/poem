@@ -361,7 +361,6 @@ async fn serve_connection(
     tokio::select! {
         _ = conn => {
             // Connection completed successfully.
-            return;
         },
         _ = connection_shutdown_token.cancelled() => {
             tracing::info!(remote_addr=%remote_addr, "closing connection due to inactivity");

@@ -132,7 +132,7 @@ impl From<(http::Request<Incoming>, LocalAddr, RemoteAddr, Scheme)> for Request 
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body: Body(body.map_err(|err| Error::other(err)).boxed()),
+            body: Body(body.map_err(Error::other).boxed()),
             state: RequestState {
                 local_addr,
                 remote_addr,
