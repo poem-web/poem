@@ -130,7 +130,7 @@ hello, sunli!
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.67.0`.
+The minimum supported Rust version for this crate is `1.74.0`.
 
 ## Contributing
 
