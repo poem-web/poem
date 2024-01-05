@@ -9,7 +9,6 @@ use opentelemetry_http::HeaderInjector;
 use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer};
 use poem::{
     get, handler,
-    http::Method,
     listener::TcpListener,
     middleware::{OpenTelemetryMetrics, OpenTelemetryTracing},
     web::Data,
@@ -38,7 +37,7 @@ async fn index(tracer: Data<&Tracer>, body: String) -> String {
 
     let req = {
         let mut req = reqwest::Request::new(
-            Method::GET,
+            reqwest::Method::GET,
             Url::from_str("http://localhost:3002/api2").unwrap(),
         );
         global::get_text_map_propagator(|propagator| {
