@@ -1085,6 +1085,7 @@ mod tests {
             ("/*p1", 9),
             ("/abc/<\\d+>/def", 10),
             ("/kcd/:p1<\\d+>", 11),
+            ("/:package/-/:package_tgz<.*tgz$>", 12),
         ];
 
         for (path, id) in paths {
@@ -1152,6 +1153,16 @@ mod tests {
                 Some((
                     create_url_params(vec![("p1", "567")]),
                     NodeData::new(11, "/kcd/:p1<\\d+>"),
+                )),
+            ),
+            (
+                "/is-number/-/is-number-7.0.0.tgz",
+                Some((
+                    create_url_params(vec![
+                        ("package", "is-number"),
+                        ("package_tgz", "is-number-7.0.0.tgz"),
+                    ]),
+                    NodeData::new(12, "/:package/-/:package_tgz<.*tgz$>"),
                 )),
             ),
         ];

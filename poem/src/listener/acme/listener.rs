@@ -10,8 +10,10 @@ use rcgen::{
 };
 use tokio_rustls::{
     rustls::{
-        sign::{any_ecdsa_type, CertifiedKey},
-        PrivateKey, ServerConfig,
+        crypto::ring::sign::any_ecdsa_type,
+        pki_types::{CertificateDer, PrivateKeyDer},
+        sign::CertifiedKey,
+        ServerConfig,
     },
     server::TlsStream,
     TlsAcceptor,
@@ -37,7 +39,6 @@ pub(crate) async fn auto_cert_acceptor<T: Listener>(
     challenge_type: ChallengeType,
 ) -> IoResult<AutoCertAcceptor<T::Acceptor>> {
     let mut server_config = ServerConfig::builder()
-        .with_safe_defaults()
         .with_no_client_auth()
         .with_cert_resolver(cert_resolver);
     server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
@@ -137,7 +138,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         if let (Some(certs), Some(key)) = (cache_certs, cert_key) {
             let certs = certs
                 .into_iter()
-                .map(tokio_rustls::rustls::Certificate)
+                .map(CertificateDer::from)
                 .collect::<Vec<_>>();
 
             let expires_at = match certs
@@ -156,7 +157,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             );
             *cert_resolver.cert.write() = Some(Arc::new(CertifiedKey::new(
                 certs,
-                any_ecdsa_type(&PrivateKey(key)).unwrap(),
+                any_ecdsa_type(&PrivateKeyDer::Pkcs8(key.into())).unwrap(),
             )));
         }
 
@@ -231,13 +232,14 @@ fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
     params.custom_extensions = vec![CustomExtension::new_acme_identifier(acme_hash)];
     let cert = Certificate::from_params(params)
         .map_err(|_| IoError::new(ErrorKind::Other, "failed to generate acme certificate"))?;
-    let key = any_ecdsa_type(&PrivateKey(cert.serialize_private_key_der())).unwrap();
+    let key = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
+        cert.serialize_private_key_der().into(),
+    ))
+    .unwrap();
     Ok(CertifiedKey::new(
-        vec![tokio_rustls::rustls::Certificate(
-            cert.serialize_der().map_err(|_| {
-                IoError::new(ErrorKind::Other, "failed to serialize acme certificate")
-            })?,
-        )],
+        vec![CertificateDer::from(cert.serialize_der().map_err(
+            |_| IoError::new(ErrorKind::Other, "failed to serialize acme certificate"),
+        )?)],
         key,
     ))
 }
@@ -353,7 +355,10 @@ pub async fn issue_cert<T: AsRef<str>>(
             format!("failed create certificate request: {err}"),
         )
     })?;
-    let pk = any_ecdsa_type(&PrivateKey(cert.serialize_private_key_der())).unwrap();
+    let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
+        cert.serialize_private_key_der().into(),
+    ))
+    .unwrap();
     let csr = cert.serialize_request_der().map_err(|err| {
         IoError::new(
             ErrorKind::Other,
@@ -400,7 +405,7 @@ pub async fn issue_cert<T: AsRef<str>>(
     let cert_chain = rustls_pemfile::certs(&mut acme_cert_pem.as_slice())
         .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))?
         .into_iter()
-        .map(tokio_rustls::rustls::Certificate)
+        .map(CertificateDer::from)
         .collect();
     let cert_key = CertifiedKey::new(cert_chain, pk);
 

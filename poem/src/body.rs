@@ -1,14 +1,16 @@
 use std::{
-    fmt::{Debug, Display, Formatter},
+    fmt::{Debug, Formatter},
     io::{Error as IoError, ErrorKind},
     pin::Pin,
-    task::{Context, Poll},
+    task::Poll,
 };
 
 use bytes::{Bytes, BytesMut};
 use futures_util::{Stream, TryStreamExt};
-use hyper::body::HttpBody;
+use http_body_util::BodyExt;
+use hyper::body::{Body as _, Frame};
 use serde::{de::DeserializeOwned, Serialize};
+use sync_wrapper::SyncStream;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
@@ -16,9 +18,25 @@ use crate::{
     Result,
 };
 
+pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;
+
 /// A body object for requests and responses.
 #[derive(Default)]
-pub struct Body(pub(crate) hyper::Body);
+pub struct Body(pub(crate) BoxBody);
+
+impl From<Body> for BoxBody {
+    #[inline]
+    fn from(body: Body) -> Self {
+        body.0
+    }
+}
+
+impl From<BoxBody> for Body {
+    #[inline]
+    fn from(body: BoxBody) -> Self {
+        Body(body)
+    }
+}
 
 impl Debug for Body {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -26,50 +44,50 @@ impl Debug for Body {
     }
 }
 
-impl From<hyper::Body> for Body {
-    fn from(body: hyper::Body) -> Self {
-        Body(body)
-    }
-}
-
-impl From<Body> for hyper::Body {
-    fn from(body: Body) -> Self {
-        body.0
-    }
-}
-
 impl From<&'static [u8]> for Body {
     #[inline]
     fn from(data: &'static [u8]) -> Self {
-        Self(data.into())
+        Self(BoxBody::new(
+            http_body_util::Full::new(data.into()).map_err::<_, IoError>(|_| unreachable!()),
+        ))
     }
 }
 
 impl From<&'static str> for Body {
     #[inline]
     fn from(data: &'static str) -> Self {
-        Self(data.into())
+        Self(BoxBody::new(
+            http_body_util::Full::new(data.into()).map_err::<_, IoError>(|_| unreachable!()),
+        ))
     }
 }
 
 impl From<Bytes> for Body {
     #[inline]
     fn from(data: Bytes) -> Self {
-        Self(data.into())
+        Self(
+            http_body_util::Full::new(data)
+                .map_err::<_, IoError>(|_| unreachable!())
+                .boxed(),
+        )
     }
 }
 
 impl From<Vec<u8>> for Body {
     #[inline]
     fn from(data: Vec<u8>) -> Self {
-        Self(data.into())
+        Self(
+            http_body_util::Full::new(data.into())
+                .map_err::<_, IoError>(|_| unreachable!())
+                .boxed(),
+        )
     }
 }
 
 impl From<String> for Body {
     #[inline]
     fn from(data: String) -> Self {
-        Self(data.into())
+        data.into_bytes().into()
     }
 }
 
@@ -102,8 +120,8 @@ impl Body {
     /// Create a body object from reader.
     #[inline]
     pub fn from_async_read(reader: impl AsyncRead + Send + 'static) -> Self {
-        Self(hyper::Body::wrap_stream(tokio_util::io::ReaderStream::new(
-            reader,
+        Self(BoxBody::new(http_body_util::StreamBody::new(
+            SyncStream::new(tokio_util::io::ReaderStream::new(reader).map_ok(Frame::data)),
         )))
     }
 
@@ -112,9 +130,15 @@ impl Body {
     where
         S: Stream<Item = Result<O, E>> + Send + 'static,
         O: Into<Bytes> + 'static,
-        E: std::error::Error + Send + Sync + 'static,
+        E: Into<IoError> + 'static,
     {
-        Self(hyper::Body::wrap_stream(stream))
+        Self(BoxBody::new(http_body_util::StreamBody::new(
+            SyncStream::new(
+                stream
+                    .map_ok(|data| Frame::data(data.into()))
+                    .map_err(Into::into),
+            ),
+        )))
     }
 
     /// Create a body object from JSON.
@@ -125,29 +149,33 @@ impl Body {
     /// Create an empty body.
     #[inline]
     pub fn empty() -> Self {
-        Self(hyper::Body::empty())
+        Self(
+            http_body_util::Empty::new()
+                .map_err::<_, IoError>(|_| unreachable!())
+                .boxed(),
+        )
     }
 
     /// Returns `true` if this body is empty.
     pub fn is_empty(&self) -> bool {
-        let size_hint = hyper::body::HttpBody::size_hint(&self.0);
+        let size_hint = hyper::body::Body::size_hint(&self.0);
         size_hint.lower() == 0 && size_hint.upper() == Some(0)
     }
 
     /// Consumes this body object to return a [`Bytes`] that contains all data.
     pub async fn into_bytes(self) -> Result<Bytes, ReadBodyError> {
-        hyper::body::to_bytes(self.0)
+        Ok(self
+            .0
+            .collect()
             .await
-            .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))
+            .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
+            .to_bytes())
     }
 
     /// Consumes this body object to return a [`Vec<u8>`] that contains all
     /// data.
     pub async fn into_vec(self) -> Result<Vec<u8>, ReadBodyError> {
-        Ok(hyper::body::to_bytes(self.0)
-            .await
-            .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
-            .to_vec())
+        self.into_bytes().await.map(|data| data.to_vec())
     }
 
     /// Consumes this body object to return a [`Bytes`] that contains all
@@ -223,41 +251,23 @@ impl Body {
 
     /// Consumes this body object to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
-        tokio_util::io::StreamReader::new(BodyStream::new(self.0))
+        tokio_util::io::StreamReader::new(self.into_bytes_stream())
     }
 
     /// Consumes this body object to return a bytes stream.
     pub fn into_bytes_stream(self) -> impl Stream<Item = Result<Bytes, IoError>> + Send + 'static {
-        TryStreamExt::map_err(self.0, |err| IoError::new(ErrorKind::Other, err))
-    }
-}
-
-pin_project_lite::pin_project! {
-    pub(crate) struct BodyStream<T> {
-        #[pin] inner: T,
-    }
-}
-
-impl<T> BodyStream<T> {
-    #[inline]
-    pub(crate) fn new(inner: T) -> Self {
-        Self { inner }
-    }
-}
-
-impl<T> Stream for BodyStream<T>
-where
-    T: HttpBody,
-    T::Error: Display,
-{
-    type Item = Result<T::Data, std::io::Error>;
-
-    #[inline]
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.project()
-            .inner
-            .poll_data(cx)
-            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))
+        let mut body = self.0;
+        futures_util::stream::poll_fn(move |ctx| loop {
+            match Pin::new(&mut body).poll_frame(ctx) {
+                Poll::Ready(Some(Ok(frame))) => match frame.into_data() {
+                    Ok(data) => return Poll::Ready(Some(Ok(data))),
+                    Err(_) => continue,
+                },
+                Poll::Ready(Some(Err(err))) => return Poll::Ready(Some(Err(err))),
+                Poll::Ready(None) => return Poll::Ready(None),
+                Poll::Pending => return Poll::Pending,
+            }
+        })
     }
 }
 
@@ -267,9 +277,6 @@ mod tests {
 
     #[tokio::test]
     async fn create() {
-        let body = Body::from(hyper::Body::from("abc"));
-        assert_eq!(body.into_string().await.unwrap(), "abc");
-
         let body = Body::from(b"abc".as_ref());
         assert_eq!(body.into_vec().await.unwrap(), b"abc");
 

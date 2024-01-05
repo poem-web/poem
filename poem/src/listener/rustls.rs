@@ -9,12 +9,11 @@ use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        server::{
-            AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient, ClientHello,
-            NoClientAuth, ResolvesServerCert,
-        },
-        sign::{self, CertifiedKey},
-        Certificate, PrivateKey, RootCertStore, ServerConfig,
+        crypto::ring::sign::any_supported_type,
+        pki_types::{CertificateDer, PrivateKeyDer},
+        server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
+        sign::CertifiedKey,
+        RootCertStore, ServerConfig,
     },
     server::TlsStream,
 };
@@ -72,7 +71,7 @@ impl RustlsCertificate {
 impl RustlsCertificate {
     fn create_certificate_key(&self) -> IoResult<CertifiedKey> {
         let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
-            .map(|mut certs| certs.drain(..).map(Certificate).collect())
+            .map(|mut certs| certs.drain(..).map(CertificateDer::from).collect())
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
 
         let priv_key = {
@@ -90,12 +89,12 @@ impl RustlsCertificate {
                     _ => continue,
                 };
                 if !key.is_empty() {
-                    break PrivateKey(key);
+                    break PrivateKeyDer::Pkcs8(key.into());
                 }
             }
         };
 
-        let key = sign::any_supported_type(&priv_key)
+        let key = any_supported_type(&priv_key)
             .map_err(|_| IoError::new(ErrorKind::Other, "invalid private key"))?;
 
         Ok(CertifiedKey {
@@ -106,7 +105,6 @@ impl RustlsCertificate {
             } else {
                 None
             },
-            sct_list: None,
         })
     }
 }
@@ -239,24 +237,30 @@ impl RustlsConfig {
             );
         }
 
-        let client_auth = match &self.client_auth {
-            TlsClientAuth::Off => NoClientAuth::boxed(),
+        let builder = ServerConfig::builder();
+        let builder = match &self.client_auth {
+            TlsClientAuth::Off => builder.with_no_client_auth(),
             TlsClientAuth::Optional(trust_anchor) => {
-                AllowAnyAnonymousOrAuthenticatedClient::new(read_trust_anchor(trust_anchor)?)
-                    .boxed()
+                let verifier =
+                    WebPkiClientVerifier::builder(read_trust_anchor(trust_anchor)?.into())
+                        .allow_unauthenticated()
+                        .build()
+                        .map_err(|err| IoError::other(err))?;
+                builder.with_client_cert_verifier(verifier)
             }
             TlsClientAuth::Required(trust_anchor) => {
-                AllowAnyAuthenticatedClient::new(read_trust_anchor(trust_anchor)?).boxed()
+                let verifier =
+                    WebPkiClientVerifier::builder(read_trust_anchor(trust_anchor)?.into())
+                        .build()
+                        .map_err(|err| IoError::other(err))?;
+                builder.with_client_cert_verifier(verifier)
             }
         };
 
-        let mut server_config = ServerConfig::builder()
-            .with_safe_defaults()
-            .with_client_cert_verifier(client_auth)
-            .with_cert_resolver(Arc::new(ResolveServerCert {
-                certifcate_keys,
-                fallback,
-            }));
+        let mut server_config = builder.with_cert_resolver(Arc::new(ResolveServerCert {
+            certifcate_keys,
+            fallback,
+        }));
         server_config.alpn_protocols = vec!["h2".into(), "http/1.1".into()];
 
         Ok(server_config)
@@ -268,7 +272,7 @@ fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
     let ders = rustls_pemfile::certs(&mut trust_anchor)?;
     for der in ders {
         store
-            .add(&Certificate(der))
+            .add(CertificateDer::from(der))
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
     }
     Ok(store)
@@ -402,6 +406,7 @@ where
     }
 }
 
+#[derive(Debug)]
 struct ResolveServerCert {
     certifcate_keys: HashMap<String, Arc<CertifiedKey>>,
     fallback: Option<Arc<CertifiedKey>>,
@@ -422,7 +427,7 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
-    use tokio_rustls::rustls::{ClientConfig, ServerName};
+    use tokio_rustls::rustls::{pki_types::ServerName, ClientConfig};
 
     use super::*;
     use crate::listener::TcpListener;
@@ -441,7 +446,6 @@ mod tests {
 
         tokio::spawn(async move {
             let config = ClientConfig::builder()
-                .with_safe_defaults()
                 .with_root_certificates(
                     read_trust_anchor(include_bytes!("certs/chain1.pem")).unwrap(),
                 )

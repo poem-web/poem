@@ -1,7 +1,9 @@
-use std::sync::Arc;
+use std::{io::Error as IoError, sync::Arc};
 
+use bytes::Bytes;
 use futures_util::TryStreamExt;
-use hyper_rustls::HttpsConnectorBuilder;
+use http_body_util::BodyExt;
+use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use poem::{
     http::{
         header, header::InvalidHeaderValue, uri::InvalidUri, Extensions, HeaderValue, Method,
@@ -14,9 +16,12 @@ use rustls::ClientConfig as TlsClientConfig;
 
 use crate::{
     codec::Codec,
+    connector::HttpsConnector,
     encoding::{create_decode_response_body, create_encode_request_body},
     Code, Metadata, Request, Response, Status, Streaming,
 };
+
+pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;
 
 /// A configuration for GRPC client
 #[derive(Default)]
@@ -392,29 +397,17 @@ fn create_client_endpoint(
     config: ClientConfig,
 ) -> Arc<dyn Endpoint<Output = HttpResponse> + 'static> {
     let mut config = config;
-    let cli = match config.tls_config.take() {
-        Some(tls_config) => hyper::Client::builder().http2_only(true).build(
-            HttpsConnectorBuilder::new()
-                .with_tls_config(tls_config)
-                .https_or_http()
-                .enable_http2()
-                .build(),
-        ),
-        None => hyper::Client::builder().http2_only(true).build(
-            HttpsConnectorBuilder::new()
-                .with_webpki_roots()
-                .https_or_http()
-                .enable_http2()
-                .build(),
-        ),
-    };
+    let cli = Client::builder(TokioExecutor::new())
+        .http2_only(true)
+        .build(HttpsConnector::new(config.tls_config.take()));
+
     let config = Arc::new(config);
 
     Arc::new(poem::endpoint::make(move |request| {
         let config = config.clone();
         let cli = cli.clone();
         async move {
-            let mut request: hyper::Request<hyper::Body> = request.into();
+            let mut request: hyper::Request<BoxBody> = request.into();
 
             if config.uris.is_empty() {
                 return Err(poem::Error::from_string(
@@ -443,7 +436,12 @@ fn create_client_endpoint(
             }
 
             let resp = cli.request(request).await.map_err(to_boxed_error)?;
-            Ok::<_, poem::Error>(HttpResponse::from(resp))
+            let (parts, body) = resp.into_parts();
+
+            Ok::<_, poem::Error>(HttpResponse::from(hyper::Response::from_parts(
+                parts,
+                body.map_err(|err| IoError::other(err)),
+            )))
         }
     }))
 }

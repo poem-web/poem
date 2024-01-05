@@ -4,26 +4,21 @@ use std::{
 };
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use http::{header, Uri};
-use hyper::{client::HttpConnector, Client};
-use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+use reqwest::Client;
 
-use crate::{
-    listener::acme::{
-        jose,
-        keypair::KeyPair,
-        protocol::{
-            CsrRequest, Directory, FetchAuthorizationResponse, Identifier, NewAccountRequest,
-            NewOrderRequest, NewOrderResponse,
-        },
-        ChallengeType,
+use crate::listener::acme::{
+    jose,
+    keypair::KeyPair,
+    protocol::{
+        CsrRequest, Directory, FetchAuthorizationResponse, Identifier, NewAccountRequest,
+        NewOrderRequest, NewOrderResponse,
     },
-    Body,
+    ChallengeType,
 };
 
 /// A client for ACME-supporting TLS certificate services.
 pub struct AcmeClient {
-    client: Client<HttpsConnector<HttpConnector>>,
+    client: Client,
     directory: Directory,
     pub(crate) key_pair: Arc<KeyPair>,
     contacts: Vec<String>,
@@ -33,14 +28,8 @@ pub struct AcmeClient {
 impl AcmeClient {
     /// Create a new client. `directory_url` is the url for the ACME provider. `contacts` is a list
     /// of URLS (ex: `mailto:`) the ACME service can use to reach you if there's issues with your certificates.
-    pub async fn try_new(directory_url: &Uri, contacts: Vec<String>) -> IoResult<Self> {
-        let client_builder = HttpsConnectorBuilder::new();
-        #[cfg(feature = "acme-native-roots")]
-        let client_builder1 = client_builder.with_native_roots();
-        #[cfg(all(feature = "acme-webpki-roots", not(feature = "acme-native-roots")))]
-        let client_builder1 = client_builder.with_webpki_roots();
-        let client =
-            Client::builder().build(client_builder1.https_or_http().enable_http1().build());
+    pub(crate) async fn try_new(directory_url: &str, contacts: Vec<String>) -> IoResult<Self> {
+        let client = Client::new();
         let directory = get_directory(&client, directory_url).await?;
         Ok(Self {
             client,
@@ -98,7 +87,7 @@ impl AcmeClient {
 
     pub(crate) async fn fetch_authorization(
         &self,
-        auth_url: &Uri,
+        auth_url: &str,
     ) -> IoResult<FetchAuthorizationResponse> {
         tracing::debug!(auth_uri = %auth_url, "fetch authorization");
 
@@ -126,7 +115,7 @@ impl AcmeClient {
         &self,
         domain: &str,
         challenge_type: ChallengeType,
-        url: &Uri,
+        url: &str,
     ) -> IoResult<()> {
         tracing::debug!(
             auth_uri = %url,
@@ -149,7 +138,7 @@ impl AcmeClient {
         Ok(())
     }
 
-    pub(crate) async fn send_csr(&self, url: &Uri, csr: &[u8]) -> IoResult<NewOrderResponse> {
+    pub(crate) async fn send_csr(&self, url: &str, csr: &[u8]) -> IoResult<NewOrderResponse> {
         tracing::debug!(url = %url, "send certificate request");
 
         let nonce = get_nonce(&self.client, &self.directory).await?;
@@ -166,7 +155,7 @@ impl AcmeClient {
         .await
     }
 
-    pub(crate) async fn obtain_certificate(&self, url: &Uri) -> IoResult<Vec<u8>> {
+    pub(crate) async fn obtain_certificate(&self, url: &str) -> IoResult<Vec<u8>> {
         tracing::debug!(url = %url, "send certificate request");
 
         let nonce = get_nonce(&self.client, &self.directory).await?;
@@ -180,22 +169,23 @@ impl AcmeClient {
         )
         .await?;
 
-        resp.into_body().into_vec().await.map_err(|err| {
-            IoError::new(
-                ErrorKind::Other,
-                format!("failed to download certificate: {err}"),
-            )
-        })
+        Ok(resp
+            .bytes()
+            .await
+            .map_err(|err| {
+                IoError::new(
+                    ErrorKind::Other,
+                    format!("failed to download certificate: {err}"),
+                )
+            })?
+            .to_vec())
     }
 }
 
-async fn get_directory(
-    client: &Client<HttpsConnector<HttpConnector>>,
-    directory_url: &Uri,
-) -> IoResult<Directory> {
+async fn get_directory(client: &Client, directory_url: &str) -> IoResult<Directory> {
     tracing::debug!("loading directory");
 
-    let resp = client.get(directory_url.clone()).await.map_err(|err| {
+    let resp = client.get(directory_url).send().await.map_err(|err| {
         IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
     })?;
 
@@ -206,12 +196,9 @@ async fn get_directory(
         ));
     }
 
-    let directory = Body(resp.into_body())
-        .into_json::<Directory>()
-        .await
-        .map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
-        })?;
+    let directory = resp.json::<Directory>().await.map_err(|err| {
+        IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
+    })?;
 
     tracing::debug!(
         new_nonce = ?directory.new_nonce,
@@ -222,14 +209,12 @@ async fn get_directory(
     Ok(directory)
 }
 
-async fn get_nonce(
-    client: &Client<HttpsConnector<HttpConnector>>,
-    directory: &Directory,
-) -> IoResult<String> {
+async fn get_nonce(client: &Client, directory: &Directory) -> IoResult<String> {
     tracing::debug!("creating nonce");
 
     let resp = client
-        .get(directory.new_nonce.clone())
+        .get(&directory.new_nonce)
+        .send()
         .await
         .map_err(|err| IoError::new(ErrorKind::Other, format!("failed to get nonce: {err}")))?;
 
@@ -252,7 +237,7 @@ async fn get_nonce(
 }
 
 async fn create_acme_account(
-    client: &Client<HttpsConnector<HttpConnector>>,
+    client: &Client,
     directory: &Directory,
     key_pair: &KeyPair,
     contacts: Vec<String>,
@@ -274,9 +259,11 @@ async fn create_acme_account(
     )
     .await?;
     let kid = resp
-        .header(header::LOCATION)
-        .ok_or_else(|| IoError::new(ErrorKind::Other, "unable to get account id"))?
-        .to_string();
+        .headers()
+        .get("location")
+        .and_then(|value| value.to_str().ok())
+        .map(ToString::to_string)
+        .ok_or_else(|| IoError::new(ErrorKind::Other, "unable to get account id"))?;
 
     tracing::debug!(kid = kid.as_str(), "account created");
     Ok(kid)

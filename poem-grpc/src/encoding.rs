@@ -1,12 +1,16 @@
-use std::io::Result as IoResult;
+use std::io::{Error as IoError, Result as IoResult};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
-use hyper::{body::HttpBody, HeaderMap};
+use http_body_util::{BodyExt, StreamBody};
+use hyper::{body::Frame, HeaderMap};
 use poem::Body;
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 
 use crate::{
+    client::BoxBody,
     codec::{Decoder, Encoder},
     Code, Status, Streaming,
 };
@@ -76,18 +80,20 @@ pub(crate) fn create_decode_request_body<T: Decoder>(
     mut decoder: T,
     body: Body,
 ) -> Streaming<T::Item> {
-    let mut body: hyper::Body = body.into();
+    let mut body: BoxBody = body.into();
 
     Streaming::new(async_stream::try_stream! {
         let mut frame_decoder = DataFrameDecoder::default();
 
         loop {
-            match body.data().await.transpose().map_err(Status::from_std_error)? {
-                Some(data) => {
-                    frame_decoder.put_slice(data);
-                    while let Some(data) = frame_decoder.next()? {
-                        let message = decoder.decode(&data).map_err(Status::from_std_error)?;
-                        yield message;
+            match body.frame().await.transpose().map_err(Status::from_std_error)? {
+                Some(frame) => {
+                    if let Ok(data) = frame.into_data() {
+                        frame_decoder.put_slice(data);
+                        while let Some(data) = frame_decoder.next()? {
+                            let message = decoder.decode(&data).map_err(Status::from_std_error)?;
+                            yield message;
+                        }
                     }
                 }
                 None => {
@@ -103,7 +109,7 @@ pub(crate) fn create_encode_response_body<T: Encoder>(
     mut encoder: T,
     mut stream: Streaming<T::Item>,
 ) -> Body {
-    let (mut sender, body) = hyper::Body::channel();
+    let (tx, rx) = mpsc::channel(16);
 
     tokio::spawn(async move {
         let mut buf = BytesMut::new();
@@ -112,45 +118,51 @@ pub(crate) fn create_encode_response_body<T: Encoder>(
             match item {
                 Ok(message) => {
                     if let Ok(data) = encode_data_frame(&mut encoder, &mut buf, message) {
-                        if sender.send_data(data).await.is_err() {
+                        if tx.send(Frame::data(data)).await.is_err() {
                             return;
                         }
                     }
                 }
                 Err(status) => {
-                    let _ = sender.send_trailers(status.to_headers()).await;
+                    _ = tx.send(Frame::trailers(status.to_headers())).await;
                     return;
                 }
             }
         }
 
-        let _ = sender
-            .send_trailers(Status::new(Code::Ok).to_headers())
+        _ = tx
+            .send(Frame::trailers(Status::new(Code::Ok).to_headers()))
             .await;
     });
 
-    body.into()
+    BodyExt::boxed(StreamBody::new(
+        ReceiverStream::new(rx).map(|frame| Ok::<_, IoError>(frame)),
+    ))
+    .into()
 }
 
 pub(crate) fn create_encode_request_body<T: Encoder>(
     mut encoder: T,
     mut stream: Streaming<T::Item>,
 ) -> Body {
-    let (mut sender, body) = hyper::Body::channel();
+    let (tx, rx) = mpsc::channel(16);
 
     tokio::spawn(async move {
         let mut buf = BytesMut::new();
 
         while let Some(Ok(message)) = stream.next().await {
             if let Ok(data) = encode_data_frame(&mut encoder, &mut buf, message) {
-                if sender.send_data(data).await.is_err() {
+                if tx.send(Frame::data(data)).await.is_err() {
                     return;
                 }
             }
         }
     });
 
-    body.into()
+    BodyExt::boxed(StreamBody::new(
+        ReceiverStream::new(rx).map(|frame| Ok::<_, IoError>(frame)),
+    ))
+    .into()
 }
 
 pub(crate) fn create_decode_response_body<T: Decoder>(
@@ -167,35 +179,33 @@ pub(crate) fn create_decode_response_body<T: Decoder>(
         };
     }
 
-    let mut body: hyper::Body = body.into();
+    let mut body: BoxBody = body.into();
 
     Ok(Streaming::new(async_stream::try_stream! {
         let mut frame_decoder = DataFrameDecoder::default();
+        let mut status = None;
 
-        loop {
-            if let Some(data) = body.data().await.transpose().map_err(Status::from_std_error)? {
+        while let Some(frame) = body.frame().await.transpose().map_err(Status::from_std_error)? {
+            if frame.is_data() {
+                let data = frame.into_data().unwrap();
                 frame_decoder.put_slice(data);
                 while let Some(data) = frame_decoder.next()? {
                     let message = decoder.decode(&data).map_err(Status::from_std_error)?;
                     yield message;
                 }
-                continue;
+                frame_decoder.check_incomplete()?;
+            } else if frame.is_trailers() {
+                let headers = frame.into_trailers().unwrap();
+                status = Some(Status::from_headers(&headers)?
+                    .ok_or_else(|| Status::new(Code::Internal)
+                    .with_message("missing grpc-status"))?);
+                break;
             }
+        }
 
-            frame_decoder.check_incomplete()?;
-
-            match body.trailers().await.map_err(Status::from_std_error)? {
-                Some(trailers) => {
-                    let status = Status::from_headers(&trailers)?
-                        .ok_or_else(|| Status::new(Code::Internal).with_message("missing grpc-status"))?;
-                    if !status.is_ok() {
-                        Err(status)?;
-                    }
-                }
-                None => Err(Status::new(Code::Internal).with_message("missing trailers"))?,
-            }
-
-            break;
+        let status = status.ok_or_else(|| Status::new(Code::Internal).with_message("missing trailers"))?;
+        if !status.is_ok() {
+            Err(status)?;
         }
     }))
 }

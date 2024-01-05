@@ -1,13 +1,11 @@
 use std::io::{Error as IoError, ErrorKind, Result as IoResult};
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use http::{Method, Uri};
-use hyper::{client::HttpConnector, Client};
-use hyper_rustls::HttpsConnector;
+use reqwest::{Client, Response};
 use ring::digest::{digest, Digest, SHA256};
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{listener::acme::keypair::KeyPair, Request, Response};
+use crate::listener::acme::keypair::KeyPair;
 
 #[derive(Serialize)]
 struct Protected<'a> {
@@ -100,11 +98,11 @@ struct Body {
 }
 
 pub(crate) async fn request(
-    cli: &Client<HttpsConnector<HttpConnector>>,
+    cli: &Client,
     key_pair: &KeyPair,
     kid: Option<&str>,
     nonce: &str,
-    uri: &Uri,
+    uri: &str,
     payload: Option<impl Serialize>,
 ) -> IoResult<Response> {
     let jwk = match kid {
@@ -121,26 +119,26 @@ pub(crate) async fn request(
     let payload = URL_SAFE_NO_PAD.encode(payload);
     let combined = format!("{}.{}", &protected, &payload);
     let signature = URL_SAFE_NO_PAD.encode(key_pair.sign(combined.as_bytes())?);
-    let body = serde_json::to_vec(&Body {
-        protected,
-        payload,
-        signature,
-    })
-    .unwrap();
-    let req = Request::builder()
-        .method(Method::POST)
-        .uri(uri.clone())
-        .content_type("application/jose+json")
-        .body(body);
 
     tracing::debug!(uri = %uri, "http request");
 
-    let resp = cli.request(req.into()).await.map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed to send http request: {err}"),
-        )
-    })?;
+    let resp = cli
+        .post(uri)
+        .json(&Body {
+            protected,
+            payload,
+            signature,
+        })
+        .header("content-type", "application/jose+json")
+        .send()
+        .await
+        .map_err(|err| {
+            IoError::new(
+                ErrorKind::Other,
+                format!("failed to send http request: {err}"),
+            )
+        })?;
+
     if !resp.status().is_success() {
         return Err(IoError::new(
             ErrorKind::Other,
@@ -151,11 +149,11 @@ pub(crate) async fn request(
 }
 
 pub(crate) async fn request_json<T, R>(
-    cli: &Client<HttpsConnector<HttpConnector>>,
+    cli: &Client,
     key_pair: &KeyPair,
     kid: Option<&str>,
     nonce: &str,
-    uri: &Uri,
+    uri: &str,
     payload: Option<T>,
 ) -> IoResult<R>
 where
@@ -165,8 +163,7 @@ where
     let resp = request(cli, key_pair, kid, nonce, uri, payload).await?;
 
     let data = resp
-        .into_body()
-        .into_string()
+        .text()
         .await
         .map_err(|_| IoError::new(ErrorKind::Other, "failed to read response"))?;
     serde_json::from_str(&data)

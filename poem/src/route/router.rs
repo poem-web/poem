@@ -10,7 +10,7 @@ use crate::{
     Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct PathPrefix(usize);
 
 /// Routing object

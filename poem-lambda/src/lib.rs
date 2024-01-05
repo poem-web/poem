@@ -30,6 +30,7 @@ use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, Requ
 ///     println!("request_id: {}", ctx.request_id);
 /// }
 /// ```
+#[derive(Debug, Clone)]
 pub struct Context(pub lambda_runtime::Context);
 
 impl Deref for Context {

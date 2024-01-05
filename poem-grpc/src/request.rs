@@ -4,7 +4,7 @@ use std::{
 };
 
 use futures_util::Stream;
-use hyper::http::Extensions;
+use http::Extensions;
 
 use crate::{Metadata, Status, Streaming};
 
@@ -90,7 +90,7 @@ impl<T> Request<T> {
     /// Inserts a value to extensions, similar to
     /// `self.extensions().insert(data)`.
     #[inline]
-    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+    pub fn set_data(&mut self, data: impl Send + Sync + Clone + 'static) {
         self.extensions.insert(data);
     }
 }

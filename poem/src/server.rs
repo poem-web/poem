@@ -12,7 +12,8 @@ use std::{
 };
 
 use http::uri::Scheme;
-use hyper::server::conn::Http;
+use hyper::body::Incoming;
+use hyper_util::server::conn::auto;
 use pin_project_lite::pin_project;
 use tokio::{
     io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult},
@@ -321,7 +322,7 @@ async fn serve_connection(
     let service = hyper::service::service_fn({
         let remote_addr = remote_addr.clone();
 
-        move |req: hyper::Request<hyper::Body>| {
+        move |req: http::Request<Incoming>| {
             let ep = ep.clone();
             let local_addr = local_addr.clone();
             let remote_addr = remote_addr.clone();
@@ -352,12 +353,13 @@ async fn serve_connection(
         None => tokio_util::either::Either::Right(socket),
     };
 
-    let mut conn = Http::new()
-        .serve_connection(socket, service)
-        .with_upgrades();
+    let builder = auto::Builder::new(hyper_util::rt::TokioExecutor::new());
+    let conn =
+        builder.serve_connection_with_upgrades(hyper_util::rt::TokioIo::new(socket), service);
+    futures_util::pin_mut!(conn);
 
     tokio::select! {
-        _ = &mut conn => {
+        _ = conn => {
             // Connection completed successfully.
             return;
         },
@@ -366,10 +368,4 @@ async fn serve_connection(
         }
         _ = server_graceful_shutdown_token.cancelled() => {}
     }
-
-    // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
-    Pin::new(&mut conn).graceful_shutdown();
-
-    // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
-    let _ = conn.await;
 }
