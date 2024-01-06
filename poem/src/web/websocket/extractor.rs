@@ -28,8 +28,12 @@ pub struct WebSocket {
 
 impl WebSocket {
     async fn internal_from_request(req: &Request) -> Result<Self, WebSocketError> {
+        let is_valid_upgrade_header = req.headers().get(header::UPGRADE)
+            == Some(&HeaderValue::from_static("websocket"))
+            || req.headers().get(header::UPGRADE) == Some(&HeaderValue::from_static("WebSocket"));
+
         if req.method() != Method::GET
-            || req.headers().get(header::UPGRADE) != Some(&HeaderValue::from_static("websocket"))
+            || !is_valid_upgrade_header
             || req.headers().get(header::SEC_WEBSOCKET_VERSION)
                 != Some(&HeaderValue::from_static("13"))
         {
