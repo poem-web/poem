@@ -81,6 +81,7 @@ use crate::endpoint::Endpoint;
 /// const TOKEN_HEADER: &str = "X-Token";
 ///
 /// /// Token data
+/// #[derive(Clone)]
 /// struct Token(String);
 ///
 /// #[poem::async_trait]
@@ -138,6 +139,7 @@ use crate::endpoint::Endpoint;
 /// }
 ///
 /// /// Token data
+/// #[derive(Clone)]
 /// struct Token(String);
 ///
 /// async fn token_middleware<E: Endpoint>(next: E, mut req: Request) -> Result<E::Output> {

@@ -463,7 +463,7 @@ impl Error {
     /// assert_eq!(resp.data::<i32>(), Some(&100));
     /// ```
     #[inline]
-    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+    pub fn set_data(&mut self, data: impl Clone + Send + Sync + 'static) {
         self.extensions.insert(data);
     }
 

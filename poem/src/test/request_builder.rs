@@ -200,7 +200,7 @@ impl<'a, E> TestRequestBuilder<'a, E> {
     #[must_use]
     pub fn data<T>(mut self, data: T) -> Self
     where
-        T: Send + Sync + 'static,
+        T: Clone + Send + Sync + 'static,
     {
         self.extensions.insert(data);
         self

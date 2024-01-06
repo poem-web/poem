@@ -12,7 +12,6 @@ mod keypair;
 mod listener;
 mod protocol;
 mod resolver;
-mod serde;
 
 pub use auto_cert::AutoCert;
 pub use builder::AutoCertBuilder;

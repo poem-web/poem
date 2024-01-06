@@ -1,11 +1,11 @@
-use std::{
-    any::Any,
-    fmt::{self, Debug, Formatter},
-};
+use std::fmt::{self, Debug, Formatter};
 
+use bytes::Bytes;
 use headers::HeaderMapExt;
+use http_body_util::BodyExt;
 
 use crate::{
+    body::BoxBody,
     http::{
         header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, StatusCode, Version,
@@ -77,9 +77,9 @@ impl<T: Into<Body>> From<(StatusCode, T)> for Response {
     }
 }
 
-impl From<Response> for hyper::Response<hyper::Body> {
+impl From<Response> for hyper::Response<BoxBody> {
     fn from(resp: Response) -> Self {
-        let mut hyper_resp = hyper::Response::new(resp.body.into());
+        let mut hyper_resp = hyper::Response::new(resp.body.0);
         *hyper_resp.status_mut() = resp.status;
         *hyper_resp.version_mut() = resp.version;
         *hyper_resp.headers_mut() = resp.headers;
@@ -88,15 +88,24 @@ impl From<Response> for hyper::Response<hyper::Body> {
     }
 }
 
-impl From<hyper::Response<hyper::Body>> for Response {
-    fn from(hyper_resp: hyper::Response<hyper::Body>) -> Self {
+impl<T: hyper::body::Body> From<hyper::Response<T>> for Response
+where
+    T: hyper::body::Body + Send + Sync + 'static,
+    T::Data: Into<Bytes>,
+    T::Error: Into<std::io::Error>,
+{
+    fn from(hyper_resp: hyper::Response<T>) -> Self {
         let (parts, body) = hyper_resp.into_parts();
         Response {
             status: parts.status,
             version: parts.version,
             headers: parts.headers,
             extensions: parts.extensions,
-            body: body.into(),
+            body: Body(
+                body.map_frame(|frame| frame.map_data(Into::into))
+                    .map_err(Into::into)
+                    .boxed(),
+            ),
         }
     }
 }
@@ -217,7 +226,7 @@ impl Response {
     /// Inserts a value to extensions, similar to
     /// `self.extensions().insert(data)`.
     #[inline]
-    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+    pub fn set_data(&mut self, data: impl Clone + Send + Sync + 'static) {
         self.extensions.insert(data);
     }
 
@@ -312,7 +321,7 @@ impl ResponseBuilder {
     #[must_use]
     pub fn extension<T>(mut self, extension: T) -> Self
     where
-        T: Any + Send + Sync + 'static,
+        T: Clone + Send + Sync + 'static,
     {
         self.extensions.insert(extension);
         self

@@ -33,6 +33,7 @@ impl<'a> FromRequest<'a> for &'a CsrfToken {
 /// A verifier for CSRF Token.
 ///
 /// See also [`Csrf`](crate::middleware::Csrf)
+#[derive(Clone)]
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]
 pub struct CsrfVerifier {
     cookie: Option<UnencryptedCsrfCookie>,

@@ -31,8 +31,7 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let mut acme_client =
-        AcmeClient::try_new(&LETS_ENCRYPT_PRODUCTION.parse().unwrap(), vec![]).await?;
+    let mut acme_client = AcmeClient::try_new(LETS_ENCRYPT_PRODUCTION, vec![]).await?;
     let cert_resolver = Arc::new(ResolveServerCert::default());
     let challenge = ChallengeType::Http01;
     let keys_for_http_challenge = Http01TokensMap::new();

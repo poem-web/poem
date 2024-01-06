@@ -1,10 +1,10 @@
 use std::{error::Error as StdError, future::Future};
 
 use bytes::Bytes;
-use hyper::body::{HttpBody, Sender};
+use http_body_util::BodyExt;
 use tower::{Service, ServiceExt};
 
-use crate::{Endpoint, Error, Request, Response, Result};
+use crate::{body::BoxBody, Endpoint, Error, Request, Response, Result};
 
 /// Extension trait for tower service compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
@@ -12,12 +12,12 @@ pub trait TowerCompatExt {
     /// Converts a tower service to a poem endpoint.
     fn compat<ResBody, Err, Fut>(self) -> TowerCompatEndpoint<Self>
     where
-        ResBody: HttpBody + Send + 'static,
+        ResBody: hyper::body::Body + Send + Sync + 'static,
         ResBody::Data: Into<Bytes> + Send + 'static,
         ResBody::Error: StdError + Send + Sync + 'static,
         Err: Into<Error>,
         Self: Service<
-                http::Request<hyper::Body>,
+                http::Request<BoxBody>,
                 Response = hyper::Response<ResBody>,
                 Error = Err,
                 Future = Fut,
@@ -41,12 +41,12 @@ pub struct TowerCompatEndpoint<Svc>(Svc);
 #[async_trait::async_trait]
 impl<Svc, ResBody, Err, Fut> Endpoint for TowerCompatEndpoint<Svc>
 where
-    ResBody: HttpBody + Send + 'static,
+    ResBody: hyper::body::Body + Send + Sync + 'static,
     ResBody::Data: Into<Bytes> + Send + 'static,
     ResBody::Error: StdError + Send + Sync + 'static,
     Err: Into<Error>,
     Svc: Service<
-            http::Request<hyper::Body>,
+            http::Request<BoxBody>,
             Response = hyper::Response<ResBody>,
             Error = Err,
             Future = Fut,
@@ -62,59 +62,14 @@ where
         let mut svc = self.0.clone();
 
         svc.ready().await.map_err(Into::into)?;
-
-        let hyper_req: http::Request<hyper::Body> = req.into();
-        let hyper_resp = svc
-            .call(hyper_req.map(Into::into))
-            .await
-            .map_err(Into::into)?;
-
-        if !hyper_resp.body().is_end_stream() {
-            Ok(hyper_resp
-                .map(|body| {
-                    let (sender, new_body) = hyper::Body::channel();
-                    tokio::spawn(copy_body(body, sender));
-                    new_body
-                })
-                .into())
-        } else {
-            Ok(hyper_resp.map(|_| hyper::Body::empty()).into())
-        }
-    }
-}
-
-async fn copy_body<T>(body: T, mut sender: Sender)
-where
-    T: HttpBody + Send + 'static,
-    T::Data: Into<Bytes> + Send + 'static,
-    T::Error: StdError + Send + Sync + 'static,
-{
-    tokio::pin!(body);
-
-    loop {
-        match body.data().await {
-            Some(Ok(data)) => {
-                if sender.send_data(data.into()).await.is_err() {
-                    break;
-                }
-            }
-            Some(Err(_)) => break,
-            None => {}
-        }
-
-        match body.trailers().await {
-            Ok(Some(trailers)) => {
-                if sender.send_trailers(trailers).await.is_err() {
-                    break;
-                }
-            }
-            Ok(None) => {}
-            Err(_) => break,
-        }
-
-        if body.is_end_stream() {
-            break;
-        }
+        svc.call(req.into()).await.map_err(Into::into).map(|resp| {
+            let (parts, body) = resp.into_parts();
+            let body = body
+                .map_frame(|frame| frame.map_data(Into::into))
+                .map_err(std::io::Error::other)
+                .boxed();
+            hyper::Response::from_parts(parts, body).into()
+        })
     }
 }
 

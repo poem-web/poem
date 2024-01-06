@@ -20,6 +20,7 @@ pub mod service;
 pub mod codec;
 pub mod metadata;
 
+mod connector;
 mod encoding;
 mod health;
 mod reflection;

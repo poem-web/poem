@@ -31,6 +31,7 @@ pub enum ApiExtractorType {
 }
 
 #[doc(hidden)]
+#[derive(Clone)]
 pub struct UrlQuery(pub Vec<(String, String)>);
 
 impl Deref for UrlQuery {

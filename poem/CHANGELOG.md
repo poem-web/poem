@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [2.0.0] 2024-01-06
+
+- upgrade to `hyper1`
+- allow WebSocket casing for upgrade header [#709](https://github.com/poem-web/poem/pull/709)
+
 # [1.3.59] 2023-11-19
 
 - added permissions and owner to UnixListener [#668](https://github.com/poem-web/poem/pull/668)
