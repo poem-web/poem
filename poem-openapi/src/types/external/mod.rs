@@ -16,6 +16,8 @@ mod hashmap;
 mod hashset;
 #[cfg(feature = "humantime")]
 mod humantime;
+#[cfg(feature = "humantime")]
+mod humantime_wrapper;
 mod integers;
 mod ip;
 mod optional;
