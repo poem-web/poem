@@ -1,5 +1,5 @@
 [package]
-name = "add-data"
+name = "example-add-data"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
