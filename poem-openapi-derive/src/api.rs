@@ -7,7 +7,9 @@ use syn::{
 };
 
 use crate::{
-    common_args::{APIMethod, CodeSample, DefaultValue, ExampleValue, ExternalDocument, ExtraHeader},
+    common_args::{
+        APIMethod, CodeSample, DefaultValue, ExampleValue, ExternalDocument, ExtraHeader,
+    },
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,

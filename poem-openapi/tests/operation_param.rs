@@ -420,10 +420,8 @@ async fn example() {
         #[oai(path = "/", method = "get")]
         async fn test(
             &self,
-            #[oai(example = "example_value")]
-            a: Query<Option<i32>>,
-            #[oai(example)]
-            b: Query<i32>,
+            #[oai(example = "example_value")] a: Query<Option<i32>>,
+            #[oai(example)] b: Query<i32>,
         ) {
             todo!();
         }
