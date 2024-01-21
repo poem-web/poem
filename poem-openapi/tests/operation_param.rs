@@ -411,6 +411,52 @@ async fn default_opt() {
 }
 
 #[tokio::test]
+async fn example() {
+    struct Api;
+
+    #[OpenApi]
+    #[allow(unused_variables)]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(
+            &self,
+            #[oai(example = "example_value")] a: Query<Option<i32>>,
+            #[oai(example)] b: Query<i32>,
+        ) {
+            todo!();
+        }
+    }
+
+    fn example_value() -> Option<i32> {
+        Some(88)
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "a");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0]
+            .schema
+            .unwrap_inline()
+            .example,
+        Some(json!(88))
+    );
+
+    assert_eq!(meta.paths[0].operations[0].params[1].name, "b");
+    assert_eq!(
+        meta.paths[0].operations[0].params[1]
+            .schema
+            .unwrap_inline()
+            .example,
+        Some(json!(0))
+    );
+}
+
+#[tokio::test]
 async fn required_params() {
     struct Api;
 

@@ -7,7 +7,9 @@ use syn::{
 };
 
 use crate::{
-    common_args::{APIMethod, CodeSample, DefaultValue, ExternalDocument, ExtraHeader},
+    common_args::{
+        APIMethod, CodeSample, DefaultValue, ExampleValue, ExternalDocument, ExtraHeader,
+    },
     error::GeneratorResult,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
@@ -67,6 +69,8 @@ struct APIOperationParam {
     deprecated: bool,
     #[darling(default)]
     default: Option<DefaultValue>,
+    #[darling(default)]
+    example: Option<ExampleValue>,
     #[darling(default)]
     validator: Option<Validators>,
     #[darling(default)]
@@ -306,6 +310,27 @@ fn generate_operation(
             None => quote!(::std::option::Option::None),
         };
 
+        // example value for parameter
+        let example_value = match &operation_param.example {
+            Some(ExampleValue::Default) => {
+                quote!(::std::option::Option::Some(<<#arg_ty as #crate_name::ApiExtractor>::ParamType as std::default::Default>::default))
+            }
+            Some(ExampleValue::Function(func_name)) => {
+                quote!(::std::option::Option::Some(#func_name))
+            }
+            None => quote!(::std::option::Option::None),
+        };
+
+        let param_meta_example = match &operation_param.example {
+            Some(ExampleValue::Default) => {
+                quote!(#crate_name::types::ToJSON::to_json(&<<#arg_ty as #crate_name::ApiExtractor>::ParamType as std::default::Default>::default()))
+            }
+            Some(ExampleValue::Function(func_name)) => {
+                quote!(#crate_name::types::ToJSON::to_json(&#func_name()))
+            }
+            None => quote!(::std::option::Option::None),
+        };
+
         // validator
         let validator = operation_param.validator.clone().unwrap_or_default();
         let param_checker = validator.create_param_checker(crate_name, &res_ty, &param_name)?.map(|stream| {
@@ -326,6 +351,7 @@ fn generate_operation(
             let mut param_opts = #crate_name::ExtractParamOptions {
                 name: #param_name,
                 default_value: #default_value,
+                example_value: #example_value,
                 explode: #explode,
             };
 
@@ -351,6 +377,7 @@ fn generate_operation(
                 let mut patch_schema = {
                     let mut schema = #crate_name::registry::MetaSchema::ANY;
                     schema.default = #param_meta_default;
+                    schema.example = #param_meta_example;
                     #validators_update_meta
                     schema
                 };
