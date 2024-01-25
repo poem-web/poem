@@ -109,11 +109,14 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         .await?;
 
         let (cache_certs, cert_key) = {
-            let mut certs = None;
+            let mut certs: Option<Vec<_>> = None;
             let mut key = None;
 
             if let Some(cache_cert) = &self.auto_cert.cache_cert {
-                match rustls_pemfile::certs(&mut cache_cert.as_slice()) {
+                match rustls_pemfile::certs(&mut cache_cert.as_slice())
+                    .collect::<Result<_, _>>()
+                    .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))
+                {
                     Ok(c) => certs = Some(c),
                     Err(err) => {
                         tracing::warn!("failed to parse cached tls certificates: {}", err)
@@ -122,7 +125,9 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             }
 
             if let Some(cache_key) = &self.auto_cert.cache_key {
-                match rustls_pemfile::pkcs8_private_keys(&mut cache_key.as_slice()) {
+                match rustls_pemfile::pkcs8_private_keys(&mut cache_key.as_slice())
+                    .collect::<Result<Vec<_>, _>>()
+                {
                     Ok(k) => key = k.into_iter().next(),
                     Err(err) => {
                         tracing::warn!("failed to parse cached private key: {}", err)
@@ -157,7 +162,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             );
             *cert_resolver.cert.write() = Some(Arc::new(CertifiedKey::new(
                 certs,
-                any_ecdsa_type(&PrivateKeyDer::Pkcs8(key.into())).unwrap(),
+                any_ecdsa_type(&PrivateKeyDer::Pkcs8(key)).unwrap(),
             )));
         }
 
@@ -403,10 +408,8 @@ pub async fn issue_cert<T: AsRef<str>>(
         .await?;
     let pkey_pem = cert.serialize_private_key_pem();
     let cert_chain = rustls_pemfile::certs(&mut acme_cert_pem.as_slice())
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))?
-        .into_iter()
-        .map(CertificateDer::from)
-        .collect();
+        .collect::<Result<_, _>>()
+        .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))?;
     let cert_key = CertifiedKey::new(cert_chain, pk);
 
     tracing::debug!("certificate obtained");
