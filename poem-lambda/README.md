@@ -20,9 +20,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2022/09/22/Rust-1.64.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.64.0+-ab6000.svg"
-      alt="rustc 1.64.0+" />
+  <a href="https://blog.rust-lang.org/2022/09/22/Rust-1.74.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.74.0+-ab6000.svg"
+      alt="rustc 1.74.0+" />
   </a>
 </div>
 
