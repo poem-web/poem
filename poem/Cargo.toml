@@ -121,7 +121,7 @@ redis = { version = "0.24.0", optional = true, features = [
     "tokio-comp",
     "connection-manager",
 ] }
-libcookie = { package = "cookie", version = "0.17", features = [
+libcookie = { package = "cookie", version = "0.18", features = [
     "percent-encode",
     "private",
     "signed",
