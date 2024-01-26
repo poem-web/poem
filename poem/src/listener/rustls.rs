@@ -10,7 +10,6 @@ use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
         crypto::ring::sign::any_supported_type,
-        pki_types::{CertificateDer, PrivateKeyDer},
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
         RootCertStore, ServerConfig,
@@ -71,26 +70,21 @@ impl RustlsCertificate {
 impl RustlsCertificate {
     fn create_certificate_key(&self) -> IoResult<CertifiedKey> {
         let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
-            .map(|mut certs| certs.drain(..).map(CertificateDer::from).collect())
+            .collect::<Result<_, _>>()
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
 
-        let priv_key = {
-            loop {
-                let key = match rustls_pemfile::read_one(&mut self.key.as_slice())? {
-                    Some(Item::RSAKey(key)) => key,
-                    Some(Item::PKCS8Key(key)) => key,
-                    Some(Item::ECKey(key)) => key,
-                    None => {
-                        return Err(IoError::new(
-                            ErrorKind::Other,
-                            "failed to parse tls private keys",
-                        ))
-                    }
-                    _ => continue,
-                };
-                if !key.is_empty() {
-                    break PrivateKeyDer::Pkcs8(key.into());
+        let priv_key = loop {
+            match rustls_pemfile::read_one(&mut self.key.as_slice())? {
+                Some(Item::Pkcs1Key(key)) => break key.into(),
+                Some(Item::Pkcs8Key(key)) => break key.into(),
+                Some(Item::Sec1Key(key)) => break key.into(),
+                None => {
+                    return Err(IoError::new(
+                        ErrorKind::Other,
+                        "failed to parse tls private keys",
+                    ))
                 }
+                _ => continue,
             }
         };
 
@@ -269,10 +263,11 @@ impl RustlsConfig {
 
 fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
     let mut store = RootCertStore::empty();
-    let ders = rustls_pemfile::certs(&mut trust_anchor)?;
+    let ders = rustls_pemfile::certs(&mut trust_anchor);
     for der in ders {
+        let der = der.map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
         store
-            .add(CertificateDer::from(der))
+            .add(der)
             .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
     }
     Ok(store)
