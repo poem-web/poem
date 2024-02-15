@@ -1023,8 +1023,8 @@ fn object_default_override_by_field() {
 //NOTE(Rennorb): The `serialize_with` and `deserialize_with` attributes don't add any additional validation,
 // it's up to the library consumer to use them in ways were they don't violate the OpenAPI specification of the underlying type.
 //
-// In practice `serialize_with` only exists for the rounding case above, which could not be implemented in a different way before this,
-// and `deserialize_with` only exists for parity.
+// In practice `serialize_with` only exists for the rounding case below, which could not be implemented in a different way before this
+// (only by using a larger type), and `deserialize_with` just exists for parity.
 
 #[test]
 fn serialize_with() {
