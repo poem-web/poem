@@ -201,7 +201,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 None => {
                     let deserialize_function = match field.deserialize_with {
                         Some(ref function) => quote! { #function },
-                        None => quote! { #crate_name::types::ParseFromJSON::parse_from_json }
+                        None => quote! { #crate_name::types::ParseFromJSON::parse_from_json },
                     };
                     
                     deserialize_fields.push(quote! {
@@ -213,7 +213,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             value
                         };
                     })
-                },
+                }
             }
         } else {
             if args.deny_unknown_fields {
