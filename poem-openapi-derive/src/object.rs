@@ -201,7 +201,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 None => {
                     let deserialize_function = match field.deserialize_with {
                         Some(ref function) => quote! { #function },
-                        None => quote!{ #crate_name::types::ParseFromJSON::parse_from_json }
+                        None => quote! { #crate_name::types::ParseFromJSON::parse_from_json }
                     };
                     
                     deserialize_fields.push(quote! {
@@ -251,8 +251,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 };
 
                 let serialize_function = match field.serialize_with {
-                    Some(ref function) => quote!{ #function },
-                    None => quote!{ #crate_name::types::ToJSON::to_json },
+                    Some(ref function) => quote! { #function },
+                    None => quote! { #crate_name::types::ToJSON::to_json },
                 };
 
                 serialize_fields.push(quote! {

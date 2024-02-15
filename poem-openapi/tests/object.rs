@@ -1020,7 +1020,7 @@ fn object_default_override_by_field() {
     );
 }
 
-//NOTE(Rennorb): The `serialize_with` and `deserialize_with` attributes don't add any additional validation,
+// NOTE(Rennorb): The `serialize_with` and `deserialize_with` attributes don't add any additional validation,
 // it's up to the library consumer to use them in ways were they don't violate the OpenAPI specification of the underlying type.
 //
 // In practice `serialize_with` only exists for the rounding case below, which could not be implemented in a different way before this
@@ -1035,9 +1035,9 @@ fn serialize_with() {
         b: f32,
     }
 
-    //NOTE(Rennorb): Function signature in complice with `to_json` in the Type system.
+    // NOTE(Rennorb): Function signature in complice with `to_json` in the Type system.
     // Would prefer the usual way of implementing this with a serializer reference, but this has to do for now.
-    fn round(v : &f32) -> Option<serde_json::Value> {
+    fn round(v: &f32) -> Option<serde_json::Value> {
         Some(serde_json::Value::from((*v as f64 * 1e5).round() / 1e5))
     }
 
@@ -1054,20 +1054,28 @@ fn deserialize_with() {
         a: i32,
     }
 
-    //NOTE(Rennorb): Function signature in complice with `parse_from_json` in the Type system.
+    // NOTE(Rennorb): Function signature in complice with `parse_from_json` in the Type system.
     // Would prefer the usual way of implementing this with a serializer reference, but this has to do for now.
     fn add(value: Option<serde_json::Value>) -> poem_openapi::types::ParseResult<i32> {
-        value.as_ref().and_then(|v| v.as_str()).and_then(|s| s.split_once('+')).and_then(|(a, b)| {
-            let parse_a = a.trim().parse::<i32>();
-            let parse_b = b.trim().parse::<i32>();
-            match (parse_a, parse_b) {
-                (Ok(int_a), Ok(int_b)) => Some(int_a + int_b),
-                _ => None,
-            }
-        }).ok_or(poem_openapi::types::ParseError::custom("Unknown error")) // bad error, but its good enough for tests
+        value
+            .as_ref()
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.split_once('+'))
+            .and_then(|(a, b)| {
+                let parse_a = a.trim().parse::<i32>();
+                let parse_b = b.trim().parse::<i32>();
+                match (parse_a, parse_b) {
+                    (Ok(int_a), Ok(int_b)) => Some(int_a + int_b),
+                    _ => None,
+                }
+            })
+            .ok_or(poem_openapi::types::ParseError::custom("Unknown error")) // bad error, but its good enough for tests
     }
 
 
-    assert_eq!(Obj::parse_from_json(Some(json!({"a": "3 + 4"}))).unwrap(), Obj { a: 7 });
+    assert_eq!(
+        Obj::parse_from_json(Some(json!({"a": "3 + 4"}))).unwrap(),
+        Obj { a: 7 }
+    );
 }
 
