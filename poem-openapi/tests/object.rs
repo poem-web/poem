@@ -1072,10 +1072,8 @@ fn deserialize_with() {
             .ok_or(poem_openapi::types::ParseError::custom("Unknown error")) // bad error, but its good enough for tests
     }
 
-
     assert_eq!(
         Obj::parse_from_json(Some(json!({"a": "3 + 4"}))).unwrap(),
         Obj { a: 7 }
     );
 }
-

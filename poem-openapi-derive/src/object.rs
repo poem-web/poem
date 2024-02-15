@@ -203,7 +203,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         Some(ref function) => quote! { #function },
                         None => quote! { #crate_name::types::ParseFromJSON::parse_from_json },
                     };
-                    
+
                     deserialize_fields.push(quote! {
                         #[allow(non_snake_case)]
                         let #field_ident: #field_ty = {
