@@ -143,7 +143,7 @@ macro_rules! impl_naive_datetime_types {
 }
 
 impl_naive_datetime_types!(NaiveDateTime, "string", "naive-date-time", "{:?}");
-impl_naive_datetime_types!(NaiveDate, "string", "naive-date", "{}");
+impl_naive_datetime_types!(NaiveDate, "string", "date", "{}");
 impl_naive_datetime_types!(NaiveTime, "string", "naive-time", "{}");
 
 #[cfg(test)]
