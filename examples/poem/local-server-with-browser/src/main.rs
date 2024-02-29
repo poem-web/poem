@@ -45,10 +45,17 @@ async fn main() -> Result<(), std::io::Error> {
     // Now that the acceptor exists, the browser should be able to connect
     eprintln!("Listening at {hostname}:{port}.");
     let http_address = format!("http://{hostname}:{port}/");
-    eprint!("Trying to launch a browser at {http_address}...");
-    match open::that(&http_address) {
-        Ok(()) => eprintln!(" Success!"),
-        Err(err) => eprintln!("\nFailed to launch a browser: {err}"),
+    eprintln!("Trying to launch a browser at {http_address}...");
+    // We use `open::that_detached` so that launching, for example, a new
+    // instance of firefox on Linux does not block. This will report success
+    // even if the browser exits with a non-zero error code.
+    //
+    // You can alternatively consider using `tokio::spawn_blocking` and
+    // `open::that`. Note that in cases when `open::that` blocks, exiting the
+    // server process may also kill the browser process.
+    match open::that_detached(&http_address) {
+        Ok(()) => { /* Ok() doesn't mean much with `that_detached`. */ }
+        Err(err) => eprintln!("Failed to launch a browser: {err}"),
     }
 
     Server::new_with_acceptor(acceptor).run(app).await?;
