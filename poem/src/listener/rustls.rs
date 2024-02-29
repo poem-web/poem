@@ -72,9 +72,9 @@ impl RustlsCertificate {
         let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
             .collect::<Result<_, _>>()
             .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
-
+        let mut key_reader = self.key.as_slice();
         let priv_key = loop {
-            match rustls_pemfile::read_one(&mut self.key.as_slice())? {
+            match rustls_pemfile::read_one(&mut key_reader)? {
                 Some(Item::Pkcs1Key(key)) => break key.into(),
                 Some(Item::Pkcs8Key(key)) => break key.into(),
                 Some(Item::Sec1Key(key)) => break key.into(),
