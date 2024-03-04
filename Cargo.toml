@@ -20,9 +20,9 @@ repository = "https://github.com/poem-web/poem"
 rust-version = "1.74"
 
 [workspace.dependencies]
-poem = { path = "poem", version = "2.0.0", default-features = false }
-poem-derive = { path = "poem-derive", version = "2.0.0" }
-poem-openapi-derive = { path = "poem-openapi-derive", version = "4.0.0" }
+poem = { path = "poem", version = "2.0.1", default-features = false }
+poem-derive = { path = "poem-derive", version = "2.0.1" }
+poem-openapi-derive = { path = "poem-openapi-derive", version = "4.0.1" }
 poem-grpc-build = { path = "poem-grpc-build", version = "0.3.0" }
 
 proc-macro-crate = "3.0.0"
