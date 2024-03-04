@@ -1,5 +1,5 @@
-use opentelemetry::global;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer};
+use opentelemetry::{global, KeyValue};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer, Resource};
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -9,12 +9,17 @@ use poem::{
 
 fn init_tracer() -> Tracer {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_jaeger::new_collector_pipeline()
-        .with_service_name("poem")
-        .with_endpoint("http://localhost:14268/api/traces")
-        .with_hyper()
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_trace_config(
+            opentelemetry_sdk::trace::config().with_resource(Resource::new(vec![KeyValue::new(
+                "service.name",
+                "server2",
+            )])),
+        )
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
         .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .unwrap()
+        .expect("Trace Pipeline should initialize.")
 }
 
 #[handler]

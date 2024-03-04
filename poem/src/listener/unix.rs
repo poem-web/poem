@@ -46,7 +46,7 @@ impl<T> UnixListener<T> {
     /// Provides owner to be set on actual bind
     pub fn with_owner(self, uid: Option<u32>, gid: Option<u32>) -> Self {
         Self {
-            owner: Some((uid.map(|v| Uid::from_raw(v)), gid.map(|v| Gid::from_raw(v)))),
+            owner: Some((uid.map(Uid::from_raw), gid.map(Gid::from_raw))),
             ..self
         }
     }
@@ -61,7 +61,7 @@ impl<T: AsRef<Path> + Send + Clone> Listener for UnixListener<T> {
             (Some(permissions), Some((uid, gid))) => {
                 let listener = TokioUnixListener::bind(self.path.clone())?;
                 set_permissions(self.path.clone(), permissions)?;
-                chown(self.path.as_ref().as_os_str().into(), uid, gid)?;
+                chown(self.path.as_ref().as_os_str(), uid, gid)?;
                 listener
             }
             (Some(permissions), None) => {
@@ -71,7 +71,7 @@ impl<T: AsRef<Path> + Send + Clone> Listener for UnixListener<T> {
             }
             (None, Some((uid, gid))) => {
                 let listener = TokioUnixListener::bind(self.path.clone())?;
-                chown(self.path.as_ref().as_os_str().into(), uid, gid)?;
+                chown(self.path.as_ref().as_os_str(), uid, gid)?;
                 listener
             }
             (None, None) => TokioUnixListener::bind(self.path)?,

@@ -1,11 +1,11 @@
 [package]
-name = "example-redis-session"
+name = "local-server-with-browser"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-poem = { workspace = true, features = ["redis-session"] }
+open.workspace = true
+poem.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-redis = { version = "0.24.0", features = ["aio", "tokio-comp", "connection-manager"] }

@@ -364,7 +364,7 @@ impl CookieJar {
     pub fn remove(&self, name: impl AsRef<str>) {
         self.jar
             .lock()
-            .remove(libcookie::Cookie::named(name.as_ref().to_string()));
+            .remove(libcookie::Cookie::build(name.as_ref().to_string()));
     }
 
     /// Returns a reference to the [`Cookie`] inside this jar with the `name`.
@@ -562,7 +562,7 @@ impl<'a> PrivateCookieJar<'a> {
     pub fn remove(&self, name: impl AsRef<str>) {
         let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut private_cookie_jar = cookie_jar.private_mut(self.key);
-        private_cookie_jar.remove(libcookie::Cookie::named(name.as_ref().to_string()));
+        private_cookie_jar.remove(libcookie::Cookie::build(name.as_ref().to_string()));
     }
 
     /// Returns cookie inside this jar with the name and authenticates and
@@ -595,7 +595,7 @@ impl<'a> SignedCookieJar<'a> {
     pub fn remove(&self, name: impl AsRef<str>) {
         let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut signed_cookie_jar = cookie_jar.signed_mut(self.key);
-        signed_cookie_jar.remove(libcookie::Cookie::named(name.as_ref().to_string()));
+        signed_cookie_jar.remove(libcookie::Cookie::build(name.as_ref().to_string()));
     }
 
     /// Returns cookie inside this jar with the name and authenticates and
