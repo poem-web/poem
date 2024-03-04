@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [4.0.1] 2024-03-04
+
+- added example value support for param/schema [#717](https://github.com/poem-web/poem/pull/717)
+- Adding serialize_with and deserialize_with attributes to struct fields [#749](https://github.com/poem-web/poem/pull/749)
+
 # [4.0.0] 2024-01-06
 
 - upgrade to `hyper1`

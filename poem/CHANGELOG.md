@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [2.0.1] 2024-03-04
+
+- update rustls-pemfile to 2.0 [#736](https://github.com/poem-web/poem/pull/736)
+- update cookie to 0.18 [#737](https://github.com/poem-web/poem/issues/737)
+- fix #762 [#763](https://github.com/poem-web/poem/pull/763)
+
 # [2.0.0] 2024-01-06
 
 - upgrade to `hyper1`
