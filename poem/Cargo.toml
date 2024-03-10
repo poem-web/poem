@@ -136,7 +136,7 @@ libopentelemetry = { package = "opentelemetry", version = "0.21.0", features = [
     "metrics",
 ], optional = true }
 libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
-priority-queue = { version = "1.2.0", optional = true }
+priority-queue = { version = "2.0.2", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
 tokio-openssl = { version = "0.6.3", optional = true }
 openssl = { version = "0.10.56", optional = true }
@@ -152,7 +152,7 @@ intl-memoizer = { version = "0.5.1", optional = true }
 ring = { version = "0.17.7", optional = true }
 reqwest = { workspace = true, features = ["json"], optional = true }
 rcgen = { version = "0.12.0", optional = true }
-x509-parser = { version = "0.15.0", optional = true }
+x509-parser = { version = "0.16.0", optional = true }
 tokio-metrics = { version = "0.3.0", optional = true }
 rust-embed = { version = "8.0", optional = true }
 hex = { version = "0.4", optional = true }
@@ -165,7 +165,7 @@ anyhow = { version = "1.0.0", optional = true }
 eyre06 = { package = "eyre", version = "0.6", optional = true }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.27.1", features = ["fs", "user"] }
+nix = { version = "0.28.0", features = ["fs", "user"] }
 
 [dev-dependencies]
 async-stream = "0.3.2"
