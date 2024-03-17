@@ -37,7 +37,6 @@ impl<T> Deref for Data<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: Send + Sync + 'static> FromRequest<'a> for Data<&'a T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(Data(

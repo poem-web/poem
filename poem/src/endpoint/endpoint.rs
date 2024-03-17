@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// An HTTP request handler.
-#[async_trait::async_trait]
+#[trait_make::make(Send)]
 pub trait Endpoint: Send + Sync {
     /// Represents the response of the endpoint.
     type Output: IntoResponse;
@@ -58,7 +58,6 @@ struct SyncFnEndpoint<T, F> {
     f: F,
 }
 
-#[async_trait::async_trait]
 impl<F, T, R> Endpoint for SyncFnEndpoint<T, F>
 where
     F: Fn(Request) -> R + Send + Sync,
@@ -77,7 +76,6 @@ struct AsyncFnEndpoint<T, F> {
     f: F,
 }
 
-#[async_trait::async_trait]
 impl<F, Fut, T, R> Endpoint for AsyncFnEndpoint<T, F>
 where
     F: Fn(Request) -> Fut + Sync + Send,
@@ -98,7 +96,6 @@ pub enum EitherEndpoint<A, B> {
     B(B),
 }
 
-#[async_trait::async_trait]
 impl<A, B> Endpoint for EitherEndpoint<A, B>
 where
     A: Endpoint,
@@ -175,7 +172,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for &T {
     type Output = T::Output;
 
@@ -184,7 +180,6 @@ impl<T: Endpoint + ?Sized> Endpoint for &T {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
     type Output = T::Output;
 
@@ -193,7 +188,6 @@ impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
     type Output = T::Output;
 

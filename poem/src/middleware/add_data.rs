@@ -33,7 +33,6 @@ pub struct AddDataEndpoint<E, T> {
     value: T,
 }
 
-#[async_trait::async_trait]
 impl<E, T> Endpoint for AddDataEndpoint<E, T>
 where
     E: Endpoint,

@@ -14,7 +14,6 @@ impl<E, F> InspectAllError<E, F> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F> Endpoint for InspectAllError<E, F>
 where
     E: Endpoint,

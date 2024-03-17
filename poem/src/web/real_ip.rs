@@ -8,7 +8,6 @@ use crate::{Addr, FromRequest, Request, RequestBody, Result};
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct RealIp(pub Option<IpAddr>);
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for RealIp {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         if let Some(real_ip) = req

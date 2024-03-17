@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use async_trait::async_trait;
 use rust_embed::RustEmbed;
 
 use crate::{
@@ -26,7 +25,6 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFileEndpoint<E> {
     }
 }
 
-#[async_trait]
 impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
     type Output = Response;
 
@@ -81,7 +79,6 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     }
 }
 
-#[async_trait]
 impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
     type Output = Response;
 

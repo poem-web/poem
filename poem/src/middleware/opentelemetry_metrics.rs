@@ -69,7 +69,6 @@ pub struct OpenTelemetryMetricsEndpoint<E> {
     inner: E,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for OpenTelemetryMetricsEndpoint<E> {
     type Output = Response;
 

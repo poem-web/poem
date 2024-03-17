@@ -107,7 +107,6 @@ impl<T> DerefMut for Yaml<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Yaml<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let content_type = req

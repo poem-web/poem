@@ -161,7 +161,6 @@ impl StaticFilesEndpoint {
     }
 }
 
-#[async_trait::async_trait]
 impl Endpoint for StaticFilesEndpoint {
     type Output = Response;
 
@@ -315,7 +314,6 @@ impl StaticFileEndpoint {
     }
 }
 
-#[async_trait::async_trait]
 impl Endpoint for StaticFileEndpoint {
     type Output = Response;
 

@@ -138,7 +138,6 @@ fn coding_priority(c: &ContentCoding) -> u8 {
     }
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
     type Output = Response;
 

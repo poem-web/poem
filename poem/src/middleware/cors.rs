@@ -349,7 +349,6 @@ impl<E: Endpoint> CorsEndpoint<E> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CorsEndpoint<E> {
     type Output = Response;
 

@@ -42,7 +42,6 @@ pub struct CookieSessionEndpoint<E> {
     config: Arc<CookieConfig>,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
     type Output = E::Output;
 

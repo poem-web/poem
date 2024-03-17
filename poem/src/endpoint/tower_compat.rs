@@ -38,7 +38,6 @@ impl<T> TowerCompatExt for T {}
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]
 pub struct TowerCompatEndpoint<Svc>(Svc);
 
-#[async_trait::async_trait]
 impl<Svc, ResBody, Err, Fut> Endpoint for TowerCompatEndpoint<Svc>
 where
     ResBody: hyper::body::Body + Send + Sync + 'static,

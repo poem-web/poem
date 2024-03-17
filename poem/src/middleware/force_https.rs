@@ -60,7 +60,6 @@ pub struct ForceHttpsEndpoint<E> {
     filter_fn: Option<FilterFn>,
 }
 
-#[async_trait::async_trait]
 impl<E> Endpoint for ForceHttpsEndpoint<E>
 where
     E: Endpoint,

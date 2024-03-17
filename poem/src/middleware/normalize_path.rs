@@ -78,7 +78,6 @@ pub struct NormalizePathEndpoint<E> {
     style: TrailingSlash,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
     type Output = E::Output;
 

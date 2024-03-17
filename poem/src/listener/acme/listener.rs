@@ -76,7 +76,6 @@ impl<T> ResolvedCertListener<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener> Listener for ResolvedCertListener<T> {
     type Acceptor = AutoCertAcceptor<T::Acceptor>;
 
@@ -97,7 +96,6 @@ impl<T> AutoCertListener<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener> Listener for AutoCertListener<T> {
     type Acceptor = AutoCertAcceptor<T::Acceptor>;
 
@@ -216,7 +214,6 @@ pub struct AutoCertAcceptor<T> {
     acceptor: TlsAcceptor,
 }
 
-#[async_trait::async_trait]
 impl<T: Acceptor> Acceptor for AutoCertAcceptor<T> {
     type Io = HandshakeStream<TlsStream<T::Io>>;
 

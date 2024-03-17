@@ -81,7 +81,6 @@ where
 /// An tower service to endpoint adapter.
 pub struct TowerServiceToEndpoint<Svc: Service<Request>>(Buffer<Svc, Request>);
 
-#[async_trait::async_trait]
 impl<Svc> Endpoint for TowerServiceToEndpoint<Svc>
 where
     Svc: Service<Request> + Send + 'static,

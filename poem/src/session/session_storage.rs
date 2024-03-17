@@ -5,7 +5,7 @@ use serde_json::Value;
 use crate::Result;
 
 /// Represents a back-end session storage.
-#[async_trait::async_trait]
+#[trait_make::make(Send)]
 pub trait SessionStorage: Send + Sync {
     /// Load session entries.
     async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>>;

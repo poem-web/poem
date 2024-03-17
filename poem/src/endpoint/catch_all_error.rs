@@ -21,7 +21,6 @@ impl<E, F, R> CatchAllError<E, F, R> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F, Fut, R> Endpoint for CatchAllError<E, F, R>
 where
     E: Endpoint,

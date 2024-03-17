@@ -52,7 +52,6 @@ impl<T> UnixListener<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: AsRef<Path> + Send + Clone> Listener for UnixListener<T> {
     type Acceptor = UnixAcceptor;
 
@@ -104,7 +103,6 @@ impl UnixAcceptor {
     }
 }
 
-#[async_trait::async_trait]
 impl Acceptor for UnixAcceptor {
     type Io = UnixStream;
 

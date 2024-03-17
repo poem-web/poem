@@ -100,7 +100,6 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
         #[allow(non_camel_case_types)]
         #def_struct
 
-        #[#crate_name::async_trait]
         impl #impl_generics #crate_name::Endpoint for #ident #type_generics #where_clause {
             type Output = #crate_name::Response;
 

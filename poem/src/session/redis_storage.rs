@@ -22,7 +22,6 @@ impl<T> RedisStorage<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T> {
     async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
         let data: Option<String> = Cmd::get(session_id)

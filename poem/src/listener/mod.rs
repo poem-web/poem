@@ -50,7 +50,7 @@ pub use self::{
 use crate::web::{LocalAddr, RemoteAddr};
 
 /// Represents a acceptor type.
-#[async_trait::async_trait]
+#[trait_make::make(Send)]
 pub trait Acceptor: Send {
     /// IO stream type.
     type Io: AsyncRead + AsyncWrite + Send + Unpin + 'static;
@@ -126,7 +126,7 @@ pub trait AcceptorExt: Acceptor {
 impl<T: Acceptor> AcceptorExt for T {}
 
 /// Represents a listener that can be listens for incoming connections.
-#[async_trait::async_trait]
+#[trait_make::make(Send)]
 pub trait Listener: Send {
     /// The acceptor type.
     type Acceptor: Acceptor;
@@ -232,7 +232,6 @@ pub trait Listener: Send {
     }
 }
 
-#[async_trait::async_trait]
 impl Listener for Infallible {
     type Acceptor = Infallible;
 
@@ -241,7 +240,6 @@ impl Listener for Infallible {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener + Sized> Listener for Box<T> {
     type Acceptor = T::Acceptor;
 
@@ -250,7 +248,6 @@ impl<T: Listener + Sized> Listener for Box<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
     type Io = T::Io;
 
@@ -263,7 +260,6 @@ impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl Acceptor for Infallible {
     type Io = BoxIo;
 
@@ -334,7 +330,6 @@ impl BoxListener {
     }
 }
 
-#[async_trait::async_trait]
 impl Listener for BoxListener {
     type Acceptor = BoxAcceptor;
 
@@ -345,7 +340,6 @@ impl Listener for BoxListener {
 
 struct WrappedAcceptor<T: Acceptor>(T);
 
-#[async_trait::async_trait]
 impl<T: Acceptor> Acceptor for WrappedAcceptor<T> {
     type Io = BoxIo;
 

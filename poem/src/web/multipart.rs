@@ -129,7 +129,6 @@ pub struct Multipart {
     inner: multer::Multipart<'static>,
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Multipart {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let content_type = req

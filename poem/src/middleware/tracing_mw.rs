@@ -24,7 +24,6 @@ pub struct TracingEndpoint<E> {
     inner: E,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
     type Output = Response;
 

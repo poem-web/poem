@@ -72,7 +72,6 @@ impl RouteScheme {
     }
 }
 
-#[async_trait::async_trait]
 impl Endpoint for RouteScheme {
     type Output = Response;
 

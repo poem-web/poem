@@ -244,7 +244,6 @@ impl Route {
             prefix_for_path_pattern: usize,
         }
 
-        #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Nest<E> {
             type Output = Response;
 
@@ -327,7 +326,6 @@ impl Route {
 #[derive(Debug, Clone)]
 pub struct PathPattern(pub Arc<str>);
 
-#[async_trait::async_trait]
 impl Endpoint for Route {
     type Output = Response;
 
@@ -652,7 +650,6 @@ mod tests {
         inner: E,
     }
 
-    #[async_trait::async_trait]
     impl<E: Endpoint> Endpoint for PathPatternSpyEndpoint<E> {
         type Output = Response;
 
@@ -723,7 +720,6 @@ mod tests {
 
     struct ErrorEndpoint;
 
-    #[async_trait::async_trait]
     impl Endpoint for ErrorEndpoint {
         type Output = Response;
 

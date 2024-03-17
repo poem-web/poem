@@ -38,7 +38,6 @@ pub struct SizeLimitEndpoint<E> {
     max_size: usize,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for SizeLimitEndpoint<E> {
     type Output = E::Output;
 
