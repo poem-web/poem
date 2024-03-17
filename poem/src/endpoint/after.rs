@@ -15,7 +15,6 @@ impl<E, F> After<E, F> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F, Fut, T> Endpoint for After<E, F>
 where
     E: Endpoint,

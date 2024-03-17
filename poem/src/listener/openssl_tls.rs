@@ -148,7 +148,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener, S: IntoTlsConfigStream<OpensslTlsConfig>> Listener for OpensslTlsListener<T, S> {
     type Acceptor = OpensslTlsAcceptor<T::Acceptor, BoxStream<'static, OpensslTlsConfig>>;
 
@@ -181,7 +180,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T, S> Acceptor for OpensslTlsAcceptor<T, S>
 where
     S: Stream<Item = OpensslTlsConfig> + Send + Unpin + 'static,

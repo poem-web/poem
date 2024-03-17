@@ -291,7 +291,6 @@ impl Cookie {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Cookie {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let value = req
@@ -501,7 +500,6 @@ impl FromStr for CookieJar {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CookieJar {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.cookie())

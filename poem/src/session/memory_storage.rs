@@ -68,7 +68,6 @@ impl MemoryStorage {
     }
 }
 
-#[async_trait::async_trait]
 impl SessionStorage for MemoryStorage {
     async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
         let inner = self.inner.lock();

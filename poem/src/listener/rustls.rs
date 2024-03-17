@@ -320,7 +320,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener, S: IntoTlsConfigStream<RustlsConfig>> Listener for RustlsListener<T, S> {
     type Acceptor = RustlsAcceptor<T::Acceptor, BoxStream<'static, RustlsConfig>>;
 
@@ -353,7 +352,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T, S> Acceptor for RustlsAcceptor<T, S>
 where
     S: Stream<Item = RustlsConfig> + Send + Unpin + 'static,

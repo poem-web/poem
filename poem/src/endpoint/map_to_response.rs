@@ -13,7 +13,6 @@ impl<E> MapToResponse<E> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for MapToResponse<E> {
     type Output = Response;
 

@@ -225,7 +225,6 @@ mod tests {
             value: HeaderValue,
         }
 
-        #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for AddHeader<E> {
             type Output = Response;
 

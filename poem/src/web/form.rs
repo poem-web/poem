@@ -86,7 +86,6 @@ impl<T> DerefMut for Form<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         if req.method() == Method::GET {

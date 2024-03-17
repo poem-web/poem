@@ -147,7 +147,6 @@ impl Session {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Session {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req

@@ -294,7 +294,6 @@ mod route;
 mod server;
 
 pub use addr::Addr;
-pub use async_trait::async_trait;
 pub use body::Body;
 pub use endpoint::{Endpoint, EndpointExt, IntoEndpoint};
 pub use error::{Error, Result};

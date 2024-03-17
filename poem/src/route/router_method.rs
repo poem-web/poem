@@ -163,7 +163,6 @@ impl RouteMethod {
     }
 }
 
-#[async_trait::async_trait]
 impl Endpoint for RouteMethod {
     type Output = Response;
 

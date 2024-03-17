@@ -49,7 +49,6 @@ pub struct CookieJarManagerEndpoint<E> {
     key: Option<Arc<CookieKey>>,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CookieJarManagerEndpoint<E> {
     type Output = Response;
 

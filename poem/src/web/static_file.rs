@@ -101,7 +101,6 @@ pub struct StaticFileRequest {
     range: Option<Range>,
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for StaticFileRequest {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(Self {

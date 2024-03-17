@@ -309,7 +309,7 @@ impl RequestBody {
 ///     .assert_status_is_ok();
 /// # });
 /// ```
-#[async_trait::async_trait]
+#[trait_make::make(Send)]
 pub trait FromRequest<'a>: Sized {
     /// Extract from request head and body.
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
@@ -728,49 +728,42 @@ impl<T: Into<String> + Send> IntoResponse for Html<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Request {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Uri {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.uri())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Method {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.method().clone())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Version {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.version())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a HeaderMap {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.headers())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Body {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let data = body.take()?.into_bytes().await?;
@@ -778,42 +771,36 @@ impl<'a> FromRequest<'a> for String {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Bytes {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?.into_bytes().await?)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Vec<u8> {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?.into_vec().await?)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a RemoteAddr {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(&req.state().remote_addr)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a LocalAddr {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(&req.state().local_addr)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await.ok())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(T::from_request(req, body).await)

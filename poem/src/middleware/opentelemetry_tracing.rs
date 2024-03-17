@@ -67,7 +67,6 @@ impl<'a> Extractor for HeaderExtractor<'a> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T, E> Endpoint for OpenTelemetryTracingEndpoint<T, E>
 where
     T: Tracer + Send + Sync,

@@ -70,7 +70,7 @@ yaml = ["serde_yaml"]
 [dependencies]
 poem-derive.workspace = true
 
-async-trait = "0.1.51"
+trait-make = "0.1"
 bytes.workspace = true
 futures-util = { workspace = true, features = ["sink"] }
 http = "1.0.0"

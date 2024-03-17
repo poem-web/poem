@@ -103,7 +103,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener, S: IntoTlsConfigStream<NativeTlsConfig>> Listener for NativeTlsListener<T, S> {
     type Acceptor = NativeTlsAcceptor<T::Acceptor, BoxStream<'static, NativeTlsConfig>>;
 
@@ -136,7 +135,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T, S> Acceptor for NativeTlsAcceptor<T, S>
 where
     S: Stream<Item = NativeTlsConfig> + Send + Unpin + 'static,

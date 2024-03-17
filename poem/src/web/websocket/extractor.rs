@@ -66,7 +66,6 @@ impl WebSocket {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for WebSocket {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Self::internal_from_request(req).await.map_err(Into::into)
