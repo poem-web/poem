@@ -384,7 +384,6 @@ impl<T: ParseFromParameter> ParseFromParameter for MaybeUndefined<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromMultipartField> ParseFromMultipartField for MaybeUndefined<T> {
     async fn parse_from_multipart(value: Option<PoemField>) -> ParseResult<Self> {
         match value {

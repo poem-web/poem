@@ -242,7 +242,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
         }
 
-        #[#crate_name::__private::poem::async_trait]
         impl #impl_generics #crate_name::payload::ParsePayload for #ident #ty_generics #where_clause {
             const IS_REQUIRED: bool = true;
 

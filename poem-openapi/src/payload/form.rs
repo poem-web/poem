@@ -49,7 +49,6 @@ impl<T: Type> Payload for Form<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: DeserializeOwned> ParsePayload for Form<T> {
     const IS_REQUIRED: bool = true;
 

@@ -38,7 +38,6 @@ pub struct Http01Endpoint {
     pub keys: Http01TokensMap,
 }
 
-#[async_trait::async_trait]
 impl Endpoint for Http01Endpoint {
     type Output = Response;
 

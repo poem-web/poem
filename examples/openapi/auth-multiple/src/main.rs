@@ -76,6 +76,9 @@ impl Api {
         auth1: MyApiKeyAuthorization,
         auth2: MyBasicAuthorization,
     ) -> Result<PlainText<String>> {
+        if auth1.0.username != "test" {
+            return Err(Error::from_status(StatusCode::UNAUTHORIZED));
+        }
         if auth2.0.username != "test" || auth2.0.password != "123456" {
             return Err(Error::from_status(StatusCode::UNAUTHORIZED));
         }

@@ -5,9 +5,11 @@ use futures_util::TryStreamExt;
 use http_body_util::BodyExt;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use poem::{
+    endpoint::{DynEndpoint, DynEndpointWrapper},
     http::{
-        header, header::InvalidHeaderValue, uri::InvalidUri, Extensions, HeaderValue, Method,
-        StatusCode, Uri, Version,
+        header::{self, InvalidHeaderValue},
+        uri::InvalidUri,
+        Extensions, HeaderValue, Method, StatusCode, Uri, Version,
     },
     Endpoint, EndpointExt, IntoEndpoint, Middleware, Request as HttpRequest,
     Response as HttpResponse,
@@ -152,7 +154,7 @@ impl ClientConfigBuilder {
 #[doc(hidden)]
 #[derive(Clone)]
 pub struct GrpcClient {
-    ep: Arc<dyn Endpoint<Output = HttpResponse> + 'static>,
+    ep: Arc<dyn DynEndpoint<Output = HttpResponse> + 'static>,
 }
 
 impl GrpcClient {
@@ -170,16 +172,18 @@ impl GrpcClient {
         <T::Endpoint as Endpoint>::Output: 'static,
     {
         Self {
-            ep: Arc::new(ep.map_to_response()),
+            ep: Arc::new(DynEndpointWrapper(ep.map_to_response())),
         }
     }
 
     pub fn with<M>(mut self, middleware: M) -> Self
     where
-        M: Middleware<Arc<dyn Endpoint<Output = HttpResponse> + 'static>>,
+        M: Middleware<Arc<dyn DynEndpoint<Output = HttpResponse> + 'static>>,
         M::Output: 'static,
     {
-        self.ep = Arc::new(middleware.transform(self.ep).map_to_response());
+        self.ep = Arc::new(DynEndpointWrapper(
+            middleware.transform(self.ep).map_to_response(),
+        ));
         self
     }
 
@@ -395,7 +399,7 @@ fn make_uri(base_uri: &Uri, path: &Uri) -> Uri {
 
 fn create_client_endpoint(
     config: ClientConfig,
-) -> Arc<dyn Endpoint<Output = HttpResponse> + 'static> {
+) -> Arc<dyn DynEndpoint<Output = HttpResponse> + 'static> {
     let mut config = config;
     let cli = Client::builder(TokioExecutor::new())
         .http2_only(true)
@@ -403,7 +407,7 @@ fn create_client_endpoint(
 
     let config = Arc::new(config);
 
-    Arc::new(poem::endpoint::make(move |request| {
+    Arc::new(DynEndpointWrapper(poem::endpoint::make(move |request| {
         let config = config.clone();
         let cli = cli.clone();
         async move {
@@ -443,5 +447,5 @@ fn create_client_endpoint(
                 body.map_err(IoError::other),
             )))
         }
-    }))
+    })))
 }

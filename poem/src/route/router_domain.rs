@@ -87,7 +87,6 @@ impl RouteDomain {
     }
 }
 
-#[async_trait::async_trait]
 impl Endpoint for RouteDomain {
     type Output = Response;
 

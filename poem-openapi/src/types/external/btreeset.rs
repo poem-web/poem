@@ -83,8 +83,10 @@ impl<T: ParseFromParameter + Ord> ParseFromParameter for BTreeSet<T> {
     }
 }
 
-#[poem::async_trait]
-impl<T: ParseFromMultipartField + Ord> ParseFromMultipartField for BTreeSet<T> {
+impl<T> ParseFromMultipartField for BTreeSet<T>
+where
+    T: ParseFromMultipartField + Ord,
+{
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         match field {
             Some(field) => {

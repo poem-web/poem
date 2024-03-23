@@ -109,7 +109,6 @@ pub struct SetHeaderEndpoint<E> {
     actions: Vec<Action>,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
     type Output = Response;
 

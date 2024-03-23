@@ -43,7 +43,6 @@ pub struct PrometheusExporterEndpoint {
     registry: Registry,
 }
 
-#[async_trait::async_trait]
 impl Endpoint for PrometheusExporterEndpoint {
     type Output = Response;
 

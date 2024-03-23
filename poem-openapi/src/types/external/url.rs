@@ -55,7 +55,6 @@ impl ParseFromParameter for Url {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Url {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

@@ -1,6 +1,6 @@
 use poem::{
-    async_trait, get, handler, listener::TcpListener, Endpoint, EndpointExt, IntoResponse,
-    Middleware, Request, Response, Result, Route, Server,
+    get, handler, listener::TcpListener, Endpoint, EndpointExt, IntoResponse, Middleware, Request,
+    Response, Result, Route, Server,
 };
 
 struct Log;
@@ -15,7 +15,6 @@ impl<E: Endpoint> Middleware<E> for Log {
 
 struct LogImpl<E>(E);
 
-#[async_trait]
 impl<E: Endpoint> Endpoint for LogImpl<E> {
     type Output = Response;
 

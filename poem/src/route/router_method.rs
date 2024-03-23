@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use crate::{
     endpoint::BoxEndpoint, error::MethodNotAllowedError, http::Method, Endpoint, EndpointExt,
     IntoEndpoint, Request, Response, Result,
@@ -163,26 +165,27 @@ impl RouteMethod {
     }
 }
 
-#[async_trait::async_trait]
 impl Endpoint for RouteMethod {
     type Output = Response;
 
-    async fn call(&self, mut req: Request) -> Result<Self::Output> {
-        match self
-            .methods
-            .iter()
-            .find(|(method, _)| method == req.method())
-            .map(|(_, ep)| ep)
-        {
-            Some(ep) => ep.call(req).await,
-            None => {
-                if req.method() == Method::HEAD {
-                    req.set_method(Method::GET);
-                    let mut resp = self.call(req).await?;
-                    resp.set_body(());
-                    return Ok(resp);
+    fn call(&self, mut req: Request) -> impl Future<Output = Result<Self::Output>> + Send {
+        async move {
+            match self
+                .methods
+                .iter()
+                .find(|(method, _)| method == req.method())
+                .map(|(_, ep)| ep)
+            {
+                Some(ep) => ep.call(req).await,
+                None => {
+                    if req.method() == Method::HEAD {
+                        req.set_method(Method::GET);
+                        let mut resp = Box::pin(self.call(req)).await?;
+                        resp.set_body(());
+                        return Ok(resp);
+                    }
+                    Err(MethodNotAllowedError.into())
                 }
-                Err(MethodNotAllowedError.into())
             }
         }
     }

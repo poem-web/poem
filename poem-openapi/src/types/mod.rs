@@ -10,7 +10,7 @@ mod string_types;
 
 pub mod multipart;
 
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, future::Future, sync::Arc};
 
 pub use any::Any;
 pub use base64_type::Base64;
@@ -138,14 +138,18 @@ pub trait ParseFromParameter: Sized + Type {
 }
 
 /// Represents a type that can parsing from multipart.
-#[poem::async_trait]
 pub trait ParseFromMultipartField: Sized + Type {
     /// Parse from multipart field.
-    async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self>;
+    fn parse_from_multipart(
+        field: Option<PoemField>,
+    ) -> impl Future<Output = ParseResult<Self>> + Send;
 
     /// Parse from repeated multipart field.
-    async fn parse_from_repeated_field(self, _field: PoemField) -> ParseResult<Self> {
-        Err(ParseError::<Self>::custom("repeated field"))
+    fn parse_from_repeated_field(
+        self,
+        _field: PoemField,
+    ) -> impl Future<Output = ParseResult<Self>> + Send {
+        async move { Err(ParseError::<Self>::custom("repeated field")) }
     }
 }
 
@@ -380,7 +384,6 @@ impl<T: ParseFromParameter> ParseFromParameter for Box<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromMultipartField> ParseFromMultipartField for Box<T> {
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         T::parse_from_multipart(field)

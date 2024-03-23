@@ -58,7 +58,6 @@ impl ParseFromParameter for OffsetDateTime {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for OffsetDateTime {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {
@@ -119,7 +118,6 @@ macro_rules! impl_naive_datetime_types {
             }
         }
 
-        #[poem::async_trait]
         impl ParseFromMultipartField for $ty {
             async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
                 match field {

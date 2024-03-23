@@ -5,7 +5,6 @@ poem_grpc::include_proto!("helloworld");
 
 struct GreeterService;
 
-#[poem::async_trait]
 impl Greeter for GreeterService {
     async fn say_hello(
         &self,

@@ -91,9 +91,10 @@ impl<T: ParseFromParameter + Hash + Eq, R: Send + Sync + Default + BuildHasher> 
     }
 }
 
-#[poem::async_trait]
-impl<T: ParseFromMultipartField + Hash + Eq, R: Send + Sync + Default + BuildHasher>
-    ParseFromMultipartField for HashSet<T, R>
+impl<T, R> ParseFromMultipartField for HashSet<T, R>
+where
+    T: ParseFromMultipartField + Hash + Eq,
+    R: Send + Sync + Default + BuildHasher,
 {
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         match field {

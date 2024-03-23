@@ -91,7 +91,6 @@ pub struct SensitiveHeaderEndpoint<E> {
     applied_to: AppliedTo,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for SensitiveHeaderEndpoint<E> {
     type Output = Response;
 

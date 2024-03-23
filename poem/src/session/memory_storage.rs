@@ -1,6 +1,7 @@
 use std::{
     cmp::Reverse,
     collections::{BTreeMap, HashMap},
+    future::Future,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -68,37 +69,48 @@ impl MemoryStorage {
     }
 }
 
-#[async_trait::async_trait]
 impl SessionStorage for MemoryStorage {
-    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
-        let inner = self.inner.lock();
-        Ok(inner.sessions.get(session_id).cloned())
-    }
-
-    async fn update_session(
-        &self,
-        session_id: &str,
-        entries: &BTreeMap<String, Value>,
-        expires: Option<Duration>,
-    ) -> Result<()> {
-        let mut inner = self.inner.lock();
-        inner.timeout_queue.remove(session_id);
-        inner
-            .sessions
-            .insert(session_id.to_string(), entries.clone());
-        if let Some(expires) = expires {
-            inner
-                .timeout_queue
-                .push(session_id.to_string(), Reverse(Instant::now() + expires));
+    fn load_session<'a>(
+        &'a self,
+        session_id: &'a str,
+    ) -> impl Future<Output = Result<Option<BTreeMap<String, Value>>>> + Send + 'a {
+        async move {
+            let inner = self.inner.lock();
+            Ok(inner.sessions.get(session_id).cloned())
         }
-        Ok(())
     }
 
-    async fn remove_session(&self, session_id: &str) -> Result<()> {
-        let mut inner = self.inner.lock();
-        inner.sessions.remove(session_id);
-        inner.timeout_queue.remove(session_id);
-        Ok(())
+    fn update_session<'a>(
+        &'a self,
+        session_id: &'a str,
+        entries: &'a BTreeMap<String, Value>,
+        expires: Option<Duration>,
+    ) -> impl Future<Output = Result<()>> + Send + 'a {
+        async move {
+            let mut inner = self.inner.lock();
+            inner.timeout_queue.remove(session_id);
+            inner
+                .sessions
+                .insert(session_id.to_string(), entries.clone());
+            if let Some(expires) = expires {
+                inner
+                    .timeout_queue
+                    .push(session_id.to_string(), Reverse(Instant::now() + expires));
+            }
+            Ok(())
+        }
+    }
+
+    fn remove_session<'a>(
+        &'a self,
+        session_id: &'a str,
+    ) -> impl Future<Output = Result<()>> + Send + 'a {
+        async move {
+            let mut inner = self.inner.lock();
+            inner.sessions.remove(session_id);
+            inner.timeout_queue.remove(session_id);
+            Ok(())
+        }
     }
 }
 

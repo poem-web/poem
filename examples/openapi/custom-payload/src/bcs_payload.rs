@@ -50,7 +50,6 @@ impl<T: Type> Payload for Bcs<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: Type + for<'b> Deserialize<'b>> ParsePayload for Bcs<T> {
     const IS_REQUIRED: bool = true;
 

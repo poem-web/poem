@@ -80,7 +80,6 @@ struct ServerReflectionService {
     state: Arc<State>,
 }
 
-#[poem::async_trait]
 impl proto::ServerReflection for ServerReflectionService {
     async fn server_reflection_info(
         &self,

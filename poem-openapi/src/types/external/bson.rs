@@ -51,7 +51,6 @@ impl ParseFromParameter for ObjectId {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for ObjectId {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

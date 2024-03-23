@@ -59,7 +59,6 @@ impl<T: AsRef<[u8]> + Send + Sync> Type for Binary<T> {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Binary<Vec<u8>> {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {
@@ -69,7 +68,6 @@ impl ParseFromMultipartField for Binary<Vec<u8>> {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Binary<Bytes> {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

@@ -50,7 +50,6 @@ impl<T: Type> Payload for Json<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
     const IS_REQUIRED: bool = true;
 

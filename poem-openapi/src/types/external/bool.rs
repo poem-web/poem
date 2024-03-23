@@ -54,7 +54,6 @@ impl ParseFromParameter for bool {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for bool {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

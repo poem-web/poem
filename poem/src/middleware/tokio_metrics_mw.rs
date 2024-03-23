@@ -77,7 +77,6 @@ pub struct TokioMetricsEndpoint<E> {
     monitor: TaskMonitor,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for TokioMetricsEndpoint<E> {
     type Output = Response;
 

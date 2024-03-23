@@ -1,5 +1,7 @@
 use std::{future::Future, marker::PhantomData, sync::Arc};
 
+use futures_util::{future::BoxFuture, FutureExt};
+
 use super::{
     After, AndThen, Around, Before, CatchAllError, CatchError, InspectAllError, InspectError, Map,
     MapToResponse, ToResponse,
@@ -11,13 +13,12 @@ use crate::{
 };
 
 /// An HTTP request handler.
-#[async_trait::async_trait]
 pub trait Endpoint: Send + Sync {
     /// Represents the response of the endpoint.
     type Output: IntoResponse;
 
     /// Get the response to the request.
-    async fn call(&self, req: Request) -> Result<Self::Output>;
+    fn call(&self, req: Request) -> impl Future<Output = Result<Self::Output>> + Send;
 
     /// Get the response to the request and return a [`Response`].
     ///
@@ -45,11 +46,13 @@ pub trait Endpoint: Send + Sync {
     ///     .assert_status(StatusCode::NOT_FOUND);
     /// # });
     /// ```
-    async fn get_response(&self, req: Request) -> Response {
-        self.call(req)
-            .await
-            .map(IntoResponse::into_response)
-            .unwrap_or_else(|err| err.into_response())
+    fn get_response(&self, req: Request) -> impl Future<Output = Response> + Send {
+        async move {
+            self.call(req)
+                .await
+                .map(IntoResponse::into_response)
+                .unwrap_or_else(|err| err.into_response())
+        }
     }
 }
 
@@ -58,7 +61,6 @@ struct SyncFnEndpoint<T, F> {
     f: F,
 }
 
-#[async_trait::async_trait]
 impl<F, T, R> Endpoint for SyncFnEndpoint<T, F>
 where
     F: Fn(Request) -> R + Send + Sync,
@@ -77,7 +79,6 @@ struct AsyncFnEndpoint<T, F> {
     f: F,
 }
 
-#[async_trait::async_trait]
 impl<F, Fut, T, R> Endpoint for AsyncFnEndpoint<T, F>
 where
     F: Fn(Request) -> Fut + Sync + Send,
@@ -98,7 +99,6 @@ pub enum EitherEndpoint<A, B> {
     B(B),
 }
 
-#[async_trait::async_trait]
 impl<A, B> Endpoint for EitherEndpoint<A, B>
 where
     A: Endpoint,
@@ -175,7 +175,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for &T {
     type Output = T::Output;
 
@@ -184,7 +183,6 @@ impl<T: Endpoint + ?Sized> Endpoint for &T {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
     type Output = T::Output;
 
@@ -193,7 +191,6 @@ impl<T: Endpoint + ?Sized> Endpoint for Box<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
     type Output = T::Output;
 
@@ -202,9 +199,45 @@ impl<T: Endpoint + ?Sized> Endpoint for Arc<T> {
     }
 }
 
+/// A `endpoint` that can be dynamically dispatched.
+pub trait DynEndpoint: Send + Sync {
+    /// Represents the response of the endpoint.
+    type Output: IntoResponse;
+
+    /// Get the response to the request.
+    fn call(&self, req: Request) -> BoxFuture<Result<Self::Output>>;
+}
+
+/// A [`Endpoint`] wrapper used to implement [`DynEndpoint`].
+pub struct DynEndpointWrapper<E>(pub E);
+
+impl<E> DynEndpoint for DynEndpointWrapper<E>
+where
+    E: Endpoint,
+{
+    type Output = E::Output;
+
+    #[inline]
+    fn call(&self, req: Request) -> BoxFuture<Result<Self::Output>> {
+        self.0.call(req).boxed()
+    }
+}
+
+impl<T> Endpoint for dyn DynEndpoint<Output = T> + '_
+where
+    T: IntoResponse,
+{
+    type Output = T;
+
+    #[inline]
+    async fn call(&self, req: Request) -> Result<Self::Output> {
+        DynEndpoint::call(self, req).await
+    }
+}
+
 /// An owned dynamically typed `Endpoint` for use in cases where you can’t
 /// statically type your result or need to add some indirection.
-pub type BoxEndpoint<'a, T = Response> = Box<dyn Endpoint<Output = T> + 'a>;
+pub type BoxEndpoint<'a, T = Response> = Box<dyn DynEndpoint<Output = T> + 'a>;
 
 /// Extension trait for [`Endpoint`].
 pub trait EndpointExt: IntoEndpoint {
@@ -213,7 +246,7 @@ pub trait EndpointExt: IntoEndpoint {
     where
         Self: Sized + 'a,
     {
-        Box::new(self.into_endpoint())
+        Box::new(DynEndpointWrapper(self.into_endpoint()))
     }
 
     /// Use middleware to transform this endpoint.

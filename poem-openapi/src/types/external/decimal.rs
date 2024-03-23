@@ -67,7 +67,6 @@ impl ParseFromParameter for Decimal {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Decimal {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

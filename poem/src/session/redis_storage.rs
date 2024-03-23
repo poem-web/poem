@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::{collections::BTreeMap, future::Future, time::Duration};
 
 use redis::{aio::ConnectionLike, Cmd};
 use serde_json::Value;
@@ -22,46 +22,57 @@ impl<T> RedisStorage<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T> {
-    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
-        let data: Option<String> = Cmd::get(session_id)
-            .query_async(&mut self.connection.clone())
-            .await
-            .map_err(RedisSessionError::Redis)?;
+    fn load_session<'a>(
+        &'a self,
+        session_id: &'a str,
+    ) -> impl Future<Output = Result<Option<BTreeMap<String, Value>>>> + Send + 'a {
+        async move {
+            let data: Option<String> = Cmd::get(session_id)
+                .query_async(&mut self.connection.clone())
+                .await
+                .map_err(RedisSessionError::Redis)?;
 
-        match data {
-            Some(data) => match serde_json::from_str::<BTreeMap<String, Value>>(&data) {
-                Ok(entries) => Ok(Some(entries)),
-                Err(_) => Ok(None),
-            },
-            None => Ok(None),
+            match data {
+                Some(data) => match serde_json::from_str::<BTreeMap<String, Value>>(&data) {
+                    Ok(entries) => Ok(Some(entries)),
+                    Err(_) => Ok(None),
+                },
+                None => Ok(None),
+            }
         }
     }
 
-    async fn update_session(
-        &self,
-        session_id: &str,
-        entries: &BTreeMap<String, Value>,
+    fn update_session<'a>(
+        &'a self,
+        session_id: &'a str,
+        entries: &'a BTreeMap<String, Value>,
         expires: Option<Duration>,
-    ) -> Result<()> {
-        let value = serde_json::to_string(entries).unwrap_or_default();
-        let cmd = match expires {
-            Some(expires) => Cmd::set_ex(session_id, value, expires.as_secs()),
-            None => Cmd::set(session_id, value),
-        };
-        cmd.query_async(&mut self.connection.clone())
-            .await
-            .map_err(RedisSessionError::Redis)?;
-        Ok(())
+    ) -> impl Future<Output = Result<()>> + Send + 'a {
+        async move {
+            let value = serde_json::to_string(entries).unwrap_or_default();
+            let cmd = match expires {
+                Some(expires) => Cmd::set_ex(session_id, value, expires.as_secs()),
+                None => Cmd::set(session_id, value),
+            };
+            cmd.query_async(&mut self.connection.clone())
+                .await
+                .map_err(RedisSessionError::Redis)?;
+            Ok(())
+        }
     }
 
-    async fn remove_session(&self, session_id: &str) -> Result<()> {
-        Cmd::del(session_id)
-            .query_async(&mut self.connection.clone())
-            .await
-            .map_err(RedisSessionError::Redis)?;
-        Ok(())
+    fn remove_session<'a>(
+        &'a self,
+        session_id: &'a str,
+    ) -> impl Future<Output = Result<()>> + Send + 'a {
+        async move {
+            Cmd::del(session_id)
+                .query_async(&mut self.connection.clone())
+                .await
+                .map_err(RedisSessionError::Redis)?;
+            Ok(())
+        }
     }
 }
 

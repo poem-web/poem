@@ -50,7 +50,6 @@ impl<T: Type> Payload for Xml<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromXML> ParsePayload for Xml<T> {
     const IS_REQUIRED: bool = true;
 

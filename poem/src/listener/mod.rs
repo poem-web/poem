@@ -25,7 +25,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures_util::{future::BoxFuture, FutureExt, TryFutureExt};
+use futures_util::{future::BoxFuture, Future, FutureExt, TryFutureExt};
 use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
@@ -132,7 +132,7 @@ pub trait Listener: Send {
     type Acceptor: Acceptor;
 
     /// Create a acceptor instance.
-    async fn into_acceptor(self) -> IoResult<Self::Acceptor>;
+    fn into_acceptor(self) -> impl Future<Output = IoResult<Self::Acceptor>> + Send;
 
     /// Combine two listeners.
     ///
@@ -232,7 +232,6 @@ pub trait Listener: Send {
     }
 }
 
-#[async_trait::async_trait]
 impl Listener for Infallible {
     type Acceptor = Infallible;
 
@@ -241,7 +240,6 @@ impl Listener for Infallible {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener + Sized> Listener for Box<T> {
     type Acceptor = T::Acceptor;
 
@@ -334,7 +332,6 @@ impl BoxListener {
     }
 }
 
-#[async_trait::async_trait]
 impl Listener for BoxListener {
     type Acceptor = BoxAcceptor;
 

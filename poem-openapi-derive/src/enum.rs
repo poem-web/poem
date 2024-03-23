@@ -192,7 +192,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
         }
 
-        #[#crate_name::__private::poem::async_trait]
         impl #crate_name::types::ParseFromMultipartField for #ident {
             async fn parse_from_multipart(field: ::std::option::Option<#crate_name::__private::poem::web::Field>) -> #crate_name::types::ParseResult<Self> {
                 use poem_openapi::types::ParseFromParameter;

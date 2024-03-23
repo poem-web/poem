@@ -13,7 +13,6 @@ impl<E> ToResponse<E> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for ToResponse<E> {
     type Output = Response;
 

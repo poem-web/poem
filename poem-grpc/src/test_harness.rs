@@ -10,7 +10,6 @@ use crate::{Request, Response, Status, Streaming};
 
 pub(crate) struct TestHarnessService;
 
-#[poem::async_trait]
 impl TestHarness for TestHarnessService {
     async fn unary(&self, req: Request<UnaryRequest>) -> Result<Response<ValueResponse>, Status> {
         Ok(Response::new(ValueResponse {

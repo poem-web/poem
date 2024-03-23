@@ -98,7 +98,6 @@ impl Type for Upload {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Upload {
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         match field {

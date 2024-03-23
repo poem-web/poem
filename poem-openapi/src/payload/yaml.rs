@@ -50,7 +50,6 @@ impl<T: Type> Payload for Yaml<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromYAML> ParsePayload for Yaml<T> {
     const IS_REQUIRED: bool = true;
 
