@@ -1,5 +1,7 @@
 use std::future::Future;
 
+use futures_util::{future::Either, FutureExt};
+
 use crate::{
     endpoint::BoxEndpoint, error::MethodNotAllowedError, http::Method, Endpoint, EndpointExt,
     IntoEndpoint, Request, Response, Result,
@@ -169,22 +171,26 @@ impl Endpoint for RouteMethod {
     type Output = Response;
 
     fn call(&self, mut req: Request) -> impl Future<Output = Result<Self::Output>> + Send {
-        async move {
-            match self
-                .methods
-                .iter()
-                .find(|(method, _)| method == req.method())
-                .map(|(_, ep)| ep)
-            {
-                Some(ep) => ep.call(req).await,
-                None => {
-                    if req.method() == Method::HEAD {
-                        req.set_method(Method::GET);
-                        let mut resp = Box::pin(self.call(req)).await?;
-                        resp.set_body(());
-                        return Ok(resp);
-                    }
-                    Err(MethodNotAllowedError.into())
+        match self
+            .methods
+            .iter()
+            .find(|(method, _)| method == req.method())
+            .map(|(_, ep)| ep)
+        {
+            Some(ep) => Either::Left(ep.call(req)),
+            None => {
+                if req.method() == Method::HEAD {
+                    Either::Right(Either::Left(
+                        async move {
+                            req.set_method(Method::GET);
+                            let mut resp = self.call(req).await?;
+                            resp.set_body(());
+                            Ok(resp)
+                        }
+                        .boxed(),
+                    ))
+                } else {
+                    Either::Right(Either::Right(async { Err(MethodNotAllowedError.into()) }))
                 }
             }
         }
