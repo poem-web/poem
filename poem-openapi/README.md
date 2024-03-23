@@ -21,9 +21,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.74.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.74.0+-ab6000.svg"
-      alt="rustc 1.74.0+" />
+  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.75.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.75.0+-ab6000.svg"
+      alt="rustc 1.75.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -131,7 +131,7 @@ hello, sunli!
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.74.0`.
+The minimum supported Rust version for this crate is `1.75.0`.
 
 ## Contributing
 
