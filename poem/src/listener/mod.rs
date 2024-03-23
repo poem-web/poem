@@ -133,10 +133,12 @@ impl<A: Acceptor> DynAcceptor for ToDynAcceptor<A> {
 impl Acceptor for dyn DynAcceptor + '_ {
     type Io = BoxIo;
 
+    #[inline]
     fn local_addr(&self) -> Vec<LocalAddr> {
-        todo!()
+        DynAcceptor::local_addr(self)
     }
 
+    #[inline]
     async fn accept(&mut self) -> IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)> {
         DynAcceptor::accept(self).await
     }
