@@ -23,7 +23,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    endpoint::{DynEndpoint, DynEndpointWrapper},
+    endpoint::{DynEndpoint, ToDynEndpoint},
     listener::{Acceptor, AcceptorExt, Listener},
     web::{LocalAddr, RemoteAddr},
     Endpoint, EndpointExt, IntoEndpoint, Response,
@@ -110,7 +110,7 @@ where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        let ep = Arc::new(DynEndpointWrapper(ep.into_endpoint().map_to_response()));
+        let ep = Arc::new(ToDynEndpoint(ep.into_endpoint().map_to_response()));
         let Server {
             listener,
             name,

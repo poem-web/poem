@@ -209,9 +209,9 @@ pub trait DynEndpoint: Send + Sync {
 }
 
 /// A [`Endpoint`] wrapper used to implement [`DynEndpoint`].
-pub struct DynEndpointWrapper<E>(pub E);
+pub struct ToDynEndpoint<E>(pub E);
 
-impl<E> DynEndpoint for DynEndpointWrapper<E>
+impl<E> DynEndpoint for ToDynEndpoint<E>
 where
     E: Endpoint,
 {
@@ -246,7 +246,7 @@ pub trait EndpointExt: IntoEndpoint {
     where
         Self: Sized + 'a,
     {
-        Box::new(DynEndpointWrapper(self.into_endpoint()))
+        Box::new(ToDynEndpoint(self.into_endpoint()))
     }
 
     /// Use middleware to transform this endpoint.

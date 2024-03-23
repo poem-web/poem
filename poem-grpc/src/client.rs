@@ -5,7 +5,7 @@ use futures_util::TryStreamExt;
 use http_body_util::BodyExt;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use poem::{
-    endpoint::{DynEndpoint, DynEndpointWrapper},
+    endpoint::{DynEndpoint, ToDynEndpoint},
     http::{
         header::{self, InvalidHeaderValue},
         uri::InvalidUri,
@@ -172,7 +172,7 @@ impl GrpcClient {
         <T::Endpoint as Endpoint>::Output: 'static,
     {
         Self {
-            ep: Arc::new(DynEndpointWrapper(ep.map_to_response())),
+            ep: Arc::new(ToDynEndpoint(ep.map_to_response())),
         }
     }
 
@@ -181,7 +181,7 @@ impl GrpcClient {
         M: Middleware<Arc<dyn DynEndpoint<Output = HttpResponse> + 'static>>,
         M::Output: 'static,
     {
-        self.ep = Arc::new(DynEndpointWrapper(
+        self.ep = Arc::new(ToDynEndpoint(
             middleware.transform(self.ep).map_to_response(),
         ));
         self
@@ -407,7 +407,7 @@ fn create_client_endpoint(
 
     let config = Arc::new(config);
 
-    Arc::new(DynEndpointWrapper(poem::endpoint::make(move |request| {
+    Arc::new(ToDynEndpoint(poem::endpoint::make(move |request| {
         let config = config.clone();
         let cli = cli.clone();
         async move {

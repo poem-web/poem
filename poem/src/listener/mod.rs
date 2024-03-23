@@ -49,8 +49,100 @@ pub use self::{
 };
 use crate::web::{LocalAddr, RemoteAddr};
 
+/// An IO type for BoxAcceptor.
+pub struct BoxIo {
+    reader: Box<dyn AsyncRead + Send + Unpin + 'static>,
+    writer: Box<dyn AsyncWrite + Send + Unpin + 'static>,
+}
+
+impl BoxIo {
+    fn new(io: impl AsyncRead + AsyncWrite + Send + Unpin + 'static) -> Self {
+        let (reader, writer) = tokio::io::split(io);
+        Self {
+            reader: Box::new(reader),
+            writer: Box::new(writer),
+        }
+    }
+}
+
+impl AsyncRead for BoxIo {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<IoResult<()>> {
+        let this = &mut *self;
+        Pin::new(&mut this.reader).poll_read(cx, buf)
+    }
+}
+
+impl AsyncWrite for BoxIo {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, Error>> {
+        let this = &mut *self;
+        Pin::new(&mut this.writer).poll_write(cx, buf)
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        let this = &mut *self;
+        Pin::new(&mut this.writer).poll_flush(cx)
+    }
+
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        let this = &mut *self;
+        Pin::new(&mut this.writer).poll_shutdown(cx)
+    }
+}
+
+/// A `acceptor` that can be dynamically dispatched.
+pub trait DynAcceptor: Send {
+    /// Returns the local address that this listener is bound to.
+    fn local_addr(&self) -> Vec<LocalAddr>;
+
+    /// Accepts a new incoming connection from this listener.
+    ///
+    /// This function will yield once a new TCP connection is established. When
+    /// established, the corresponding IO stream and the remote peer’s
+    /// address will be returned.
+    fn accept(&mut self) -> BoxFuture<IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)>>;
+}
+
+/// A [`Acceptor`] wrapper used to implement [`DynAcceptor`].
+pub struct ToDynAcceptor<A>(pub A);
+
+impl<A: Acceptor> DynAcceptor for ToDynAcceptor<A> {
+    #[inline]
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        self.0.local_addr()
+    }
+
+    #[inline]
+    fn accept(&mut self) -> BoxFuture<IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)>> {
+        async move {
+            let (io, local_addr, remote_addr, scheme) = self.0.accept().await?;
+            let io = BoxIo::new(io);
+            Ok((io, local_addr, remote_addr, scheme))
+        }
+        .boxed()
+    }
+}
+
+impl Acceptor for dyn DynAcceptor + '_ {
+    type Io = BoxIo;
+
+    fn local_addr(&self) -> Vec<LocalAddr> {
+        todo!()
+    }
+
+    async fn accept(&mut self) -> IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)> {
+        DynAcceptor::accept(self).await
+    }
+}
+
 /// Represents a acceptor type.
-#[async_trait::async_trait]
 pub trait Acceptor: Send {
     /// IO stream type.
     type Io: AsyncRead + AsyncWrite + Send + Unpin + 'static;
@@ -63,12 +155,14 @@ pub trait Acceptor: Send {
     /// This function will yield once a new TCP connection is established. When
     /// established, the corresponding IO stream and the remote peer’s
     /// address will be returned.
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)>;
+    fn accept(
+        &mut self,
+    ) -> impl Future<Output = IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)>> + Send;
 }
 
 /// An owned dynamically typed Acceptor for use in cases where you can’t
 /// statically type your result or need to add some indirection.
-pub type BoxAcceptor = Box<dyn Acceptor<Io = BoxIo>>;
+pub type BoxAcceptor = Box<dyn DynAcceptor>;
 
 /// Extension trait for [`Acceptor`].
 pub trait AcceptorExt: Acceptor {
@@ -86,7 +180,7 @@ pub trait AcceptorExt: Acceptor {
     where
         Self: Sized + 'static,
     {
-        Box::new(WrappedAcceptor(self))
+        Box::new(ToDynAcceptor(self))
     }
 
     /// Consume this acceptor and return a new TLS acceptor with [`rustls`](https://crates.io/crates/rustls).
@@ -126,7 +220,6 @@ pub trait AcceptorExt: Acceptor {
 impl<T: Acceptor> AcceptorExt for T {}
 
 /// Represents a listener that can be listens for incoming connections.
-#[async_trait::async_trait]
 pub trait Listener: Send {
     /// The acceptor type.
     type Acceptor: Acceptor;
@@ -248,7 +341,6 @@ impl<T: Listener + Sized> Listener for Box<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
     type Io = T::Io;
 
@@ -261,7 +353,6 @@ impl<T: Acceptor + ?Sized> Acceptor for Box<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl Acceptor for Infallible {
     type Io = BoxIo;
 
@@ -271,54 +362,6 @@ impl Acceptor for Infallible {
 
     async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         unreachable!()
-    }
-}
-
-/// An IO type for BoxAcceptor.
-pub struct BoxIo {
-    reader: Box<dyn AsyncRead + Send + Unpin + 'static>,
-    writer: Box<dyn AsyncWrite + Send + Unpin + 'static>,
-}
-
-impl BoxIo {
-    fn new(io: impl AsyncRead + AsyncWrite + Send + Unpin + 'static) -> Self {
-        let (reader, writer) = tokio::io::split(io);
-        Self {
-            reader: Box::new(reader),
-            writer: Box::new(writer),
-        }
-    }
-}
-
-impl AsyncRead for BoxIo {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<IoResult<()>> {
-        let this = &mut *self;
-        Pin::new(&mut this.reader).poll_read(cx, buf)
-    }
-}
-
-impl AsyncWrite for BoxIo {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, Error>> {
-        let this = &mut *self;
-        Pin::new(&mut this.writer).poll_write(cx, buf)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        let this = &mut *self;
-        Pin::new(&mut this.writer).poll_flush(cx)
-    }
-
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        let this = &mut *self;
-        Pin::new(&mut this.writer).poll_shutdown(cx)
     }
 }
 
@@ -337,26 +380,6 @@ impl Listener for BoxListener {
 
     async fn into_acceptor(self) -> IoResult<Self::Acceptor> {
         self.0.await
-    }
-}
-
-struct WrappedAcceptor<T: Acceptor>(T);
-
-#[async_trait::async_trait]
-impl<T: Acceptor> Acceptor for WrappedAcceptor<T> {
-    type Io = BoxIo;
-
-    fn local_addr(&self) -> Vec<LocalAddr> {
-        self.0.local_addr()
-    }
-
-    async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
-        self.0
-            .accept()
-            .await
-            .map(|(io, local_addr, remote_addr, scheme)| {
-                (BoxIo::new(io), local_addr, remote_addr, scheme)
-            })
     }
 }
 

@@ -31,8 +31,7 @@ pub use catch_error::CatchError;
 #[cfg(feature = "embed")]
 pub use embed::{EmbeddedFileEndpoint, EmbeddedFilesEndpoint};
 pub use endpoint::{
-    make, make_sync, BoxEndpoint, DynEndpoint, DynEndpointWrapper, Endpoint, EndpointExt,
-    IntoEndpoint,
+    make, make_sync, BoxEndpoint, DynEndpoint, Endpoint, EndpointExt, IntoEndpoint, ToDynEndpoint,
 };
 pub use inspect_all_err::InspectAllError;
 pub use inspect_err::InspectError;

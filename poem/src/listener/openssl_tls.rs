@@ -180,7 +180,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T, S> Acceptor for OpensslTlsAcceptor<T, S>
 where
     S: Stream<Item = OpensslTlsConfig> + Send + Unpin + 'static,

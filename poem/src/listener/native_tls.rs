@@ -135,7 +135,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T, S> Acceptor for NativeTlsAcceptor<T, S>
 where
     S: Stream<Item = NativeTlsConfig> + Send + Unpin + 'static,

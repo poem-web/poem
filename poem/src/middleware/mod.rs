@@ -84,7 +84,6 @@ use crate::endpoint::Endpoint;
 /// #[derive(Clone)]
 /// struct Token(String);
 ///
-/// #[poem::async_trait]
 /// impl<E: Endpoint> Endpoint for TokenMiddlewareImpl<E> {
 ///     type Output = E::Output;
 ///

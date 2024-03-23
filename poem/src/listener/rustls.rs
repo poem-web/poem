@@ -352,7 +352,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<T, S> Acceptor for RustlsAcceptor<T, S>
 where
     S: Stream<Item = RustlsConfig> + Send + Unpin + 'static,

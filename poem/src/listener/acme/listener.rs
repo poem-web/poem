@@ -214,7 +214,6 @@ pub struct AutoCertAcceptor<T> {
     acceptor: TlsAcceptor,
 }
 
-#[async_trait::async_trait]
 impl<T: Acceptor> Acceptor for AutoCertAcceptor<T> {
     type Io = HandshakeStream<TlsStream<T::Io>>;
 
