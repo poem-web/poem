@@ -189,6 +189,7 @@ pub mod __private {
     pub use poem;
     pub use serde;
     pub use serde_json;
+    pub use static_assertions;
 
     pub use crate::{auth::CheckerReturn, base::UrlQuery, path_util::join_path};
 }

@@ -145,6 +145,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 if let Some(discriminator_name) = &args.discriminator_name {
                     create_schemas.push(quote! {
+                        #crate_name::__private::static_assertions::assert_impl_all!(#object_ty: #crate_name::types::IsObjectType);
                         let schema = #crate_name::registry::MetaSchema {
                             all_of: ::std::vec![
                                 #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
@@ -268,6 +269,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             fn register(registry: &mut #crate_name::registry::Registry) {
+                use ::std::marker::Sized;
                 registry.create_schema::<Self, _>(<Self as #crate_name::types::Type>::name().into_owned(), |registry| {
                     #(<#types as #crate_name::types::Type>::register(registry);)*
                     #(#create_schemas)*

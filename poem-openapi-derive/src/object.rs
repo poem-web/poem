@@ -412,6 +412,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
         }
 
+        impl #impl_generics #crate_name::types::IsObjectType for #ident #ty_generics #where_clause {}
+
         impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
             fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {
                 let value = value.unwrap_or_default();

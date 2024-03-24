@@ -82,6 +82,9 @@ pub trait Type: Send + Sync {
     }
 }
 
+/// Represents a object type.
+pub trait IsObjectType: Type {}
+
 /// Represents a type that can parsing from JSON.
 pub trait ParseFromJSON: Sized + Type {
     /// Parse from [`serde_json::Value`].

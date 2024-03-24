@@ -3,7 +3,7 @@ use poem::{
     http::{header, StatusCode},
     test::TestClient,
     web::{cookie::Cookie, headers},
-    Error, Request,
+    Request,
 };
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
