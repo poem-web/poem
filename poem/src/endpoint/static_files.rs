@@ -210,10 +210,10 @@ impl Endpoint for StaticFilesEndpoint {
         }
 
         if file_path.is_file() {
-            return Ok(StaticFileRequest::from_request_without_body(&req)
+            Ok(StaticFileRequest::from_request_without_body(&req)
                 .await?
                 .create_response(&file_path, self.prefer_utf8)?
-                .into_response());
+                .into_response())
         } else {
             if self.redirect_to_slash
                 && !req.original_uri().path().ends_with('/')

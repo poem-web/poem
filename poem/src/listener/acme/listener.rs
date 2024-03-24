@@ -204,7 +204,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 tokio::time::sleep(Duration::from_secs(60 * 5)).await;
             }
         });
-        Ok(auto_cert_acceptor(self.inner, cert_resolver, challenge_type).await?)
+        auto_cert_acceptor(self.inner, cert_resolver, challenge_type).await
     }
 }
 
@@ -224,7 +224,7 @@ impl<T: Acceptor> Acceptor for AutoCertAcceptor<T> {
     async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         let (stream, local_addr, remote_addr, _) = self.inner.accept().await?;
         let stream = HandshakeStream::new(self.acceptor.accept(stream));
-        return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
+        Ok((stream, local_addr, remote_addr, Scheme::HTTPS))
     }
 }
 
