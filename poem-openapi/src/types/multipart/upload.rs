@@ -19,6 +19,7 @@ pub struct Upload {
     file_name: Option<String>,
     content_type: Option<String>,
     file: File,
+    size: usize,
 }
 
 impl Debug for Upload {
@@ -45,6 +46,12 @@ impl Upload {
     #[inline]
     pub fn file_name(&self) -> Option<&str> {
         self.file_name.as_deref()
+    }
+
+    /// Returns the file size in bytes.
+    #[inline]
+    pub fn size(&self) -> usize {
+        self.size
     }
 
     /// Consumes this body object to return a [`Vec<u8>`] that contains all
@@ -104,10 +111,13 @@ impl ParseFromMultipartField for Upload {
             Some(field) => {
                 let content_type = field.content_type().map(ToString::to_string);
                 let file_name = field.file_name().map(ToString::to_string);
+                let file = field.tempfile().await.map_err(ParseError::custom)?;
+                let size = file.metadata().await.map_err(ParseError::custom)?.len() as usize;
                 Ok(Self {
                     content_type,
                     file_name,
-                    file: field.tempfile().await.map_err(ParseError::custom)?,
+                    file,
+                    size,
                 })
             }
             None => Err(ParseError::expected_input()),

@@ -3,7 +3,7 @@ use poem::{
     http::{header, StatusCode},
     test::TestClient,
     web::{cookie::Cookie, headers},
-    Request,
+    Error, Request,
 };
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
@@ -18,6 +18,7 @@ use crate::headers::Authorization;
 fn rename() {
     #[derive(SecurityScheme)]
     #[oai(rename = "ABC", ty = "basic")]
+    #[allow(dead_code)]
     struct MySecurityScheme(Basic);
 
     assert_eq!(MySecurityScheme::security_schemes(), &["ABC"]);
@@ -27,6 +28,7 @@ fn rename() {
 fn default_rename() {
     #[derive(SecurityScheme)]
     #[oai(ty = "basic")]
+    #[allow(dead_code)]
     struct MySecurityScheme(Basic);
 
     assert_eq!(MySecurityScheme::security_schemes(), &["MySecurityScheme"]);
@@ -39,6 +41,7 @@ fn desc() {
     /// D
     #[derive(SecurityScheme)]
     #[oai(ty = "basic")]
+    #[allow(dead_code)]
     struct MySecurityScheme(Basic);
 
     let mut registry = Registry::new();
@@ -382,6 +385,7 @@ async fn oauth2_auth() {
             ),
         )
     )]
+    #[allow(dead_code)]
     struct MySecurityScheme(Bearer);
 
     let mut registry = Registry::new();

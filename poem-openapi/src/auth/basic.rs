@@ -6,6 +6,7 @@ use poem::{
 use crate::{auth::BasicAuthorization, error::AuthorizationError};
 
 /// Used to extract the username/password from the request.
+#[derive(Debug)]
 pub struct Basic {
     /// username
     pub username: String,
