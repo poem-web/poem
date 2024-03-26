@@ -14,7 +14,7 @@ opentelemetry-http = { version = "0.10.0" }
 opentelemetry-otlp = { version = "0.14.0", features = [
     "trace",
 ] }
-reqwest = "0.11.6"
+reqwest = "0.11"
 
 [[bin]]
 name = "example-opentelemetry-client"
