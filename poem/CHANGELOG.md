@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - bump `priority-queue` to 2.0
 - bump `x509-parser` to 0.16
 - bump `nix` to 0.28
+- bump `redis` to 0.25
 
 # [2.0.1] 2024-03-04
 
