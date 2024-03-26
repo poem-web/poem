@@ -4,7 +4,7 @@ use libopentelemetry::{
     global,
     propagation::Extractor,
     trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
-    Context, Key,
+    Context, Key, KeyValue,
 };
 use opentelemetry_semantic_conventions::{resource, trace};
 
@@ -88,17 +88,32 @@ where
         });
 
         let mut attributes = Vec::new();
-        attributes.push(resource::TELEMETRY_SDK_NAME.string(env!("CARGO_CRATE_NAME")));
-        attributes.push(resource::TELEMETRY_SDK_VERSION.string(env!("CARGO_PKG_VERSION")));
-        attributes.push(resource::TELEMETRY_SDK_LANGUAGE.string("rust"));
-        attributes.push(trace::HTTP_REQUEST_METHOD.string(req.method().to_string()));
-        attributes.push(trace::URL_FULL.string(req.original_uri().to_string()));
-        attributes.push(trace::CLIENT_ADDRESS.string(remote_addr));
-        attributes.push(trace::NETWORK_PROTOCOL_VERSION.string(format!("{:?}", req.version())));
+        attributes.push(KeyValue::new(
+            resource::TELEMETRY_SDK_NAME,
+            env!("CARGO_CRATE_NAME"),
+        ));
+        attributes.push(KeyValue::new(
+            resource::TELEMETRY_SDK_VERSION,
+            env!("CARGO_PKG_VERSION"),
+        ));
+        attributes.push(KeyValue::new(resource::TELEMETRY_SDK_LANGUAGE, "rust"));
+        attributes.push(KeyValue::new(
+            trace::HTTP_REQUEST_METHOD,
+            req.method().to_string(),
+        ));
+        attributes.push(KeyValue::new(
+            trace::URL_FULL,
+            req.original_uri().to_string(),
+        ));
+        attributes.push(KeyValue::new(trace::CLIENT_ADDRESS, remote_addr));
+        attributes.push(KeyValue::new(
+            trace::NETWORK_PROTOCOL_VERSION,
+            format!("{:?}", req.version()),
+        ));
 
         if let Some(path_pattern) = req.data::<PathPattern>() {
             const HTTP_PATH_PATTERN: Key = Key::from_static_str("http.path_pattern");
-            attributes.push(HTTP_PATH_PATTERN.string(path_pattern.0.to_string()));
+            attributes.push(KeyValue::new(HTTP_PATH_PATTERN, path_pattern.0.to_string()));
         }
 
         let mut span = self
@@ -119,25 +134,28 @@ where
                 Ok(resp) => {
                     let resp = resp.into_response();
                     span.add_event("request.completed".to_string(), vec![]);
-                    span.set_attribute(
-                        trace::HTTP_RESPONSE_STATUS_CODE.i64(resp.status().as_u16() as i64),
-                    );
+                    span.set_attribute(KeyValue::new(
+                        trace::HTTP_RESPONSE_STATUS_CODE,
+                        resp.status().as_u16() as i64,
+                    ));
                     if let Some(content_length) =
                         resp.headers().typed_get::<headers::ContentLength>()
                     {
-                        span.set_attribute(
-                            trace::HTTP_RESPONSE_BODY_SIZE.i64(content_length.0 as i64),
-                        );
+                        span.set_attribute(KeyValue::new(
+                            trace::HTTP_RESPONSE_BODY_SIZE,
+                            content_length.0 as i64,
+                        ));
                     }
                     Ok(resp)
                 }
                 Err(err) => {
-                    span.set_attribute(
-                        trace::HTTP_RESPONSE_STATUS_CODE.i64(err.status().as_u16() as i64),
-                    );
+                    span.set_attribute(KeyValue::new(
+                        trace::HTTP_RESPONSE_STATUS_CODE,
+                        err.status().as_u16() as i64,
+                    ));
                     span.add_event(
                         "request.error".to_string(),
-                        vec![trace::EXCEPTION_MESSAGE.string(err.to_string())],
+                        vec![KeyValue::new(trace::EXCEPTION_MESSAGE, err.to_string())],
                     );
                     Err(err)
                 }
