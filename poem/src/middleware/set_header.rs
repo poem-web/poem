@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use crate::{
     http::{header::HeaderName, HeaderValue},
     Endpoint, IntoResponse, Middleware, Request, Response, Result,
