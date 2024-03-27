@@ -70,10 +70,12 @@ fn with_discriminator() {
                     required: vec!["type"],
                     properties: vec![(
                         "type",
-                        String::schema_ref().merge(MetaSchema {
+                        MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            ty: "string",
                             example: Some("A".into()),
+                            enum_items: vec!["A".into()],
                             ..MetaSchema::ANY
-                        }),
+                        }))
                     )],
                     ..MetaSchema::new("object")
                 })),
@@ -92,10 +94,12 @@ fn with_discriminator() {
                     required: vec!["type"],
                     properties: vec![(
                         "type",
-                        String::schema_ref().merge(MetaSchema {
+                        MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            ty: "string",
                             example: Some("B".into()),
+                            enum_items: vec!["B".into()],
                             ..MetaSchema::ANY
-                        })
+                        }))
                     )],
                     ..MetaSchema::new("object")
                 })),
@@ -202,10 +206,12 @@ fn with_discriminator_mapping() {
                     required: vec!["type"],
                     properties: vec![(
                         "type",
-                        String::schema_ref().merge(MetaSchema {
+                        MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            ty: "string",
                             example: Some("c".into()),
+                            enum_items: vec!["c".into()],
                             ..MetaSchema::ANY
-                        }),
+                        }))
                     )],
                     ..MetaSchema::new("object")
                 })),
@@ -224,10 +230,12 @@ fn with_discriminator_mapping() {
                     required: vec!["type"],
                     properties: vec![(
                         "type",
-                        String::schema_ref().merge(MetaSchema {
+                        MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            ty: "string",
                             example: Some("d".into()),
+                            enum_items: vec!["d".into()],
                             ..MetaSchema::ANY
-                        })
+                        }))
                     )],
                     ..MetaSchema::new("object")
                 })),
