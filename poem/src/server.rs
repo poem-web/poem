@@ -360,7 +360,7 @@ async fn serve_connection(
     futures_util::pin_mut!(conn);
 
     tokio::select! {
-        _ = conn => {
+        _ = &mut conn => {
             // Connection completed successfully.
         },
         _ = connection_shutdown_token.cancelled() => {
@@ -368,4 +368,9 @@ async fn serve_connection(
         }
         _ = server_graceful_shutdown_token.cancelled() => {}
     }
+
+    // Init graceful shutdown for connection
+    conn.as_mut().graceful_shutdown();
+    // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
+    let _ = conn.await;
 }
