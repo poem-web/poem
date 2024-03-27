@@ -166,7 +166,7 @@ where
                         let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
 
                         tokio::spawn(async move {
-                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token, idle_timeout);
+                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token.clone(), idle_timeout);
 
                             if timeout.is_some() {
                                 tokio::select! {
@@ -178,8 +178,11 @@ where
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
-                                // We have to notify only if there is a registered waiter on shutdown
-                                notify.notify_waiters();
+                                // notify only if shutdown is initiated, to prevent notification when server is active.
+                                // It's a valid state to have 0 alive connections when server is not shutting down.
+                                if server_graceful_shutdown_token.is_cancelled() {
+                                    notify.notify_one();
+                                }
                             }
                         });
                     }
