@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - bump `nix` to 0.28
 - bump `redis` to 0.25
 - bump `reqwest` to 0.12
+- bump `opentelemetry` to 0.22  [#784](https://github.com/poem-web/poem/pull/784)
 
 # [2.0.1] 2024-03-04
 
