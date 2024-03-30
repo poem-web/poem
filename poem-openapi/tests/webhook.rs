@@ -13,7 +13,7 @@ use poem_openapi::{
 #[tokio::test]
 async fn name() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(name = "a", method = "post")]
         fn test1(&self);
 
@@ -28,7 +28,7 @@ async fn name() {
 #[tokio::test]
 async fn method() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post")]
         fn test1(&self);
 
@@ -43,7 +43,7 @@ async fn method() {
 #[tokio::test]
 async fn deprecated() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post")]
         fn test1(&self);
 
@@ -83,7 +83,7 @@ async fn tags() {
 #[tokio::test]
 async fn operation_id() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post", operation_id = "a")]
         fn test1(&self);
 
@@ -104,7 +104,7 @@ async fn operation_id() {
 #[tokio::test]
 async fn parameters() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post")]
         fn test(&self, a: Query<i32>, b: Path<String>);
     }
@@ -137,7 +137,7 @@ async fn parameters() {
 #[tokio::test]
 async fn request_body() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post")]
         fn test(&self, req: Json<i32>);
     }
@@ -158,7 +158,7 @@ async fn request_body() {
 #[tokio::test]
 async fn response() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post")]
         fn test(&self) -> Json<i32>;
     }
@@ -182,7 +182,7 @@ async fn response() {
 #[tokio::test]
 async fn create() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(method = "post")]
         fn test(&self) -> Json<i32>;
     }
@@ -193,7 +193,7 @@ async fn create() {
 #[tokio::test]
 async fn external_docs() {
     #[Webhook]
-    trait MyWebhooks: Sync {
+    trait MyWebhooks {
         #[oai(
             method = "post",
             external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"

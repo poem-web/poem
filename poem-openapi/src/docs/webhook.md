@@ -49,7 +49,7 @@ struct Pet {
 }
 
 #[Webhook]
-trait MyWebhooks: Sync {
+trait MyWebhooks {
     #[oai(method = "post")]
     fn new_pet(&self, pet: Json<Pet>);
 }
