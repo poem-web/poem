@@ -387,8 +387,7 @@ impl Listener for BoxListener {
 
 #[cfg(test)]
 mod tests {
-    use super::{AcceptorExt, *};
-    use crate::listener::TcpListener;
+    use super::*;
 
     #[tokio::test]
     async fn combined_listener() {

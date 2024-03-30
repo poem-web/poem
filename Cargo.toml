@@ -20,10 +20,10 @@ repository = "https://github.com/poem-web/poem"
 rust-version = "1.75"
 
 [workspace.dependencies]
-poem = { path = "poem", version = "2.0.1", default-features = false }
-poem-derive = { path = "poem-derive", version = "2.0.1" }
-poem-openapi-derive = { path = "poem-openapi-derive", version = "4.0.1" }
-poem-grpc-build = { path = "poem-grpc-build", version = "0.3.0" }
+poem = { path = "poem", version = "3.0.0", default-features = false }
+poem-derive = { path = "poem-derive", version = "3.0.0" }
+poem-openapi-derive = { path = "poem-openapi-derive", version = "5.0.0" }
+poem-grpc-build = { path = "poem-grpc-build", version = "0.4.0" }
 
 proc-macro-crate = "3.0.0"
 proc-macro2 = "1.0.29"
@@ -42,7 +42,7 @@ futures-util = "0.3.17"
 tokio-stream = "0.1.8"
 serde_yaml = "0.9"
 quick-xml = { version = "0.31.0", features = ["serialize"] }
-base64 = "0.21.0"
+base64 = "0.22.0"
 serde_urlencoded = "0.7.1"
 indexmap = "2.0.0"
 reqwest = { version = "0.12.2", default-features = false }

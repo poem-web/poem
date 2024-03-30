@@ -36,8 +36,6 @@ impl<'a> FromRequest<'a> for Accept {
 mod tests {
     use std::str::FromStr;
 
-    use http::header;
-
     use super::*;
 
     #[tokio::test]

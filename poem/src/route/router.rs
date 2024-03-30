@@ -387,7 +387,7 @@ fn normalize_path(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use futures_util::lock::Mutex;
-    use http::{StatusCode, Uri};
+    use http::StatusCode;
 
     use super::*;
     use crate::{endpoint::make_sync, handler, test::TestClient, Error};

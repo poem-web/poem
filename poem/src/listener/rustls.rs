@@ -222,10 +222,10 @@ impl RustlsConfig {
             .map(|fallback| fallback.create_certificate_key())
             .transpose()?
             .map(Arc::new);
-        let mut certifcate_keys = HashMap::new();
+        let mut certificate_keys = HashMap::with_capacity(self.certificates.len());
 
         for (name, certificate) in &self.certificates {
-            certifcate_keys.insert(
+            certificate_keys.insert(
                 name.clone(),
                 Arc::new(certificate.create_certificate_key()?),
             );
@@ -252,7 +252,7 @@ impl RustlsConfig {
         };
 
         let mut server_config = builder.with_cert_resolver(Arc::new(ResolveServerCert {
-            certifcate_keys,
+            certificate_keys,
             fallback,
         }));
         server_config.alpn_protocols = vec!["h2".into(), "http/1.1".into()];
@@ -401,7 +401,7 @@ where
 
 #[derive(Debug)]
 struct ResolveServerCert {
-    certifcate_keys: HashMap<String, Arc<CertifiedKey>>,
+    certificate_keys: HashMap<String, Arc<CertifiedKey>>,
     fallback: Option<Arc<CertifiedKey>>,
 }
 
@@ -409,7 +409,7 @@ impl ResolvesServerCert for ResolveServerCert {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
         client_hello
             .server_name()
-            .and_then(|name| self.certifcate_keys.get(name).cloned())
+            .and_then(|name| self.certificate_keys.get(name).cloned())
             .or_else(|| self.fallback.clone())
     }
 }

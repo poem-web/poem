@@ -138,7 +138,7 @@ impl Reflection {
         let fd_iter = std::mem::take(&mut this.file_descriptor_sets)
             .into_iter()
             .flat_map(|fds| fds.file.into_iter());
-        let mut files = HashMap::new();
+        let mut files = HashMap::with_capacity(fd_iter.size_hint().0);
 
         for fd in fd_iter {
             let fd = Arc::new(fd);

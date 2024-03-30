@@ -4,15 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [3.0.0] 2024-03-24
+# [3.0.0] 2024-03-30
 
 - use AFIT instead of `async_trait`
-- bump `priority-queue` to 2.0
-- bump `x509-parser` to 0.16
-- bump `nix` to 0.28
-- bump `redis` to 0.25
-- bump `reqwest` to 0.12
-- bump `opentelemetry` to 0.22  [#784](https://github.com/poem-web/poem/pull/784)
+- bump `priority-queue` to `2.0`
+- bump `x509-parser` to `0.16`
+- bump `nix` to `0.28`
+- bump `redis` to `0.25`
+- bump `reqwest` to `0.12`
+- bump `opentelemetry` to `0.22`  [#784](https://github.com/poem-web/poem/pull/784)
+- bump `sync_wrapper` to `1.0.0`
+- bump `rcgen ` to `0.13.0`
+- bump `base64 ` to `0.22.0`
 
 # [2.0.1] 2024-03-04
 
