@@ -1,6 +1,6 @@
 [package]
 name = "poem-grpc"
-version = "0.3.0"
+version = "0.4.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -28,7 +28,7 @@ itoa = "1.0.2"
 percent-encoding = "2.1.0"
 bytes.workspace = true
 prost = "0.12.0"
-base64 = "0.21.0"
+base64.workspace = true
 prost-types = "0.12.0"
 tokio-stream = { workspace = true, features = ["sync"] }
 serde = { workspace = true, optional = true }
