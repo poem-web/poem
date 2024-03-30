@@ -53,7 +53,7 @@ impl<T: DeserializeOwned> ParsePayload for Form<T> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(req: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data: Vec<u8> = FromRequest::from_request(req, body).await?;
+        let data = Vec::<u8>::from_request(req, body).await?;
         Ok(Self(serde_urlencoded::from_bytes(&data).map_err(
             |err| ParseRequestPayloadError {
                 reason: err.to_string(),

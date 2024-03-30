@@ -78,12 +78,6 @@ pub(crate) fn generate(
     for item in &mut trait_impl.items {
         if let TraitItem::Fn(method) = item {
             if let Some(operation_args) = parse_oai_attrs::<WebhookOperation>(&method.attrs)? {
-                if method.sig.asyncness.is_none() {
-                    return Err(
-                        Error::new_spanned(&method.sig.ident, "Must be asynchronous").into(),
-                    );
-                }
-
                 generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
                 remove_oai_attrs(&mut method.attrs);
             }
@@ -99,7 +93,6 @@ pub(crate) fn generate(
     let operations = operations.values();
 
     let expanded = quote! {
-        #[#crate_name::__private::poem::async_trait]
         #trait_impl
 
         impl #crate_name::Webhook for &dyn #ident {

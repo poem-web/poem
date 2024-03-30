@@ -36,11 +36,12 @@ mod typed_header;
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub mod websocket;
 
-use std::{convert::Infallible, fmt::Debug};
+use std::{convert::Infallible, fmt::Debug, future::Future};
 
 #[cfg(feature = "compression")]
 pub use async_compression::Level as CompressionLevel;
 use bytes::Bytes;
+use futures_util::FutureExt;
 use http::header;
 
 #[cfg(feature = "compression")]
@@ -281,7 +282,6 @@ impl RequestBody {
 ///
 /// struct Token(String);
 ///
-/// #[poem::async_trait]
 /// impl<'a> FromRequest<'a> for Token {
 ///     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
 ///         let token = req
@@ -309,10 +309,12 @@ impl RequestBody {
 ///     .assert_status_is_ok();
 /// # });
 /// ```
-#[async_trait::async_trait]
 pub trait FromRequest<'a>: Sized {
     /// Extract from request head and body.
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>;
+    fn from_request(
+        req: &'a Request,
+        body: &mut RequestBody,
+    ) -> impl Future<Output = Result<Self>> + Send;
 
     /// Extract from request head.
     ///
@@ -323,8 +325,14 @@ pub trait FromRequest<'a>: Sized {
     /// request head, using this method would be more convenient.
     /// `String`,`Vec<u8>` they extract the body of the request, using this
     /// method will cause `ReadBodyError` error.
-    async fn from_request_without_body(req: &'a Request) -> Result<Self> {
-        Self::from_request(req, &mut Default::default()).await
+    fn from_request_without_body(req: &'a Request) -> impl Future<Output = Result<Self>> + Send {
+        async move {
+            // FIXME: remove the unnecessary boxed
+            // https://github.com/rust-lang/rust/issues/100013
+            Self::from_request(req, &mut Default::default())
+                .boxed()
+                .await
+        }
     }
 }
 
@@ -728,49 +736,42 @@ impl<T: Into<String> + Send> IntoResponse for Html<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Request {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a Uri {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.uri())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Method {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.method().clone())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Version {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.version())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a HeaderMap {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.headers())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Body {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for String {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let data = body.take()?.into_bytes().await?;
@@ -778,45 +779,43 @@ impl<'a> FromRequest<'a> for String {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Bytes {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?.into_bytes().await?)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Vec<u8> {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Ok(body.take()?.into_vec().await?)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a RemoteAddr {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(&req.state().remote_addr)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a LocalAddr {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(&req.state().local_addr)
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Option<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        Ok(T::from_request(req, body).await.ok())
+        // FIXME: remove the unnecessary boxed
+        // https://github.com/rust-lang/rust/issues/100013
+        Ok(T::from_request(req, body).boxed().await.ok())
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
     async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
-        Ok(T::from_request(req, body).await)
+        // FIXME: remove the unnecessary boxed
+        // https://github.com/rust-lang/rust/issues/100013
+        Ok(T::from_request(req, body).boxed().await)
     }
 }
 

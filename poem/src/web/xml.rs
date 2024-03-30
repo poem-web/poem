@@ -106,9 +106,9 @@ impl<T> DerefMut for Xml<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Xml<T> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>
+    {
         let content_type = req
             .headers()
             .get(header::CONTENT_TYPE)

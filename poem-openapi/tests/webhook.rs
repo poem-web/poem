@@ -15,10 +15,10 @@ async fn name() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(name = "a", method = "post")]
-        async fn test1(&self);
+        fn test1(&self);
 
         #[oai(method = "trace")]
-        async fn test2(&self);
+        fn test2(&self);
     }
 
     assert_eq!(<&dyn MyWebhooks>::meta()[0].name, "a");
@@ -30,10 +30,10 @@ async fn method() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post")]
-        async fn test1(&self);
+        fn test1(&self);
 
         #[oai(method = "trace")]
-        async fn test2(&self);
+        fn test2(&self);
     }
 
     assert_eq!(<&dyn MyWebhooks>::meta()[0].operation.method, Method::POST);
@@ -45,10 +45,10 @@ async fn deprecated() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post")]
-        async fn test1(&self);
+        fn test1(&self);
 
         #[oai(method = "get", deprecated)]
-        async fn test2(&self);
+        fn test2(&self);
     }
 
     assert!(!<&dyn MyWebhooks>::meta()[0].operation.deprecated);
@@ -67,10 +67,10 @@ async fn tags() {
     #[Webhook(tag = "MyTags::A")]
     trait MyWebhooks: Sync {
         #[oai(method = "post", tag = "MyTags::B", tag = "MyTags::C")]
-        async fn test1(&self);
+        fn test1(&self);
 
         #[oai(method = "get", tag = "MyTags::B")]
-        async fn test2(&self);
+        fn test2(&self);
     }
 
     assert_eq!(
@@ -85,10 +85,10 @@ async fn operation_id() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post", operation_id = "a")]
-        async fn test1(&self);
+        fn test1(&self);
 
         #[oai(method = "get", operation_id = "b")]
-        async fn test2(&self);
+        fn test2(&self);
     }
 
     assert_eq!(
@@ -106,7 +106,7 @@ async fn parameters() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post")]
-        async fn test(&self, a: Query<i32>, b: Path<String>);
+        fn test(&self, a: Query<i32>, b: Path<String>);
     }
 
     assert_eq!(
@@ -139,7 +139,7 @@ async fn request_body() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post")]
-        async fn test(&self, req: Json<i32>);
+        fn test(&self, req: Json<i32>);
     }
 
     assert_eq!(
@@ -160,7 +160,7 @@ async fn response() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post")]
-        async fn test(&self) -> Json<i32>;
+        fn test(&self) -> Json<i32>;
     }
 
     assert_eq!(
@@ -184,7 +184,7 @@ async fn create() {
     #[Webhook]
     trait MyWebhooks: Sync {
         #[oai(method = "post")]
-        async fn test(&self) -> Json<i32>;
+        fn test(&self) -> Json<i32>;
     }
 
     let _ = OpenApiService::new((), "Test", "1.0").webhooks::<&dyn MyWebhooks>();
@@ -198,7 +198,7 @@ async fn external_docs() {
             method = "post",
             external_docs = "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
         )]
-        async fn test(&self);
+        fn test(&self);
     }
 
     assert_eq!(
