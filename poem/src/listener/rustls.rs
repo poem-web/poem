@@ -222,10 +222,10 @@ impl RustlsConfig {
             .map(|fallback| fallback.create_certificate_key())
             .transpose()?
             .map(Arc::new);
-        let mut certifcate_keys = HashMap::new();
+        let mut certificate_keys = HashMap::with_capacity(self.certificates.len());
 
         for (name, certificate) in &self.certificates {
-            certifcate_keys.insert(
+            certificate_keys.insert(
                 name.clone(),
                 Arc::new(certificate.create_certificate_key()?),
             );
