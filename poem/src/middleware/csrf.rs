@@ -199,7 +199,6 @@ impl<E> CsrfEndpoint<E> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CsrfEndpoint<E> {
     type Output = E::Output;
 

@@ -12,7 +12,6 @@ struct RouteGuideService {
     features: Arc<Vec<Feature>>,
 }
 
-#[poem::async_trait]
 impl RouteGuide for RouteGuideService {
     async fn get_feature(&self, request: Request<Point>) -> Result<Response<Feature>, Status> {
         for feature in &self.features[..] {

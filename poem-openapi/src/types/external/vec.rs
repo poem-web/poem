@@ -83,7 +83,6 @@ impl<T: ParseFromParameter> ParseFromParameter for Vec<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromMultipartField> ParseFromMultipartField for Vec<T> {
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         match field {

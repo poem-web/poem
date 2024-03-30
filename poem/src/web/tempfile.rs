@@ -30,7 +30,6 @@ impl TempFile {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for TempFile {
     async fn from_request(_req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         Self::internal_from_request(body).await.map_err(Into::into)

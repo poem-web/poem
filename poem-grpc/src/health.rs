@@ -70,7 +70,6 @@ impl HealthReporter {
     }
 }
 
-#[poem::async_trait]
 impl proto::Health for HealthService {
     async fn check(
         &self,

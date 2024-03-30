@@ -44,7 +44,6 @@ impl<T: Type> Type for JsonField<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromJSON> ParseFromMultipartField for JsonField<T> {
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         let value = match field {

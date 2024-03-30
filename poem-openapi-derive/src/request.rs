@@ -115,7 +115,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let expanded = {
         quote! {
-            #[#crate_name::__private::poem::async_trait]
             impl #impl_generics #crate_name::ApiExtractor<'__request> for #ident #ty_generics #where_clause {
                 const TYPES: &'static [#crate_name::ApiExtractorType] = &[#crate_name::ApiExtractorType::RequestObject];
 

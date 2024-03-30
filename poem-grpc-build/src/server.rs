@@ -61,25 +61,25 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         match (method.client_streaming, method.server_streaming) {
             (false, false) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_unary(&codec_list, method_info));
             }
             (true, false) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_client_streaming(&codec_list, method_info));
             }
             (false, true) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_server_streaming(&codec_list, method_info));
             }
             (true, true) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_bidirectional_streaming(&codec_list, method_info));
             }
@@ -94,7 +94,6 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
     let token_stream = quote! {
         #[allow(unused_imports)]
-        #[::poem::async_trait]
         pub trait #service_ident: Send + Sync + 'static {
             #(#trait_methods)*
         }
@@ -200,7 +199,6 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::UnaryService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -245,7 +243,6 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::ClientStreamingService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -290,7 +287,6 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::ServerStreamingService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -335,7 +331,6 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::BidirectionalStreamingService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 

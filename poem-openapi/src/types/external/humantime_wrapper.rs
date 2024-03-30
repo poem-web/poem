@@ -55,7 +55,6 @@ impl ParseFromParameter for Duration {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Duration {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

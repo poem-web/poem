@@ -125,7 +125,6 @@ impl<T: DeserializeOwned> Path<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Self::internal_from_request(req).await.map_err(Into::into)

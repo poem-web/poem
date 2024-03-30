@@ -119,7 +119,6 @@ async fn read_base64(body: &mut RequestBody) -> Result<Vec<u8>> {
     Ok(data)
 }
 
-#[poem::async_trait]
 impl ParsePayload for Base64<Vec<u8>> {
     const IS_REQUIRED: bool = true;
 
@@ -128,7 +127,6 @@ impl ParsePayload for Base64<Vec<u8>> {
     }
 }
 
-#[poem::async_trait]
 impl ParsePayload for Base64<Bytes> {
     const IS_REQUIRED: bool = true;
 

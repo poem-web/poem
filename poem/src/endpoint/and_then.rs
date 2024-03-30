@@ -15,7 +15,6 @@ impl<E, F> AndThen<E, F> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F, Fut, R, R2> Endpoint for AndThen<E, F>
 where
     E: Endpoint<Output = R>,

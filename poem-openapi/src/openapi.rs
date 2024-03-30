@@ -651,7 +651,7 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{types::Type, OpenApi};
+    use crate::OpenApi;
 
     #[test]
     fn extra_response_headers() {

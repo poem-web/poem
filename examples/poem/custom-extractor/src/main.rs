@@ -6,7 +6,6 @@ use poem::{
 struct Token(String);
 
 // Implements a token extractor
-#[poem::async_trait]
 impl<'a> FromRequest<'a> for Token {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let token = req

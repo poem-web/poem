@@ -110,7 +110,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
             pub fn with<M>(mut self, middleware: M) -> Self
             where
-                M: ::poem::Middleware<::std::sync::Arc<dyn ::poem::Endpoint<Output = ::poem::Response> + 'static>>,
+                M: ::poem::Middleware<::std::sync::Arc<dyn ::poem::endpoint::DynEndpoint<Output = ::poem::Response> + 'static>>,
                 M::Output: 'static,
             {
                 self.cli = self.cli.with(middleware);

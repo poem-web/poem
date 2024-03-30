@@ -1,7 +1,7 @@
-use darling::{ast::NestedMeta, util::SpannedValue, FromMeta};
+use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Lit, Meta, Path};
+use syn::{Lit, Path};
 
 #[derive(Debug, Copy, Clone, FromMeta)]
 #[allow(clippy::enum_variant_names)]
@@ -91,22 +91,6 @@ pub(crate) fn apply_rename_rule_variant(rule: Option<RenameRule>, variant: Strin
     match rule {
         Some(rule) => rule.rename_variant(variant),
         None => variant,
-    }
-}
-
-pub(crate) struct PathList(pub(crate) Vec<Path>);
-
-impl FromMeta for PathList {
-    fn from_list(items: &[NestedMeta]) -> darling::Result<Self> {
-        let mut res = Vec::new();
-        for item in items {
-            if let NestedMeta::Meta(Meta::Path(p)) = item {
-                res.push(p.clone());
-            } else {
-                return Err(darling::Error::custom("Invalid path list"));
-            }
-        }
-        Ok(PathList(res))
     }
 }
 

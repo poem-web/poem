@@ -47,7 +47,6 @@ pub struct PropagateHeaderEndpoint<E> {
     headers: HashSet<HeaderName>,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for PropagateHeaderEndpoint<E> {
     type Output = Response;
 

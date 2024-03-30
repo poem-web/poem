@@ -55,7 +55,6 @@ impl ParseFromParameter for Uuid {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Uuid {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

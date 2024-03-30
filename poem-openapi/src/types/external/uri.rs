@@ -57,7 +57,6 @@ impl ParseFromParameter for Uri {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Uri {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {

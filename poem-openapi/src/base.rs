@@ -1,9 +1,11 @@
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display},
+    future::Future,
     ops::Deref,
 };
 
+use futures_util::FutureExt;
 use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
 
 use crate::{
@@ -152,7 +154,6 @@ impl<T> Default for ExtractParamOptions<T> {
 /// - **T: poem::FromRequest**
 ///
 ///     Use Poem's extractor.
-#[poem::async_trait]
 #[allow(unused_variables)]
 pub trait ApiExtractor<'a>: Sized {
     /// The type of API extractor.
@@ -196,14 +197,13 @@ pub trait ApiExtractor<'a>: Sized {
     }
 
     /// Parse from the HTTP request.
-    async fn from_request(
+    fn from_request(
         request: &'a Request,
         body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self>;
+    ) -> impl Future<Output = Result<Self>> + Send;
 }
 
-#[poem::async_trait]
 impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
     const TYPES: &'static [ApiExtractorType] = &[ApiExtractorType::PoemExtractor];
 
@@ -215,7 +215,9 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
         body: &mut RequestBody,
         _param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
-        T::from_request(request, body).await
+        // FIXME: remove the unnecessary boxed
+        // https://github.com/rust-lang/rust/issues/100013
+        T::from_request(request, body).boxed().await
     }
 }
 

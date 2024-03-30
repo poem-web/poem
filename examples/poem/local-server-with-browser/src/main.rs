@@ -19,8 +19,8 @@ async fn main() -> Result<(), std::io::Error> {
 
     // To test port assignment, run two instances of this example at once.
     //
-    // For ports <1024, running with administrator priveleges would be needed on
-    // Unix. For port 0, the OS would assign a port and we'd need to find out
+    // For ports <1024, running with administrator priveledges would be needed
+    // on Unix. For port 0, the OS would assign a port and we'd need to find out
     // what that port's number is.
     let (min_port, max_port) = (8080, 8085);
     // Using 127.0.0.1 instead of 0.0.0.0 for security; a local server should
@@ -32,25 +32,30 @@ async fn main() -> Result<(), std::io::Error> {
         if port > max_port {
             return Err(error.unwrap());
         }
-        let listener = TcpListener::bind(format!("{hostname}:{}", port));
+        let listener = TcpListener::bind(format!("{hostname}:{port}"));
         match listener.into_acceptor().await {
             Ok(a) => break a,
-            Err(err) => {
-                // Most likely, another application is bound to this port.
-                eprintln!("Couldn't bind to port {port}.");
-                error = Some(err)
-            }
+            Err(err) => error = Some(err),
         };
+        // Most likely, another application is bound to this port.
+        eprintln!("Couldn't bind to port {port}.");
         port += 1;
     };
 
     // Now that the acceptor exists, the browser should be able to connect
+    eprintln!("Listening at {hostname}:{port}.");
     let http_address = format!("http://{hostname}:{port}/");
-    eprintln!("Listening at {http_address}.");
-    eprint!("Trying to launch a browser at {http_address}...");
-    match open::that(&http_address) {
-        Ok(_) => eprintln!(" Success!"),
-        Err(err) => eprintln!("\nFailed to launch a browser: {err}"),
+    eprintln!("Trying to launch a browser at {http_address}...");
+    // We use `open::that_detached` so that launching, for example, a new
+    // instance of firefox on Linux does not block. This will report success
+    // even if the browser exits with a non-zero error code.
+    //
+    // You can alternatively consider using `tokio::spawn_blocking` and
+    // `open::that`. Note that in cases when `open::that` blocks, exiting the
+    // server process may also kill the browser process.
+    match open::that_detached(&http_address) {
+        Ok(()) => { /* Ok() doesn't mean much with `that_detached`. */ }
+        Err(err) => eprintln!("Failed to launch a browser: {err}"),
     }
 
     Server::new_with_acceptor(acceptor).run(app).await?;

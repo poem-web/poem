@@ -23,7 +23,6 @@ impl<T> TcpListener<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: ToSocketAddrs + Send> Listener for TcpListener<T> {
     type Acceptor = TcpAcceptor;
 
@@ -63,7 +62,6 @@ impl TcpAcceptor {
     }
 }
 
-#[async_trait::async_trait]
 impl Acceptor for TcpAcceptor {
     type Io = TcpStream;
 

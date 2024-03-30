@@ -103,7 +103,6 @@ impl<T: Send> Payload for Binary<T> {
     }
 }
 
-#[poem::async_trait]
 impl ParsePayload for Binary<Vec<u8>> {
     const IS_REQUIRED: bool = true;
 
@@ -112,7 +111,6 @@ impl ParsePayload for Binary<Vec<u8>> {
     }
 }
 
-#[poem::async_trait]
 impl ParsePayload for Binary<Bytes> {
     const IS_REQUIRED: bool = true;
 
@@ -121,7 +119,6 @@ impl ParsePayload for Binary<Bytes> {
     }
 }
 
-#[poem::async_trait]
 impl ParsePayload for Binary<Body> {
     const IS_REQUIRED: bool = true;
 

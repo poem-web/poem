@@ -12,6 +12,8 @@ mod response;
 mod xml;
 mod yaml;
 
+use std::future::Future;
+
 use poem::{Request, RequestBody, Result};
 
 pub use self::{
@@ -48,11 +50,13 @@ pub trait Payload: Send {
 }
 
 /// Represents a payload that can parse from HTTP request.
-#[poem::async_trait]
 pub trait ParsePayload: Sized {
     /// If it is `true`, it means that this payload is required.
     const IS_REQUIRED: bool;
 
     /// Parse the payload object from the HTTP request.
-    async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self>;
+    fn from_request(
+        request: &Request,
+        body: &mut RequestBody,
+    ) -> impl Future<Output = Result<Self>> + Send;
 }

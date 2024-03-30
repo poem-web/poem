@@ -68,17 +68,19 @@ impl MemoryStorage {
     }
 }
 
-#[async_trait::async_trait]
 impl SessionStorage for MemoryStorage {
-    async fn load_session(&self, session_id: &str) -> Result<Option<BTreeMap<String, Value>>> {
+    async fn load_session<'a>(
+        &'a self,
+        session_id: &'a str,
+    ) -> Result<Option<BTreeMap<String, Value>>> {
         let inner = self.inner.lock();
         Ok(inner.sessions.get(session_id).cloned())
     }
 
-    async fn update_session(
-        &self,
-        session_id: &str,
-        entries: &BTreeMap<String, Value>,
+    async fn update_session<'a>(
+        &'a self,
+        session_id: &'a str,
+        entries: &'a BTreeMap<String, Value>,
         expires: Option<Duration>,
     ) -> Result<()> {
         let mut inner = self.inner.lock();
@@ -94,7 +96,7 @@ impl SessionStorage for MemoryStorage {
         Ok(())
     }
 
-    async fn remove_session(&self, session_id: &str) -> Result<()> {
+    async fn remove_session<'a>(&'a self, session_id: &'a str) -> Result<()> {
         let mut inner = self.inner.lock();
         inner.sessions.remove(session_id);
         inner.timeout_queue.remove(session_id);

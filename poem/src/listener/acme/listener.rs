@@ -5,9 +5,7 @@ use std::{
 };
 
 use http::uri::Scheme;
-use rcgen::{
-    Certificate, CertificateParams, CustomExtension, DistinguishedName, PKCS_ECDSA_P256_SHA256,
-};
+use rcgen::{CertificateParams, CustomExtension, KeyPair, PKCS_ECDSA_P256_SHA256};
 use tokio_rustls::{
     rustls::{
         crypto::ring::sign::any_ecdsa_type,
@@ -76,7 +74,6 @@ impl<T> ResolvedCertListener<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener> Listener for ResolvedCertListener<T> {
     type Acceptor = AutoCertAcceptor<T::Acceptor>;
 
@@ -97,7 +94,6 @@ impl<T> AutoCertListener<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: Listener> Listener for AutoCertListener<T> {
     type Acceptor = AutoCertAcceptor<T::Acceptor>;
 
@@ -206,7 +202,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 tokio::time::sleep(Duration::from_secs(60 * 5)).await;
             }
         });
-        Ok(auto_cert_acceptor(self.inner, cert_resolver, challenge_type).await?)
+        auto_cert_acceptor(self.inner, cert_resolver, challenge_type).await
     }
 }
 
@@ -216,7 +212,6 @@ pub struct AutoCertAcceptor<T> {
     acceptor: TlsAcceptor,
 }
 
-#[async_trait::async_trait]
 impl<T: Acceptor> Acceptor for AutoCertAcceptor<T> {
     type Io = HandshakeStream<TlsStream<T::Io>>;
 
@@ -227,26 +222,26 @@ impl<T: Acceptor> Acceptor for AutoCertAcceptor<T> {
     async fn accept(&mut self) -> IoResult<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         let (stream, local_addr, remote_addr, _) = self.inner.accept().await?;
         let stream = HandshakeStream::new(self.acceptor.accept(stream));
-        return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
+        Ok((stream, local_addr, remote_addr, Scheme::HTTPS))
     }
 }
 
 fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
-    let mut params = CertificateParams::new(vec![domain.to_string()]);
-    params.alg = &PKCS_ECDSA_P256_SHA256;
-    params.custom_extensions = vec![CustomExtension::new_acme_identifier(acme_hash)];
-    let cert = Certificate::from_params(params)
-        .map_err(|_| IoError::new(ErrorKind::Other, "failed to generate acme certificate"))?;
-    let key = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
-        cert.serialize_private_key_der().into(),
-    ))
-    .unwrap();
-    Ok(CertifiedKey::new(
-        vec![CertificateDer::from(cert.serialize_der().map_err(
-            |_| IoError::new(ErrorKind::Other, "failed to serialize acme certificate"),
-        )?)],
-        key,
-    ))
+    let keypair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).expect("create key pair");
+    let cert = CertificateParams::new(vec![domain.to_string()])
+        .and_then(|mut params| {
+            params.custom_extensions = vec![CustomExtension::new_acme_identifier(acme_hash)];
+            params.self_signed(&keypair)
+        })
+        .map_err(|err| {
+            IoError::new(
+                ErrorKind::Other,
+                format!("failed to generate acme certificate: {err}"),
+            )
+        })?;
+
+    let key = any_ecdsa_type(&PrivateKeyDer::Pkcs8(keypair.serialized_der().into())).unwrap();
+    Ok(CertifiedKey::new(vec![cert.der().clone()], key))
 }
 
 /// The result of [`issue_cert`] function.
@@ -346,31 +341,23 @@ pub async fn issue_cert<T: AsRef<str>>(
     }
 
     // send csr
-    let mut params = CertificateParams::new(
+    let keypair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).expect("create key pair");
+    let request = CertificateParams::new(
         domains
             .iter()
             .map(|domain| domain.as_ref().to_string())
             .collect::<Vec<_>>(),
-    );
-    params.distinguished_name = DistinguishedName::new();
-    params.alg = &PKCS_ECDSA_P256_SHA256;
-    let cert = Certificate::from_params(params).map_err(|err| {
+    )
+    .and_then(|params| params.serialize_request(&keypair))
+    .map_err(|err| {
         IoError::new(
             ErrorKind::Other,
             format!("failed create certificate request: {err}"),
         )
     })?;
-    let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
-        cert.serialize_private_key_der().into(),
-    ))
-    .unwrap();
-    let csr = cert.serialize_request_der().map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed to serialize request der {err}"),
-        )
-    })?;
 
+    let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(keypair.serialized_der().into())).unwrap();
+    let csr = request.der().as_ref();
     let order_resp = client.send_csr(&order_resp.finalize, &csr).await?;
 
     if order_resp.status == "invalid" {
@@ -406,7 +393,7 @@ pub async fn issue_cert<T: AsRef<str>>(
             )
         })?)
         .await?;
-    let pkey_pem = cert.serialize_private_key_pem();
+    let pkey_pem = keypair.serialize_pem();
     let cert_chain = rustls_pemfile::certs(&mut acme_cert_pem.as_slice())
         .collect::<Result<_, _>>()
         .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))?;

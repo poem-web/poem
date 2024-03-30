@@ -110,7 +110,6 @@ fn from_lambda_request(req: LambdaRequest) -> Request {
     req
 }
 
-#[poem::async_trait]
 impl<'a> FromRequest<'a> for &'a Context {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let ctx = match req.extensions().get::<Context>() {

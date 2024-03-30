@@ -128,7 +128,6 @@ pub struct CatchPanicEndpoint<E, H> {
     panic_handler: H,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint, H: PanicHandler> Endpoint for CatchPanicEndpoint<E, H> {
     type Output = Response;
 

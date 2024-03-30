@@ -18,7 +18,6 @@ impl<E, F> Around<E, F> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F, Fut, T> Endpoint for Around<E, F>
 where
     E: Endpoint,

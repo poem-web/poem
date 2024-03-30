@@ -235,6 +235,7 @@ async fn upload() {
 
     assert_eq!(a.file.file_name(), Some("1.txt"));
     assert_eq!(a.file.content_type(), None);
+    assert_eq!(a.file.size(), 3);
     assert_eq!(a.file.into_vec().await.unwrap(), vec![1, 2, 3]);
 }
 

@@ -23,6 +23,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
+    endpoint::{DynEndpoint, ToDynEndpoint},
     listener::{Acceptor, AcceptorExt, Listener},
     web::{LocalAddr, RemoteAddr},
     Endpoint, EndpointExt, IntoEndpoint, Response,
@@ -109,7 +110,7 @@ where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        let ep = Arc::new(ep.into_endpoint().map_to_response());
+        let ep = Arc::new(ToDynEndpoint(ep.into_endpoint().map_to_response()));
         let Server {
             listener,
             name,
@@ -165,7 +166,7 @@ where
                         let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
 
                         tokio::spawn(async move {
-                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token, idle_timeout);
+                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token.clone(), idle_timeout);
 
                             if timeout.is_some() {
                                 tokio::select! {
@@ -177,8 +178,11 @@ where
                             }
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
-                                // We have to notify only if there is a registered waiter on shutdown
-                                notify.notify_waiters();
+                                // notify only if shutdown is initiated, to prevent notification when server is active.
+                                // It's a valid state to have 0 alive connections when server is not shutting down.
+                                if server_graceful_shutdown_token.is_cancelled() {
+                                    notify.notify_one();
+                                }
                             }
                         });
                     }
@@ -313,7 +317,7 @@ async fn serve_connection(
     local_addr: LocalAddr,
     remote_addr: RemoteAddr,
     scheme: Scheme,
-    ep: Arc<dyn Endpoint<Output = Response>>,
+    ep: Arc<dyn DynEndpoint<Output = Response>>,
     server_graceful_shutdown_token: CancellationToken,
     idle_connection_close_timeout: Option<Duration>,
 ) {
@@ -359,7 +363,7 @@ async fn serve_connection(
     futures_util::pin_mut!(conn);
 
     tokio::select! {
-        _ = conn => {
+        _ = &mut conn => {
             // Connection completed successfully.
         },
         _ = connection_shutdown_token.cancelled() => {
@@ -367,4 +371,9 @@ async fn serve_connection(
         }
         _ = server_graceful_shutdown_token.cancelled() => {}
     }
+
+    // Init graceful shutdown for connection
+    conn.as_mut().graceful_shutdown();
+    // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
+    let _ = conn.await;
 }

@@ -15,7 +15,6 @@ impl<E, F> Before<E, F> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F, Fut> Endpoint for Before<E, F>
 where
     E: Endpoint,

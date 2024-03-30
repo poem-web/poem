@@ -50,12 +50,11 @@ impl<T: Type> Payload for Xml<T> {
     }
 }
 
-#[poem::async_trait]
 impl<T: ParseFromXML> ParsePayload for Xml<T> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data: Vec<u8> = FromRequest::from_request(request, body).await?;
+        let data = Vec::<u8>::from_request(request, body).await?;
         let value = if data.is_empty() {
             Value::Null
         } else {
