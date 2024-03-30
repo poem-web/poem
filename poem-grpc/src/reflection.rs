@@ -8,7 +8,7 @@ use proto::{
     server_reflection_request::MessageRequest, server_reflection_response::MessageResponse,
 };
 
-use crate::{include_file_descriptor_set, Code, Request, Response, Service, Status, Streaming};
+use crate::{Code, Request, Response, Service, Status, Streaming};
 
 #[allow(unreachable_pub)]
 #[allow(clippy::enum_variant_names)]
