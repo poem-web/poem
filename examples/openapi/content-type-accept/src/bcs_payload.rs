@@ -54,7 +54,7 @@ impl<T: Type + for<'b> Deserialize<'b>> ParsePayload for Bcs<T> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data: Vec<u8> = FromRequest::from_request(request, body).await?;
+        let data = Vec::<u8>::from_request(request, body).await?;
         let value: T = from_bytes(&data).map_err(|err| ParseRequestPayloadError {
             reason: err.to_string(),
         })?;
