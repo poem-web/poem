@@ -87,8 +87,7 @@ impl<T> DerefMut for Form<T> {
 }
 
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>
-    {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         if req.method() == Method::GET {
             Ok(
                 serde_urlencoded::from_str(req.uri().query().unwrap_or_default())

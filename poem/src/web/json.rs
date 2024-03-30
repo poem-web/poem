@@ -104,8 +104,7 @@ impl<T> DerefMut for Json<T> {
 }
 
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self>
-    {
+    async fn from_request(req: &'a Request, body: &mut RequestBody) -> Result<Self> {
         let content_type = req
             .headers()
             .get(header::CONTENT_TYPE)
