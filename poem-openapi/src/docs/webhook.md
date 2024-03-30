@@ -51,7 +51,7 @@ struct Pet {
 #[Webhook]
 trait MyWebhooks: Sync {
     #[oai(method = "post")]
-    async fn new_pet(&self, pet: Json<Pet>);
+    fn new_pet(&self, pet: Json<Pet>);
 }
 
 let api = OpenApiService::new((), "Demo", "1.0.0")
