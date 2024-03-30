@@ -281,11 +281,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        handler,
-        http::{Method, StatusCode},
-        test::TestClient,
-    };
+    use crate::{handler, http::StatusCode, test::TestClient};
 
     #[tokio::test]
     async fn method_not_allowed() {
