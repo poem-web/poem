@@ -1,8 +1,11 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::collections::HashMap;
 
 use futures_util::StreamExt;
 use poem::{endpoint::BoxEndpoint, IntoEndpoint};
-use tokio::sync::watch::{Receiver, Sender};
+use tokio::sync::{
+    watch::{Receiver, Sender},
+    Mutex,
+};
 
 use crate::{Code, Request, Response, Service, Status, Streaming};
 
@@ -44,27 +47,27 @@ pub struct HealthReporter {
 }
 
 impl HealthReporter {
-    fn set_status<S: Service>(&self, status: ServingStatus) {
-        let mut state = self.state.lock().unwrap();
+    async fn set_status<S: Service>(&self, status: ServingStatus) {
+        let mut state = self.state.lock().await;
         state.0.insert(S::NAME.to_string(), status);
         let _ = state.1.send(state.0.clone());
     }
 
     /// Sets the status of the service implemented by `S` to
     /// [`ServingStatus::Serving`]
-    pub fn set_serving<S: Service>(&self) {
-        self.set_status::<S>(ServingStatus::Serving);
+    pub async fn set_serving<S: Service>(&self) {
+        self.set_status::<S>(ServingStatus::Serving).await;
     }
 
     /// Sets the status of the service implemented by `S` to
     /// [`ServingStatus::NotServing`]
-    pub fn set_not_serving<S: Service>(&self) {
-        self.set_status::<S>(ServingStatus::NotServing);
+    pub async fn set_not_serving<S: Service>(&self) {
+        self.set_status::<S>(ServingStatus::NotServing).await;
     }
 
     /// Clear the status of the given service.
-    pub fn clear_service_status<S: Service>(&self) {
-        let mut state = self.state.lock().unwrap();
+    pub async fn clear_service_status<S: Service>(&self) {
+        let mut state = self.state.lock().await;
         state.0.remove(S::NAME);
         let _ = state.1.send(state.0.clone());
     }
@@ -121,7 +124,6 @@ pub fn health_service() -> (
 
 #[cfg(test)]
 mod tests {
-    use futures_util::StreamExt;
 
     use super::*;
     use crate::health::proto::Health;
@@ -147,7 +149,9 @@ mod tests {
             .await;
         assert_eq!(res.unwrap_err().code(), Code::NotFound);
 
-        reporter.set_serving::<proto::HealthServer<HealthService>>();
+        reporter
+            .set_serving::<proto::HealthServer<HealthService>>()
+            .await;
         let res = service
             .check(Request::new(proto::HealthCheckRequest {
                 service: <proto::HealthServer<HealthService>>::NAME.to_string(),
@@ -160,7 +164,9 @@ mod tests {
             }
         );
 
-        reporter.set_not_serving::<proto::HealthServer<HealthService>>();
+        reporter
+            .set_not_serving::<proto::HealthServer<HealthService>>()
+            .await;
         let res = service
             .check(Request::new(proto::HealthCheckRequest {
                 service: <proto::HealthServer<HealthService>>::NAME.to_string(),
@@ -173,7 +179,9 @@ mod tests {
             }
         );
 
-        reporter.clear_service_status::<proto::HealthServer<HealthService>>();
+        reporter
+            .clear_service_status::<proto::HealthServer<HealthService>>()
+            .await;
         let res = service
             .check(Request::new(proto::HealthCheckRequest {
                 service: <proto::HealthServer<HealthService>>::NAME.to_string(),
@@ -197,7 +205,9 @@ mod tests {
             Code::NotFound
         );
 
-        reporter.set_serving::<proto::HealthServer<HealthService>>();
+        reporter
+            .set_serving::<proto::HealthServer<HealthService>>()
+            .await;
         let mut stream = service
             .watch(Request::new(proto::HealthCheckRequest {
                 service: <proto::HealthServer<HealthService>>::NAME.to_string(),
@@ -211,7 +221,9 @@ mod tests {
             }
         );
 
-        reporter.set_not_serving::<proto::HealthServer<HealthService>>();
+        reporter
+            .set_not_serving::<proto::HealthServer<HealthService>>()
+            .await;
         assert_eq!(
             stream.next().await.unwrap().unwrap(),
             proto::HealthCheckResponse {
@@ -219,7 +231,9 @@ mod tests {
             }
         );
 
-        reporter.clear_service_status::<proto::HealthServer<HealthService>>();
+        reporter
+            .clear_service_status::<proto::HealthServer<HealthService>>()
+            .await;
         assert_eq!(
             stream.next().await.unwrap().unwrap_err().code(),
             Code::NotFound
