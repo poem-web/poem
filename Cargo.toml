@@ -51,4 +51,4 @@ static_assertions = "1.1.0"
 
 # rustls, update together
 rustls = "0.22.0"
-tokio-rustls = "0.25.0"
+tokio-rustls = "0.26.0"
