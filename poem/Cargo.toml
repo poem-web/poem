@@ -66,6 +66,7 @@ acme-base = [
 embed = ["rust-embed", "hex", "mime_guess"]
 xml = ["quick-xml"]
 yaml = ["serde_yaml"]
+requestid = ["dep:uuid"]
 
 [dependencies]
 poem-derive.workspace = true
@@ -162,6 +163,7 @@ tokio-stream = { workspace = true, optional = true }
 # Feature optional dependencies
 anyhow = { version = "1.0.0", optional = true }
 eyre06 = { package = "eyre", version = "0.6", optional = true }
+uuid = { version = "1.8.0", optional = true, default-features = false, features = ["v4"] }
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.28.0", features = ["fs", "user"] }
