@@ -219,5 +219,6 @@ impl_type_for_unsigneds!(
     (u16, "uint16"),
     (u32, "uint32"),
     (u64, "uint64"),
+    (u128, "uint128"),
     (usize, "uint64")
 );
