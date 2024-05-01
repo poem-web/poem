@@ -35,9 +35,9 @@ pub trait ResponseError {
     where
         Self: StdError + Send + Sync + 'static,
     {
-        Response::builder()
-            .status(self.status())
-            .body(self.to_string())
+        let mut resp = self.to_string().into_response();
+        resp.set_status(self.status());
+        resp
     }
 }
 
