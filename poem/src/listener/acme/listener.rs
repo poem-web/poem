@@ -8,7 +8,7 @@ use http::uri::Scheme;
 use rcgen::{CertificateParams, CustomExtension, KeyPair, PKCS_ECDSA_P256_SHA256};
 use tokio_rustls::{
     rustls::{
-        crypto::ring::sign::any_ecdsa_type,
+        crypto::aws_lc_rs::sign::any_ecdsa_type,
         pki_types::{CertificateDer, PrivateKeyDer},
         sign::CertifiedKey,
         ServerConfig,
@@ -358,7 +358,7 @@ pub async fn issue_cert<T: AsRef<str>>(
 
     let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(keypair.serialized_der().into())).unwrap();
     let csr = request.der().as_ref();
-    let order_resp = client.send_csr(&order_resp.finalize, &csr).await?;
+    let order_resp = client.send_csr(&order_resp.finalize, csr).await?;
 
     if order_resp.status == "invalid" {
         return Err(IoError::new(
