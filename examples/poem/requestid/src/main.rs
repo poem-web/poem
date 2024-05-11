@@ -1,10 +1,7 @@
 use poem::{
     get, handler,
     listener::TcpListener,
-    middleware::{
-        ReqId, RequestId, ReuseId,
-        Tracing,
-    },
+    middleware::{ReqId, RequestId, ReuseId, Tracing},
     EndpointExt, Route,
 };
 
