@@ -1,10 +1,10 @@
+use tracing::{error, error_span, Instrument};
+use uuid::Uuid;
+
 use crate::{
     http::StatusCode, Endpoint, Error, FromRequest, IntoResponse, Middleware, Request, Response,
     Result,
 };
-use tracing::error;
-use tracing::{error_span, Instrument};
-use uuid::Uuid;
 
 const X_REQUEST_ID: &str = "x-request-id";
 
