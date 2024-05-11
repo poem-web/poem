@@ -50,7 +50,6 @@ thiserror.workspace = true
 bytes.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
-static_assertions.workspace = true
 
 # Non-feature optional dependencies
 email_address = { version = "0.2.1", optional = true }
