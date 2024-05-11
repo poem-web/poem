@@ -153,13 +153,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                                     properties: ::std::vec![
                                         (
                                             #discriminator_name,
-                                            #crate_name::registry::MetaSchemaRef::merge(
-                                                <::std::string::String as #crate_name::types::Type>::schema_ref(),
+                                            #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
                                                 #crate_name::registry::MetaSchema {
+                                                    ty: "string",
+                                                    enum_items: ::std::vec![::std::convert::Into::into(#mapping_name)],
                                                     example: ::std::option::Option::Some(::std::convert::Into::into(#mapping_name)),
                                                     ..#crate_name::registry::MetaSchema::ANY
                                                 }
-                                            )
+                                            )),
                                         )
                                     ],
                                     ..#crate_name::registry::MetaSchema::new("object")
@@ -168,6 +169,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             ],
                             ..#crate_name::registry::MetaSchema::ANY
                         };
+
                         registry.schemas.insert(#schema_name, schema);
                     });
 
