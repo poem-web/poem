@@ -124,12 +124,12 @@ pub(crate) async fn request(
 
     let resp = cli
         .post(uri)
+        .header("content-type", "application/jose+json")
         .json(&Body {
             protected,
             payload,
             signature,
         })
-        .header("content-type", "application/jose+json")
         .send()
         .await
         .map_err(|err| {
