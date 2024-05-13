@@ -77,7 +77,7 @@ impl Upload {
     pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
         self.file
     }
-    
+
     /// Consumes this body object to return the file.
     pub fn get_file(self) -> File {
         self.file
