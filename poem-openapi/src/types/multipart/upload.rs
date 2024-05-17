@@ -79,7 +79,7 @@ impl Upload {
     }
 
     /// Consumes this body object to return the file.
-    pub fn get_file(self) -> File {
+    pub fn into_file(self) -> File {
         self.file
     }
 }
