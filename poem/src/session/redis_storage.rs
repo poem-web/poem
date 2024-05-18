@@ -33,7 +33,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
             .map_err(RedisSessionError::Redis)?;
 
         match data {
-            Some(data) => match serde_json::from_str::<BTreeMap<String, Value>>(&data) {
+            Some(data) => match sonic_rs::from_str::<BTreeMap<String, Value>>(&data) {
                 Ok(entries) => Ok(Some(entries)),
                 Err(_) => Ok(None),
             },
@@ -47,7 +47,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
         entries: &'a BTreeMap<String, Value>,
         expires: Option<Duration>,
     ) -> Result<()> {
-        let value = serde_json::to_string(entries).unwrap_or_default();
+        let value = sonic_rs::to_string(entries).unwrap_or_default();
         let cmd = match expires {
             Some(expires) => Cmd::set_ex(session_id, value, expires.as_secs()),
             None => Cmd::set(session_id, value),

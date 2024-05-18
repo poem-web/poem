@@ -689,7 +689,7 @@ pub enum ParseCookieError {
 
     /// Cookie value is illegal.
     #[error("cookie is illegal: {0}")]
-    ParseJsonValue(#[from] serde_json::Error),
+    ParseJsonValue(#[from] sonic_rs::Error),
 }
 
 #[cfg(feature = "cookie")]
@@ -749,7 +749,7 @@ pub enum ParseJsonError {
 
     /// Url decode error.
     #[error("parse error: {0}")]
-    Parse(#[from] serde_json::Error),
+    Parse(#[from] sonic_rs::Error),
 }
 
 impl ResponseError for ParseJsonError {

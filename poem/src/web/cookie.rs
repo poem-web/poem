@@ -41,7 +41,7 @@ impl Cookie {
     pub fn new(name: impl Into<String>, value: impl Serialize) -> Self {
         Self(libcookie::Cookie::new(
             name.into(),
-            serde_json::to_string(&value).unwrap_or_default(),
+            sonic_rs::to_string(&value).unwrap_or_default(),
         ))
     }
 
@@ -275,7 +275,7 @@ impl Cookie {
 
     /// Sets the value of `self` to the serialized `value`.
     pub fn set_value(&mut self, value: impl Serialize) {
-        if let Ok(value) = serde_json::to_string(&value) {
+        if let Ok(value) = sonic_rs::to_string(&value) {
             self.0.set_value(value);
         }
     }
@@ -287,7 +287,7 @@ impl Cookie {
 
     /// Returns the value of `self` to the deserialized `value`.
     pub fn value<'de, T: Deserialize<'de>>(&'de self) -> Result<T, ParseCookieError> {
-        serde_json::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        sonic_rs::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
     }
 }
 
