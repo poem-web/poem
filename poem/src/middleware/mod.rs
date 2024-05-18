@@ -16,6 +16,8 @@ mod opentelemetry_metrics;
 #[cfg(feature = "opentelemetry")]
 mod opentelemetry_tracing;
 mod propagate_header;
+#[cfg(feature = "requestid")]
+mod requestid;
 mod sensitive_header;
 mod set_header;
 mod size_limit;
@@ -35,6 +37,8 @@ pub use self::csrf::{Csrf, CsrfEndpoint};
 pub use self::opentelemetry_metrics::{OpenTelemetryMetrics, OpenTelemetryMetricsEndpoint};
 #[cfg(feature = "opentelemetry")]
 pub use self::opentelemetry_tracing::{OpenTelemetryTracing, OpenTelemetryTracingEndpoint};
+#[cfg(feature = "requestid")]
+pub use self::requestid::{ReqId, RequestId, RequestIdEndpoint, ReuseId};
 #[cfg(feature = "tokio-metrics")]
 pub use self::tokio_metrics_mw::{TokioMetrics, TokioMetricsEndpoint};
 #[cfg(feature = "tower-compat")]

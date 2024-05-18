@@ -110,8 +110,8 @@ async fn main() -> Result<(), std::io::Error> {
 This feature needs to be opted-in. It can be done by adding the feature in `Cargo.toml` file
 ```toml filename=Cargo.toml
 [dependencies]
-poem = "1"
-poem-openapi = { version = "2", features = ["swagger-ui"]}
+poem = "3"
+poem-openapi = { version = "5", features = ["swagger-ui"]}
 tokio = { version = "1", features = ["full"] }
 ```
 

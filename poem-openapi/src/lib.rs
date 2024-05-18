@@ -33,8 +33,8 @@
 //! edition = "2021"
 //!
 //! [dependencies]
-//! poem = "1.2"
-//! poem-openapi = { version = "1.2", features = ["swagger-ui"] }
+//! poem = "3"
+//! poem-openapi = { version = "5", features = ["swagger-ui"] }
 //! tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 //! ```
 //!
@@ -189,7 +189,6 @@ pub mod __private {
     pub use poem;
     pub use serde;
     pub use serde_json;
-    pub use static_assertions;
 
     pub use crate::{auth::CheckerReturn, base::UrlQuery, path_util::join_path};
 }

@@ -35,9 +35,9 @@ pub trait ResponseError {
     where
         Self: StdError + Send + Sync + 'static,
     {
-        Response::builder()
-            .status(self.status())
-            .body(self.to_string())
+        let mut resp = self.to_string().into_response();
+        resp.set_status(self.status());
+        resp
     }
 }
 
@@ -980,9 +980,8 @@ impl ResponseError for StaticFileError {
     }
 
     fn as_response(&self) -> Response {
-        let mut resp = Response::builder()
-            .status(self.status())
-            .body(self.to_string());
+        let mut resp = self.to_string().into_response();
+        resp.set_status(self.status());
         if let StaticFileError::RangeNotSatisfiable { size } = self {
             resp.headers_mut()
                 .typed_insert(ContentRange::unsatisfied_bytes(*size));
