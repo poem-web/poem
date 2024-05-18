@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [5.0.1] 2024-05-11
+# [5.0.1] 2024-05-18
 
 - Add enum_items to discriminated union [#741](https://github.com/poem-web/poem/pull/741)
 - fix Union doesn't implement IsObjectType [#800](https://github.com/poem-web/poem/issues/800)
 - fix Union doesn't support generics in the last version [#799](https://github.com/poem-web/poem/issues/799)
+- Expose Poem-OpenApi Upload File struct [#816](https://github.com/poem-web/poem/pull/816)
 
 # [5.0.0] 2024-03-30
 

@@ -33,8 +33,8 @@
 //! edition = "2021"
 //!
 //! [dependencies]
-//! poem = "1.2"
-//! poem-openapi = { version = "1.2", features = ["swagger-ui"] }
+//! poem = "3"
+//! poem-openapi = { version = "5", features = ["swagger-ui"] }
 //! tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 //! ```
 //!
