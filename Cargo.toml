@@ -49,5 +49,5 @@ reqwest = { version = "0.12.2", default-features = false }
 darling = "0.20.8"
 
 # rustls, update together
-rustls = "0.22.0"
+rustls = "0.23.7"
 tokio-rustls = "0.25.0"
