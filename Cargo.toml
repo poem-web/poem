@@ -22,7 +22,7 @@ rust-version = "1.75"
 [workspace.dependencies]
 poem = { path = "poem", version = "3.0.1", default-features = false }
 poem-derive = { path = "poem-derive", version = "3.0.0" }
-poem-openapi-derive = { path = "poem-openapi-derive", version = "5.0.0" }
+poem-openapi-derive = { path = "poem-openapi-derive", version = "5.0.2" }
 poem-grpc-build = { path = "poem-grpc-build", version = "0.4.0" }
 
 proc-macro-crate = "3.0.0"
@@ -47,7 +47,6 @@ serde_urlencoded = "0.7.1"
 indexmap = "2.0.0"
 reqwest = { version = "0.12.2", default-features = false }
 darling = "0.20.8"
-static_assertions = "1.1.0"
 
 # rustls, update together
 rustls = "0.22.0"
