@@ -142,8 +142,8 @@ impl Body {
     }
 
     /// Create a body object from JSON.
-    pub fn from_json(body: impl Serialize) -> serde_json::Result<Self> {
-        Ok(serde_json::to_vec(&body)?.into())
+    pub fn from_json(body: impl Serialize) -> sonic_rs::Result<Self> {
+        Ok(sonic_rs::to_vec(&body)?.into())
     }
 
     /// Create an empty body.
@@ -234,7 +234,7 @@ impl Body {
     /// - [`ReadBodyError`]
     /// - [`ParseJsonError`]
     pub async fn into_json<T: DeserializeOwned>(self) -> Result<T> {
-        Ok(serde_json::from_slice(&self.into_vec().await?).map_err(ParseJsonError::Parse)?)
+        Ok(sonic_rs::from_slice(&self.into_vec().await?).map_err(ParseJsonError::Parse)?)
     }
 
     /// Consumes this body object and parse it as `T`.

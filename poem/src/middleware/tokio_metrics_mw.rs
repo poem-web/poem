@@ -39,7 +39,7 @@ impl TokioMetrics {
     pub fn exporter(&self) -> impl Endpoint {
         let metrics = self.metrics.clone();
         RouteMethod::new().get(make_sync(move |_| {
-            serde_json::to_string(&*metrics.lock())
+            sonic_rs::to_string(&*metrics.lock())
                 .unwrap()
                 .with_content_type("application/json")
         }))

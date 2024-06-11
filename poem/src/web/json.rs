@@ -115,7 +115,7 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Json<T> {
         }
 
         Ok(Self(
-            serde_json::from_slice(&body.take()?.into_bytes().await?)
+            sonic_rs::from_slice(&body.take()?.into_bytes().await?)
                 .map_err(ParseJsonError::Parse)?,
         ))
     }
@@ -132,7 +132,7 @@ fn is_json_content_type(content_type: &str) -> bool {
 
 impl<T: Serialize + Send> IntoResponse for Json<T> {
     fn into_response(self) -> Response {
-        let data = match serde_json::to_vec(&self.0) {
+        let data = match sonic_rs::to_vec(&self.0) {
             Ok(data) => data,
             Err(err) => {
                 return Response::builder()
@@ -149,7 +149,7 @@ impl<T: Serialize + Send> IntoResponse for Json<T> {
 #[cfg(test)]
 mod tests {
     use serde::{Deserialize, Serialize};
-    use serde_json::json;
+    use sonic_rs::json;
 
     use super::*;
     use crate::{handler, test::TestClient};
@@ -189,7 +189,7 @@ mod tests {
         let cli = TestClient::new(index);
         cli.post("/")
             // .header(header::CONTENT_TYPE, "application/json")
-            .body(serde_json::to_string(&create_resource).expect("Invalid json"))
+            .body(sonic_rs::to_string(&create_resource).expect("Invalid json"))
             .send()
             .await
             .assert_status(StatusCode::UNSUPPORTED_MEDIA_TYPE);

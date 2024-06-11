@@ -32,7 +32,7 @@ impl<'a> Protected<'a> {
             nonce,
             url,
         };
-        let protected = serde_json::to_vec(&protected).map_err(|err| {
+        let protected = sonic_rs::to_vec(&protected).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         Ok(URL_SAFE_NO_PAD.encode(protected))
@@ -78,7 +78,7 @@ impl Jwk {
             x: &self.x,
             y: &self.y,
         };
-        let json = serde_json::to_vec(&jwk_thumb).map_err(|err| {
+        let json = sonic_rs::to_vec(&jwk_thumb).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         let hash = sha256(json);
@@ -111,7 +111,7 @@ pub(crate) async fn request(
     };
     let protected = Protected::base64(jwk, kid, nonce, uri)?;
     let payload = match payload {
-        Some(payload) => serde_json::to_vec(&payload).map_err(|err| {
+        Some(payload) => sonic_rs::to_vec(&payload).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
         })?,
         None => Vec::new(),
@@ -166,7 +166,7 @@ where
         .text()
         .await
         .map_err(|_| IoError::new(ErrorKind::Other, "failed to read response"))?;
-    serde_json::from_str(&data)
+    sonic_rs::from_str(&data)
         .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {err}")))
 }
 
