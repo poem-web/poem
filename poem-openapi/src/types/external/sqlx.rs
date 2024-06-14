@@ -2,10 +2,9 @@ use std::borrow::Cow;
 
 use serde_json::Value;
 
-use crate::types::ParseError;
 use crate::{
     registry::MetaSchemaRef,
-    types::{ParseFromJSON, ParseResult, ToJSON, Type},
+    types::{ParseError, ParseFromJSON, ParseResult, ToJSON, Type},
 };
 
 impl<T: Type> Type for sqlx::types::Json<T> {
