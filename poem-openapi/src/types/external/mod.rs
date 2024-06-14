@@ -25,6 +25,8 @@ mod optional;
 mod prost_wkt_types;
 mod regex;
 mod slice;
+#[cfg(feature = "sqlx")]
+mod sqlx;
 mod string;
 #[cfg(feature = "time")]
 mod time;
@@ -34,5 +36,3 @@ mod url;
 #[cfg(feature = "uuid")]
 mod uuid;
 mod vec;
-#[cfg(feature = "sqlx")]
-mod sqlx;
