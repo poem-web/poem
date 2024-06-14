@@ -34,3 +34,5 @@ mod url;
 #[cfg(feature = "uuid")]
 mod uuid;
 mod vec;
+#[cfg(feature = "sqlx")]
+mod sqlx;
