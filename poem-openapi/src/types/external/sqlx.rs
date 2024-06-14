@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use serde_json::Value;
 
+use crate::types::ParseError;
 use crate::{
     registry::MetaSchemaRef,
     types::{ParseFromJSON, ParseResult, ToJSON, Type},
@@ -12,7 +13,7 @@ impl<T: Type> Type for sqlx::types::Json<T> {
 
     type RawValueType = T;
 
-    type RawElementValueType = T;
+    type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
         Self::RawValueType::name()
@@ -23,19 +24,21 @@ impl<T: Type> Type for sqlx::types::Json<T> {
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
-        self.0.as_raw_value()
+        Some(&self.0)
     }
 
     fn raw_element_iter<'a>(
         &'a self,
     ) -> Box<dyn Iterator<Item = &'a Self::RawElementValueType> + 'a> {
-        self.raw_element_iter()
+        self.0.raw_element_iter()
     }
 }
 
 impl<T: ParseFromJSON> ParseFromJSON for sqlx::types::Json<T> {
     fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
         Self::RawValueType::parse_from_json(value)
+            .map(sqlx::types::Json)
+            .map_err(ParseError::propagate)
     }
 }
 
