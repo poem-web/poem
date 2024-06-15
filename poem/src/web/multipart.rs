@@ -15,7 +15,7 @@ use crate::{error::ParseMultipartError, http::header, FromRequest, Request, Requ
 
 /// A single field in a multipart stream.
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
-pub struct Field(pub multer::Field<'static>);
+pub struct Field(multer::Field<'static>);
 
 impl Debug for Field {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

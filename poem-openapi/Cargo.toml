@@ -27,12 +27,12 @@ geo = ["dep:geo-types", "dep:geojson"]
 [dependencies]
 poem-openapi-derive.workspace = true
 poem = { workspace = true, default-features = true, features = [
-    "multipart",
-    "tempfile",
-    "cookie",
-    "sse",
-    "xml",
-    "yaml",
+  "multipart",
+  "tempfile",
+  "cookie",
+  "sse",
+  "xml",
+  "yaml",
 ] }
 
 tokio = { workspace = true, features = ["fs"] }
@@ -57,11 +57,11 @@ hostname-validator = { version = "1.1.0", optional = true }
 
 # Feature optional dependencies
 chrono = { workspace = true, optional = true, default-features = false, features = [
-    "clock",
+  "clock",
 ] }
 time = { version = "0.3.9", optional = true, features = [
-    "parsing",
-    "formatting",
+  "parsing",
+  "formatting",
 ] }
 uuid = { version = "1.1.0", optional = true }
 url = { version = "2.2.2", optional = true }
