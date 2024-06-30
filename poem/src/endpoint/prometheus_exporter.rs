@@ -55,7 +55,9 @@ impl Endpoint for PrometheusExporterEndpoint {
         let metric_families = self.registry.gather();
         let mut result = Vec::new();
         match encoder.encode(&metric_families, &mut result) {
-            Ok(()) => Ok(Response::builder().content_type("text/plain").body(result)),
+            Ok(()) => Ok(Response::builder()
+                .content_type(encoder.format_type())
+                .body(result)),
             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR.into()),
         }
     }
