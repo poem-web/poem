@@ -62,3 +62,20 @@ impl Endpoint for PrometheusExporterEndpoint {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::TestClient;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_content_type() {
+        let client = TestClient::new(PrometheusExporter::new(Registry::new()));
+
+        let resp = client.get("/metrics").send().await;
+
+        resp.assert_status_is_ok();
+        resp.assert_content_type("text/plain; version=0.0.4");
+    }
+}
