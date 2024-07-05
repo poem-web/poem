@@ -65,9 +65,8 @@ impl Endpoint for PrometheusExporterEndpoint {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::TestClient;
-
     use super::*;
+    use crate::test::TestClient;
 
     #[tokio::test]
     async fn test_content_type() {
