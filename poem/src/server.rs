@@ -3,6 +3,7 @@ use std::{
     future::Future,
     io,
     io::IoSlice,
+    panic::AssertUnwindSafe,
     pin::Pin,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -11,6 +12,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures_util::FutureExt;
 use http::uri::Scheme;
 use hyper::body::Incoming;
 use hyper_util::server::conn::auto;
@@ -164,8 +166,9 @@ where
                         let notify = notify.clone();
                         let timeout_token = timeout_token.clone();
                         let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
+                        let server_graceful_shutdown_token_clone = server_graceful_shutdown_token.clone();
 
-                        tokio::spawn(async move {
+                        let spawn_fut = AssertUnwindSafe(async move {
                             let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token.clone(), idle_timeout);
 
                             if timeout.is_some() {
@@ -176,13 +179,21 @@ where
                             } else {
                                serve_connection.await;
                             }
+                        });
+
+                        tokio::spawn(async move {
+                            let result = spawn_fut.catch_unwind().await;
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
                                 // notify only if shutdown is initiated, to prevent notification when server is active.
                                 // It's a valid state to have 0 alive connections when server is not shutting down.
-                                if server_graceful_shutdown_token.is_cancelled() {
+                                if server_graceful_shutdown_token_clone.is_cancelled() {
                                     notify.notify_one();
                                 }
+                            }
+
+                            if let Err(err) = result {
+                                std::panic::resume_unwind(err);
                             }
                         });
                     }
