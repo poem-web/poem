@@ -55,8 +55,26 @@ impl Endpoint for PrometheusExporterEndpoint {
         let metric_families = self.registry.gather();
         let mut result = Vec::new();
         match encoder.encode(&metric_families, &mut result) {
-            Ok(()) => Ok(Response::builder().content_type("text/plain").body(result)),
+            Ok(()) => Ok(Response::builder()
+                .content_type(encoder.format_type())
+                .body(result)),
             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR.into()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test::TestClient;
+
+    #[tokio::test]
+    async fn test_content_type() {
+        let client = TestClient::new(PrometheusExporter::new(Registry::new()));
+
+        let resp = client.get("/metrics").send().await;
+
+        resp.assert_status_is_ok();
+        resp.assert_content_type("text/plain; version=0.0.4");
     }
 }
