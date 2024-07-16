@@ -22,7 +22,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         let name = format_ident!("{}", method.name);
         let input_type = syn::parse_str::<Type>(&method.input_type).unwrap();
         let output_type = syn::parse_str::<Type>(&method.output_type).unwrap();
-        let path = if !config.emit_package {
+        let path = if !config.emit_package && !service.package.is_empty() {
             format!(
                 "/{}.{}/{}",
                 service.package, service.proto_name, method.proto_name
