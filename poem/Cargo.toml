@@ -73,7 +73,7 @@ poem-derive.workspace = true
 
 bytes.workspace = true
 futures-util = { workspace = true, features = ["sink"] }
-http = "1.0.0"
+http.workspace = true
 hyper = { version = "1.0.0", features = ["http1", "http2"] }
 hyper-util = { version = "0.1.3", features = ["server-auto", "tokio"] }
 http-body-util = "0.1.0"

@@ -27,16 +27,16 @@ flate2 = "1.0.24"
 itoa = "1.0.2"
 percent-encoding = "2.1.0"
 bytes.workspace = true
-prost = "0.12.0"
+prost = "0.13.1"
 base64.workspace = true
-prost-types = "0.12.0"
+prost-types = "0.13.1"
 tokio-stream = { workspace = true, features = ["sync"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 rustls = { workspace = true }
 thiserror.workspace = true
 fastrand = "2.0.0"
-http = "1.0.0"
+http.workspace = true
 hyper = { version = "1.0.0", features = ["http1", "http2"] }
 hyper-util = { version = "0.1.3", features = ["client-legacy", "tokio"] }
 http-body-util = "0.1.0"
