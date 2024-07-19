@@ -201,17 +201,17 @@ where
                         let server_graceful_shutdown_token_clone = server_graceful_shutdown_token.clone();
 
                         let spawn_fut = AssertUnwindSafe(async move {
-                            let serve_connection = serve_connection(
+                            let serve_connection = serve_connection(ConnectionOptions{
                                 socket,
                                 local_addr,
                                 remote_addr,
                                 scheme,
                                 ep,
-                                server_graceful_shutdown_token.clone(),
-                                idle_timeout,
+                                server_graceful_shutdown_token: server_graceful_shutdown_token.clone(),
+                                idle_connection_close_timeout: idle_timeout,
                                 http2_max_concurrent_streams,
                                 http2_max_pending_accept_reset_streams,
-                            );
+                            });
 
                             if timeout.is_some() {
                                 tokio::select! {
@@ -365,8 +365,8 @@ impl<T> ClosingInactiveConnection<T> {
     }
 }
 
-async fn serve_connection(
-    socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
+struct ConnectionOptions<Io> {
+    socket: Io,
     local_addr: LocalAddr,
     remote_addr: RemoteAddr,
     scheme: Scheme,
@@ -375,7 +375,23 @@ async fn serve_connection(
     idle_connection_close_timeout: Option<Duration>,
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
-) {
+}
+
+async fn serve_connection<Io>(
+    ConnectionOptions {
+        socket,
+        local_addr,
+        remote_addr,
+        scheme,
+        ep,
+        server_graceful_shutdown_token,
+        idle_connection_close_timeout,
+        http2_max_concurrent_streams,
+        http2_max_pending_accept_reset_streams,
+    }: ConnectionOptions<Io>,
+) where
+    Io: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
     let connection_shutdown_token = CancellationToken::new();
 
     let service = hyper::service::service_fn({
