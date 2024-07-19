@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use libopentelemetry::{
     global,
-    propagation::Extractor,
     trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
     Context, Key, KeyValue,
 };
-use opentelemetry_semantic_conventions::{resource, trace};
+use opentelemetry_http::HeaderExtractor;
+use opentelemetry_semantic_conventions::{attribute, resource};
 
 use crate::{
     route::PathPattern,
@@ -52,21 +52,6 @@ pub struct OpenTelemetryTracingEndpoint<T, E> {
     inner: E,
 }
 
-struct HeaderExtractor<'a>(&'a http::HeaderMap);
-
-impl<'a> Extractor for HeaderExtractor<'a> {
-    fn get(&self, key: &str) -> Option<&str> {
-        self.0.get(key).and_then(|value| value.to_str().ok())
-    }
-
-    fn keys(&self) -> Vec<&str> {
-        self.0
-            .keys()
-            .map(|value| value.as_str())
-            .collect::<Vec<_>>()
-    }
-}
-
 impl<T, E> Endpoint for OpenTelemetryTracingEndpoint<T, E>
 where
     T: Tracer + Send + Sync,
@@ -98,16 +83,16 @@ where
         ));
         attributes.push(KeyValue::new(resource::TELEMETRY_SDK_LANGUAGE, "rust"));
         attributes.push(KeyValue::new(
-            trace::HTTP_REQUEST_METHOD,
+            attribute::HTTP_REQUEST_METHOD,
             req.method().to_string(),
         ));
         attributes.push(KeyValue::new(
-            trace::URL_FULL,
+            attribute::URL_FULL,
             req.original_uri().to_string(),
         ));
-        attributes.push(KeyValue::new(trace::CLIENT_ADDRESS, remote_addr));
+        attributes.push(KeyValue::new(attribute::CLIENT_ADDRESS, remote_addr));
         attributes.push(KeyValue::new(
-            trace::NETWORK_PROTOCOL_VERSION,
+            attribute::NETWORK_PROTOCOL_VERSION,
             format!("{:?}", req.version()),
         ));
 
@@ -135,14 +120,14 @@ where
                     let resp = resp.into_response();
                     span.add_event("request.completed".to_string(), vec![]);
                     span.set_attribute(KeyValue::new(
-                        trace::HTTP_RESPONSE_STATUS_CODE,
+                        attribute::HTTP_RESPONSE_STATUS_CODE,
                         resp.status().as_u16() as i64,
                     ));
                     if let Some(content_length) =
                         resp.headers().typed_get::<headers::ContentLength>()
                     {
                         span.set_attribute(KeyValue::new(
-                            trace::HTTP_RESPONSE_BODY_SIZE,
+                            attribute::HTTP_RESPONSE_BODY_SIZE,
                             content_length.0 as i64,
                         ));
                     }
@@ -150,12 +135,12 @@ where
                 }
                 Err(err) => {
                     span.set_attribute(KeyValue::new(
-                        trace::HTTP_RESPONSE_STATUS_CODE,
+                        attribute::HTTP_RESPONSE_STATUS_CODE,
                         err.status().as_u16() as i64,
                     ));
                     span.add_event(
                         "request.error".to_string(),
-                        vec![KeyValue::new(trace::EXCEPTION_MESSAGE, err.to_string())],
+                        vec![KeyValue::new(attribute::EXCEPTION_MESSAGE, err.to_string())],
                     );
                     Err(err)
                 }

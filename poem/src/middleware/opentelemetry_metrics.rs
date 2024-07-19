@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use libopentelemetry::{
     global,
-    metrics::{Counter, Histogram, Unit},
+    metrics::{Counter, Histogram},
     Key, KeyValue,
 };
 use opentelemetry_semantic_conventions::trace;
@@ -38,7 +38,7 @@ impl OpenTelemetryMetrics {
                 .init(),
             duration: meter
                 .f64_histogram("poem_request_duration_ms")
-                .with_unit(Unit::new("milliseconds"))
+                .with_unit("milliseconds")
                 .with_description(
                     "request duration histogram (in milliseconds, since start of service)",
                 )
