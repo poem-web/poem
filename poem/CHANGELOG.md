@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [unreleased]
+# [3.0.2] 2024-07-19
 
 - bump `opentelemetry` to `0.23`
+- fix(prometheus): use correct content-type header [#839](https://github.com/poem-web/poem/pull/839)
+- updated swagger UI to v5.17.14 [#842](https://github.com/poem-web/poem/pull/842)
+- fix: catch unwind for serve_connection [#844](https://github.com/poem-web/poem/pull/844)
+- add some methods to Server for HTTP2 settings
 
 # [3.0.1] 2024-05-18
 
