@@ -172,11 +172,12 @@ impl QueryRoot {
 }
 
 #[derive(Interface)]
+#[allow(clippy::duplicated_attributes)]
 #[graphql(
-    field(name = "id", type = "&str"),
-    field(name = "name", type = "&str"),
-    field(name = "friends", type = "Vec<Character<'ctx>>"),
-    field(name = "appears_in", type = "&[Episode]")
+    field(name = "id", ty = "&str"),
+    field(name = "name", ty = "&str"),
+    field(name = "friends", ty = "Vec<Character<'ctx>>"),
+    field(name = "appears_in", ty = "&[Episode]")
 )]
 pub enum Character<'a> {
     Human(Human<'a>),

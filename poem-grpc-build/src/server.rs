@@ -36,7 +36,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         })
         .collect::<Vec<_>>();
     let crate_name = get_crate_name(config.internal);
-    let service_name = if !config.emit_package {
+    let service_name = if !config.emit_package && !service.package.is_empty() {
         format!("{}.{}", service.package, service.proto_name)
     } else {
         service.proto_name.clone()
