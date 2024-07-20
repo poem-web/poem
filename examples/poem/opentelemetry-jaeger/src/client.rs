@@ -6,15 +6,19 @@ use opentelemetry::{
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer, Resource};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{Config, TracerProvider},
+    Resource,
+};
 use reqwest::{Client, Method, Url};
 
-fn init_tracer() -> Tracer {
+fn init_tracer() -> TracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_trace_config(
-            opentelemetry_sdk::trace::config()
+            Config::default()
                 .with_resource(Resource::new(vec![KeyValue::new("service.name", "poem")])),
         )
         .with_exporter(opentelemetry_otlp::new_exporter().tonic())

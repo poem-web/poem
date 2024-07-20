@@ -1,12 +1,10 @@
 [package]
-name = "example-async-graphql"
+name = "example-requestid"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-poem.workspace = true
+poem = { workspace = true, features = ["requestid"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-async-graphql = "7.0.7"
-slab = "0.4.4"
 tracing-subscriber.workspace = true
