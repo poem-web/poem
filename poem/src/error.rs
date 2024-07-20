@@ -1176,7 +1176,7 @@ mod tests {
         assert_eq!(err.into_response().status(), StatusCode::BAD_GATEWAY);
     }
 
-    #[cfg(feature = "eyre6")]
+    #[cfg(feature = "eyre06")]
     #[test]
     fn test_eyre6_error() {
         let eyre6_err: eyre6::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
