@@ -1,5 +1,9 @@
-use opentelemetry::{global, KeyValue};
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer, Resource};
+use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{Config, TracerProvider},
+    Resource,
+};
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -7,12 +11,12 @@ use poem::{
     EndpointExt, Route, Server,
 };
 
-fn init_tracer() -> Tracer {
+fn init_tracer() -> TracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_trace_config(
-            opentelemetry_sdk::trace::config().with_resource(Resource::new(vec![KeyValue::new(
+            Config::default().with_resource(Resource::new(vec![KeyValue::new(
                 "service.name",
                 "server2",
             )])),
@@ -34,7 +38,8 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let tracer = init_tracer();
+    let tracer_provider = init_tracer();
+    let tracer = tracer_provider.tracer("server2");
 
     let app = Route::new()
         .at("/api2", get(index))

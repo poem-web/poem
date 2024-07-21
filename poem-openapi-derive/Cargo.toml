@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi-derive"
-version = "5.0.0"
+version = "5.0.3"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -24,7 +24,7 @@ syn = { workspace = true, features = ["full", "visit-mut"] }
 thiserror.workspace = true
 indexmap.workspace = true
 regex.workspace = true
-http = "1.0.0"
+http.workspace = true
 mime.workspace = true
 
 [package.metadata.workspaces]

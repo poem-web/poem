@@ -61,7 +61,6 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | redoc            | Add Redoc UI support                                                                   |
 | email            | Support for email address string                                                       |
 | hostname         | Support for hostname string                                                            |
-| humantime        | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
 | uuid             | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                       |
 | url              | Integrate with the [`url` crate](https://crates.io/crates/url)                         |
 | geo              | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)             |

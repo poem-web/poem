@@ -2,11 +2,15 @@ use std::str::FromStr;
 
 use opentelemetry::{
     global,
-    trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _},
+    trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _, TracerProvider as _},
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer, Resource};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{Config, Tracer, TracerProvider},
+    Resource,
+};
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -16,12 +20,12 @@ use poem::{
 };
 use reqwest::{Client, Url};
 
-fn init_tracer() -> Tracer {
+fn init_tracer() -> TracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_trace_config(
-            opentelemetry_sdk::trace::config().with_resource(Resource::new(vec![KeyValue::new(
+            Config::default().with_resource(Resource::new(vec![KeyValue::new(
                 "service.name",
                 "server1",
             )])),
@@ -76,7 +80,8 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let tracer = init_tracer();
+    let tracer_provider = init_tracer();
+    let tracer = tracer_provider.tracer("server1");
 
     let app = Route::new()
         .at("/api1", get(index))
