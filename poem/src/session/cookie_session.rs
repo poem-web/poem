@@ -71,7 +71,7 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
                 self.config.set_cookie_value(&cookie_jar, {
                     #[cfg(not(feature = "sonic-rs"))]
                     {
-                        &sonic_rs::to_string(&session.entries()).unwrap_or_default()
+                        &serde_json::to_string(&session.entries()).unwrap_or_default()
                     }
                     #[cfg(feature = "sonic-rs")]
                     {
