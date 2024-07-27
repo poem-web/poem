@@ -4,7 +4,6 @@ use poem_openapi::{
     Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
-use time::OffsetDateTime;
 
 fn get_meta<T: Type>() -> MetaSchema {
     let mut registry = Registry::new();
@@ -390,8 +389,10 @@ fn read_only() {
     );
 }
 
+#[cfg(feature = "time")]
 #[test]
 fn read_only_with_default() {
+    use time::OffsetDateTime;
     fn default_offset_datetime() -> OffsetDateTime {
         OffsetDateTime::from_unix_timestamp(1694045893).unwrap()
     }
