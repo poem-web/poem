@@ -10,6 +10,7 @@ use poem_openapi::{
     },
     Enum, Multipart, Object,
 };
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 fn create_multipart_payload(parts: &[(&str, Option<&str>, &[u8])]) -> Vec<u8> {
     let mut data = Vec::new();
@@ -237,6 +238,34 @@ async fn upload() {
     assert_eq!(a.file.content_type(), None);
     assert_eq!(a.file.size(), 3);
     assert_eq!(a.file.into_vec().await.unwrap(), vec![1, 2, 3]);
+
+    let data =
+        create_multipart_payload(&[("name", None, b"abc"), ("file", Some("1.txt"), &[1, 2, 3])]);
+    let a = A::from_request(
+        &Request::builder()
+            .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
+            .finish(),
+        &mut RequestBody::new(data.into()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(a.name, "abc".to_string());
+
+    assert_eq!(a.file.file_name(), Some("1.txt"));
+    assert_eq!(a.file.content_type(), None);
+    assert_eq!(a.file.size(), 3);
+
+    let mut reader = a.file.into_async_read();
+    let mut buffer = [0; 3];
+    let n = reader.read_exact(&mut buffer[..]).await.unwrap();
+    assert_eq!(n, 3);
+    assert_eq!(buffer[..n], vec![1, 2, 3]);
+    let n = reader.read(&mut buffer[..]).await.unwrap();
+    assert_eq!(n, 0); // EOF
+    reader.seek(std::io::SeekFrom::Start(0)).await.unwrap();
+    let n = reader.read_exact(&mut buffer[..]).await.unwrap();
+    assert_eq!(n, 3);
+    assert_eq!(buffer[..n], vec![1, 2, 3]);
 }
 
 #[tokio::test]
