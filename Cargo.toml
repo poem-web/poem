@@ -29,7 +29,7 @@ proc-macro-crate = "3.0.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
 syn = { version = "2.0" }
-tokio = "1.17.0"
+tokio = "1.39.1"
 serde_json = "1.0.68"
 serde = { version = "1.0.130", features = ["derive"] }
 thiserror = "1.0.30"
@@ -41,7 +41,7 @@ bytes = "1.1.0"
 futures-util = "0.3.17"
 tokio-stream = "0.1.8"
 serde_yaml = "0.9"
-quick-xml = { version = "0.32.0", features = ["serialize"] }
+quick-xml = { version = "0.36.1", features = ["serialize"] }
 base64 = "0.22.0"
 serde_urlencoded = "0.7.1"
 indexmap = "2.0.0"
