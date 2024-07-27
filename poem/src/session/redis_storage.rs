@@ -52,7 +52,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
             Some(expires) => Cmd::set_ex(session_id, value, expires.as_secs()),
             None => Cmd::set(session_id, value),
         };
-        cmd.query_async(&mut self.connection.clone())
+        cmd.query_async::<()>(&mut self.connection.clone())
             .await
             .map_err(RedisSessionError::Redis)?;
         Ok(())
@@ -60,7 +60,7 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
 
     async fn remove_session<'a>(&'a self, session_id: &'a str) -> Result<()> {
         Cmd::del(session_id)
-            .query_async(&mut self.connection.clone())
+            .query_async::<()>(&mut self.connection.clone())
             .await
             .map_err(RedisSessionError::Redis)?;
         Ok(())
