@@ -59,7 +59,7 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
     };
 
     let def_struct = if !item_fn.sig.generics.params.is_empty() {
-        let members = item_fn
+        let iter = item_fn
             .sig
             .generics
             .params
@@ -70,13 +70,26 @@ fn generate_handler(internal: bool, input: TokenStream) -> Result<TokenStream> {
             })
             .enumerate()
             .map(|(idx, ty)| {
-                let ty_ident = &ty.ident;
                 let ident = format_ident!("_mark{}", idx);
-                quote! { #ident: ::std::marker::PhantomData<#ty_ident> }
+                let ty_ident = &ty.ident;
+                (ident, ty_ident)
             });
+
+        let struct_members = iter.clone().map(|(ident, ty_ident)| {
+            quote! { #ident: ::std::marker::PhantomData<#ty_ident> }
+        });
+
+        let default_members = iter.clone().map(|(ident, _ty_ident)| {
+            quote! { #ident: ::std::marker::PhantomData }
+        });
+
         quote! {
-            #[derive(Default)]
-            #vis struct #ident #type_generics { #(#members),*}
+            #vis struct #ident #type_generics { #(#struct_members),*}
+            impl #type_generics ::std::default::Default for #ident #type_generics {
+                fn default() -> Self {
+                    Self { #(#default_members),* }
+                }
+            }
         }
     } else {
         quote! { #vis struct #ident; }

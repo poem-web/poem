@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "3.0.3"
+version = "3.0.4"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -97,7 +97,7 @@ sync_wrapper = { version = "1.0.0", features = ["futures"] }
 
 # Non-feature optional dependencies
 multer = { version = "3.0.0", features = ["tokio"], optional = true }
-tokio-tungstenite = { version = "0.21.0", optional = true }
+tokio-tungstenite = { version = "0.23.1", optional = true }
 tokio-rustls = { workspace = true, optional = true }
 rustls-pemfile = { version = "2.0.0", optional = true }
 async-compression = { version = "0.4.0", optional = true, features = [
@@ -116,7 +116,7 @@ chrono = { workspace = true, optional = true, default-features = false, features
 time = { version = "0.3", optional = true }
 mime_guess = { version = "2.0.3", optional = true }
 rand = { version = "0.8.4", optional = true }
-redis = { version = "0.25.2", optional = true, features = [
+redis = { version = "0.26.0", optional = true, features = [
     "aio",
     "tokio-comp",
     "connection-manager",
@@ -139,7 +139,7 @@ libtempfile = { package = "tempfile", version = "3.2.0", optional = true }
 priority-queue = { version = "2.0.2", optional = true }
 tokio-native-tls = { version = "0.3.0", optional = true }
 tokio-openssl = { version = "0.6.3", optional = true }
-openssl = { version = "0.10.56", optional = true }
+openssl = { version = "0.10.66", optional = true }
 base64 = { workspace = true, optional = true }
 libcsrf = { package = "csrf", version = "0.4.1", optional = true }
 httpdate = { version = "1.0.2", optional = true }
@@ -168,7 +168,7 @@ uuid = { version = "1.8.0", optional = true, default-features = false, features 
 ] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.28.0", features = ["fs", "user"] }
+nix = { version = "0.29.0", features = ["fs", "user"] }
 
 [dev-dependencies]
 async-stream = "0.3.2"

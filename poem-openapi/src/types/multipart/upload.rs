@@ -6,7 +6,7 @@ use std::{
 use poem::web::Field as PoemField;
 use tokio::{
     fs::File,
-    io::{AsyncRead, AsyncReadExt, Error as IoError, ErrorKind},
+    io::{AsyncRead, AsyncReadExt, AsyncSeek, Error as IoError, ErrorKind},
 };
 
 use crate::{
@@ -74,7 +74,7 @@ impl Upload {
     }
 
     /// Consumes this body object to return a reader.
-    pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
+    pub fn into_async_read(self) -> impl AsyncRead + AsyncSeek + Unpin + Send + 'static {
         self.file
     }
 

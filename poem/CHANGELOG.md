@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.0.4] 2024-07-27
+
+- Add manual Default implementation for `#[handler]` [#848](https://github.com/poem-web/poem/pull/848)
+- feat: add `AsyncSeek trait` to `Upload::into_async_read` return type [#853](https://github.com/poem-web/poem/pull/853)
+- Fix `EmbeddedFilesEndpoint` not working for `index.html` in subdirectories [#825](https://github.com/poem-web/poem/pull/825)
+- chore: Bump `redis` to `0.26` [#856](https://github.com/poem-web/poem/pull/856)
+- chore: bump `tokio-tungstenite`, `quick-xml`, `tokio`, `openssl` [#857](https://github.com/poem-web/poem/pull/857)
+
 # [3.0.3] 2024-07-20
 
 - bump `opentelemetry` from `0.23` to `0.24`
