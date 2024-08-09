@@ -39,9 +39,18 @@ impl TokioMetrics {
     pub fn exporter(&self) -> impl Endpoint {
         let metrics = self.metrics.clone();
         RouteMethod::new().get(make_sync(move |_| {
-            serde_json::to_string(&*metrics.lock())
-                .unwrap()
-                .with_content_type("application/json")
+            #[cfg(not(feature = "sonic-rs"))]
+            {
+                serde_json::to_string(&*metrics.lock())
+                    .unwrap()
+                    .with_content_type("application/json")
+            }
+            #[cfg(feature = "sonic-rs")]
+            {
+                sonic_rs::to_string(&*metrics.lock())
+                    .unwrap()
+                    .with_content_type("application/json")
+            }
         }))
     }
 }
