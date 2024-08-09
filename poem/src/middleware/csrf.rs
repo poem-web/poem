@@ -104,6 +104,15 @@ impl Csrf {
         Default::default()
     }
 
+    /// Sets the name of the csrf cookie. Default is `poem-csrf-token`.
+    #[must_use]
+    pub fn cookie_name(self, value: impl Into<String>) -> Self {
+        Self {
+            cookie_name: value.into(),
+            ..self
+        }
+    }
+
     /// Sets AES256 key to provide signed, encrypted CSRF tokens and cookies.
     #[must_use]
     pub fn key(self, key: [u8; 32]) -> Self {
