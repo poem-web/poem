@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Display, Default)]
-#[display(fmt = "uniqueItems()")]
+#[display("uniqueItems()")]
 pub struct UniqueItems;
 
 impl UniqueItems {
