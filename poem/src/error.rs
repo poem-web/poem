@@ -218,6 +218,19 @@ impl Display for Error {
     }
 }
 
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match &self.source {
+            Some(ErrorSource::BoxedError(err)) => Some(err.as_ref()),
+            #[cfg(feature = "anyhow")]
+            Some(ErrorSource::Anyhow(err)) => Some(err.as_ref()),
+            #[cfg(feature = "eyre06")]
+            Some(ErrorSource::Eyre06(err)) => Some(err.as_ref()),
+            None => None,
+        }
+    }
+}
+
 impl From<Infallible> for Error {
     fn from(_: Infallible) -> Self {
         unreachable!()
