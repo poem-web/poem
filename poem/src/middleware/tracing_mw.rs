@@ -19,7 +19,7 @@ impl<E: Endpoint> Middleware<E> for Tracing {
     }
 }
 
-/// Endpoint for `Tracing` middleware.
+/// Endpoint for the `Tracing` middleware.
 pub struct TracingEndpoint<E> {
     inner: E,
 }

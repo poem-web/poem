@@ -34,7 +34,7 @@ where
     }
 }
 
-/// Middleware for catches panics and converts them into `500 INTERNAL SERVER
+/// Middleware that catches panics and converts them into `500 INTERNAL SERVER
 /// ERROR` responses.
 ///
 /// # Example
@@ -122,7 +122,7 @@ impl<E: Endpoint, H: PanicHandler> Middleware<E> for CatchPanic<H> {
     }
 }
 
-/// Endpoint for `PanicHandler` middleware.
+/// Endpoint for the `PanicHandler` middleware.
 pub struct CatchPanicEndpoint<E, H> {
     inner: E,
     panic_handler: H,

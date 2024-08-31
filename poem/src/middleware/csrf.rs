@@ -119,7 +119,7 @@ impl Csrf {
         Self { key, ..self }
     }
 
-    /// Sets the `Secure` to the csrf cookie. Default is `true`.
+    /// Sets, whether `Secure` is set for the csrf cookie. Defaults to `true`.
     #[must_use]
     pub fn secure(self, value: bool) -> Self {
         Self {
@@ -128,7 +128,7 @@ impl Csrf {
         }
     }
 
-    /// Sets the `HttpOnly` to the csrf cookie. Default is `true`.
+    /// Sets, whether `HttpOnly` is set for the csrf cookie. Defaults to `true`.
     #[must_use]
     pub fn http_only(self, value: bool) -> Self {
         Self {
@@ -137,7 +137,7 @@ impl Csrf {
         }
     }
 
-    /// Sets the `SameSite` to the csrf cookie. Default is
+    /// Sets, whether `SameSite` is set for the csrf cookie. Defaults to `true`.
     /// [`SameSite::Strict`](libcookie::SameSite::Strict).
     #[must_use]
     pub fn same_site(self, value: impl Into<Option<SameSite>>) -> Self {
@@ -174,7 +174,7 @@ impl<E: Endpoint> Middleware<E> for Csrf {
     }
 }
 
-/// Endpoint for Csrf middleware.
+/// Endpoint for the Csrf middleware.
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]
 pub struct CsrfEndpoint<E> {
     inner: E,

@@ -12,7 +12,7 @@ enum AppliedTo {
     Both,
 }
 
-/// Middleware for mark headers value represents sensitive information.
+/// Middleware to mark that a headers' value represents sensitive information.
 ///
 /// Sensitive data could represent passwords or other data that should not be
 /// stored on disk or in memory. By marking header values as sensitive,
@@ -84,7 +84,7 @@ impl<E: Endpoint> Middleware<E> for SensitiveHeader {
     }
 }
 
-/// Endpoint for SensitiveHeader middleware.
+/// Endpoint for the SensitiveHeader middleware.
 pub struct SensitiveHeaderEndpoint<E> {
     inner: E,
     headers: HashSet<HeaderName>,

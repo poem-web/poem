@@ -60,7 +60,7 @@ impl<E: Endpoint> Middleware<E> for OpenTelemetryMetrics {
     }
 }
 
-/// Endpoint for OpenTelemetryMetrics middleware.
+/// Endpoint for the OpenTelemetryMetrics middleware.
 #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
 pub struct OpenTelemetryMetricsEndpoint<E> {
     request_count: Counter<u64>,

@@ -8,7 +8,7 @@ use crate::{
 
 const X_REQUEST_ID: &str = "x-request-id";
 
-/// Weather to use the request ID supplied in the request.
+/// Whether to use the request ID supplied in the request.
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(docsrs, doc(cfg(feature = "requestid")))]
 pub enum ReuseId {
@@ -42,7 +42,7 @@ impl RequestId {
         }
     }
 
-    /// Configure weather to use the incoming ID.
+    /// Configure whether to use the incoming ID.
     #[must_use]
     pub fn reuse_id(self, reuse_id: ReuseId) -> Self {
         Self {
@@ -72,7 +72,7 @@ impl<E: Endpoint> Middleware<E> for RequestId {
     }
 }
 
-/// Endpoint for `RequestId` middleware.
+/// Endpoint for the `RequestId` middleware.
 #[cfg_attr(docsrs, doc(cfg(feature = "requestid")))]
 pub struct RequestIdEndpoint<E> {
     next: E,
@@ -103,7 +103,7 @@ impl<E: Endpoint> Endpoint for RequestIdEndpoint<E> {
     }
 }
 
-/// A request ID that can be extracted in handler functions.
+/// A request ID which can be extracted in handler functions.
 #[cfg_attr(docsrs, doc(cfg(feature = "requestid")))]
 #[derive(Clone)]
 pub struct ReqId(String);
