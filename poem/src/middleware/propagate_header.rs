@@ -4,7 +4,7 @@ use http::{header::HeaderName, HeaderMap};
 
 use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
-/// Middleware for propagate a header from the request to the response.
+/// Middleware to propagate a header from the request to the response.
 #[derive(Default)]
 pub struct PropagateHeader {
     headers: HashSet<HeaderName>,
@@ -41,7 +41,7 @@ impl<E: Endpoint> Middleware<E> for PropagateHeader {
     }
 }
 
-/// Endpoint for PropagateHeader middleware.
+/// Endpoint for the PropagateHeader middleware.
 pub struct PropagateHeaderEndpoint<E> {
     inner: E,
     headers: HashSet<HeaderName>,

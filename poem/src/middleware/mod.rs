@@ -59,14 +59,14 @@ use crate::endpoint::Endpoint;
 
 /// Represents a middleware trait.
 ///
-/// # Create you own middleware
+/// # Create your own middleware
 ///
 /// ```
 /// use poem::{
 ///     handler, test::TestClient, web::Data, Endpoint, EndpointExt, Middleware, Request, Result,
 /// };
 ///
-/// /// A middleware that extract token from HTTP headers.
+/// /// A middleware that extracts token from HTTP headers.
 /// struct TokenMiddleware;
 ///
 /// impl<E: Endpoint> Middleware<E> for TokenMiddleware {

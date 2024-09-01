@@ -45,7 +45,7 @@ where
     }
 }
 
-/// Endpoint for `OpenTelemetryTracing` middleware.
+/// Endpoint for the `OpenTelemetryTracing` middleware.
 #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]
 pub struct OpenTelemetryTracingEndpoint<T, E> {
     tracer: Arc<T>,

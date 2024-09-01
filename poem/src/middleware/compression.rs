@@ -68,11 +68,10 @@ fn parse_accept_encoding(
         .map(|(coding, _)| coding)
 }
 
-/// Middleware for decompress request body and compress response body.
+/// Middleware to decompress the request body and compress the response body.
 ///
-/// It selects the decompression algorithm according to the request
-/// `Content-Encoding` header, and selects the compression algorithm according
-/// to the request `Accept-Encoding` header.
+/// The decompression algorithm is selected according to the request `Content-Encoding` header,
+/// and the compression algorithm is selected according to the request `Accept-Encoding` header.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 #[derive(Default)]
 pub struct Compression {
@@ -97,7 +96,7 @@ impl Compression {
         }
     }
 
-    /// Specify the enabled algorithms (default to all)
+    /// Specify the enabled algorithms (defaults to all)
     #[must_use]
     #[inline]
     pub fn algorithms(self, algorithms: impl IntoIterator<Item = CompressionAlgo>) -> Self {
@@ -120,7 +119,7 @@ impl<E: Endpoint> Middleware<E> for Compression {
     }
 }
 
-/// Endpoint for Compression middleware.
+/// Endpoint for the Compression middleware.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 pub struct CompressionEndpoint<E: Endpoint> {
     ep: E,

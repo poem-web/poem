@@ -71,7 +71,7 @@ impl<E: Endpoint> Middleware<E> for TokioMetrics {
     }
 }
 
-/// Endpoint for TokioMetrics middleware.
+/// Endpoint for the TokioMetrics middleware.
 pub struct TokioMetricsEndpoint<E> {
     inner: E,
     monitor: TaskMonitor,
