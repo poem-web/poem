@@ -1,32 +1,54 @@
 use futures_util::StreamExt;
-use poem::{Request, Response};
+use http::HeaderValue;
+use poem::{Body, Request, Response};
 
 use crate::{
     codec::Codec,
+    compression::get_incoming_encodings,
     encoding::{create_decode_request_body, create_encode_response_body},
     service::{
         BidirectionalStreamingService, ClientStreamingService, ServerStreamingService, UnaryService,
     },
-    Code, Metadata, Request as GrpcRequest, Response as GrpcResponse, Status, Streaming,
+    Code, CompressionEncoding, Metadata, Request as GrpcRequest, Response as GrpcResponse, Status,
+    Streaming,
 };
 
 #[doc(hidden)]
-pub struct GrpcServer<T> {
+pub struct GrpcServer<'a, T> {
     codec: T,
+    send_compressd: Option<CompressionEncoding>,
+    accept_compressed: &'a [CompressionEncoding],
 }
 
-impl<T: Codec> GrpcServer<T> {
+impl<'a, T: Codec> GrpcServer<'a, T> {
     #[inline]
-    pub fn new(codec: T) -> Self {
-        Self { codec }
+    pub fn new(
+        codec: T,
+        send_compressd: Option<CompressionEncoding>,
+        accept_compressed: &'a [CompressionEncoding],
+    ) -> Self {
+        Self {
+            codec,
+            send_compressd,
+            accept_compressed,
+        }
     }
 
-    pub async fn unary<S>(&mut self, service: S, request: Request) -> Response
+    pub async fn unary<S>(mut self, service: S, request: Request) -> Response
     where
         S: UnaryService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let mut stream = create_decode_request_body(self.codec.decoder(), body);
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
+        let incoming_encoding =
+            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
+                Ok(incoming_encoding) => incoming_encoding,
+                Err(status) => {
+                    resp.headers_mut().extend(status.to_headers());
+                    return resp;
+                }
+            };
+        let mut stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = match stream.next().await {
             Some(Ok(message)) => {
@@ -44,32 +66,37 @@ impl<T: Codec> GrpcServer<T> {
             None => Err(Status::new(Code::Internal).with_message("missing request message")),
         };
 
-        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-
         match res {
             Ok(grpc_resp) => {
                 let GrpcResponse { metadata, message } = grpc_resp;
                 let body = create_encode_response_body(
                     self.codec.encoder(),
                     Streaming::new(futures_util::stream::once(async move { Ok(message) })),
+                    self.send_compressd,
                 );
-                resp.headers_mut().extend(metadata.headers);
-                resp.set_body(body);
+                update_http_response(&mut resp, metadata, body, self.send_compressd);
             }
-            Err(status) => {
-                resp.headers_mut().extend(status.to_headers());
-            }
+            Err(status) => resp.headers_mut().extend(status.to_headers()),
         }
 
         resp
     }
 
-    pub async fn client_streaming<S>(&mut self, service: S, request: Request) -> Response
+    pub async fn client_streaming<S>(mut self, service: S, request: Request) -> Response
     where
         S: ClientStreamingService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let stream = create_decode_request_body(self.codec.decoder(), body);
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
+        let incoming_encoding =
+            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
+                Ok(incoming_encoding) => incoming_encoding,
+                Err(status) => {
+                    resp.headers_mut().extend(status.to_headers());
+                    return resp;
+                }
+            };
+        let stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = service
             .call(GrpcRequest {
@@ -81,17 +108,15 @@ impl<T: Codec> GrpcServer<T> {
             })
             .await;
 
-        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-
         match res {
             Ok(grpc_resp) => {
                 let GrpcResponse { metadata, message } = grpc_resp;
                 let body = create_encode_response_body(
                     self.codec.encoder(),
                     Streaming::new(futures_util::stream::once(async move { Ok(message) })),
+                    self.send_compressd,
                 );
-                resp.headers_mut().extend(metadata.headers);
-                resp.set_body(body);
+                update_http_response(&mut resp, metadata, body, self.send_compressd);
             }
             Err(status) => {
                 resp.headers_mut().extend(status.to_headers());
@@ -101,12 +126,21 @@ impl<T: Codec> GrpcServer<T> {
         resp
     }
 
-    pub async fn server_streaming<S>(&mut self, service: S, request: Request) -> Response
+    pub async fn server_streaming<S>(mut self, service: S, request: Request) -> Response
     where
         S: ServerStreamingService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let mut stream = create_decode_request_body(self.codec.decoder(), body);
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
+        let incoming_encoding =
+            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
+                Ok(incoming_encoding) => incoming_encoding,
+                Err(status) => {
+                    resp.headers_mut().extend(status.to_headers());
+                    return resp;
+                }
+            };
+        let mut stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = match stream.next().await {
             Some(Ok(message)) => {
@@ -124,14 +158,12 @@ impl<T: Codec> GrpcServer<T> {
             None => Err(Status::new(Code::Internal).with_message("missing request message")),
         };
 
-        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-
         match res {
             Ok(grpc_resp) => {
                 let GrpcResponse { metadata, message } = grpc_resp;
-                let body = create_encode_response_body(self.codec.encoder(), message);
-                resp.headers_mut().extend(metadata.headers);
-                resp.set_body(body);
+                let body =
+                    create_encode_response_body(self.codec.encoder(), message, self.send_compressd);
+                update_http_response(&mut resp, metadata, body, self.send_compressd);
             }
             Err(status) => {
                 resp.headers_mut().extend(status.to_headers());
@@ -141,12 +173,21 @@ impl<T: Codec> GrpcServer<T> {
         resp
     }
 
-    pub async fn bidirectional_streaming<S>(&mut self, service: S, request: Request) -> Response
+    pub async fn bidirectional_streaming<S>(mut self, service: S, request: Request) -> Response
     where
         S: BidirectionalStreamingService<T::Decode, Response = T::Encode>,
     {
         let (parts, body) = request.into_parts();
-        let stream = create_decode_request_body(self.codec.decoder(), body);
+        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
+        let incoming_encoding =
+            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
+                Ok(incoming_encoding) => incoming_encoding,
+                Err(status) => {
+                    resp.headers_mut().extend(status.to_headers());
+                    return resp;
+                }
+            };
+        let stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = service
             .call(GrpcRequest {
@@ -158,14 +199,12 @@ impl<T: Codec> GrpcServer<T> {
             })
             .await;
 
-        let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-
         match res {
             Ok(grpc_resp) => {
                 let GrpcResponse { metadata, message } = grpc_resp;
-                let body = create_encode_response_body(self.codec.encoder(), message);
-                resp.headers_mut().extend(metadata.headers);
-                resp.set_body(body);
+                let body =
+                    create_encode_response_body(self.codec.encoder(), message, self.send_compressd);
+                update_http_response(&mut resp, metadata, body, self.send_compressd);
             }
             Err(status) => {
                 resp.headers_mut().extend(status.to_headers());
@@ -174,4 +213,20 @@ impl<T: Codec> GrpcServer<T> {
 
         resp
     }
+}
+
+fn update_http_response(
+    resp: &mut Response,
+    metadata: Metadata,
+    body: Body,
+    send_compressd: Option<CompressionEncoding>,
+) {
+    resp.headers_mut().extend(metadata.headers);
+    if let Some(send_compressd) = send_compressd {
+        resp.headers_mut().insert(
+            "grpc-encoding",
+            HeaderValue::from_str(send_compressd.as_str()).expect("BUG: invalid encoding"),
+        );
+    }
+    resp.set_body(body);
 }

@@ -1,0 +1,23 @@
+[package]
+name = "example-grpc-helloworld-compressed"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+poem.workspace = true
+poem-grpc = { workspace = true, features = [
+    "gzip",
+    "deflate",
+    "brotli",
+    "zstd",
+] }
+prost.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[build-dependencies]
+poem-grpc-build.workspace = true
+
+[[bin]]
+name = "grpc-helloworld-client"
+path = "src/client.rs"

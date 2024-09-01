@@ -20,8 +20,11 @@ pub mod service;
 pub mod codec;
 pub mod metadata;
 
+mod compression;
 mod connector;
 mod encoding;
+#[cfg(feature = "example_generated")]
+pub mod example_generated;
 mod health;
 mod reflection;
 mod request;
@@ -33,6 +36,7 @@ mod streaming;
 mod test_harness;
 
 pub use client::{ClientBuilderError, ClientConfig, ClientConfigBuilder};
+pub use compression::CompressionEncoding;
 pub use health::{health_service, HealthReporter, ServingStatus};
 pub use metadata::Metadata;
 pub use reflection::Reflection;

@@ -117,6 +117,16 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
                 self
             }
 
+            /// Set the compression encoding for sending
+            pub fn set_send_compressed(&mut self, encoding: #crate_name::CompressionEncoding) {
+                self.cli.set_send_compressed(encoding);
+            }
+
+            /// Set the compression encodings for accepting
+            pub fn set_accept_compressed(&mut self, encodings: impl ::std::convert::Into<::std::sync::Arc<[#crate_name::CompressionEncoding]>>) {
+                self.cli.set_accept_compressed(encodings);
+            }
+
             #(
             #[allow(dead_code)]
             #methods
