@@ -40,14 +40,14 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
     {
         let (parts, body) = request.into_parts();
         let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-        let incoming_encoding =
-            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
-                Ok(incoming_encoding) => incoming_encoding,
-                Err(status) => {
-                    resp.headers_mut().extend(status.to_headers());
-                    return resp;
-                }
-            };
+        let incoming_encoding = match get_incoming_encodings(&parts.headers, self.accept_compressed)
+        {
+            Ok(incoming_encoding) => incoming_encoding,
+            Err(status) => {
+                resp.headers_mut().extend(status.to_headers());
+                return resp;
+            }
+        };
         let mut stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = match stream.next().await {
@@ -88,14 +88,14 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
     {
         let (parts, body) = request.into_parts();
         let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-        let incoming_encoding =
-            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
-                Ok(incoming_encoding) => incoming_encoding,
-                Err(status) => {
-                    resp.headers_mut().extend(status.to_headers());
-                    return resp;
-                }
-            };
+        let incoming_encoding = match get_incoming_encodings(&parts.headers, self.accept_compressed)
+        {
+            Ok(incoming_encoding) => incoming_encoding,
+            Err(status) => {
+                resp.headers_mut().extend(status.to_headers());
+                return resp;
+            }
+        };
         let stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = service
@@ -132,14 +132,14 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
     {
         let (parts, body) = request.into_parts();
         let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-        let incoming_encoding =
-            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
-                Ok(incoming_encoding) => incoming_encoding,
-                Err(status) => {
-                    resp.headers_mut().extend(status.to_headers());
-                    return resp;
-                }
-            };
+        let incoming_encoding = match get_incoming_encodings(&parts.headers, self.accept_compressed)
+        {
+            Ok(incoming_encoding) => incoming_encoding,
+            Err(status) => {
+                resp.headers_mut().extend(status.to_headers());
+                return resp;
+            }
+        };
         let mut stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = match stream.next().await {
@@ -179,14 +179,14 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
     {
         let (parts, body) = request.into_parts();
         let mut resp = Response::default().set_content_type(T::CONTENT_TYPES[0]);
-        let incoming_encoding =
-            match get_incoming_encodings(&parts.headers, &self.accept_compressed) {
-                Ok(incoming_encoding) => incoming_encoding,
-                Err(status) => {
-                    resp.headers_mut().extend(status.to_headers());
-                    return resp;
-                }
-            };
+        let incoming_encoding = match get_incoming_encodings(&parts.headers, self.accept_compressed)
+        {
+            Ok(incoming_encoding) => incoming_encoding,
+            Err(status) => {
+                resp.headers_mut().extend(status.to_headers());
+                return resp;
+            }
+        };
         let stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
         let res = service
