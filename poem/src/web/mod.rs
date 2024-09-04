@@ -117,8 +117,7 @@ impl RequestBody {
 ///
 /// - **Option&lt;T>**
 ///
-///    Extracts `T` from the incoming request, returns [`None`] if it
-/// fails.
+///    Extracts `T` from the incoming request, returns [`None`] if it fails.
 ///
 /// - **&Request**
 ///
@@ -177,28 +176,28 @@ impl RequestBody {
 ///    Extracts the [`Json`] from the incoming request.
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **Xml&lt;T>**
 ///
 ///    Extracts the [`Xml`] from the incoming request.
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **TempFile**
 ///
 ///    Extracts the [`TempFile`] from the incoming request.
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **Multipart**
 ///
 ///    Extracts the [`Multipart`] from the incoming request.
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **&CookieJar**
 ///
@@ -209,7 +208,7 @@ impl RequestBody {
 /// - **&Session**
 ///
 ///    Extracts the [`Session`](crate::session::Session) from the incoming
-/// request.
+///    request.
 ///
 ///    _Requires `CookieSession` or `RedisSession` middleware._
 ///
@@ -218,54 +217,53 @@ impl RequestBody {
 ///    Extracts the [`Body`] from the incoming request.
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **String**
 ///
 ///    Extracts the body from the incoming request and parse it into utf8
-/// [`String`].
+///    [`String`].
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **Vec&lt;u8>**
 ///
 ///    Extracts the body from the incoming request and collect it into
-/// [`Vec<u8>`].
+///    [`Vec<u8>`].
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **Bytes**
 ///
 ///    Extracts the body from the incoming request and collect it into
-/// [`Bytes`].
+///    [`Bytes`].
 ///
 ///    _This extractor will take over the requested body, so you should avoid
-/// using multiple extractors of this type in one handler._
+///    using multiple extractors of this type in one handler._
 ///
 /// - **WebSocket**
 ///
 ///    Ready to accept a websocket [`WebSocket`](websocket::WebSocket)
-/// connection.
+///    connection.
 ///
 /// - **Locale**
 ///
-///    Extracts the [`Locale`](crate::i18n::Locale) from the incoming
-/// request.
+///    Extracts the [`Locale`](crate::i18n::Locale) from the incoming request.
 ///
 /// - **StaticFileRequest**
 ///
-///     Ready to accept a static file request
-/// [`StaticFileRequest`](static_file::StaticFileRequest).
+///    Ready to accept a static file request
+///    [`StaticFileRequest`](static_file::StaticFileRequest).
 ///
 /// - **Accept**
 ///
-///     Extracts the `Accept` header from the incoming request.
+///    Extracts the `Accept` header from the incoming request.
 ///
 /// - **PathPattern**
 ///
-///     Extracts the matched path pattern from the incoming request.
+///    Extracts the matched path pattern from the incoming request.
 ///
 /// # Create your own extractor
 ///
@@ -347,44 +345,46 @@ pub trait FromRequest<'a>: Sized {
 /// - **&'static str**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `text/plain`. The
-/// string is used as the body of the response.
+///    string is used as the body of the response.
 ///
 /// - **String**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `text/plain`. The
-/// string is used as the body of the response.
+///    string is used as the body of the response.
 ///
 /// - **&'static [u8]**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to
-/// `application/octet-stream`. The slice is used as the body of the response.
+///    `application/octet-stream`. The slice is used as the body of the
+///    response.
 ///
 /// - **Html&lt;T>**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `text/html`. `T` is
-/// used as the body of the response.
+///    used as the body of the response.
 ///
 /// - **Json&lt;T>**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `application/json`. Use
-/// [`serde_json`](https://crates.io/crates/serde_json) to serialize `T` into a json string.
+///    [`serde_json`](https://crates.io/crates/serde_json) to serialize `T` into a json string.
 ///
 ///
 /// - **Xml&lt;T>**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to `application/xml`. Use
-/// [`quick-xml`](https://crates.io/crates/quick-xml) to serialize `T` into a xml string.
+///    [`quick-xml`](https://crates.io/crates/quick-xml) to serialize `T` into a xml string.
 ///
 /// - **Bytes**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to
-/// `application/octet-stream`. The bytes is used as the body of the response.
+///    `application/octet-stream`. The bytes is used as the body of the
+///    response.
 ///
 /// - **Vec&lt;u8>**
 ///
 ///    Sets the status to `OK` and the `Content-Type` to
-/// `application/octet-stream`. The vector’s data is used as the body of the
-/// response.
+///    `application/octet-stream`. The vector’s data is used as the body of the
+///    response.
 ///
 /// - **Body**
 ///
@@ -393,7 +393,7 @@ pub trait FromRequest<'a>: Sized {
 /// - **StatusCode**
 ///
 ///    Sets the status to the specified status code [`StatusCode`] with an empty
-/// body.
+///    body.
 ///
 /// - **(StatusCode, T)**
 ///
@@ -402,7 +402,7 @@ pub trait FromRequest<'a>: Sized {
 /// - **(StatusCode, HeaderMap, T)**
 ///
 ///    Convert `T` to response and set the specified status code [`StatusCode`],
-/// and then merge the specified [`HeaderMap`].
+///    and then merge the specified [`HeaderMap`].
 ///
 /// - **Response**
 ///
@@ -411,14 +411,14 @@ pub trait FromRequest<'a>: Sized {
 /// - **Compress&lt;T>**
 ///
 ///    Call `T::into_response` to get the response, then compress the response
-/// body with the specified algorithm, and set the correct `Content-Encoding`
-/// header.
+///    body with the specified algorithm, and set the correct `Content-Encoding`
+///    header.
 ///
 /// - **SSE**
 ///
-///     Sets the status to `OK` and the `Content-Type` to `text/event-stream`
-/// with an event stream body. Use the [`SSE::new`](sse::SSE::new) function to
-/// create it.
+///    Sets the status to `OK` and the `Content-Type` to `text/event-stream`
+///    with an event stream body. Use the [`SSE::new`](sse::SSE::new) function
+///    to create it.
 ///
 /// # Create you own response
 ///

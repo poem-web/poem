@@ -6,7 +6,7 @@ use crate::{web::Redirect, Endpoint, IntoResponse, Middleware, Request, Response
 
 type FilterFn = Arc<dyn Fn(&Request) -> bool + Send + Sync>;
 
-/// Middleware for force redirect to HTTPS uri.
+/// Middleware which forces redirects to a HTTPS uri.
 #[derive(Default)]
 pub struct ForceHttps {
     https_port: Option<u16>,
@@ -14,12 +14,12 @@ pub struct ForceHttps {
 }
 
 impl ForceHttps {
-    /// Create new `ForceHttps` middleware.
+    /// Create a new `ForceHttps` middleware.
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Specify https port.
+    /// Specify the https port.
     #[must_use]
     pub fn https_port(self, port: u16) -> Self {
         Self {
@@ -53,7 +53,7 @@ where
     }
 }
 
-/// Endpoint for ForceHttps middleware.
+/// Endpoint for the ForceHttps middleware.
 pub struct ForceHttpsEndpoint<E> {
     inner: E,
     https_port: Option<u16>,

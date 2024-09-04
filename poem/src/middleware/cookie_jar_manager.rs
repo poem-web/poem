@@ -42,7 +42,7 @@ where
     }
 }
 
-/// Endpoint for `CookieJarManager` middleware.
+/// Endpoint for the `CookieJarManager` middleware.
 #[cfg_attr(docsrs, doc(cfg(feature = "cookie")))]
 pub struct CookieJarManagerEndpoint<E> {
     inner: E,

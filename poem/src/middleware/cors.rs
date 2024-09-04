@@ -58,7 +58,7 @@ impl Cors {
         }
     }
 
-    /// Set allow credentials.
+    /// Set the allow credentials.
     #[must_use]
     pub fn allow_credentials(mut self, allow_credentials: bool) -> Self {
         self.allow_credentials = allow_credentials;
@@ -67,7 +67,7 @@ impl Cors {
 
     /// Add an allow header.
     ///
-    /// NOTE: Default is allow any header.
+    /// NOTE: The default is to allow any header.
     #[must_use]
     pub fn allow_header<T>(mut self, header: T) -> Self
     where
@@ -95,7 +95,7 @@ impl Cors {
 
     /// Add an allow method.
     ///
-    /// NOTE: Default is allow any method.
+    /// NOTE: The default is to allow any method.
     #[must_use]
     pub fn allow_method<T>(mut self, method: T) -> Self
     where
@@ -123,7 +123,7 @@ impl Cors {
 
     /// Add an allow origin.
     ///
-    /// NOTE: Default is allow any origin.
+    /// NOTE: The default is to allow any origin.
     #[must_use]
     pub fn allow_origin<T>(mut self, origin: T) -> Self
     where

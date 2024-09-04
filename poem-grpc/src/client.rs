@@ -18,9 +18,10 @@ use rustls::ClientConfig as TlsClientConfig;
 
 use crate::{
     codec::Codec,
+    compression::get_incoming_encodings,
     connector::HttpsConnector,
     encoding::{create_decode_response_body, create_encode_request_body},
-    Code, Metadata, Request, Response, Status, Streaming,
+    Code, CompressionEncoding, Metadata, Request, Response, Status, Streaming,
 };
 
 pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;
@@ -155,6 +156,8 @@ impl ClientConfigBuilder {
 #[derive(Clone)]
 pub struct GrpcClient {
     ep: Arc<dyn DynEndpoint<Output = HttpResponse> + 'static>,
+    send_compressd: Option<CompressionEncoding>,
+    accept_compressed: Arc<[CompressionEncoding]>,
 }
 
 impl GrpcClient {
@@ -162,6 +165,8 @@ impl GrpcClient {
     pub fn new(config: ClientConfig) -> Self {
         Self {
             ep: create_client_endpoint(config),
+            send_compressd: None,
+            accept_compressed: Default::default(),
         }
     }
 
@@ -173,7 +178,17 @@ impl GrpcClient {
     {
         Self {
             ep: Arc::new(ToDynEndpoint(ep.map_to_response())),
+            send_compressd: None,
+            accept_compressed: Default::default(),
         }
+    }
+
+    pub fn set_send_compressed(&mut self, encoding: CompressionEncoding) {
+        self.send_compressd = Some(encoding);
+    }
+
+    pub fn set_accept_compressed(&mut self, encodings: impl Into<Arc<[CompressionEncoding]>>) {
+        self.accept_compressed = encodings.into();
     }
 
     pub fn with<M>(mut self, middleware: M) -> Self
@@ -198,10 +213,12 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request = create_http_request::<T>(path, metadata, extensions);
+        let mut http_request =
+            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             Streaming::new(futures_util::stream::once(async move { Ok(message) })),
+            self.send_compressd,
         ));
 
         let mut resp = self
@@ -218,7 +235,9 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let mut stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
+        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
+        let mut stream =
+            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
 
         let message = stream
             .try_next()
@@ -243,8 +262,13 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request = create_http_request::<T>(path, metadata, extensions);
-        http_request.set_body(create_encode_request_body(codec.encoder(), message));
+        let mut http_request =
+            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
+        http_request.set_body(create_encode_request_body(
+            codec.encoder(),
+            message,
+            self.send_compressd,
+        ));
 
         let mut resp = self
             .ep
@@ -260,7 +284,9 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let mut stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
+        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
+        let mut stream =
+            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
 
         let message = stream
             .try_next()
@@ -285,10 +311,12 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request = create_http_request::<T>(path, metadata, extensions);
+        let mut http_request =
+            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             Streaming::new(futures_util::stream::once(async move { Ok(message) })),
+            self.send_compressd,
         ));
 
         let mut resp = self
@@ -305,7 +333,9 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
+        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
+        let stream =
+            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
 
         Ok(Response {
             metadata: Metadata {
@@ -326,8 +356,13 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request = create_http_request::<T>(path, metadata, extensions);
-        http_request.set_body(create_encode_request_body(codec.encoder(), message));
+        let mut http_request =
+            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
+        http_request.set_body(create_encode_request_body(
+            codec.encoder(),
+            message,
+            self.send_compressd,
+        ));
 
         let mut resp = self
             .ep
@@ -343,7 +378,9 @@ impl GrpcClient {
         }
 
         let body = resp.take_body();
-        let stream = create_decode_response_body(codec.decoder(), resp.headers(), body)?;
+        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
+        let stream =
+            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
 
         Ok(Response {
             metadata: Metadata {
@@ -358,6 +395,7 @@ fn create_http_request<T: Codec>(
     path: &str,
     metadata: Metadata,
     extensions: Extensions,
+    send_compressd: Option<CompressionEncoding>,
 ) -> HttpRequest {
     let mut http_request = HttpRequest::builder()
         .uri_str(path)
@@ -368,6 +406,12 @@ fn create_http_request<T: Codec>(
         .finish();
     http_request.headers_mut().extend(metadata.headers);
     *http_request.extensions_mut() = extensions;
+    if let Some(send_compressd) = send_compressd {
+        http_request.headers_mut().insert(
+            "grpc-encoding",
+            HeaderValue::from_str(send_compressd.as_str()).expect("BUG: invalid encoding"),
+        );
+    }
     http_request
 }
 
