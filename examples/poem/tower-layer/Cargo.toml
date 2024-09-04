@@ -7,5 +7,5 @@ publish.workspace = true
 [dependencies]
 poem = { workspace = true, features = ["tower-compat"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-tower = { version = "0.4.8", default-features = false, features = ["limit"] }
+tower = { version = "0.4.13", default-features = false, features = ["limit"] }
 tracing-subscriber.workspace = true

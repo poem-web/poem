@@ -7,6 +7,6 @@ publish.workspace = true
 [dependencies]
 poem.workspace = true
 poem-openapi = { workspace = true, features = ["swagger-ui", "email"] }
-slab = "0.4.4"
+slab = "0.4.9"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true

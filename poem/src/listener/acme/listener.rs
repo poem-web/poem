@@ -253,11 +253,11 @@ pub struct IssueCertResult {
     pub rustls_key: Arc<CertifiedKey>,
 }
 
-/// Generate a new certificate via ACME protocol.  Returns the pub cert and private
-/// key in PEM format, and the private key as a Rustls object.
+/// Generate a new certificate via ACME protocol.  Returns the pub cert and
+/// private key in PEM format, and the private key as a Rustls object.
 ///
-/// It is up to the caller to make use of the returned certificate, this function does
-/// nothing outside for the ACME protocol procedure.
+/// It is up to the caller to make use of the returned certificate, this
+/// function does nothing outside for the ACME protocol procedure.
 pub async fn issue_cert<T: AsRef<str>>(
     client: &mut AcmeClient,
     resolver: &ResolveServerCert,

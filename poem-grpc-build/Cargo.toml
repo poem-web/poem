@@ -13,8 +13,8 @@ keywords = ["http", "async", "grpc"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-prettyplease = "0.2.9"
-prost-build = "0.13.1"
+prettyplease = "0.2.22"
+prost-build = "0.13.2"
 quote.workspace = true
 proc-macro2.workspace = true
 syn.workspace = true

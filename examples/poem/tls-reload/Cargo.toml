@@ -5,7 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-async-stream = "0.3.2"
+async-stream = "0.3.5"
 poem = { workspace = true, features = ["rustls"]}
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tracing-subscriber.workspace = true

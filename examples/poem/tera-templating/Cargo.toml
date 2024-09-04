@@ -7,5 +7,5 @@ publish.workspace = true
 [dependencies]
 poem.workspace = true
 tokio = { workspace = true, features = ["full"] }
-tera = "1.17.1"
-once_cell = "1.17.0"
+tera = "1.20.0"
+once_cell = "1.19.0"

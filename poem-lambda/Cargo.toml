@@ -21,7 +21,7 @@ categories = [
 [dependencies]
 poem = { workspace = true, default-features = false }
 
-lambda_http = { version = "0.11.0" }
+lambda_http = { version = "0.11.4" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

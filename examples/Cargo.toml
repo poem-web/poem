@@ -14,12 +14,12 @@ poem-openapi = { path = "../poem-openapi", features = ["swagger-ui"] }
 poem-lambda = { path = "../poem-lambda" }
 poem-grpc-build = { path = "../poem-grpc-build" }
 
-tokio = "1.17.0"
-tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
-serde_json = "1.0.68"
-serde = { version = "1.0.140", features = ["derive"] }
-mime = "0.3.16"
-open = "5.0.1"
-futures-util = "0.3.21"
-tokio-stream = "0.1.8"
-prost = "0.13.1"
+tokio = "1.40.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+serde_json = "1.0.127"
+serde = { version = "1.0.209", features = ["derive"] }
+mime = "0.3.17"
+open = "5.3.0"
+futures-util = "0.3.30"
+tokio-stream = "0.1.15"
+prost = "0.13.2"

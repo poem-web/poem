@@ -1021,11 +1021,14 @@ fn object_default_override_by_field() {
     );
 }
 
-// NOTE(Rennorb): The `serialize_with` and `deserialize_with` attributes don't add any additional validation,
-// it's up to the library consumer to use them in ways were they don't violate the OpenAPI specification of the underlying type.
+// NOTE(Rennorb): The `serialize_with` and `deserialize_with` attributes don't
+// add any additional validation, it's up to the library consumer to use them in
+// ways were they don't violate the OpenAPI specification of the underlying
+// type.
 //
-// In practice `serialize_with` only exists for the rounding case below, which could not be implemented in a different way before this
-// (only by using a larger type), and `deserialize_with` just exists for parity.
+// In practice `serialize_with` only exists for the rounding case below, which
+// could not be implemented in a different way before this (only by using a
+// larger type), and `deserialize_with` just exists for parity.
 
 #[test]
 fn serialize_with() {
@@ -1036,8 +1039,9 @@ fn serialize_with() {
         b: f32,
     }
 
-    // NOTE(Rennorb): Function signature in complice with `to_json` in the Type system.
-    // Would prefer the usual way of implementing this with a serializer reference, but this has to do for now.
+    // NOTE(Rennorb): Function signature in complice with `to_json` in the Type
+    // system. Would prefer the usual way of implementing this with a serializer
+    // reference, but this has to do for now.
     fn round(v: &f32) -> Option<serde_json::Value> {
         Some(serde_json::Value::from((*v as f64 * 1e5).round() / 1e5))
     }
@@ -1055,8 +1059,9 @@ fn deserialize_with() {
         a: i32,
     }
 
-    // NOTE(Rennorb): Function signature in complice with `parse_from_json` in the Type system.
-    // Would prefer the usual way of implementing this with a serializer reference, but this has to do for now.
+    // NOTE(Rennorb): Function signature in complice with `parse_from_json` in the
+    // Type system. Would prefer the usual way of implementing this with a
+    // serializer reference, but this has to do for now.
     fn add(value: Option<serde_json::Value>) -> poem_openapi::types::ParseResult<i32> {
         value
             .as_ref()
