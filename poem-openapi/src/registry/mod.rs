@@ -338,9 +338,9 @@ impl MetaSchemaRef {
                     MetaSchemaRef::Inline(Box::new(MetaSchema {
                         all_of: vec![
                             MetaSchemaRef::Reference(name),
-                            MetaSchemaRef::Inline(Box::new(other)),
+                            MetaSchemaRef::Inline(Box::new(other.clone())),
                         ],
-                        ..MetaSchema::ANY
+                        ..other
                     }))
                 }
             }
