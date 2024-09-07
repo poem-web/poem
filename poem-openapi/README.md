@@ -69,6 +69,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | prost-wkt-types  | Integrate with the [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) |
 | static-files     | Support for static file response                                                       |
 | websocket        | Support for websocket                                                                  |
+|sonic-rs       | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities          |
 
 ## Safety
 

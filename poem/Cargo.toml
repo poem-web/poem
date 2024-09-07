@@ -67,6 +67,7 @@ embed = ["rust-embed", "hex", "mime_guess"]
 xml = ["quick-xml"]
 yaml = ["serde_yaml"]
 requestid = ["dep:uuid"]
+sonic-rs = ["dep:sonic-rs"]
 
 [dependencies]
 poem-derive.workspace = true
@@ -80,6 +81,7 @@ http-body-util = "0.1.0"
 tokio = { workspace = true, features = ["sync", "time", "macros", "net"] }
 tokio-util = { version = "0.7.0", features = ["io"] }
 serde.workspace = true
+sonic-rs = { workspace = true, optional = true }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 parking_lot = "0.12.0"

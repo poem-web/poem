@@ -256,6 +256,7 @@
 //! | embed  | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate. |
 //! | xml | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate. |
 //! | yaml | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                   |
+//! |sonic-rs          | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

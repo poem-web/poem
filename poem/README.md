@@ -78,7 +78,7 @@ which are disabled by default:
 | xml           | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate.                   |
 | yaml           | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                   |
 |requestid      |Associates an unique ID with each incoming request                                 |
-
+|sonic-rs       | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities          |
 ## Safety
 
 This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in 100% Safe Rust.
