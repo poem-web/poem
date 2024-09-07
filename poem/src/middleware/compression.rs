@@ -70,8 +70,9 @@ fn parse_accept_encoding(
 
 /// Middleware to decompress the request body and compress the response body.
 ///
-/// The decompression algorithm is selected according to the request `Content-Encoding` header,
-/// and the compression algorithm is selected according to the request `Accept-Encoding` header.
+/// The decompression algorithm is selected according to the request
+/// `Content-Encoding` header, and the compression algorithm is selected
+/// according to the request `Accept-Encoding` header.
 #[cfg_attr(docsrs, doc(cfg(feature = "compression")))]
 #[derive(Default)]
 pub struct Compression {

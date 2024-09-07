@@ -26,8 +26,9 @@ pub struct AcmeClient {
 }
 
 impl AcmeClient {
-    /// Create a new client. `directory_url` is the url for the ACME provider. `contacts` is a list
-    /// of URLS (ex: `mailto:`) the ACME service can use to reach you if there's issues with your certificates.
+    /// Create a new client. `directory_url` is the url for the ACME provider.
+    /// `contacts` is a list of URLS (ex: `mailto:`) the ACME service can
+    /// use to reach you if there's issues with your certificates.
     pub async fn try_new(directory_url: &str, contacts: Vec<String>) -> IoResult<Self> {
         let client = Client::new();
         let directory = get_directory(&client, directory_url).await?;
