@@ -128,7 +128,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
                 Self {
                     inner: ::std::sync::Arc::new(service),
                     send_compressd: ::std::option::Option::None,
-                    accept_compressed: ::std::default::Default::default(),
+                    accept_compressed: ::std::sync::Arc::new([]),
                 }
             }
 

@@ -166,7 +166,7 @@ impl GrpcClient {
         Self {
             ep: create_client_endpoint(config),
             send_compressd: None,
-            accept_compressed: Default::default(),
+            accept_compressed: Arc::new([]),
         }
     }
 
@@ -179,7 +179,7 @@ impl GrpcClient {
         Self {
             ep: Arc::new(ToDynEndpoint(ep.map_to_response())),
             send_compressd: None,
-            accept_compressed: Default::default(),
+            accept_compressed: Arc::new([]),
         }
     }
 
