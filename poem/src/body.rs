@@ -142,12 +142,13 @@ impl Body {
     }
 
     /// Create a body object from JSON.
-    #[cfg(not(feature = "sonic-rc"))]
+    #[cfg(not(feature = "sonic-rs"))]
     pub fn from_json(body: impl Serialize) -> serde_json::Result<Self> {
         Ok(serde_json::to_vec(&body)?.into())
     }
 
-    #[cfg(feature = "sonic-rc")]
+    /// Create a body object from JSON.
+    #[cfg(feature = "sonic-rs")]
     pub fn from_json(body: impl Serialize) -> sonic_rs::Result<Self> {
         Ok(sonic_rs::to_vec(&body)?.into())
     }
