@@ -2,10 +2,10 @@ use crate::{
     error::SizedLimitError, web::headers::HeaderMapExt, Endpoint, Middleware, Request, Result,
 };
 
-/// Middleware for limit the request payload size.
+/// Middleware to limit the request payload size.
 ///
-/// If the incoming request does not contain the `Content-Length` header, it
-/// will return `LENGTH_REQUIRED` status code.
+/// If the incoming request does not contain the `Content-Length` header, the
+/// middleware will return the `LENGTH_REQUIRED` status code.
 ///
 /// # Errors
 ///
@@ -32,7 +32,7 @@ impl<E: Endpoint> Middleware<E> for SizeLimit {
     }
 }
 
-/// Endpoint for SizeLimit middleware.
+/// Endpoint for the SizeLimit middleware.
 pub struct SizeLimitEndpoint<E> {
     inner: E,
     max_size: usize,

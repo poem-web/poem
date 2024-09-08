@@ -71,7 +71,7 @@ impl<E: Endpoint> Middleware<E> for NormalizePath {
     }
 }
 
-/// Endpoint for NormalizePath middleware.
+/// Endpoint for the NormalizePath middleware.
 pub struct NormalizePathEndpoint<E> {
     inner: E,
     merge_slash: Regex,

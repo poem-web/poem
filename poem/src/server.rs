@@ -87,8 +87,8 @@ where
         }
     }
 
-    /// Specify connection idle timeout. Connections will be terminated if there was no activity
-    /// within this period of time
+    /// Specify connection idle timeout. Connections will be terminated if there
+    /// was no activity within this period of time
     #[must_use]
     pub fn idle_timeout(self, timeout: Duration) -> Self {
         Self {
@@ -110,7 +110,8 @@ where
         }
     }
 
-    /// Configures the maximum number of pending reset streams allowed before a GOAWAY will be sent.
+    /// Configures the maximum number of pending reset streams allowed before a
+    /// GOAWAY will be sent.
     ///
     /// This will default to the default value set by the [`h2` crate](https://crates.io/crates/h2).
     /// As of v0.4.0, it is 20.
@@ -452,6 +453,7 @@ async fn serve_connection<Io>(
 
     // Init graceful shutdown for connection
     conn.as_mut().graceful_shutdown();
-    // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
+    // Continue awaiting after graceful-shutdown is initiated to handle existed
+    // requests.
     let _ = conn.await;
 }

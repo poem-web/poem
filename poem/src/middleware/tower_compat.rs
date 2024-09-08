@@ -57,7 +57,7 @@ where
     }
 }
 
-/// An endpoint to tower service adapter.
+/// An endpoint to the tower service adapter.
 pub struct EndpointToTowerService<E>(Arc<E>);
 
 impl<E> Service<Request> for EndpointToTowerService<E>

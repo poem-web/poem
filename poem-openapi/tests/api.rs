@@ -953,6 +953,7 @@ async fn hidden() {
 
 #[test]
 fn issue_405() {
+    #[allow(dead_code)]
     struct Api;
 
     #[OpenApi]
@@ -963,11 +964,13 @@ fn issue_405() {
             operation_id = "hello",
             transform = "my_transformer"
         )]
+        #[allow(dead_code)]
         async fn index(&self) -> PlainText<String> {
             PlainText("hello, world!".to_string())
         }
     }
 
+    #[allow(dead_code)]
     fn my_transformer(ep: impl Endpoint) -> impl Endpoint {
         ep.map_to_response()
     }

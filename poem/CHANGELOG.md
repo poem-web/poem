@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.1.0] 2024-09-28
+
+- build(deps): update nix requirement from 0.28.0 to 0.29.0 [#851](https://github.com/poem-web/poem/pull/851)
+- Add manual `Default` implementation for `#[handler]` [#848](https://github.com/poem-web/poem/pull/848)
+- Fix `EmbeddedFilesEndpoint` not working for `index.html` in subdirectories [#825](https://github.com/poem-web/poem/pull/825)
+- chore: bump redis to 0.26 [#856](https://github.com/poem-web/poem/pull/856)
+- chore: bump `tokio-tungstenite`,`quick-xml`, up `tokio`, `openssl` to avoid security warning [#857](https://github.com/poem-web/poem/pull/857)
+- feat: allow to set a custom name for the csrf cookie (#801) [#864](https://github.com/poem-web/poem/pull/864)
+- add `sonic-rs` feature to replace `serde_json` with `sonic_rs` [#819](https://github.com/poem-web/poem/pull/819)
+- fix: setting path pattern in opentelemetry traces [#878](https://github.com/poem-web/poem/pull/878)
+- update MSRV to `1.76.0`
+- feat: implement StdErr for poem::Error [#868](https://github.com/poem-web/poem/pull/868)
+
+
 # [3.0.4] 2024-07-27
 
 - Add manual Default implementation for `#[handler]` [#848](https://github.com/poem-web/poem/pull/848)

@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "minimum({n}, exclusive: {exclusive})")]
+#[display("minimum({n}, exclusive: {exclusive})")]
 pub struct Minimum {
     n: f64,
     exclusive: bool,

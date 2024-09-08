@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "5.0.3"
+version = "5.1.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -23,6 +23,7 @@ hostname = ["hostname-validator"]
 static-files = ["poem/static-files"]
 websocket = ["poem/websocket"]
 geo = ["dep:geo-types", "dep:geojson"]
+sonic-rs = ["poem/sonic-rs"]
 
 [dependencies]
 poem-openapi-derive.workspace = true
@@ -42,7 +43,7 @@ quick-xml.workspace = true
 serde_urlencoded.workspace = true
 base64.workspace = true
 serde.workspace = true
-derive_more = "0.99.16"
+derive_more = { version = "1.0", features = ["display"] }
 num-traits = "0.2.14"
 regex.workspace = true
 mime.workspace = true
@@ -69,10 +70,10 @@ bson = { version = "2.0.0", optional = true }
 rust_decimal = { version = "1.22.0", optional = true }
 humantime = { version = "2.1.0", optional = true }
 ipnet = { version = "2.7.1", optional = true }
-prost-wkt-types = { version = "0.5.0", optional = true }
+prost-wkt-types = { version = "0.6.0", optional = true }
 geo-types = { version = "0.7.12", optional = true }
 geojson = { version = "0.24.1", features = ["geo-types"], optional = true }
-sqlx = { version = "0.7.4", features = [
+sqlx = { version = "0.8.0", features = [
   "json",
   "postgres",
   "sqlite",

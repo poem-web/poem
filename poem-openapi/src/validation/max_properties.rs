@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "maxProperties({len})")]
+#[display("maxProperties({len})")]
 pub struct MaxProperties {
     len: usize,
 }

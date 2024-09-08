@@ -112,6 +112,7 @@
 //! | prost-wkt-types  | Integrate with the [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) |
 //! | static-files     | Support for static file response                                                       |
 //! | websocket        | Support for websocket                                                                  |
+//! |sonic-rs          | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

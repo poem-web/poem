@@ -9,8 +9,8 @@ use crate::{error::NotFoundError, Endpoint, IntoResponse, Request, Response, Res
 pub struct Http01TokensMap(Arc<RwLock<HashMap<String, String>>>);
 
 impl Http01TokensMap {
-    /// Create a new http01 challenge tokens storage for use in challenge endpoint
-    /// and [`issue_cert`].
+    /// Create a new http01 challenge tokens storage for use in challenge
+    /// endpoint and [`issue_cert`].
     #[inline]
     pub fn new() -> Self {
         Self::default()

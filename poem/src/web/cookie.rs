@@ -39,10 +39,20 @@ impl Display for Cookie {
 impl Cookie {
     /// Creates a new Cookie with the given `name` and serialized `value`.
     pub fn new(name: impl Into<String>, value: impl Serialize) -> Self {
-        Self(libcookie::Cookie::new(
-            name.into(),
-            serde_json::to_string(&value).unwrap_or_default(),
-        ))
+        #[cfg(not(feature = "sonic-rs"))]
+        {
+            Self(libcookie::Cookie::new(
+                name.into(),
+                serde_json::to_string(&value).unwrap_or_default(),
+            ))
+        }
+        #[cfg(feature = "sonic-rs")]
+        {
+            Self(libcookie::Cookie::new(
+                name.into(),
+                sonic_rs::to_string(&value).unwrap_or_default(),
+            ))
+        }
     }
 
     /// Creates a new Cookie with the given `name` and `value`.
@@ -275,7 +285,12 @@ impl Cookie {
 
     /// Sets the value of `self` to the serialized `value`.
     pub fn set_value(&mut self, value: impl Serialize) {
-        if let Ok(value) = serde_json::to_string(&value) {
+        #[cfg(not(feature = "sonic-rs"))]
+        let json_string = serde_json::to_string(&value);
+        #[cfg(feature = "sonic-rs")]
+        let json_string = sonic_rs::to_string(&value);
+
+        if let Ok(value) = json_string {
             self.0.set_value(value);
         }
     }
@@ -287,7 +302,14 @@ impl Cookie {
 
     /// Returns the value of `self` to the deserialized `value`.
     pub fn value<'de, T: Deserialize<'de>>(&'de self) -> Result<T, ParseCookieError> {
-        serde_json::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        #[cfg(not(feature = "sonic-rs"))]
+        {
+            serde_json::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        }
+        #[cfg(feature = "sonic-rs")]
+        {
+            sonic_rs::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        }
     }
 }
 

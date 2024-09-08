@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "pattern(\"{pattern}\")")]
+#[display("pattern(\"{pattern}\")")]
 pub struct Pattern {
     pattern: &'static str,
 }
