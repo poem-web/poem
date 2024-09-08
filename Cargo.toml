@@ -23,7 +23,7 @@ rust-version = "1.75"
 poem = { path = "poem", version = "3.0.4", default-features = false }
 poem-derive = { path = "poem-derive", version = "3.0.4" }
 poem-openapi-derive = { path = "poem-openapi-derive", version = "5.0.3" }
-poem-grpc-build = { path = "poem-grpc-build", version = "0.4.2" }
+poem-grpc-build = { path = "poem-grpc-build", version = "0.5.0" }
 
 proc-macro-crate = "3.0.0"
 proc-macro2 = "1.0.29"
