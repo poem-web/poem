@@ -96,14 +96,10 @@ where
             format!("{:?}", req.version()),
         ));
 
-        if let Some(path_pattern) = req.data::<PathPattern>() {
-            const HTTP_PATH_PATTERN: Key = Key::from_static_str("http.path_pattern");
-            attributes.push(KeyValue::new(HTTP_PATH_PATTERN, path_pattern.0.to_string()));
-        }
-
+        let method = req.method().to_string();
         let mut span = self
             .tracer
-            .span_builder(format!("{} {}", req.method(), req.uri()))
+            .span_builder(format!("{} {}", method, req.uri()))
             .with_kind(SpanKind::Server)
             .with_attributes(attributes)
             .start_with_context(&*self.tracer, &parent_cx);
@@ -118,6 +114,16 @@ where
             match res {
                 Ok(resp) => {
                     let resp = resp.into_response();
+
+                    if let Some(path_pattern) = resp.data::<PathPattern>() {
+                        const HTTP_PATH_PATTERN: Key = Key::from_static_str("http.path_pattern");
+                        span.update_name(format!("{} {}", method, path_pattern.0));
+                        span.set_attribute(KeyValue::new(
+                            HTTP_PATH_PATTERN,
+                            path_pattern.0.to_string(),
+                        ));
+                    }
+
                     span.add_event("request.completed".to_string(), vec![]);
                     span.set_attribute(KeyValue::new(
                         attribute::HTTP_RESPONSE_STATUS_CODE,
@@ -134,6 +140,15 @@ where
                     Ok(resp)
                 }
                 Err(err) => {
+                    if let Some(path_pattern) = err.data::<PathPattern>() {
+                        const HTTP_PATH_PATTERN: Key = Key::from_static_str("http.path_pattern");
+                        span.update_name(format!("{} {}", method, path_pattern.0));
+                        span.set_attribute(KeyValue::new(
+                            HTTP_PATH_PATTERN,
+                            path_pattern.0.to_string(),
+                        ));
+                    }
+
                     span.set_attribute(KeyValue::new(
                         attribute::HTTP_RESPONSE_STATUS_CODE,
                         err.status().as_u16() as i64,
