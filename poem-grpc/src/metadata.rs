@@ -1,4 +1,4 @@
-//! Metadata releated types
+//! Metadata related types
 
 use std::str::FromStr;
 
