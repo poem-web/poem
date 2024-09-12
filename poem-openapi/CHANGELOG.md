@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Unreleased
+
+- implements `Serialize` and `Deserialize` for `poem_openapi::types::Any<T>`.
+
 # [5.1.0] 2024-09-08
 
 - fix read_only_with_default test when only default features are enabled [#854](https://github.com/poem-web/poem/pulls)

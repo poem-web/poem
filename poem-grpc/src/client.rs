@@ -401,11 +401,15 @@ fn create_http_request<T: Codec>(
         .uri_str(path)
         .method(Method::POST)
         .version(Version::HTTP_2)
-        .content_type(T::CONTENT_TYPES[0])
-        .header(header::TE, "trailers")
         .finish();
-    http_request.headers_mut().extend(metadata.headers);
+    *http_request.headers_mut() = metadata.headers;
     *http_request.extensions_mut() = extensions;
+    http_request
+        .headers_mut()
+        .insert("content-type", T::CONTENT_TYPES[0].parse().unwrap());
+    http_request
+        .headers_mut()
+        .insert(header::TE, "trailers".parse().unwrap());
     if let Some(send_compressd) = send_compressd {
         http_request.headers_mut().insert(
             "grpc-encoding",
