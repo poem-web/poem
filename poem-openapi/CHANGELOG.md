@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - implements `Serialize` and `Deserialize` for `poem_openapi::types::Any<T>`.
 
+# [5.1.1] 2024-09-13
+
+- fix [#883](https://github.com/poem-web/poem/issues/883)
+
 # [5.1.0] 2024-09-08
 
 - fix read_only_with_default test when only default features are enabled [#854](https://github.com/poem-web/poem/pulls)
