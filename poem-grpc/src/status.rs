@@ -233,7 +233,7 @@ impl Code {
 pub struct Status {
     code: Code,
     message: Option<String>,
-    metadata: Metadata,
+    metadata: Box<Metadata>,
 }
 
 impl Display for Status {
@@ -300,7 +300,7 @@ impl Status {
     /// Attach a meta data to this status.
     #[inline]
     pub fn with_metadata(self, metadata: Metadata) -> Self {
-        Self { metadata, ..self }
+        Self { metadata: Box::new(metadata), ..self }
     }
 
     /// Returns a reference to the metadata.
