@@ -43,7 +43,6 @@ impl<T: Send> Payload for Html<T> {
     }
 }
 
-#[poem::async_trait]
 impl ParsePayload for Html<String> {
     const IS_REQUIRED: bool = true;
 

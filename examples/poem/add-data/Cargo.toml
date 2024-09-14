@@ -1,0 +1,10 @@
+[package]
+name = "example-add-data"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+poem.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true

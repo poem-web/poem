@@ -72,7 +72,6 @@ macro_rules! impl_type_for_ip {
             }
         }
 
-        #[poem::async_trait]
         impl ParseFromMultipartField for $ty {
             async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
                 match field {

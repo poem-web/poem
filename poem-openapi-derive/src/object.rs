@@ -42,6 +42,10 @@ struct ObjectField {
     skip_serializing_if_is_empty: bool,
     #[darling(default)]
     skip_serializing_if: Option<Path>,
+    #[darling(default)]
+    serialize_with: Option<Path>,
+    #[darling(default)]
+    deserialize_with: Option<Path>,
 }
 
 #[derive(FromDeriveInput)]
@@ -194,15 +198,22 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         };
                     });
                 }
-                None => deserialize_fields.push(quote! {
-                    #[allow(non_snake_case)]
-                    let #field_ident: #field_ty = {
-                        let value = #crate_name::types::ParseFromJSON::parse_from_json(obj.remove(#field_name))
-                            .map_err(#crate_name::types::ParseError::propagate)?;
-                        #validators_checker
-                        value
+                None => {
+                    let deserialize_function = match field.deserialize_with {
+                        Some(ref function) => quote! { #function },
+                        None => quote! { #crate_name::types::ParseFromJSON::parse_from_json },
                     };
-                }),
+
+                    deserialize_fields.push(quote! {
+                        #[allow(non_snake_case)]
+                        let #field_ident: #field_ty = {
+                            let value = #deserialize_function(obj.remove(#field_name))
+                                .map_err(#crate_name::types::ParseError::propagate)?;
+                            #validators_checker
+                            value
+                        };
+                    })
+                }
             }
         } else {
             if args.deny_unknown_fields {
@@ -239,9 +250,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     quote!(true)
                 };
 
+                let serialize_function = match field.serialize_with {
+                    Some(ref function) => quote! { #function },
+                    None => quote! { #crate_name::types::ToJSON::to_json },
+                };
+
                 serialize_fields.push(quote! {
                     if #check_is_none && #check_is_empty && #check_if {
-                        if let ::std::option::Option::Some(value) = #crate_name::types::ToJSON::to_json(&self.#field_ident) {
+                        if let ::std::option::Option::Some(value) = #serialize_function(&self.#field_ident) {
                             object.insert(::std::string::ToString::to_string(#field_name), value);
                         }
                     }
@@ -395,6 +411,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
             }
         }
+
+        impl #impl_generics #crate_name::types::IsObjectType for #ident #ty_generics #where_clause {}
 
         impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
             fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {

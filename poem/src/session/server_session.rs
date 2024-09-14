@@ -52,7 +52,6 @@ pub struct ServerSessionEndpoint<T, E> {
     storage: Arc<T>,
 }
 
-#[async_trait::async_trait]
 impl<T, E> Endpoint for ServerSessionEndpoint<T, E>
 where
     T: SessionStorage,

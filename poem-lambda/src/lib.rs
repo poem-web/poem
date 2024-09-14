@@ -30,6 +30,7 @@ use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, Requ
 ///     println!("request_id: {}", ctx.request_id);
 /// }
 /// ```
+#[derive(Debug, Clone)]
 pub struct Context(pub lambda_runtime::Context);
 
 impl Deref for Context {
@@ -109,7 +110,6 @@ fn from_lambda_request(req: LambdaRequest) -> Request {
     req
 }
 
-#[poem::async_trait]
 impl<'a> FromRequest<'a> for &'a Context {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let ctx = match req.extensions().get::<Context>() {

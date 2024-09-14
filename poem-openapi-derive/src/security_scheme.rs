@@ -460,7 +460,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             };
 
             let expanded = quote! {
-                #[#crate_name::__private::poem::async_trait]
                 impl<'a> #crate_name::ApiExtractor<'a> for #ident {
                     const TYPES: &'static [#crate_name::ApiExtractorType] = &[#crate_name::ApiExtractorType::SecurityScheme];
 
@@ -545,7 +544,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             };
 
             let expanded = quote! {
-                #[#crate_name::__private::poem::async_trait]
                 impl<'a> #crate_name::ApiExtractor<'a> for #ident {
                     const TYPES: &'static [#crate_name::ApiExtractorType] = &[#crate_name::ApiExtractorType::SecurityScheme];
 

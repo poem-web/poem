@@ -58,7 +58,6 @@ impl ParseFromParameter for OffsetDateTime {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for OffsetDateTime {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {
@@ -70,7 +69,7 @@ impl ParseFromMultipartField for OffsetDateTime {
 
 impl ToJSON for OffsetDateTime {
     fn to_json(&self) -> Option<Value> {
-        Some(Value::String(self.format(&Rfc3339).unwrap_or_default()))
+        self.format(&Rfc3339).ok().map(Value::String)
     }
 }
 
@@ -119,7 +118,6 @@ macro_rules! impl_naive_datetime_types {
             }
         }
 
-        #[poem::async_trait]
         impl ParseFromMultipartField for $ty {
             async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
                 match field {
@@ -131,7 +129,7 @@ macro_rules! impl_naive_datetime_types {
 
         impl ToJSON for $ty {
             fn to_json(&self) -> Option<Value> {
-                Some(Value::String(self.format($format_description).unwrap()))
+                self.format($format_description).ok().map(Value::String)
             }
         }
     };

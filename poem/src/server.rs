@@ -3,6 +3,7 @@ use std::{
     future::Future,
     io,
     io::IoSlice,
+    panic::AssertUnwindSafe,
     pin::Pin,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -11,8 +12,10 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures_util::FutureExt;
 use http::uri::Scheme;
-use hyper::server::conn::Http;
+use hyper::body::Incoming;
+use hyper_util::server::conn::auto;
 use pin_project_lite::pin_project;
 use tokio::{
     io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult},
@@ -22,6 +25,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
+    endpoint::{DynEndpoint, ToDynEndpoint},
     listener::{Acceptor, AcceptorExt, Listener},
     web::{LocalAddr, RemoteAddr},
     Endpoint, EndpointExt, IntoEndpoint, Response,
@@ -38,6 +42,8 @@ pub struct Server<L, A> {
     listener: Either<L, A>,
     name: Option<String>,
     idle_timeout: Option<Duration>,
+    http2_max_concurrent_streams: Option<u32>,
+    http2_max_pending_accept_reset_streams: Option<u32>,
 }
 
 impl<L: Listener> Server<L, Infallible> {
@@ -47,6 +53,8 @@ impl<L: Listener> Server<L, Infallible> {
             listener: Either::Listener(listener),
             name: None,
             idle_timeout: None,
+            http2_max_concurrent_streams: None,
+            http2_max_pending_accept_reset_streams: Some(20),
         }
     }
 }
@@ -58,6 +66,8 @@ impl<A: Acceptor> Server<Infallible, A> {
             listener: Either::Acceptor(acceptor),
             name: None,
             idle_timeout: None,
+            http2_max_concurrent_streams: None,
+            http2_max_pending_accept_reset_streams: Some(20),
         }
     }
 }
@@ -77,12 +87,37 @@ where
         }
     }
 
-    /// Specify connection idle timeout. Connections will be terminated if there was no activity
-    /// within this period of time
+    /// Specify connection idle timeout. Connections will be terminated if there
+    /// was no activity within this period of time
     #[must_use]
     pub fn idle_timeout(self, timeout: Duration) -> Self {
         Self {
             idle_timeout: Some(timeout),
+            ..self
+        }
+    }
+
+    /// Sets the [`SETTINGS_MAX_CONCURRENT_STREAMS`][spec] option for HTTP2
+    /// connections.
+    ///
+    /// Default is 200. Passing `None` will remove any limit.
+    ///
+    /// [spec]: https://http2.github.io/http2-spec/#SETTINGS_MAX_CONCURRENT_STREAMS
+    pub fn http2_max_concurrent_streams(self, max: impl Into<Option<u32>>) -> Self {
+        Self {
+            http2_max_concurrent_streams: max.into(),
+            ..self
+        }
+    }
+
+    /// Configures the maximum number of pending reset streams allowed before a
+    /// GOAWAY will be sent.
+    ///
+    /// This will default to the default value set by the [`h2` crate](https://crates.io/crates/h2).
+    /// As of v0.4.0, it is 20.
+    pub fn http2_max_pending_accept_reset_streams(self, max: impl Into<Option<u32>>) -> Self {
+        Self {
+            http2_max_pending_accept_reset_streams: max.into(),
             ..self
         }
     }
@@ -108,11 +143,13 @@ where
         E: IntoEndpoint,
         E::Endpoint: 'static,
     {
-        let ep = Arc::new(ep.into_endpoint().map_to_response());
+        let ep = Arc::new(ToDynEndpoint(ep.into_endpoint().map_to_response()));
         let Server {
             listener,
             name,
             idle_timeout,
+            http2_max_concurrent_streams,
+            http2_max_pending_accept_reset_streams,
         } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
@@ -162,9 +199,20 @@ where
                         let notify = notify.clone();
                         let timeout_token = timeout_token.clone();
                         let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
+                        let server_graceful_shutdown_token_clone = server_graceful_shutdown_token.clone();
 
-                        tokio::spawn(async move {
-                            let serve_connection = serve_connection(socket, local_addr, remote_addr, scheme, ep, server_graceful_shutdown_token, idle_timeout);
+                        let spawn_fut = AssertUnwindSafe(async move {
+                            let serve_connection = serve_connection(ConnectionOptions{
+                                socket,
+                                local_addr,
+                                remote_addr,
+                                scheme,
+                                ep,
+                                server_graceful_shutdown_token: server_graceful_shutdown_token.clone(),
+                                idle_connection_close_timeout: idle_timeout,
+                                http2_max_concurrent_streams,
+                                http2_max_pending_accept_reset_streams,
+                            });
 
                             if timeout.is_some() {
                                 tokio::select! {
@@ -174,10 +222,21 @@ where
                             } else {
                                serve_connection.await;
                             }
+                        });
+
+                        tokio::spawn(async move {
+                            let result = spawn_fut.catch_unwind().await;
 
                             if alive_connections.fetch_sub(1, Ordering::Acquire) == 1 {
-                                // We have to notify only if there is a registered waiter on shutdown
-                                notify.notify_waiters();
+                                // notify only if shutdown is initiated, to prevent notification when server is active.
+                                // It's a valid state to have 0 alive connections when server is not shutting down.
+                                if server_graceful_shutdown_token_clone.is_cancelled() {
+                                    notify.notify_one();
+                                }
+                            }
+
+                            if let Err(err) = result {
+                                std::panic::resume_unwind(err);
                             }
                         });
                     }
@@ -307,21 +366,39 @@ impl<T> ClosingInactiveConnection<T> {
     }
 }
 
-async fn serve_connection(
-    socket: impl AsyncRead + AsyncWrite + Send + Unpin + 'static,
+struct ConnectionOptions<Io> {
+    socket: Io,
     local_addr: LocalAddr,
     remote_addr: RemoteAddr,
     scheme: Scheme,
-    ep: Arc<dyn Endpoint<Output = Response>>,
+    ep: Arc<dyn DynEndpoint<Output = Response>>,
     server_graceful_shutdown_token: CancellationToken,
     idle_connection_close_timeout: Option<Duration>,
-) {
+    http2_max_concurrent_streams: Option<u32>,
+    http2_max_pending_accept_reset_streams: Option<u32>,
+}
+
+async fn serve_connection<Io>(
+    ConnectionOptions {
+        socket,
+        local_addr,
+        remote_addr,
+        scheme,
+        ep,
+        server_graceful_shutdown_token,
+        idle_connection_close_timeout,
+        http2_max_concurrent_streams,
+        http2_max_pending_accept_reset_streams,
+    }: ConnectionOptions<Io>,
+) where
+    Io: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
     let connection_shutdown_token = CancellationToken::new();
 
     let service = hyper::service::service_fn({
         let remote_addr = remote_addr.clone();
 
-        move |req: hyper::Request<hyper::Body>| {
+        move |req: http::Request<Incoming>| {
             let ep = ep.clone();
             let local_addr = local_addr.clone();
             let remote_addr = remote_addr.clone();
@@ -352,14 +429,21 @@ async fn serve_connection(
         None => tokio_util::either::Either::Right(socket),
     };
 
-    let mut conn = Http::new()
-        .serve_connection(socket, service)
-        .with_upgrades();
+    let mut builder = auto::Builder::new(hyper_util::rt::TokioExecutor::new());
+    let mut builder = builder.http2();
+    let builder = builder
+        .max_concurrent_streams(http2_max_concurrent_streams)
+        .max_pending_accept_reset_streams(
+            http2_max_pending_accept_reset_streams.map(|x| x as usize),
+        );
+
+    let conn =
+        builder.serve_connection_with_upgrades(hyper_util::rt::TokioIo::new(socket), service);
+    futures_util::pin_mut!(conn);
 
     tokio::select! {
         _ = &mut conn => {
             // Connection completed successfully.
-            return;
         },
         _ = connection_shutdown_token.cancelled() => {
             tracing::info!(remote_addr=%remote_addr, "closing connection due to inactivity");
@@ -367,9 +451,9 @@ async fn serve_connection(
         _ = server_graceful_shutdown_token.cancelled() => {}
     }
 
-    // Init graceful shutdown for connection (`GOAWAY` for `HTTP/2` or disabling `keep-alive` for `HTTP/1`)
-    Pin::new(&mut conn).graceful_shutdown();
-
-    // Continue awaiting after graceful-shutdown is initiated to handle existed requests.
+    // Init graceful shutdown for connection
+    conn.as_mut().graceful_shutdown();
+    // Continue awaiting after graceful-shutdown is initiated to handle existed
+    // requests.
     let _ = conn.await;
 }

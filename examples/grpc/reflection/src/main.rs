@@ -6,7 +6,6 @@ const FILE_DESCRIPTOR_SET: &[u8] = poem_grpc::include_file_descriptor_set!("hell
 
 struct GreeterService;
 
-#[poem::async_trait]
 impl Greeter for GreeterService {
     async fn say_hello(
         &self,

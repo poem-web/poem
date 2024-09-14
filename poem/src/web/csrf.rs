@@ -20,7 +20,6 @@ impl Deref for CsrfToken {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CsrfToken {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req
@@ -33,6 +32,7 @@ impl<'a> FromRequest<'a> for &'a CsrfToken {
 /// A verifier for CSRF Token.
 ///
 /// See also [`Csrf`](crate::middleware::Csrf)
+#[derive(Clone)]
 #[cfg_attr(docsrs, doc(cfg(feature = "csrf")))]
 pub struct CsrfVerifier {
     cookie: Option<UnencryptedCsrfCookie>,
@@ -48,7 +48,6 @@ impl CsrfVerifier {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CsrfVerifier {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req

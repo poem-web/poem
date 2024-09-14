@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "multipleOf({n})")]
+#[display("multipleOf({n})")]
 pub struct MultipleOf {
     n: f64,
 }

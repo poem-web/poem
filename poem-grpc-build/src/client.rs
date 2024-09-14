@@ -22,7 +22,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         let name = format_ident!("{}", method.name);
         let input_type = syn::parse_str::<Type>(&method.input_type).unwrap();
         let output_type = syn::parse_str::<Type>(&method.output_type).unwrap();
-        let path = if !config.emit_package {
+        let path = if !config.emit_package && !service.package.is_empty() {
             format!(
                 "/{}.{}/{}",
                 service.package, service.proto_name, method.proto_name
@@ -110,11 +110,21 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
             pub fn with<M>(mut self, middleware: M) -> Self
             where
-                M: ::poem::Middleware<::std::sync::Arc<dyn ::poem::Endpoint<Output = ::poem::Response> + 'static>>,
+                M: ::poem::Middleware<::std::sync::Arc<dyn ::poem::endpoint::DynEndpoint<Output = ::poem::Response> + 'static>>,
                 M::Output: 'static,
             {
                 self.cli = self.cli.with(middleware);
                 self
+            }
+
+            /// Set the compression encoding for sending
+            pub fn set_send_compressed(&mut self, encoding: #crate_name::CompressionEncoding) {
+                self.cli.set_send_compressed(encoding);
+            }
+
+            /// Set the compression encodings for accepting
+            pub fn set_accept_compressed(&mut self, encodings: impl ::std::convert::Into<::std::sync::Arc<[#crate_name::CompressionEncoding]>>) {
+                self.cli.set_accept_compressed(encodings);
             }
 
             #(

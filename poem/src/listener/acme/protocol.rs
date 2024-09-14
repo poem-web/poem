@@ -5,8 +5,6 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::listener::acme::serde::SerdeUri;
-
 /// HTTP-01 challenge
 const CHALLENGE_TYPE_HTTP_01: &str = "http-01";
 
@@ -38,9 +36,9 @@ impl Display for ChallengeType {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Directory {
-    pub(crate) new_nonce: SerdeUri,
-    pub(crate) new_account: SerdeUri,
-    pub(crate) new_order: SerdeUri,
+    pub(crate) new_nonce: String,
+    pub(crate) new_account: String,
+    pub(crate) new_order: String,
 }
 
 #[derive(Serialize)]
@@ -75,17 +73,17 @@ pub(crate) struct Problem {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewOrderResponse {
     pub(crate) status: String,
-    pub(crate) authorizations: Vec<SerdeUri>,
+    pub(crate) authorizations: Vec<String>,
     pub(crate) error: Option<Problem>,
-    pub(crate) finalize: SerdeUri,
-    pub(crate) certificate: Option<SerdeUri>,
+    pub(crate) finalize: String,
+    pub(crate) certificate: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Challenge {
     #[serde(rename = "type")]
     pub(crate) ty: String,
-    pub(crate) url: SerdeUri,
+    pub(crate) url: String,
     pub(crate) token: String,
 }
 

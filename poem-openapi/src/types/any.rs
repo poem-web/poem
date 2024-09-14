@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 use crate::{
@@ -63,6 +63,26 @@ impl<T: DeserializeOwned + Send + Sync> ParseFromXML for Any<T> {
 impl<T: Serialize + Send + Sync> ToXML for Any<T> {
     fn to_xml(&self) -> Option<Value> {
         Some(serde_json::to_value(&self.0).unwrap_or_default())
+    }
+}
+
+impl<T: Serialize> Serialize for Any<T> {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de, T: DeserializeOwned> Deserialize<'de> for Any<T> {
+    #[inline]
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(Self)
     }
 }
 

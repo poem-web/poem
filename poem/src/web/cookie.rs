@@ -39,10 +39,20 @@ impl Display for Cookie {
 impl Cookie {
     /// Creates a new Cookie with the given `name` and serialized `value`.
     pub fn new(name: impl Into<String>, value: impl Serialize) -> Self {
-        Self(libcookie::Cookie::new(
-            name.into(),
-            serde_json::to_string(&value).unwrap_or_default(),
-        ))
+        #[cfg(not(feature = "sonic-rs"))]
+        {
+            Self(libcookie::Cookie::new(
+                name.into(),
+                serde_json::to_string(&value).unwrap_or_default(),
+            ))
+        }
+        #[cfg(feature = "sonic-rs")]
+        {
+            Self(libcookie::Cookie::new(
+                name.into(),
+                sonic_rs::to_string(&value).unwrap_or_default(),
+            ))
+        }
     }
 
     /// Creates a new Cookie with the given `name` and `value`.
@@ -275,7 +285,12 @@ impl Cookie {
 
     /// Sets the value of `self` to the serialized `value`.
     pub fn set_value(&mut self, value: impl Serialize) {
-        if let Ok(value) = serde_json::to_string(&value) {
+        #[cfg(not(feature = "sonic-rs"))]
+        let json_string = serde_json::to_string(&value);
+        #[cfg(feature = "sonic-rs")]
+        let json_string = sonic_rs::to_string(&value);
+
+        if let Ok(value) = json_string {
             self.0.set_value(value);
         }
     }
@@ -287,11 +302,17 @@ impl Cookie {
 
     /// Returns the value of `self` to the deserialized `value`.
     pub fn value<'de, T: Deserialize<'de>>(&'de self) -> Result<T, ParseCookieError> {
-        serde_json::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        #[cfg(not(feature = "sonic-rs"))]
+        {
+            serde_json::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        }
+        #[cfg(feature = "sonic-rs")]
+        {
+            sonic_rs::from_str(self.0.value()).map_err(ParseCookieError::ParseJsonValue)
+        }
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Cookie {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         let value = req
@@ -364,7 +385,7 @@ impl CookieJar {
     pub fn remove(&self, name: impl AsRef<str>) {
         self.jar
             .lock()
-            .remove(libcookie::Cookie::named(name.as_ref().to_string()));
+            .remove(libcookie::Cookie::build(name.as_ref().to_string()));
     }
 
     /// Returns a reference to the [`Cookie`] inside this jar with the `name`.
@@ -501,7 +522,6 @@ impl FromStr for CookieJar {
     }
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for &'a CookieJar {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(req.cookie())
@@ -562,7 +582,7 @@ impl<'a> PrivateCookieJar<'a> {
     pub fn remove(&self, name: impl AsRef<str>) {
         let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut private_cookie_jar = cookie_jar.private_mut(self.key);
-        private_cookie_jar.remove(libcookie::Cookie::named(name.as_ref().to_string()));
+        private_cookie_jar.remove(libcookie::Cookie::build(name.as_ref().to_string()));
     }
 
     /// Returns cookie inside this jar with the name and authenticates and
@@ -595,7 +615,7 @@ impl<'a> SignedCookieJar<'a> {
     pub fn remove(&self, name: impl AsRef<str>) {
         let mut cookie_jar = self.cookie_jar.jar.lock();
         let mut signed_cookie_jar = cookie_jar.signed_mut(self.key);
-        signed_cookie_jar.remove(libcookie::Cookie::named(name.as_ref().to_string()));
+        signed_cookie_jar.remove(libcookie::Cookie::build(name.as_ref().to_string()));
     }
 
     /// Returns cookie inside this jar with the name and authenticates and

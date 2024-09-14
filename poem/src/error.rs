@@ -35,9 +35,9 @@ pub trait ResponseError {
     where
         Self: StdError + Send + Sync + 'static,
     {
-        Response::builder()
-            .status(self.status())
-            .body(self.to_string())
+        let mut resp = self.to_string().into_response();
+        resp.set_status(self.status());
+        resp
     }
 }
 
@@ -214,6 +214,19 @@ impl Display for Error {
             #[cfg(feature = "eyre06")]
             Some(ErrorSource::Eyre06(err)) => Display::fmt(err, f),
             None => write!(f, "{}", self.status()),
+        }
+    }
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match &self.source {
+            Some(ErrorSource::BoxedError(err)) => Some(err.as_ref()),
+            #[cfg(feature = "anyhow")]
+            Some(ErrorSource::Anyhow(err)) => Some(err.as_ref()),
+            #[cfg(feature = "eyre06")]
+            Some(ErrorSource::Eyre06(err)) => Some(err.as_ref()),
+            None => None,
         }
     }
 }
@@ -463,7 +476,7 @@ impl Error {
     /// assert_eq!(resp.data::<i32>(), Some(&100));
     /// ```
     #[inline]
-    pub fn set_data(&mut self, data: impl Send + Sync + 'static) {
+    pub fn set_data(&mut self, data: impl Clone + Send + Sync + 'static) {
         self.extensions.insert(data);
     }
 
@@ -689,7 +702,13 @@ pub enum ParseCookieError {
 
     /// Cookie value is illegal.
     #[error("cookie is illegal: {0}")]
+    #[cfg(not(feature = "sonic-rs"))]
     ParseJsonValue(#[from] serde_json::Error),
+
+    /// Cookie value is illegal.
+    #[error("cookie is illegal: {0}")]
+    #[cfg(feature = "sonic-rs")]
+    ParseJsonValue(#[from] sonic_rs::Error),
 }
 
 #[cfg(feature = "cookie")]
@@ -749,7 +768,13 @@ pub enum ParseJsonError {
 
     /// Url decode error.
     #[error("parse error: {0}")]
+    #[cfg(not(feature = "sonic-rs"))]
     Parse(#[from] serde_json::Error),
+
+    /// Url decode error.
+    #[error("parse error: {0}")]
+    #[cfg(feature = "sonic-rs")]
+    Parse(#[from] sonic_rs::Error),
 }
 
 impl ResponseError for ParseJsonError {
@@ -980,9 +1005,8 @@ impl ResponseError for StaticFileError {
     }
 
     fn as_response(&self) -> Response {
-        let mut resp = Response::builder()
-            .status(self.status())
-            .body(self.to_string());
+        let mut resp = self.to_string().into_response();
+        resp.set_status(self.status());
         if let StaticFileError::RangeNotSatisfiable { size } = self {
             resp.headers_mut()
                 .typed_insert(ContentRange::unsatisfied_bytes(*size));
@@ -1177,11 +1201,11 @@ mod tests {
         assert_eq!(err.into_response().status(), StatusCode::BAD_GATEWAY);
     }
 
-    #[cfg(feature = "eyre6")]
+    #[cfg(feature = "eyre06")]
     #[test]
-    fn test_eyre6_error() {
-        let eyre6_err: eyre6::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
-        let err: Error = Error::from((StatusCode::BAD_GATEWAY, eyre6_err));
+    fn test_eyre06_error() {
+        let eyre06_err: eyre06::Error = IoError::new(ErrorKind::AlreadyExists, "aaa").into();
+        let err: Error = Error::from((StatusCode::BAD_GATEWAY, eyre06_err));
         assert!(err.is::<IoError>());
         assert_eq!(
             err.downcast_ref::<IoError>().unwrap().kind(),

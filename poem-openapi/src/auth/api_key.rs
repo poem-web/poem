@@ -5,6 +5,7 @@ use crate::{
 };
 
 /// Used to extract the Api Key from the request.
+#[derive(Debug)]
 pub struct ApiKey {
     /// Api key
     pub key: String,

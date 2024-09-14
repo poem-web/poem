@@ -24,7 +24,7 @@ impl<'a> Document<'a> {
             self.traverse_schema(used_types, schema_ref);
         }
 
-        for schema_ref in &schema.items {
+        if let Some(schema_ref) = &schema.items {
             self.traverse_schema(used_types, schema_ref);
         }
 

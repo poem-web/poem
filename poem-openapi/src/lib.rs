@@ -33,8 +33,8 @@
 //! edition = "2021"
 //!
 //! [dependencies]
-//! poem = "1.2"
-//! poem-openapi = { version = "1.2", features = ["swagger-ui"] }
+//! poem = "3"
+//! poem-openapi = { version = "5", features = ["swagger-ui"] }
 //! tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 //! ```
 //!
@@ -103,6 +103,7 @@
 //! | redoc            | Add Redoc UI support                                                                   |
 //! | email            | Support for email address string                                                       |
 //! | hostname         | Support for hostname string                                                            |
+//! | humantime        | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
 //! | uuid             | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                       |
 //! | url              | Integrate with the [`url` crate](https://crates.io/crates/url)                         |
 //! | geo              | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)             |
@@ -111,6 +112,7 @@
 //! | prost-wkt-types  | Integrate with the [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) |
 //! | static-files     | Support for static file response                                                       |
 //! | websocket        | Support for websocket                                                                  |
+//! |sonic-rs          | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

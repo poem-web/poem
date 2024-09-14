@@ -145,6 +145,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
                 if let Some(discriminator_name) = &args.discriminator_name {
                     create_schemas.push(quote! {
+                        {
+                            fn __check_is_object_type<T: #crate_name::types::IsObjectType>() {}
+                            __check_is_object_type::<#object_ty>();
+                        }
+
                         let schema = #crate_name::registry::MetaSchema {
                             all_of: ::std::vec![
                                 #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
@@ -152,13 +157,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                                     properties: ::std::vec![
                                         (
                                             #discriminator_name,
-                                            #crate_name::registry::MetaSchemaRef::merge(
-                                                <::std::string::String as #crate_name::types::Type>::schema_ref(),
+                                            #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
                                                 #crate_name::registry::MetaSchema {
+                                                    ty: "string",
+                                                    enum_items: ::std::vec![::std::convert::Into::into(#mapping_name)],
                                                     example: ::std::option::Option::Some(::std::convert::Into::into(#mapping_name)),
                                                     ..#crate_name::registry::MetaSchema::ANY
                                                 }
-                                            )
+                                            )),
                                         )
                                     ],
                                     ..#crate_name::registry::MetaSchema::new("object")
@@ -167,6 +173,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             ],
                             ..#crate_name::registry::MetaSchema::ANY
                         };
+
                         registry.schemas.insert(#schema_name, schema);
                     });
 
@@ -268,6 +275,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
 
             fn register(registry: &mut #crate_name::registry::Registry) {
+                use ::std::marker::Sized;
                 registry.create_schema::<Self, _>(<Self as #crate_name::types::Type>::name().into_owned(), |registry| {
                     #(<#types as #crate_name::types::Type>::register(registry);)*
                     #(#create_schemas)*
@@ -283,6 +291,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 ::std::boxed::Box::new(::std::iter::IntoIterator::into_iter(self.as_raw_value()))
             }
         }
+
+        impl #impl_generics #crate_name::types::IsObjectType for #ident #ty_generics #where_clause {}
 
         impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
             fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> ::std::result::Result<Self, #crate_name::types::ParseError<Self>> {

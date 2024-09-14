@@ -42,7 +42,6 @@ pub struct CookieSessionEndpoint<E> {
     config: Arc<CookieConfig>,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
     type Output = E::Output;
 
@@ -51,7 +50,16 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
         let session = self
             .config
             .get_cookie_value(&cookie_jar)
-            .and_then(|value| serde_json::from_str::<BTreeMap<String, Value>>(&value).ok())
+            .and_then(|value| {
+                #[cfg(not(feature = "sonic-rs"))]
+                {
+                    serde_json::from_str::<BTreeMap<String, Value>>(&value).ok()
+                }
+                #[cfg(feature = "sonic-rs")]
+                {
+                    sonic_rs::from_str::<BTreeMap<String, Value>>(&value).ok()
+                }
+            })
             .map(Session::new)
             .unwrap_or_default();
 
@@ -60,10 +68,16 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
 
         match session.status() {
             SessionStatus::Changed | SessionStatus::Renewed => {
-                self.config.set_cookie_value(
-                    &cookie_jar,
-                    &serde_json::to_string(&session.entries()).unwrap_or_default(),
-                );
+                self.config.set_cookie_value(&cookie_jar, {
+                    #[cfg(not(feature = "sonic-rs"))]
+                    {
+                        &serde_json::to_string(&session.entries()).unwrap_or_default()
+                    }
+                    #[cfg(feature = "sonic-rs")]
+                    {
+                        &sonic_rs::to_string(&session.entries()).unwrap_or_default()
+                    }
+                });
             }
             SessionStatus::Purged => {
                 self.config.remove_cookie(&cookie_jar);

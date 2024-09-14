@@ -71,14 +71,13 @@ impl<E: Endpoint> Middleware<E> for NormalizePath {
     }
 }
 
-/// Endpoint for NormalizePath middleware.
+/// Endpoint for the NormalizePath middleware.
 pub struct NormalizePathEndpoint<E> {
     inner: E,
     merge_slash: Regex,
     style: TrailingSlash,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
     type Output = E::Output;
 

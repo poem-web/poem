@@ -10,7 +10,7 @@ use crate::{
     Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct PathPrefix(usize);
 
 /// Routing object
@@ -244,7 +244,6 @@ impl Route {
             prefix_for_path_pattern: usize,
         }
 
-        #[async_trait::async_trait]
         impl<E: Endpoint> Endpoint for Nest<E> {
             type Output = Response;
 
@@ -301,22 +300,24 @@ impl Route {
 
         self.tree.add(
             &format!("{path}*--poem-rest"),
-            Box::new(Nest {
+            Nest {
                 inner: ep.clone(),
                 root: false,
                 prefix_len,
                 prefix_for_path_pattern,
-            }),
+            }
+            .boxed(),
         )?;
 
         self.tree.add(
             &path[..path.len() - 1],
-            Box::new(Nest {
+            Nest {
                 inner: ep,
                 root: true,
                 prefix_len,
                 prefix_for_path_pattern,
-            }),
+            }
+            .boxed(),
         )?;
 
         Ok(self)
@@ -327,7 +328,6 @@ impl Route {
 #[derive(Debug, Clone)]
 pub struct PathPattern(pub Arc<str>);
 
-#[async_trait::async_trait]
 impl Endpoint for Route {
     type Output = Response;
 
@@ -387,7 +387,7 @@ fn normalize_path(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use futures_util::lock::Mutex;
-    use http::{StatusCode, Uri};
+    use http::StatusCode;
 
     use super::*;
     use crate::{endpoint::make_sync, handler, test::TestClient, Error};
@@ -652,7 +652,6 @@ mod tests {
         inner: E,
     }
 
-    #[async_trait::async_trait]
     impl<E: Endpoint> Endpoint for PathPatternSpyEndpoint<E> {
         type Output = Response;
 
@@ -723,7 +722,6 @@ mod tests {
 
     struct ErrorEndpoint;
 
-    #[async_trait::async_trait]
     impl Endpoint for ErrorEndpoint {
         type Output = Response;
 

@@ -2,14 +2,17 @@ use std::str::FromStr;
 
 use opentelemetry::{
     global,
-    trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _},
+    trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _, TracerProvider as _},
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Tracer};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{Config, Tracer, TracerProvider},
+    Resource,
+};
 use poem::{
     get, handler,
-    http::Method,
     listener::TcpListener,
     middleware::{OpenTelemetryMetrics, OpenTelemetryTracing},
     web::Data,
@@ -17,14 +20,19 @@ use poem::{
 };
 use reqwest::{Client, Url};
 
-fn init_tracer() -> Tracer {
+fn init_tracer() -> TracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_jaeger::new_collector_pipeline()
-        .with_service_name("poem")
-        .with_endpoint("http://localhost:14268/api/traces")
-        .with_hyper()
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_trace_config(
+            Config::default().with_resource(Resource::new(vec![KeyValue::new(
+                "service.name",
+                "server1",
+            )])),
+        )
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
         .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .unwrap()
+        .expect("Trace Pipeline should initialize.")
 }
 
 #[handler]
@@ -38,7 +46,7 @@ async fn index(tracer: Data<&Tracer>, body: String) -> String {
 
     let req = {
         let mut req = reqwest::Request::new(
-            Method::GET,
+            reqwest::Method::GET,
             Url::from_str("http://localhost:3002/api2").unwrap(),
         );
         global::get_text_map_propagator(|propagator| {
@@ -72,7 +80,8 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let tracer = init_tracer();
+    let tracer_provider = init_tracer();
+    let tracer = tracer_provider.tracer("server1");
 
     let app = Route::new()
         .at("/api1", get(index))

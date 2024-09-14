@@ -4,6 +4,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Unreleased
+
+- implements `Serialize` and `Deserialize` for `poem_openapi::types::Any<T>`.
+
+# [5.1.1] 2024-09-13
+
+- fix [#883](https://github.com/poem-web/poem/issues/883)
+
+# [5.1.0] 2024-09-08
+
+- fix read_only_with_default test when only default features are enabled [#854](https://github.com/poem-web/poem/pulls)
+- feat: add AsyncSeek trait to Upload::into_async_read return type [#853](https://github.com/poem-web/poem/pull/853)
+- Added derivations for Type, ParseFromJSON and ToJSON for sqlx::types::Json<T>. [#833](https://github.com/poem-web/poem/pull/833)
+- chore(openapi): bump derive_more [#867](https://github.com/poem-web/poem/pull/867)
+
+# [5.0.3] 2024-07-27
+
+- Added derivations for Type, ParseFromJSON and ToJSON for sqlx types [#833](https://github.com/poem-web/poem/pull/833)
+
+# [5.0.1] 2024-05-18
+
+- Add enum_items to discriminated union [#741](https://github.com/poem-web/poem/pull/741)
+- fix Union doesn't implement IsObjectType [#800](https://github.com/poem-web/poem/issues/800)
+- fix Union doesn't support generics in the last version [#799](https://github.com/poem-web/poem/issues/799)
+- Expose Poem-OpenApi Upload File struct [#816](https://github.com/poem-web/poem/pull/816)
+
+# [5.0.0] 2024-03-30
+
+- use AFIT instead of `async_trait`
+- add `Upload::size` method
+- when `Union` uses discriminator, if the members is not an `Object`, an error will be reported at compile time
+
+# [4.0.1] 2024-03-04
+
+- added example value support for param/schema [#717](https://github.com/poem-web/poem/pull/717)
+- Adding serialize_with and deserialize_with attributes to struct fields [#749](https://github.com/poem-web/poem/pull/749)
+
+# [4.0.0] 2024-01-06
+
+- upgrade to `hyper1`
+- added documetation on how to merge API specs [#716](https://github.com/poem-web/poem/pull/716)
+- impl Type for std::time::Duration instead of only humantime::Duration [#713](https://github.com/poem-web/poem/pull/713)
+
 # [3.0.6] 2023-11-19
 
 - add [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) support [#689](https://github.com/poem-web/poem/pull/689)

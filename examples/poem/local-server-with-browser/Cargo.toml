@@ -1,0 +1,11 @@
+[package]
+name = "local-server-with-browser"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+open.workspace = true
+poem.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber.workspace = true

@@ -36,7 +36,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         })
         .collect::<Vec<_>>();
     let crate_name = get_crate_name(config.internal);
-    let service_name = if !config.emit_package {
+    let service_name = if !config.emit_package && !service.package.is_empty() {
         format!("{}.{}", service.package, service.proto_name)
     } else {
         service.proto_name.clone()
@@ -61,25 +61,25 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         match (method.client_streaming, method.server_streaming) {
             (false, false) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_unary(&codec_list, method_info));
             }
             (true, false) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_client_streaming(&codec_list, method_info));
             }
             (false, true) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_server_streaming(&codec_list, method_info));
             }
             (true, true) => {
                 trait_methods.push(quote! {
-                    async fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>;
+                    fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_bidirectional_streaming(&codec_list, method_info));
             }
@@ -94,14 +94,27 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
     let token_stream = quote! {
         #[allow(unused_imports)]
-        #[::poem::async_trait]
         pub trait #service_ident: Send + Sync + 'static {
             #(#trait_methods)*
         }
 
         #[allow(unused_imports)]
-        #[derive(Clone)]
-        pub struct #server_ident<T>(::std::sync::Arc<T>);
+        pub struct #server_ident<T> {
+            inner: ::std::sync::Arc<T>,
+            send_compressd: ::std::option::Option<#crate_name::CompressionEncoding>,
+            accept_compressed: ::std::sync::Arc<[#crate_name::CompressionEncoding]>,
+        }
+
+        impl<T> ::std::clone::Clone for #server_ident<T> {
+            #[inline]
+            fn clone(&self) -> Self {
+                Self {
+                    inner: self.inner.clone(),
+                    send_compressd: self.send_compressd,
+                    accept_compressed: self.accept_compressed.clone(),
+                }
+            }
+        }
 
         impl<T: #service_ident> #crate_name::Service for #server_ident<T> {
             const NAME: &'static str = #service_name;
@@ -110,8 +123,29 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
         #[allow(dead_code)]
         impl<T> #server_ident<T> {
+            /// Create a new GRPC server
             pub fn new(service: T) -> Self {
-                Self(::std::sync::Arc::new(service))
+                Self {
+                    inner: ::std::sync::Arc::new(service),
+                    send_compressd: ::std::option::Option::None,
+                    accept_compressed: ::std::sync::Arc::new([]),
+                }
+            }
+
+            /// Set the compression encoding for sending
+            pub fn send_compressed(self, encoding: #crate_name::CompressionEncoding) -> Self {
+                Self {
+                    send_compressd: Some(encoding),
+                    ..self
+                }
+            }
+
+            /// Set the compression encodings for accepting
+            pub fn accept_compressed(self, encodings: impl ::std::convert::Into<::std::sync::Arc<[#crate_name::CompressionEncoding]>>) -> Self {
+                Self {
+                    accept_compressed: encodings.into(),
+                    ..self
+                }
             }
         }
 
@@ -192,7 +226,7 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec).unary(#proxy_service_ident(svc.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).unary(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -200,7 +234,6 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::UnaryService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -213,9 +246,9 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0.clone();
+            let server = self.clone();
             move |req| {
-                let svc = svc.clone();
+                let server = server.clone();
                 async move { #call }
             }
         }));
@@ -237,7 +270,7 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec).client_streaming(#proxy_service_ident(svc.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).client_streaming(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -245,7 +278,6 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::ClientStreamingService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -258,9 +290,9 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0.clone();
+            let server = self.clone();
             move |req| {
-                let svc = svc.clone();
+                let server = server.clone();
                 async move { #call }
             }
         }));
@@ -282,7 +314,7 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec).server_streaming(#proxy_service_ident(svc.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).server_streaming(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -290,7 +322,6 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::ServerStreamingService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -303,9 +334,9 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0.clone();
+            let server = self.clone();
             move |req| {
-                let svc = svc.clone();
+                let server = server.clone();
                 async move { #call }
             }
         }));
@@ -327,7 +358,7 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec).bidirectional_streaming(#proxy_service_ident(svc.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).bidirectional_streaming(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -335,7 +366,6 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
         #[allow(non_camel_case_types)]
         struct #proxy_service_ident<T>(::std::sync::Arc<T>);
 
-        #[::poem::async_trait]
         impl<T: #service_ident> #crate_name::service::BidirectionalStreamingService<#input_type> for #proxy_service_ident<T> {
             type Response = #output_type;
 
@@ -348,9 +378,9 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
         }
 
         route = route.at(#path, ::poem::endpoint::make({
-            let svc = self.0.clone();
+            let server = self.clone();
             move |req| {
-                let svc = svc.clone();
+                let server = server.clone();
                 async move { #call }
             }
         }));

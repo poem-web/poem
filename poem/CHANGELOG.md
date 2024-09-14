@@ -4,6 +4,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.1.0] 2024-09-08
+
+- build(deps): update nix requirement from 0.28.0 to 0.29.0 [#851](https://github.com/poem-web/poem/pull/851)
+- Add manual `Default` implementation for `#[handler]` [#848](https://github.com/poem-web/poem/pull/848)
+- Fix `EmbeddedFilesEndpoint` not working for `index.html` in subdirectories [#825](https://github.com/poem-web/poem/pull/825)
+- chore: bump redis to 0.26 [#856](https://github.com/poem-web/poem/pull/856)
+- chore: bump `tokio-tungstenite`,`quick-xml`, up `tokio`, `openssl` to avoid security warning [#857](https://github.com/poem-web/poem/pull/857)
+- feat: allow to set a custom name for the csrf cookie (#801) [#864](https://github.com/poem-web/poem/pull/864)
+- add `sonic-rs` feature to replace `serde_json` with `sonic_rs` [#819](https://github.com/poem-web/poem/pull/819)
+- fix: setting path pattern in opentelemetry traces [#878](https://github.com/poem-web/poem/pull/878)
+- update MSRV to `1.76.0`
+- feat: implement StdErr for poem::Error [#868](https://github.com/poem-web/poem/pull/868)
+
+
+# [3.0.4] 2024-07-27
+
+- Add manual Default implementation for `#[handler]` [#848](https://github.com/poem-web/poem/pull/848)
+- feat: add `AsyncSeek trait` to `Upload::into_async_read` return type [#853](https://github.com/poem-web/poem/pull/853)
+- Fix `EmbeddedFilesEndpoint` not working for `index.html` in subdirectories [#825](https://github.com/poem-web/poem/pull/825)
+- chore: Bump `redis` to `0.26` [#856](https://github.com/poem-web/poem/pull/856)
+- chore: bump `tokio-tungstenite`, `quick-xml`, `tokio`, `openssl` [#857](https://github.com/poem-web/poem/pull/857)
+
+# [3.0.3] 2024-07-20
+
+- bump `opentelemetry` from `0.23` to `0.24`
+
+# [3.0.2] 2024-07-19
+
+- bump `opentelemetry` to `0.23`
+- fix(prometheus): use correct content-type header [#839](https://github.com/poem-web/poem/pull/839)
+- updated swagger UI to v5.17.14 [#842](https://github.com/poem-web/poem/pull/842)
+- fix: catch unwind for serve_connection [#844](https://github.com/poem-web/poem/pull/844)
+- add some methods to Server for HTTP2 settings
+
+# [3.0.1] 2024-05-18
+
+- Fix error response builder, missing Content-Type header [#808](https://github.com/poem-web/poem/pull/808)
+- Fast fix for acme [#804](https://github.com/poem-web/poem/pull/804)
+- RequestId Middleware [#806](https://github.com/poem-web/poem/pull/806)
+- Bump `hyper-util` from `0.1.1` to `0.1.3` 
+
+# [3.0.0] 2024-03-30
+
+- use AFIT instead of `async_trait`
+- bump `priority-queue` to `2.0`
+- bump `x509-parser` to `0.16`
+- bump `nix` to `0.28`
+- bump `redis` to `0.25`
+- bump `reqwest` to `0.12`
+- bump `opentelemetry` to `0.22`  [#784](https://github.com/poem-web/poem/pull/784)
+- bump `sync_wrapper` to `1.0.0`
+- bump `rcgen ` to `0.13.0`
+- bump `base64 ` to `0.22.0`
+
+# [2.0.1] 2024-03-04
+
+- update rustls-pemfile to 2.0 [#736](https://github.com/poem-web/poem/pull/736)
+- update cookie to 0.18 [#737](https://github.com/poem-web/poem/issues/737)
+- fix #762 [#763](https://github.com/poem-web/poem/pull/763)
+
+# [2.0.0] 2024-01-06
+
+- upgrade to `hyper1`
+- allow WebSocket casing for upgrade header [#709](https://github.com/poem-web/poem/pull/709)
+
 # [1.3.59] 2023-11-19
 
 - added permissions and owner to UnixListener [#668](https://github.com/poem-web/poem/pull/668)

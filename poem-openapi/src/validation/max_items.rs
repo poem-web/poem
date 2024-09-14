@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Display)]
-#[display(fmt = "maxItems({len})")]
+#[display("maxItems({len})")]
 pub struct MaxItems {
     len: usize,
 }

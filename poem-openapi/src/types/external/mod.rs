@@ -16,6 +16,8 @@ mod hashmap;
 mod hashset;
 #[cfg(feature = "humantime")]
 mod humantime;
+#[cfg(feature = "humantime")]
+mod humantime_wrapper;
 mod integers;
 mod ip;
 mod optional;
@@ -23,6 +25,8 @@ mod optional;
 mod prost_wkt_types;
 mod regex;
 mod slice;
+#[cfg(feature = "sqlx")]
+mod sqlx;
 mod string;
 #[cfg(feature = "time")]
 mod time;

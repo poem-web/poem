@@ -21,9 +21,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2022/09/22/Rust-1.64.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.64.0+-ab6000.svg"
-      alt="rustc 1.64.0+" />
+  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.76.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.76.0+-ab6000.svg"
+      alt="rustc 1.76.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -69,6 +69,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | prost-wkt-types  | Integrate with the [`prost-wkt-types` crate](https://crates.io/crates/prost-wkt-types) |
 | static-files     | Support for static file response                                                       |
 | websocket        | Support for websocket                                                                  |
+|sonic-rs       | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities          |
 
 ## Safety
 
@@ -109,8 +110,8 @@ async fn main() -> Result<(), std::io::Error> {
 This feature needs to be opted-in. It can be done by adding the feature in `Cargo.toml` file
 ```toml filename=Cargo.toml
 [dependencies]
-poem = "1"
-poem-openapi = { version = "2", features = ["swagger-ui"]}
+poem = "3"
+poem-openapi = { version = "5", features = ["swagger-ui"]}
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -130,7 +131,7 @@ hello, sunli!
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.67.0`.
+The minimum supported Rust version for this crate is `1.76.0`.
 
 ## Contributing
 

@@ -1,13 +1,11 @@
 use std::io::{Error as IoError, ErrorKind, Result as IoResult};
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use http::{Method, Uri};
-use hyper::{client::HttpConnector, Client};
-use hyper_rustls::HttpsConnector;
+use reqwest::{Client, Response};
 use ring::digest::{digest, Digest, SHA256};
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{listener::acme::keypair::KeyPair, Request, Response};
+use crate::listener::acme::keypair::KeyPair;
 
 #[derive(Serialize)]
 struct Protected<'a> {
@@ -34,7 +32,12 @@ impl<'a> Protected<'a> {
             nonce,
             url,
         };
+        #[cfg(not(feature = "sonic-rs"))]
         let protected = serde_json::to_vec(&protected).map_err(|err| {
+            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
+        })?;
+        #[cfg(feature = "sonic-rs")]
+        let protected = sonic_rs::to_vec(&protected).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         Ok(URL_SAFE_NO_PAD.encode(protected))
@@ -80,7 +83,12 @@ impl Jwk {
             x: &self.x,
             y: &self.y,
         };
+        #[cfg(not(feature = "sonic-rs"))]
         let json = serde_json::to_vec(&jwk_thumb).map_err(|err| {
+            IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
+        })?;
+        #[cfg(feature = "sonic-rs")]
+        let json = sonic_rs::to_vec(&jwk_thumb).map_err(|err| {
             IoError::new(ErrorKind::Other, format!("failed to encode jwt: {err}"))
         })?;
         let hash = sha256(json);
@@ -100,62 +108,70 @@ struct Body {
 }
 
 pub(crate) async fn request(
-    cli: &Client<HttpsConnector<HttpConnector>>,
+    cli: &Client,
     key_pair: &KeyPair,
     kid: Option<&str>,
     nonce: &str,
-    uri: &Uri,
+    uri: &str,
     payload: Option<impl Serialize>,
 ) -> IoResult<Response> {
     let jwk = match kid {
         None => Some(Jwk::new(key_pair)),
         Some(_) => None,
     };
-    let protected = Protected::base64(jwk, kid, nonce, &uri.to_string())?;
+    let protected = Protected::base64(jwk, kid, nonce, uri)?;
     let payload = match payload {
-        Some(payload) => serde_json::to_vec(&payload).map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
-        })?,
+        Some(payload) => {
+            #[cfg(not(feature = "sonic-rs"))]
+            let res = serde_json::to_vec(&payload).map_err(|err| {
+                IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
+            })?;
+            #[cfg(feature = "sonic-rs")]
+            let res = sonic_rs::to_vec(&payload).map_err(|err| {
+                IoError::new(ErrorKind::Other, format!("failed to encode payload: {err}"))
+            })?;
+            res
+        }
         None => Vec::new(),
     };
     let payload = URL_SAFE_NO_PAD.encode(payload);
     let combined = format!("{}.{}", &protected, &payload);
     let signature = URL_SAFE_NO_PAD.encode(key_pair.sign(combined.as_bytes())?);
-    let body = serde_json::to_vec(&Body {
-        protected,
-        payload,
-        signature,
-    })
-    .unwrap();
-    let req = Request::builder()
-        .method(Method::POST)
-        .uri(uri.clone())
-        .content_type("application/jose+json")
-        .body(body);
 
     tracing::debug!(uri = %uri, "http request");
 
-    let resp = cli.request(req.into()).await.map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed to send http request: {err}"),
-        )
-    })?;
+    let resp = cli
+        .post(uri)
+        .header("content-type", "application/jose+json")
+        .json(&Body {
+            protected,
+            payload,
+            signature,
+        })
+        .send()
+        .await
+        .map_err(|err| {
+            IoError::new(
+                ErrorKind::Other,
+                format!("failed to send http request: {err}"),
+            )
+        })?;
+
     if !resp.status().is_success() {
         return Err(IoError::new(
             ErrorKind::Other,
             format!("unexpected status code: status = {}", resp.status()),
         ));
     }
-    Ok(resp.into())
+    Ok(resp)
 }
 
 pub(crate) async fn request_json<T, R>(
-    cli: &Client<HttpsConnector<HttpConnector>>,
+    cli: &Client,
     key_pair: &KeyPair,
     kid: Option<&str>,
     nonce: &str,
-    uri: &Uri,
+    uri: &str,
     payload: Option<T>,
 ) -> IoResult<R>
 where
@@ -165,12 +181,19 @@ where
     let resp = request(cli, key_pair, kid, nonce, uri, payload).await?;
 
     let data = resp
-        .into_body()
-        .into_string()
+        .text()
         .await
         .map_err(|_| IoError::new(ErrorKind::Other, "failed to read response"))?;
-    serde_json::from_str(&data)
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {err}")))
+    #[cfg(not(feature = "sonic-rs"))]
+    {
+        serde_json::from_str(&data)
+            .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {err}")))
+    }
+    #[cfg(feature = "sonic-rs")]
+    {
+        sonic_rs::from_str(&data)
+            .map_err(|err| IoError::new(ErrorKind::Other, format!("bad response: {err}")))
+    }
 }
 
 pub(crate) fn key_authorization(key: &KeyPair, token: &str) -> IoResult<String> {

@@ -26,7 +26,6 @@ impl<T> DerefMut for Cookie<T> {
     }
 }
 
-#[poem::async_trait]
 impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Cookie<T> {
     const TYPES: &'static [ApiExtractorType] = &[ApiExtractorType::Parameter];
     const PARAM_IS_REQUIRED: bool = T::IS_REQUIRED;
@@ -95,7 +94,6 @@ impl<T> DerefMut for CookiePrivate<T> {
     }
 }
 
-#[poem::async_trait]
 impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookiePrivate<T> {
     const TYPES: &'static [ApiExtractorType] = &[ApiExtractorType::Parameter];
     const PARAM_IS_REQUIRED: bool = T::IS_REQUIRED;
@@ -165,7 +163,6 @@ impl<T> DerefMut for CookieSigned<T> {
     }
 }
 
-#[poem::async_trait]
 impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookieSigned<T> {
     const TYPES: &'static [ApiExtractorType] = &[ApiExtractorType::Parameter];
     const PARAM_IS_REQUIRED: bool = T::IS_REQUIRED;

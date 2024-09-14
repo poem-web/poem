@@ -6,7 +6,7 @@ use std::{
 use poem::web::Field as PoemField;
 use tokio::{
     fs::File,
-    io::{AsyncRead, AsyncReadExt, Error as IoError, ErrorKind},
+    io::{AsyncRead, AsyncReadExt, AsyncSeek, Error as IoError, ErrorKind},
 };
 
 use crate::{
@@ -19,6 +19,7 @@ pub struct Upload {
     file_name: Option<String>,
     content_type: Option<String>,
     file: File,
+    size: usize,
 }
 
 impl Debug for Upload {
@@ -47,6 +48,12 @@ impl Upload {
         self.file_name.as_deref()
     }
 
+    /// Returns the file size in bytes.
+    #[inline]
+    pub fn size(&self) -> usize {
+        self.size
+    }
+
     /// Consumes this body object to return a [`Vec<u8>`] that contains all
     /// data.
     pub async fn into_vec(self) -> Result<Vec<u8>, IoError> {
@@ -67,7 +74,12 @@ impl Upload {
     }
 
     /// Consumes this body object to return a reader.
-    pub fn into_async_read(self) -> impl AsyncRead + Unpin + Send + 'static {
+    pub fn into_async_read(self) -> impl AsyncRead + AsyncSeek + Unpin + Send + 'static {
+        self.file
+    }
+
+    /// Consumes this body object to return the file.
+    pub fn into_file(self) -> File {
         self.file
     }
 }
@@ -98,17 +110,19 @@ impl Type for Upload {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for Upload {
     async fn parse_from_multipart(field: Option<PoemField>) -> ParseResult<Self> {
         match field {
             Some(field) => {
                 let content_type = field.content_type().map(ToString::to_string);
                 let file_name = field.file_name().map(ToString::to_string);
+                let file = field.tempfile().await.map_err(ParseError::custom)?;
+                let size = file.metadata().await.map_err(ParseError::custom)?.len() as usize;
                 Ok(Self {
                     content_type,
                     file_name,
-                    file: field.tempfile().await.map_err(ParseError::custom)?,
+                    file,
+                    size,
                 })
             }
             None => Err(ParseError::expected_input()),

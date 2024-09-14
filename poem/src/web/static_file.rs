@@ -101,7 +101,6 @@ pub struct StaticFileRequest {
     range: Option<Range>,
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for StaticFileRequest {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(Self {
@@ -129,7 +128,10 @@ impl StaticFileRequest {
         let mut content_length = data.len() as u64;
         let mut content_range = None;
 
-        let body = if let Some((start, end)) = self.range.and_then(|range| range.iter().next()) {
+        let body = if let Some((start, end)) = self
+            .range
+            .and_then(|range| range.satisfiable_ranges(data.len() as u64).next())
+        {
             let start = match start {
                 Bound::Included(n) => n,
                 Bound::Excluded(n) => n + 1,
@@ -232,7 +234,10 @@ impl StaticFileRequest {
 
         let mut content_range = None;
 
-        let body = if let Some((start, end)) = self.range.and_then(|range| range.iter().next()) {
+        let body = if let Some((start, end)) = self
+            .range
+            .and_then(|range| range.satisfiable_ranges(metadata.len()).next())
+        {
             let start = match start {
                 Bound::Included(n) => n,
                 Bound::Excluded(n) => n + 1,

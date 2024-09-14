@@ -51,7 +51,6 @@ impl ParseFromParameter for ObjectId {
     }
 }
 
-#[poem::async_trait]
 impl ParseFromMultipartField for ObjectId {
     async fn parse_from_multipart(field: Option<Field>) -> ParseResult<Self> {
         match field {
@@ -63,7 +62,7 @@ impl ParseFromMultipartField for ObjectId {
 
 impl ToJSON for ObjectId {
     fn to_json(&self) -> Option<Value> {
-        Some(serde_json::to_value(self).unwrap())
+        serde_json::to_value(self).ok()
     }
 }
 

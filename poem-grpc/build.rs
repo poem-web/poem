@@ -13,5 +13,12 @@ fn main() -> Result<()> {
     // for test
     poem_grpc_build::Config::new()
         .internal()
-        .compile(&["proto/test_harness.proto"], &["proto/"])
+        .compile(&["proto/test_harness.proto"], &["proto/"])?;
+
+    // example
+    poem_grpc_build::Config::new()
+        .internal()
+        .compile(&["src/example_generated/routeguide.proto"], &[] as &[&str])?;
+
+    Ok(())
 }

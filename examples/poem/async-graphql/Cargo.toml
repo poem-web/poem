@@ -7,6 +7,6 @@ publish.workspace = true
 [dependencies]
 poem.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-async-graphql = "5.0.10"
+async-graphql = "7.0.7"
 slab = "0.4.4"
 tracing-subscriber.workspace = true

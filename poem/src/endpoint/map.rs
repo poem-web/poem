@@ -15,7 +15,6 @@ impl<E, F> Map<E, F> {
     }
 }
 
-#[async_trait::async_trait]
 impl<E, F, Fut, R, R2> Endpoint for Map<E, F>
 where
     E: Endpoint<Output = R>,

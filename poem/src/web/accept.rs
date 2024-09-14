@@ -26,7 +26,6 @@ fn parse_accept(headers: &HeaderMap) -> Vec<Mime> {
     items.into_iter().map(|(mime, _)| mime).collect()
 }
 
-#[async_trait::async_trait]
 impl<'a> FromRequest<'a> for Accept {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
         Ok(Self(parse_accept(req.headers())))
@@ -36,8 +35,6 @@ impl<'a> FromRequest<'a> for Accept {
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
-
-    use http::header;
 
     use super::*;
 

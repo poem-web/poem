@@ -135,7 +135,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     let from_multipart = if args.from_multipart {
         Some(quote! {
-            #[#crate_name::__private::poem::async_trait]
             impl #impl_generics #crate_name::types::ParseFromMultipartField for #ident #ty_generics #where_clause {
                 async fn parse_from_multipart(field: ::std::option::Option<#crate_name::__private::poem::web::Field>) -> #crate_name::types::ParseResult<Self> {
                     let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromMultipartField>::parse_from_multipart(field).await, poem_openapi::types::ParseError::propagate)?;

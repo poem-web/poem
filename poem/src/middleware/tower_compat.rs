@@ -57,7 +57,7 @@ where
     }
 }
 
-/// An endpoint to tower service adapter.
+/// An endpoint to the tower service adapter.
 pub struct EndpointToTowerService<E>(Arc<E>);
 
 impl<E> Service<Request> for EndpointToTowerService<E>
@@ -81,7 +81,6 @@ where
 /// An tower service to endpoint adapter.
 pub struct TowerServiceToEndpoint<Svc: Service<Request>>(Buffer<Svc, Request>);
 
-#[async_trait::async_trait]
 impl<Svc> Endpoint for TowerServiceToEndpoint<Svc>
 where
     Svc: Service<Request> + Send + 'static,

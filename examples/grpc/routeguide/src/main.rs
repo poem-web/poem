@@ -12,7 +12,6 @@ struct RouteGuideService {
     features: Arc<Vec<Feature>>,
 }
 
-#[poem::async_trait]
 impl RouteGuide for RouteGuideService {
     async fn get_feature(&self, request: Request<Point>) -> Result<Response<Feature>, Status> {
         for feature in &self.features[..] {
@@ -84,7 +83,7 @@ impl RouteGuide for RouteGuideService {
             while let Some(note) = stream.next().await {
                 let note = note?;
 
-                let location = note.location.clone().unwrap();
+                let location = note.location.unwrap();
 
                 let location_notes = notes.entry(location).or_insert(vec![]);
                 location_notes.push(note);

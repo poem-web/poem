@@ -32,7 +32,6 @@ struct BasicAuthEndpoint<E> {
     password: String,
 }
 
-#[poem::async_trait]
 impl<E: Endpoint> Endpoint for BasicAuthEndpoint<E> {
     type Output = E::Output;
 

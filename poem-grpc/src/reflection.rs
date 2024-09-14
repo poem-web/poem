@@ -8,7 +8,7 @@ use proto::{
     server_reflection_request::MessageRequest, server_reflection_response::MessageResponse,
 };
 
-use crate::{include_file_descriptor_set, Code, Request, Response, Service, Status, Streaming};
+use crate::{Code, Request, Response, Service, Status, Streaming};
 
 #[allow(unreachable_pub)]
 #[allow(clippy::enum_variant_names)]
@@ -80,7 +80,6 @@ struct ServerReflectionService {
     state: Arc<State>,
 }
 
-#[poem::async_trait]
 impl proto::ServerReflection for ServerReflectionService {
     async fn server_reflection_info(
         &self,
@@ -139,7 +138,7 @@ impl Reflection {
         let fd_iter = std::mem::take(&mut this.file_descriptor_sets)
             .into_iter()
             .flat_map(|fds| fds.file.into_iter());
-        let mut files = HashMap::new();
+        let mut files = HashMap::with_capacity(fd_iter.size_hint().0);
 
         for fd in fd_iter {
             let fd = Arc::new(fd);

@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine};
-use hyper::header::HeaderName;
+use http::HeaderName;
 use poem::http::{HeaderMap, HeaderValue};
 
 /// A metadata map

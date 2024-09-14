@@ -1,9 +1,11 @@
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display},
+    future::Future,
     ops::Deref,
 };
 
+use futures_util::FutureExt;
 use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
 
 use crate::{
@@ -31,6 +33,7 @@ pub enum ApiExtractorType {
 }
 
 #[doc(hidden)]
+#[derive(Clone)]
 pub struct UrlQuery(pub Vec<(String, String)>);
 
 impl Deref for UrlQuery {
@@ -65,6 +68,9 @@ pub struct ExtractParamOptions<T> {
     /// The default value of this parameter.
     pub default_value: Option<fn() -> T>,
 
+    /// The example value of this parameter.
+    pub example_value: Option<fn() -> T>,
+
     /// When this is `true`, parameter values of type array or object generate
     /// separate parameters for each value of the array or key-value pair of the
     /// map.
@@ -76,6 +82,7 @@ impl<T> Default for ExtractParamOptions<T> {
         Self {
             name: "",
             default_value: None,
+            example_value: None,
             explode: true,
         }
     }
@@ -88,66 +95,65 @@ impl<T> Default for ExtractParamOptions<T> {
 /// - **Path&lt;T: Type>**
 ///
 ///    Extract the parameters in the request path into
-/// [`Path`](crate::param::Path).
+///    [`Path`](crate::param::Path).
 ///
 /// - **Query&lt;T: Type>**
 ///
 ///    Extract the parameters in the query string into
-/// [`Query`](crate::param::Query).
+///    [`Query`](crate::param::Query).
 ///
 /// - **Header&lt;T: Type>**
 ///
 ///    Extract the parameters in the request header into
-/// [`Header`](crate::param::Header).
+///    [`Header`](crate::param::Header).
 ///
 /// - **Cookie&lt;T: Type>**
 ///
 ///    Extract the parameters in the cookie into
-/// [`Cookie`](crate::param::Cookie).
+///    [`Cookie`](crate::param::Cookie).
 ///
 /// - **CookiePrivate&lt;T: Type>**
 ///
 ///    Extract the parameters in the private cookie into
-/// [`CookiePrivate`](crate::param::CookiePrivate).
+///    [`CookiePrivate`](crate::param::CookiePrivate).
 ///
 /// - **CookieSigned&lt;T: Type>**
 ///
 ///    Extract the parameters in the signed cookie into
-/// [`CookieSigned`](crate::param::CookieSigned).
+///    [`CookieSigned`](crate::param::CookieSigned).
 ///
 /// - **Binary&lt;T>**
 ///
-///     Extract the request body as binary into
-/// [`Binary`](crate::payload::Binary).
+///    Extract the request body as binary into
+///    [`Binary`](crate::payload::Binary).
 ///
 /// - **Json&lt;T>**
 ///
-///     Parse the request body in `JSON` format into
-/// [`Json`](crate::payload::Json).
+///    Parse the request body in `JSON` format into
+///    [`Json`](crate::payload::Json).
 ///
 /// - **PlainText&lt;T>**
 ///
-///     Extract the request body as utf8 string into
-/// [`PlainText`](crate::payload::PlainText).
+///    Extract the request body as utf8 string into
+///    [`PlainText`](crate::payload::PlainText).
 ///
 /// - **Any type derived from the [`ApiRequest`](crate::ApiRequest) macro**
 ///
-///     Extract the complex request body derived from the `ApiRequest` macro.
+///    Extract the complex request body derived from the `ApiRequest` macro.
 ///
 /// - **Any type derived from the [`Multipart`](crate::Multipart) macro**
 ///
-///     Extract the multipart object derived from the `Multipart` macro.
+///    Extract the multipart object derived from the `Multipart` macro.
 ///
 /// - **Any type derived from the [`SecurityScheme`](crate::SecurityScheme)
 ///   macro**
 ///
-///     Extract the authentication value derived from the `SecurityScheme`
-/// macro.
+///    Extract the authentication value derived from the `SecurityScheme`
+///    macro.
 ///
 /// - **T: poem::FromRequest**
 ///
-///     Use Poem's extractor.
-#[poem::async_trait]
+///    Use Poem's extractor.
 #[allow(unused_variables)]
 pub trait ApiExtractor<'a>: Sized {
     /// The type of API extractor.
@@ -191,14 +197,13 @@ pub trait ApiExtractor<'a>: Sized {
     }
 
     /// Parse from the HTTP request.
-    async fn from_request(
+    fn from_request(
         request: &'a Request,
         body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
-    ) -> Result<Self>;
+    ) -> impl Future<Output = Result<Self>> + Send;
 }
 
-#[poem::async_trait]
 impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
     const TYPES: &'static [ApiExtractorType] = &[ApiExtractorType::PoemExtractor];
 
@@ -210,7 +215,9 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
         body: &mut RequestBody,
         _param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
-        T::from_request(request, body).await
+        // FIXME: remove the unnecessary boxed
+        // https://github.com/rust-lang/rust/issues/100013
+        T::from_request(request, body).boxed().await
     }
 }
 
@@ -243,24 +250,24 @@ impl<T: Payload> ResponseContent for T {
 ///
 /// - **Binary&lt;T: Type>**
 ///
-///     A binary response with content type `application/octet-stream`.
+///    A binary response with content type `application/octet-stream`.
 ///
 /// - **Json&lt;T: Type>**
 ///
-///     A JSON response with content type `application/json`.
+///    A JSON response with content type `application/json`.
 ///
 /// - **PlainText&lt;T: Type>**
 ///
-///     A utf8 string response with content type `text/plain`.
+///    A utf8 string response with content type `text/plain`.
 ///
 /// - **Attachment&lt;T: Type>**
 ///
-///     A file download response, the content type is
-/// `application/octet-stream`.
+///    A file download response, the content type is
+///    `application/octet-stream`.
 ///
 /// - **Response&lt;T: Type>**
 ///
-///     A response type use it to modify the status code and HTTP headers.
+///    A response type use it to modify the status code and HTTP headers.
 ///
 /// - **()**
 ///

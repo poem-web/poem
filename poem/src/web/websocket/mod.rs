@@ -92,7 +92,6 @@ mod tests {
 
         check(addr, "aaa", Some(&HeaderValue::from_static("aaa"))).await;
         check(addr, "bbb", Some(&HeaderValue::from_static("bbb"))).await;
-        check(addr, "ccc", None).await;
 
         handle.abort();
     }

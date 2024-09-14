@@ -32,7 +32,8 @@ pub trait ApiKeyAuthorization: Sized {
     ) -> Result<Self>;
 }
 
-/// Facilitates the conversion of `Option` into `Results`, for `SecuritySchema` checker.
+/// Facilitates the conversion of `Option` into `Results`, for `SecuritySchema`
+/// checker.
 #[doc(hidden)]
 pub enum CheckerReturn<T> {
     Result(Result<T>),

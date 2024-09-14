@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use async_trait::async_trait;
 use rust_embed::RustEmbed;
 
 use crate::{
@@ -26,7 +25,6 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFileEndpoint<E> {
     }
 }
 
-#[async_trait]
 impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
     type Output = Response;
 
@@ -81,21 +79,33 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     }
 }
 
-#[async_trait]
 impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output, Error> {
-        let mut path = req
-            .uri()
-            .path()
-            .trim_start_matches('/')
-            .trim_end_matches('/')
-            .to_string();
-        if path.is_empty() {
-            path = "index.html".to_string();
+        let path = req.uri().path().trim_start_matches('/');
+        let original_path = req.original_uri().path();
+        let original_end_with_slash = original_path.ends_with('/');
+
+        use header::LOCATION;
+
+        if path.is_empty() && !original_end_with_slash {
+            Ok(Response::builder()
+                .status(StatusCode::FOUND)
+                .header(LOCATION, format!("{}/", original_path))
+                .finish())
+        } else if original_end_with_slash {
+            let path = format!("{}index.html", path);
+            EmbeddedFileEndpoint::<E>::new(&path).call(req).await
+        } else if E::get(path).is_some() {
+            EmbeddedFileEndpoint::<E>::new(path).call(req).await
+        } else if E::get(&format!("{}/index.html", path)).is_some() {
+            Ok(Response::builder()
+                .status(StatusCode::FOUND)
+                .header(LOCATION, format!("{}/", original_path))
+                .finish())
+        } else {
+            EmbeddedFileEndpoint::<E>::new(path).call(req).await
         }
-        let path = path.as_ref();
-        EmbeddedFileEndpoint::<E>::new(path).call(req).await
     }
 }

@@ -19,12 +19,11 @@ impl<E: Endpoint> Middleware<E> for Tracing {
     }
 }
 
-/// Endpoint for `Tracing` middleware.
+/// Endpoint for the `Tracing` middleware.
 pub struct TracingEndpoint<E> {
     inner: E,
 }
 
-#[async_trait::async_trait]
 impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
     type Output = Response;
 
@@ -36,6 +35,7 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
             .map(|addr| addr.to_string())
             .unwrap_or_else(|| req.remote_addr().to_string());
 
+        #[cfg(not(feature = "requestid"))]
         let span = tracing::span!(
             target: module_path!(),
             Level::INFO,
@@ -45,6 +45,36 @@ impl<E: Endpoint> Endpoint for TracingEndpoint<E> {
             method = %req.method(),
             uri = %req.original_uri(),
         );
+        #[cfg(feature = "requestid")]
+        let span = {
+            req.extensions()
+                .get::<crate::middleware::requestid::ReqId>()
+                .map_or_else(
+                    || {
+                        tracing::span!(
+                            target: module_path!(),
+                            Level::INFO,
+                            "request",
+                            remote_addr = %remote_addr,
+                            version = ?req.version(),
+                            method = %req.method(),
+                            uri = %req.original_uri(),
+                        )
+                    },
+                    |request_id| {
+                        tracing::span!(
+                            target: module_path!(),
+                            Level::INFO,
+                            "request",
+                            remote_addr = %remote_addr,
+                            version = ?req.version(),
+                            method = %req.method(),
+                            uri = %req.original_uri(),
+                            %request_id
+                        )
+                    },
+                )
+        };
 
         if let Some(path_pattern) = req.data::<PathPattern>() {
             span.record("path_pattern", path_pattern.0.as_ref());

@@ -1,7 +1,7 @@
-use darling::{ast::NestedMeta, util::SpannedValue, FromMeta};
+use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Lit, Meta, Path};
+use syn::{Lit, Path};
 
 #[derive(Debug, Copy, Clone, FromMeta)]
 #[allow(clippy::enum_variant_names)]
@@ -94,22 +94,6 @@ pub(crate) fn apply_rename_rule_variant(rule: Option<RenameRule>, variant: Strin
     }
 }
 
-pub(crate) struct PathList(pub(crate) Vec<Path>);
-
-impl FromMeta for PathList {
-    fn from_list(items: &[NestedMeta]) -> darling::Result<Self> {
-        let mut res = Vec::new();
-        for item in items {
-            if let NestedMeta::Meta(Meta::Path(p)) = item {
-                res.push(p.clone());
-            } else {
-                return Err(darling::Error::custom("Invalid path list"));
-            }
-        }
-        Ok(PathList(res))
-    }
-}
-
 #[derive(Debug, Copy, Clone, FromMeta, Eq, PartialEq, Hash)]
 #[darling(rename_all = "lowercase")]
 pub(crate) enum APIMethod {
@@ -166,6 +150,25 @@ impl FromMeta for DefaultValue {
     fn from_value(value: &Lit) -> darling::Result<Self> {
         match value {
             Lit::Str(str) => Ok(DefaultValue::Function(syn::parse_str(&str.value())?)),
+            _ => Err(darling::Error::unexpected_lit_type(value).with_span(value)),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum ExampleValue {
+    Default,
+    Function(Path),
+}
+
+impl FromMeta for ExampleValue {
+    fn from_word() -> darling::Result<Self> {
+        Ok(ExampleValue::Default)
+    }
+
+    fn from_value(value: &Lit) -> darling::Result<Self> {
+        match value {
+            Lit::Str(str) => Ok(ExampleValue::Function(syn::parse_str(&str.value())?)),
             _ => Err(darling::Error::unexpected_lit_type(value).with_span(value)),
         }
     }

@@ -43,7 +43,6 @@ impl<T: Send> Payload for PlainText<T> {
     }
 }
 
-#[poem::async_trait]
 impl ParsePayload for PlainText<String> {
     const IS_REQUIRED: bool = true;
 
