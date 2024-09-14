@@ -300,7 +300,10 @@ impl Status {
     /// Attach a meta data to this status.
     #[inline]
     pub fn with_metadata(self, metadata: Metadata) -> Self {
-        Self { metadata: Box::new(metadata), ..self }
+        Self {
+            metadata: Box::new(metadata),
+            ..self
+        }
     }
 
     /// Returns a reference to the metadata.
