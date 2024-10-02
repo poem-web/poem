@@ -2,7 +2,7 @@ use std::{borrow::Cow, future::Future};
 
 use futures_util::{future::BoxFuture, FutureExt};
 use headers::HeaderMapExt;
-use tokio_tungstenite::tungstenite::protocol::Role;
+use tokio_tungstenite::tungstenite::protocol::{Role, WebSocketConfig};
 
 use super::{utils::sign, WebSocketStream};
 use crate::{
@@ -24,6 +24,7 @@ pub struct WebSocket {
     on_upgrade: OnUpgrade,
     protocols: Option<Box<[Cow<'static, str>]>>,
     sec_websocket_protocol: Option<HeaderValue>,
+    config: Option<WebSocketConfig>,
 }
 
 impl WebSocket {
@@ -62,6 +63,7 @@ impl WebSocket {
             on_upgrade: req.take_upgrade()?,
             protocols: None,
             sec_websocket_protocol,
+            config: None,
         })
     }
 }
@@ -107,6 +109,14 @@ impl WebSocket {
                 .into(),
         );
         self
+    }
+
+    /// Set the WebSocket configuration.
+    pub fn config(self, config: WebSocketConfig) -> Self {
+        Self {
+            config: Some(config),
+            ..self
+        }
     }
 
     /// Finalize upgrading the connection and call the provided `callback` with
@@ -198,9 +208,12 @@ where
                 Err(_) => return,
             };
 
-            let stream =
-                tokio_tungstenite::WebSocketStream::from_raw_socket(upgraded, Role::Server, None)
-                    .await;
+            let stream = tokio_tungstenite::WebSocketStream::from_raw_socket(
+                upgraded,
+                Role::Server,
+                self.websocket.config,
+            )
+            .await;
             (self.callback)(WebSocketStream::new(stream)).await;
         });
 
