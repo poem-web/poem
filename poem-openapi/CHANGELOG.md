@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [4.0.0] 2024-01-06
 
 - upgrade to `hyper1`
-- added documetation on how to merge API specs [#716](https://github.com/poem-web/poem/pull/716)
+- added documentation on how to merge API specs [#716](https://github.com/poem-web/poem/pull/716)
 - impl Type for std::time::Duration instead of only humantime::Duration [#713](https://github.com/poem-web/poem/pull/713)
 
 # [3.0.6] 2023-11-19
@@ -416,7 +416,7 @@ struct Obj {
 
 # [1.2.11] 2021-12-27
 
-- Remove the `OpenApi::combine` method, `OpenApiSerice::new` can be passed a tuple to combine multiple API objects.
+- Remove the `OpenApi::combine` method, `OpenApiService::new` can be passed a tuple to combine multiple API objects.
 
 # [1.2.10] 2021-12-26
 
