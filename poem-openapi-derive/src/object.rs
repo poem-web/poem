@@ -31,6 +31,8 @@ struct ObjectField {
     #[darling(default)]
     write_only: bool,
     #[darling(default)]
+    nullable: bool,
+    #[darling(default)]
     read_only: bool,
     #[darling(default)]
     validator: Option<Validators>,
@@ -68,6 +70,8 @@ struct ObjectArgs {
     read_only_all: bool,
     #[darling(default)]
     write_only_all: bool,
+    #[darling(default)]
+    nullable_all: bool,
     #[darling(default)]
     deny_unknown_fields: bool,
     #[darling(default)]
@@ -115,6 +119,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let field_ty = &field.ty;
         let read_only = args.read_only_all || field.read_only;
         let write_only = args.write_only_all || field.write_only;
+        let nullable = args.nullable_all || field.nullable;
         let skip_serializing_if_is_none =
             field.skip_serializing_if_is_none || args.skip_serializing_if_is_none;
         let skip_serializing_if_is_empty =
@@ -287,6 +292,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let patch_schema = {
                     let mut schema = #crate_name::registry::MetaSchema::ANY;
                     schema.default = #field_meta_default;
+                    schema.nullable = #nullable;
                     schema.read_only = #read_only;
                     schema.write_only = #write_only;
 
