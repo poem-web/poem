@@ -6,7 +6,7 @@ use std::{
 
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
 
-use super::{utils::tungstenite_error_to_io_error, Message};
+use super::{utils::tungstenite_error_to_io_error, Message, WebSocketConfig};
 use crate::Upgraded;
 
 /// A `WebSocket` stream, which implements [`Stream<Message>`] and
@@ -18,6 +18,11 @@ pub struct WebSocketStream {
 impl WebSocketStream {
     pub(crate) fn new(inner: tokio_tungstenite::WebSocketStream<Upgraded>) -> Self {
         Self { inner }
+    }
+
+    /// Returns a reference to the configuration of the stream.
+    pub fn get_config(&self) -> &WebSocketConfig {
+        self.inner.get_config()
     }
 }
 
