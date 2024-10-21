@@ -57,7 +57,7 @@ pub use self::{
     size_limit::{SizeLimit, SizeLimitEndpoint},
     tracing_mw::{Tracing, TracingEndpoint},
 };
-use crate::endpoint::Endpoint;
+use crate::endpoint::{EitherEndpoint, Endpoint};
 
 /// Represents a middleware trait.
 ///
@@ -205,14 +205,13 @@ pub trait Middleware<E: Endpoint> {
     ///     );
     ///
     ///     let resp = ep.call(Request::default()).await.unwrap();
-    ///     assert_eq!(
-    ///         resp.headers()
-    ///             .get_all("myheader")
-    ///             .iter()
-    ///             .flat_map(|value| value.to_str().ok())
-    ///             .collect::<Vec<_>>(),
-    ///         vec!["a", "b"]
-    ///     );
+    ///     let values = resp
+    ///         .headers()
+    ///         .get_all("myheader")
+    ///         .iter()
+    ///         .flat_map(|value| value.to_str().ok())
+    ///         .collect::<Vec<_>>();
+    ///     assert_eq!(values, vec!["a", "b"]);
     ///     Ok(())
     /// }
     /// ```
@@ -225,6 +224,70 @@ pub trait Middleware<E: Endpoint> {
             a: self,
             b: other,
             _mark: PhantomData,
+        }
+    }
+
+    /// if `enable` is `true` then combine the middleware.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{
+    ///     handler, middleware::SetHeader, Endpoint, EndpointExt, Middleware, Request, Result,
+    /// };
+    ///
+    /// #[handler]
+    /// fn index() -> &'static str {
+    ///     "hello"
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), std::io::Error> {
+    ///     let ep1 = index.with(
+    ///         SetHeader::new()
+    ///             .appending("myheader", "a")
+    ///             .combine_if(false, SetHeader::new().appending("myheader", "b")),
+    ///     );
+    ///
+    ///     let ep2 = index.with(
+    ///         SetHeader::new()
+    ///             .appending("myheader", "a")
+    ///             .combine_if(true, SetHeader::new().appending("myheader", "b")),
+    ///     );
+    ///
+    ///     let resp = ep1.call(Request::default()).await.unwrap();
+    ///     let values = resp
+    ///         .headers()
+    ///         .get_all("myheader")
+    ///         .iter()
+    ///         .flat_map(|value| value.to_str().ok())
+    ///         .collect::<Vec<_>>();
+    ///     assert_eq!(values, vec!["a"]);
+    ///
+    ///     let resp = ep2.call(Request::default()).await.unwrap();
+    ///     let values = resp
+    ///         .headers()
+    ///         .get_all("myheader")
+    ///         .iter()
+    ///         .flat_map(|value| value.to_str().ok())
+    ///         .collect::<Vec<_>>();
+    ///     assert_eq!(values, vec!["a", "b"]);
+    ///     Ok(())
+    /// }
+    /// ```
+    fn combine_if<T>(
+        self,
+        enable: bool,
+        other: T,
+    ) -> EitherMiddleware<Self, CombineMiddleware<Self, T, E>, E>
+    where
+        T: Middleware<Self::Output> + Sized,
+        Self: Sized,
+    {
+        if !enable {
+            EitherMiddleware::left(self)
+        } else {
+            EitherMiddleware::right(self.combine(other))
         }
     }
 }
@@ -256,6 +319,47 @@ where
     #[inline]
     fn transform(&self, ep: E) -> Self::Output {
         self.b.transform(self.a.transform(ep))
+    }
+}
+
+/// The enum `EitherMiddleware` with variants `Left`` and `Right` is a general
+/// purpose sum type with two cases.
+
+pub enum EitherMiddleware<A, B, E> {
+    /// A middlware of type `A`
+    A(A, PhantomData<E>),
+    /// B middlware of type `B`
+    B(B, PhantomData<E>),
+}
+
+impl<A, B, E> EitherMiddleware<A, B, E> {
+    /// Create a new `EitherMiddleware` with the left variant.
+    #[inline]
+    pub fn left(a: A) -> Self {
+        EitherMiddleware::A(a, PhantomData)
+    }
+
+    /// Create a new `EitherMiddleware` with the right variant.
+    #[inline]
+    pub fn right(b: B) -> Self {
+        EitherMiddleware::B(b, PhantomData)
+    }
+}
+
+impl<A, B, E> Middleware<E> for EitherMiddleware<A, B, E>
+where
+    A: Middleware<E>,
+    B: Middleware<E>,
+    E: Endpoint,
+{
+    type Output = EitherEndpoint<A::Output, B::Output>;
+
+    #[inline]
+    fn transform(&self, ep: E) -> Self::Output {
+        match self {
+            EitherMiddleware::A(a, _) => EitherEndpoint::A(a.transform(ep)),
+            EitherMiddleware::B(b, _) => EitherEndpoint::B(b.transform(ep)),
+        }
     }
 }
 
