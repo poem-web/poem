@@ -20,7 +20,7 @@ impl Type for Regex {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(regex)".into()
+        "string_regex".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

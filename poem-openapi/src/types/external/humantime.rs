@@ -19,7 +19,7 @@ impl Type for Duration {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(duration)".into()
+        "string_duration".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

@@ -38,7 +38,7 @@ impl<T: AsRef<[u8]> + Send + Sync> Type for Base64<T> {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(bytes)".into()
+        "string_bytes".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

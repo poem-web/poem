@@ -20,7 +20,7 @@ impl Type for Decimal {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(decimal)".into()
+        "string_decimal".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

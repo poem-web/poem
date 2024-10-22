@@ -45,7 +45,7 @@ fn generics() {
 
     assert_eq!(
         <Obj<i32, i64>>::name(),
-        "Obj<integer(int32), integer(int64)>"
+        "Obj_integer_int32_integer_int64"
     );
     let meta = get_meta::<Obj<i32, i64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "integer");
@@ -56,7 +56,7 @@ fn generics() {
 
     assert_eq!(
         <Obj<f32, f64>>::name(),
-        "Obj<number(float), number(double)>"
+        "Obj_number_float_number_double"
     );
     let meta = get_meta::<Obj<f32, f64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "number");

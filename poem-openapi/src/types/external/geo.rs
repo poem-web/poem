@@ -18,7 +18,7 @@ macro_rules! impl_geojson_types {
             type RawElementValueType = Self;
 
             fn name() -> ::std::borrow::Cow<'static, str> {
-                concat!("GeoJSON<", $name, ">").into()
+                concat!("GeoJSON_", $name).into()
             }
 
             fn schema_ref() -> crate::registry::MetaSchemaRef {
