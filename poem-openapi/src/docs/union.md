@@ -1,4 +1,4 @@
-Define a OpenAPI discriminator object.
+Define an OpenAPI discriminator object.
 
 # Macro parameters
 

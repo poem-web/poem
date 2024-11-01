@@ -27,7 +27,7 @@ pub use string_types::Password;
 
 use crate::registry::{MetaSchemaRef, Registry};
 
-/// Represents a OpenAPI type.
+/// Represents an OpenAPI type.
 pub trait Type: Send + Sync {
     /// If it is `true`, it means that this type is required.
     const IS_REQUIRED: bool;

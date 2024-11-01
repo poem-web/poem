@@ -1,4 +1,4 @@
-Define a OpenAPI Security Scheme.
+Define an OpenAPI Security Scheme.
 
 # Macro parameters
 
