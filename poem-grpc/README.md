@@ -20,9 +20,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.76.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.76.0+-ab6000.svg"
-      alt="rustc 1.76.0+" />
+  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.81.0.html">
+    <img src="https://img.shields.io/badge/rustc-1.81.0+-ab6000.svg"
+      alt="rustc 1.81.0+" />
   </a>
 </div>
 
@@ -63,7 +63,7 @@ This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.76.0`.
+The minimum supported Rust version for this crate is `1.81.0`.
 
 ## Contributing
 

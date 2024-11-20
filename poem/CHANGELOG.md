@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.1.4] 2024-11-20
+
+- Add `Server::http2_max_header_list_size` method to set the max size of received header frames.
+- Update MSRV to `1.81.0`
+
 # [3.1.3] 2024-10-21
 
 - Add `Middlware::combine_if` method.
@@ -26,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat: allow to set a custom name for the csrf cookie (#801) [#864](https://github.com/poem-web/poem/pull/864)
 - add `sonic-rs` feature to replace `serde_json` with `sonic_rs` [#819](https://github.com/poem-web/poem/pull/819)
 - fix: setting path pattern in opentelemetry traces [#878](https://github.com/poem-web/poem/pull/878)
-- update MSRV to `1.76.0`
+- update MSRV to `1.81.0`
 - feat: implement StdErr for poem::Error [#868](https://github.com/poem-web/poem/pull/868)
 
 
