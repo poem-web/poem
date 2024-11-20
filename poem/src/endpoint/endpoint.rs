@@ -93,9 +93,12 @@ where
     }
 }
 
-/// Combines two different endpoints for [`Endpoint::with_if`].
+/// The enum `EitherEndpoint` with variants `Left`` and `Right` is a general
+/// purpose sum type with two cases.
 pub enum EitherEndpoint<A, B> {
+    /// A endpoint of type `A`
     A(A),
+    /// A endpoint of type `B`
     B(B),
 }
 

@@ -44,6 +44,7 @@ pub struct Server<L, A> {
     idle_timeout: Option<Duration>,
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
+    http2_max_header_list_size: u32,
 }
 
 impl<L: Listener> Server<L, Infallible> {
@@ -55,6 +56,7 @@ impl<L: Listener> Server<L, Infallible> {
             idle_timeout: None,
             http2_max_concurrent_streams: None,
             http2_max_pending_accept_reset_streams: Some(20),
+            http2_max_header_list_size: 16384,
         }
     }
 }
@@ -68,6 +70,7 @@ impl<A: Acceptor> Server<Infallible, A> {
             idle_timeout: None,
             http2_max_concurrent_streams: None,
             http2_max_pending_accept_reset_streams: Some(20),
+            http2_max_header_list_size: 16384,
         }
     }
 }
@@ -106,6 +109,16 @@ where
     pub fn http2_max_concurrent_streams(self, max: impl Into<Option<u32>>) -> Self {
         Self {
             http2_max_concurrent_streams: max.into(),
+            ..self
+        }
+    }
+
+    /// Sets the max size of received header frames.
+    ///
+    /// Default is `16384` bytes.
+    pub fn http2_max_header_list_size(self, max: u32) -> Self {
+        Self {
+            http2_max_header_list_size: max,
             ..self
         }
     }
@@ -150,6 +163,7 @@ where
             idle_timeout,
             http2_max_concurrent_streams,
             http2_max_pending_accept_reset_streams,
+            http2_max_header_list_size,
         } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
@@ -212,6 +226,7 @@ where
                                 idle_connection_close_timeout: idle_timeout,
                                 http2_max_concurrent_streams,
                                 http2_max_pending_accept_reset_streams,
+                                http2_max_header_list_size,
                             });
 
                             if timeout.is_some() {
@@ -376,10 +391,14 @@ struct ConnectionOptions<Io> {
     idle_connection_close_timeout: Option<Duration>,
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
+    http2_max_header_list_size: u32,
 }
 
-async fn serve_connection<Io>(
-    ConnectionOptions {
+async fn serve_connection<Io>(opts: ConnectionOptions<Io>)
+where
+    Io: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
+    let ConnectionOptions {
         socket,
         local_addr,
         remote_addr,
@@ -389,10 +408,9 @@ async fn serve_connection<Io>(
         idle_connection_close_timeout,
         http2_max_concurrent_streams,
         http2_max_pending_accept_reset_streams,
-    }: ConnectionOptions<Io>,
-) where
-    Io: AsyncRead + AsyncWrite + Send + Unpin + 'static,
-{
+        http2_max_header_list_size,
+    } = opts;
+
     let connection_shutdown_token = CancellationToken::new();
 
     let service = hyper::service::service_fn({
@@ -435,7 +453,8 @@ async fn serve_connection<Io>(
         .max_concurrent_streams(http2_max_concurrent_streams)
         .max_pending_accept_reset_streams(
             http2_max_pending_accept_reset_streams.map(|x| x as usize),
-        );
+        )
+        .max_header_list_size(http2_max_header_list_size);
 
     let conn =
         builder.serve_connection_with_upgrades(hyper_util::rt::TokioIo::new(socket), service);

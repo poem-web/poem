@@ -70,6 +70,11 @@ impl<T: Type> ParseError<T> {
     pub fn into_message(self) -> String {
         self.message
     }
+
+    /// Return the error message.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
 }
 
 /// An error parsing a value of type `T`.

@@ -27,19 +27,25 @@ use crate::{
 pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;
 
 /// A configuration for GRPC client
-#[derive(Default)]
 pub struct ClientConfig {
     uris: Vec<Uri>,
     origin: Option<Uri>,
     user_agent: Option<HeaderValue>,
     tls_config: Option<TlsClientConfig>,
+    max_header_list_size: u32,
 }
 
 impl ClientConfig {
     /// Create a `ClientConfig` builder
     pub fn builder() -> ClientConfigBuilder {
         ClientConfigBuilder {
-            config: Ok(ClientConfig::default()),
+            config: Ok(ClientConfig {
+                uris: vec![],
+                origin: None,
+                user_agent: None,
+                tls_config: None,
+                max_header_list_size: 16384,
+            }),
         }
     }
 }
@@ -142,6 +148,16 @@ impl ClientConfigBuilder {
     pub fn tls_config(mut self, tls_config: TlsClientConfig) -> Self {
         if let Ok(config) = &mut self.config {
             config.tls_config = Some(tls_config);
+        }
+        self
+    }
+
+    /// Sets the max size of received header frames.
+    ///
+    /// Default is `16384` bytes.
+    pub fn http2_max_header_list_size(mut self, max: u32) -> Self {
+        if let Ok(config) = &mut self.config {
+            config.max_header_list_size = max;
         }
         self
     }
@@ -451,6 +467,7 @@ fn create_client_endpoint(
     let mut config = config;
     let cli = Client::builder(TokioExecutor::new())
         .http2_only(true)
+        .http2_max_header_list_size(config.max_header_list_size)
         .build(HttpsConnector::new(config.tls_config.take()));
 
     let config = Arc::new(config);
