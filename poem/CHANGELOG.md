@@ -11,11 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [3.1.3] 2024-10-21
 
-- Add `Middlware::combine_if` method.
+- Add `Middleware::combine_if` method.
 
 # [3.1.2] 2024-10-21
 
-- Add `Middlware::combine` method to combine two middlewares.
+- Add `Middleware::combine` method to combine two middlewares.
 
 # [3.1.1] 2024-10-02
 

@@ -16,7 +16,7 @@ use crate::{
 #[doc(hidden)]
 pub struct GrpcServer<'a, T> {
     codec: T,
-    send_compressd: Option<CompressionEncoding>,
+    send_compressed: Option<CompressionEncoding>,
     accept_compressed: &'a [CompressionEncoding],
 }
 
@@ -24,12 +24,12 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
     #[inline]
     pub fn new(
         codec: T,
-        send_compressd: Option<CompressionEncoding>,
+        send_compressed: Option<CompressionEncoding>,
         accept_compressed: &'a [CompressionEncoding],
     ) -> Self {
         Self {
             codec,
-            send_compressd,
+            send_compressed,
             accept_compressed,
         }
     }
@@ -72,9 +72,9 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
                 let body = create_encode_response_body(
                     self.codec.encoder(),
                     Streaming::new(futures_util::stream::once(async move { Ok(message) })),
-                    self.send_compressd,
+                    self.send_compressed,
                 );
-                update_http_response(&mut resp, metadata, body, self.send_compressd);
+                update_http_response(&mut resp, metadata, body, self.send_compressed);
             }
             Err(status) => resp.headers_mut().extend(status.to_headers()),
         }
@@ -114,9 +114,9 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
                 let body = create_encode_response_body(
                     self.codec.encoder(),
                     Streaming::new(futures_util::stream::once(async move { Ok(message) })),
-                    self.send_compressd,
+                    self.send_compressed,
                 );
-                update_http_response(&mut resp, metadata, body, self.send_compressd);
+                update_http_response(&mut resp, metadata, body, self.send_compressed);
             }
             Err(status) => {
                 resp.headers_mut().extend(status.to_headers());
@@ -161,9 +161,12 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
         match res {
             Ok(grpc_resp) => {
                 let GrpcResponse { metadata, message } = grpc_resp;
-                let body =
-                    create_encode_response_body(self.codec.encoder(), message, self.send_compressd);
-                update_http_response(&mut resp, metadata, body, self.send_compressd);
+                let body = create_encode_response_body(
+                    self.codec.encoder(),
+                    message,
+                    self.send_compressed,
+                );
+                update_http_response(&mut resp, metadata, body, self.send_compressed);
             }
             Err(status) => {
                 resp.headers_mut().extend(status.to_headers());
@@ -202,9 +205,12 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
         match res {
             Ok(grpc_resp) => {
                 let GrpcResponse { metadata, message } = grpc_resp;
-                let body =
-                    create_encode_response_body(self.codec.encoder(), message, self.send_compressd);
-                update_http_response(&mut resp, metadata, body, self.send_compressd);
+                let body = create_encode_response_body(
+                    self.codec.encoder(),
+                    message,
+                    self.send_compressed,
+                );
+                update_http_response(&mut resp, metadata, body, self.send_compressed);
             }
             Err(status) => {
                 resp.headers_mut().extend(status.to_headers());
@@ -219,13 +225,13 @@ fn update_http_response(
     resp: &mut Response,
     metadata: Metadata,
     body: Body,
-    send_compressd: Option<CompressionEncoding>,
+    send_compressed: Option<CompressionEncoding>,
 ) {
     resp.headers_mut().extend(metadata.headers);
-    if let Some(send_compressd) = send_compressd {
+    if let Some(send_compressed) = send_compressed {
         resp.headers_mut().insert(
             "grpc-encoding",
-            HeaderValue::from_str(send_compressd.as_str()).expect("BUG: invalid encoding"),
+            HeaderValue::from_str(send_compressed.as_str()).expect("BUG: invalid encoding"),
         );
     }
     resp.set_body(body);

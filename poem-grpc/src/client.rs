@@ -172,7 +172,7 @@ impl ClientConfigBuilder {
 #[derive(Clone)]
 pub struct GrpcClient {
     ep: Arc<dyn DynEndpoint<Output = HttpResponse> + 'static>,
-    send_compressd: Option<CompressionEncoding>,
+    send_compressed: Option<CompressionEncoding>,
     accept_compressed: Arc<[CompressionEncoding]>,
 }
 
@@ -181,7 +181,7 @@ impl GrpcClient {
     pub fn new(config: ClientConfig) -> Self {
         Self {
             ep: create_client_endpoint(config),
-            send_compressd: None,
+            send_compressed: None,
             accept_compressed: Arc::new([]),
         }
     }
@@ -194,13 +194,13 @@ impl GrpcClient {
     {
         Self {
             ep: Arc::new(ToDynEndpoint(ep.map_to_response())),
-            send_compressd: None,
+            send_compressed: None,
             accept_compressed: Arc::new([]),
         }
     }
 
     pub fn set_send_compressed(&mut self, encoding: CompressionEncoding) {
-        self.send_compressd = Some(encoding);
+        self.send_compressed = Some(encoding);
     }
 
     pub fn set_accept_compressed(&mut self, encodings: impl Into<Arc<[CompressionEncoding]>>) {
@@ -230,11 +230,11 @@ impl GrpcClient {
             extensions,
         } = request;
         let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
+            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             Streaming::new(futures_util::stream::once(async move { Ok(message) })),
-            self.send_compressd,
+            self.send_compressed,
         ));
 
         let mut resp = self
@@ -279,11 +279,11 @@ impl GrpcClient {
             extensions,
         } = request;
         let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
+            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             message,
-            self.send_compressd,
+            self.send_compressed,
         ));
 
         let mut resp = self
@@ -328,11 +328,11 @@ impl GrpcClient {
             extensions,
         } = request;
         let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
+            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             Streaming::new(futures_util::stream::once(async move { Ok(message) })),
-            self.send_compressd,
+            self.send_compressed,
         ));
 
         let mut resp = self
@@ -373,11 +373,11 @@ impl GrpcClient {
             extensions,
         } = request;
         let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressd);
+            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             message,
-            self.send_compressd,
+            self.send_compressed,
         ));
 
         let mut resp = self
@@ -411,7 +411,7 @@ fn create_http_request<T: Codec>(
     path: &str,
     metadata: Metadata,
     extensions: Extensions,
-    send_compressd: Option<CompressionEncoding>,
+    send_compressed: Option<CompressionEncoding>,
 ) -> HttpRequest {
     let mut http_request = HttpRequest::builder()
         .uri_str(path)
@@ -426,10 +426,10 @@ fn create_http_request<T: Codec>(
     http_request
         .headers_mut()
         .insert(header::TE, "trailers".parse().unwrap());
-    if let Some(send_compressd) = send_compressd {
+    if let Some(send_compressed) = send_compressed {
         http_request.headers_mut().insert(
             "grpc-encoding",
-            HeaderValue::from_str(send_compressd.as_str()).expect("BUG: invalid encoding"),
+            HeaderValue::from_str(send_compressed.as_str()).expect("BUG: invalid encoding"),
         );
     }
     http_request
