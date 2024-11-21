@@ -1,4 +1,4 @@
-Define a OpenAPI Tags.
+Define an OpenAPI Tags.
 
 # Macro parameters
 

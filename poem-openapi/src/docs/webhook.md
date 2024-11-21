@@ -1,4 +1,4 @@
-Define a OpenApi webhooks.
+Define an OpenAPI webhooks.
 
 # Macro parameters
 

@@ -542,7 +542,7 @@ enum UploadImageRequest {
 
 # [1.0.35] 2021-12-05
 
-- If a OpenAPI name conflict is detected when creating schema, it will cause panic.
+- If an OpenAPI name conflict is detected when creating schema, it will cause panic.
 
 # [1.0.33] 2021-11-30
 

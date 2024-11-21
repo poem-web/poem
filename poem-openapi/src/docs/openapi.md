@@ -1,4 +1,4 @@
-Define a OpenAPI.
+Define an OpenAPI.
 
 # Macro parameters
 

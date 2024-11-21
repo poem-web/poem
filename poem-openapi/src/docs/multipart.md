@@ -1,4 +1,4 @@
-Define a OpenAPI payload.
+Define an OpenAPI payload.
 
 # Macro parameters
 

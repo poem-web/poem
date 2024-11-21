@@ -88,7 +88,7 @@ impl<T> Default for ExtractParamOptions<T> {
     }
 }
 
-/// Represents a OpenAPI extractor.
+/// Represents an OpenAPI extractor.
 ///
 /// # Provided Implementations
 ///
@@ -221,7 +221,7 @@ impl<'a, T: FromRequest<'a>> ApiExtractor<'a> for T {
     }
 }
 
-/// Represents a OpenAPI response content object.
+/// Represents an OpenAPI response content object.
 pub trait ResponseContent {
     /// Returns the media types in this content.
     fn media_types() -> Vec<MetaMediaType>;
@@ -244,7 +244,7 @@ impl<T: Payload> ResponseContent for T {
     }
 }
 
-/// Represents a OpenAPI responses object.
+/// Represents an OpenAPI responses object.
 ///
 /// # Provided Implementations
 ///
@@ -366,7 +366,7 @@ where
     fn register(_registry: &mut Registry) {}
 }
 
-/// Represents a OpenAPI tags.
+/// Represents an OpenAPI tags.
 pub trait Tags {
     /// Register this tag type to registry.
     fn register(&self, registry: &mut Registry);
@@ -395,7 +395,7 @@ impl Display for OperationId {
     }
 }
 
-/// Represents a OpenAPI object.
+/// Represents an OpenAPI object.
 pub trait OpenApi: Sized {
     /// Gets metadata of this API object.
     fn meta() -> Vec<MetaApi>;

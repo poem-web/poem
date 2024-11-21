@@ -1,4 +1,4 @@
-Define a OpenAPI response.
+Define an OpenAPI response.
 
 # Macro parameters
 
