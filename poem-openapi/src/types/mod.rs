@@ -441,7 +441,7 @@ mod tests {
     #[allow(clippy::assertions_on_constants)]
     fn arc_type() {
         assert!(Arc::<i32>::IS_REQUIRED);
-        assert_eq!(Arc::<i32>::name(), "integer(int32)");
+        assert_eq!(Arc::<i32>::name(), "integer_int32");
         assert_eq!(Arc::new(100).as_raw_value(), Some(&100));
 
         let value: Arc<i32> =
@@ -472,7 +472,7 @@ mod tests {
     #[allow(unused_allocation)]
     fn box_type() {
         assert!(Box::<i32>::IS_REQUIRED);
-        assert_eq!(Box::<i32>::name(), "integer(int32)");
+        assert_eq!(Box::<i32>::name(), "integer_int32");
         assert_eq!(Box::new(100).as_raw_value(), Some(&100));
 
         let value: Box<i32> =

@@ -22,7 +22,7 @@ macro_rules! impl_type_for_integers {
             type RawElementValueType = Self;
 
             fn name() -> Cow<'static, str> {
-                format!("integer({})", $format).into()
+                format!("integer_{}", $format).into()
             }
 
             fn schema_ref() -> MetaSchemaRef {

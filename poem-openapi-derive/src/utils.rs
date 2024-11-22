@@ -191,13 +191,12 @@ pub(crate) fn create_object_name(
             use ::std::convert::From;
             let mut name = ::std::string::String::from(#name);
 
-            name.push('<');
+            name.push('_');
             name.push_str(&<#first as #crate_name::types::Type>::name());
             #(
-                name.push_str(", ");
+                name.push_str("_");
                 name.push_str(&<#tail as #crate_name::types::Type>::name());
             )*
-            name.push('>');
 
             name
         })

@@ -23,7 +23,7 @@ impl<T: Type, R: Send + Sync> Type for HashSet<T, R> {
     type RawElementValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
-        format!("[{}]", T::name()).into()
+        format!("set_{}", T::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

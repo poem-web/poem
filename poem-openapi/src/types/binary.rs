@@ -37,7 +37,7 @@ impl<T: AsRef<[u8]> + Send + Sync> Type for Binary<T> {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(binary)".into()
+        "string_binary".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

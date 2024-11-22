@@ -92,7 +92,7 @@ impl Type for Upload {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(binary)".into()
+        "string_binary".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

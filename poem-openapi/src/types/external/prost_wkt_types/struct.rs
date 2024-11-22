@@ -15,7 +15,7 @@ impl Type for prost_wkt_types::Struct {
     type RawElementValueType = <Value as Type>::RawValueType;
 
     fn name() -> Cow<'static, str> {
-        "Protobuf Struct".into()
+        "Protobuf_Struct".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

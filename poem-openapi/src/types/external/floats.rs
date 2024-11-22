@@ -22,7 +22,7 @@ macro_rules! impl_type_for_floats {
             type RawElementValueType = Self;
 
             fn name() -> Cow<'static, str> {
-                format!("number({})", $format).into()
+                format!("number_{}", $format).into()
             }
 
             fn schema_ref() -> MetaSchemaRef {

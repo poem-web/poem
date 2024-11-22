@@ -15,7 +15,7 @@ impl<T: Type, const LEN: usize> Type for [T; LEN] {
     type RawElementValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
-        format!("[{}]", T::name()).into()
+        format!("array_{}", T::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {
