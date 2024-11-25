@@ -6,24 +6,20 @@ use opentelemetry::{
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
-use opentelemetry_sdk::{
-    propagation::TraceContextPropagator,
-    trace::{Config, TracerProvider},
-    Resource,
-};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::TracerProvider};
 use reqwest::{Client, Method, Url};
 
 fn init_tracer() -> TracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_trace_config(
-            Config::default()
-                .with_resource(Resource::new(vec![KeyValue::new("service.name", "poem")])),
+    opentelemetry_sdk::trace::TracerProvider::builder()
+        .with_batch_exporter(
+            opentelemetry_otlp::SpanExporter::builder()
+                .with_tonic()
+                .build()
+                .expect("Trace exporter should initialize."),
+            opentelemetry_sdk::runtime::Tokio,
         )
-        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .expect("Trace Pipeline should initialize.")
+        .build()
 }
 
 #[tokio::main]
