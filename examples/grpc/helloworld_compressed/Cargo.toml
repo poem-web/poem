@@ -19,5 +19,5 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 poem-grpc-build.workspace = true
 
 [[bin]]
-name = "grpc-helloworld-client"
+name = "grpc-helloworld-compressed-client"
 path = "src/client.rs"

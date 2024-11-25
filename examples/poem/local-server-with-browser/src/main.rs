@@ -19,7 +19,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     // To test port assignment, run two instances of this example at once.
     //
-    // For ports <1024, running with administrator priveledges would be needed
+    // For ports <1024, running with administrator privileges would be needed
     // on Unix. For port 0, the OS would assign a port and we'd need to find out
     // what that port's number is.
     let (min_port, max_port) = (8080, 8085);

@@ -20,7 +20,7 @@ impl Type for Url {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(url)".into()
+        "string_url".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

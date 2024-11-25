@@ -13,17 +13,21 @@ use poem::{
 
 fn init_tracer() -> TracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_trace_config(
+    opentelemetry_sdk::trace::TracerProvider::builder()
+        .with_config(
             Config::default().with_resource(Resource::new(vec![KeyValue::new(
                 "service.name",
                 "server2",
             )])),
         )
-        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .expect("Trace Pipeline should initialize.")
+        .with_batch_exporter(
+            opentelemetry_otlp::SpanExporter::builder()
+                .with_tonic()
+                .build()
+                .expect("Trace exporter should initialize."),
+            opentelemetry_sdk::runtime::Tokio,
+        )
+        .build()
 }
 
 #[handler]

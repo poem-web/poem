@@ -19,7 +19,7 @@ where
     type RawElementValueType = V::RawValueType;
 
     fn name() -> Cow<'static, str> {
-        format!("map<string, {}>", V::name()).into()
+        format!("map_{}", V::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

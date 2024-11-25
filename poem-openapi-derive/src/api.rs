@@ -396,9 +396,15 @@ fn generate_operation(
         });
 
         // request object meta
+        let param_desc = optional_literal(&param_description);
         request_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::RequestObject) {
                 request = <#arg_ty as #crate_name::ApiExtractor>::request_meta();
+                if let ::std::option::Option::Some(ref mut request) = request.as_mut() {
+                    if request.description.is_none() {
+                        request.description = #param_desc;
+                    }
+                }
             }
         });
 

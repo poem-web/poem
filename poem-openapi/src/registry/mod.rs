@@ -75,6 +75,8 @@ pub struct MetaSchema {
     pub enum_items: Vec<Value>,
     #[serde(skip_serializing_if = "is_false")]
     pub deprecated: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub nullable: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<MetaSchemaRef>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -150,6 +152,7 @@ impl MetaSchema {
         discriminator: None,
         read_only: false,
         write_only: false,
+        nullable: false,
         example: None,
         multiple_of: None,
         maximum: None,
@@ -189,6 +192,7 @@ impl MetaSchema {
             default,
             read_only,
             write_only,
+            nullable,
             title,
             description,
             external_docs,
@@ -213,6 +217,7 @@ impl MetaSchema {
     ) -> Self {
         self.read_only |= read_only;
         self.write_only |= write_only;
+        self.nullable |= nullable;
 
         macro_rules! merge_optional {
             ($($name:ident),*) => {
@@ -333,9 +338,9 @@ impl MetaSchemaRef {
                     MetaSchemaRef::Inline(Box::new(MetaSchema {
                         all_of: vec![
                             MetaSchemaRef::Reference(name),
-                            MetaSchemaRef::Inline(Box::new(other)),
+                            MetaSchemaRef::Inline(Box::new(other.clone())),
                         ],
-                        ..MetaSchema::ANY
+                        ..other
                     }))
                 }
             }

@@ -8,10 +8,10 @@ publish.workspace = true
 poem = { workspace = true, features = ["opentelemetry"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-opentelemetry = { version = "0.24.0", features = ["metrics"] }
-opentelemetry_sdk = { version = "0.24.1", features = ["rt-tokio"] }
-opentelemetry-http = { version = "0.13.0" }
-opentelemetry-otlp = { version = "0.17.0", features = ["trace"] }
+opentelemetry = { version = "0.27.0", features = ["metrics"] }
+opentelemetry_sdk = { version = "0.27.0", features = ["rt-tokio"] }
+opentelemetry-http = { version = "0.27.0" }
+opentelemetry-otlp = { version = "0.27.0", features = ["trace"] }
 reqwest = "0.12"
 
 [[bin]]

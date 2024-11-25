@@ -22,7 +22,7 @@ macro_rules! impl_datetime_types {
             type RawElementValueType = Self;
 
             fn name() -> Cow<'static, str> {
-                concat!($type_name, "(", $format, ")").into()
+                concat!($type_name, "_", $format).into()
             }
 
             fn schema_ref() -> MetaSchemaRef {
@@ -88,7 +88,7 @@ macro_rules! impl_naive_datetime_types {
             type RawElementValueType = Self;
 
             fn name() -> Cow<'static, str> {
-                concat!($type_name, "(", $format, ")").into()
+                concat!($type_name, "_", $format).into()
             }
 
             fn schema_ref() -> MetaSchemaRef {

@@ -101,7 +101,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
         #[allow(unused_imports)]
         pub struct #server_ident<T> {
             inner: ::std::sync::Arc<T>,
-            send_compressd: ::std::option::Option<#crate_name::CompressionEncoding>,
+            send_compressed: ::std::option::Option<#crate_name::CompressionEncoding>,
             accept_compressed: ::std::sync::Arc<[#crate_name::CompressionEncoding]>,
         }
 
@@ -110,7 +110,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
             fn clone(&self) -> Self {
                 Self {
                     inner: self.inner.clone(),
-                    send_compressd: self.send_compressd,
+                    send_compressed: self.send_compressed,
                     accept_compressed: self.accept_compressed.clone(),
                 }
             }
@@ -127,7 +127,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
             pub fn new(service: T) -> Self {
                 Self {
                     inner: ::std::sync::Arc::new(service),
-                    send_compressd: ::std::option::Option::None,
+                    send_compressed: ::std::option::Option::None,
                     accept_compressed: ::std::sync::Arc::new([]),
                 }
             }
@@ -135,7 +135,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
             /// Set the compression encoding for sending
             pub fn send_compressed(self, encoding: #crate_name::CompressionEncoding) -> Self {
                 Self {
-                    send_compressd: Some(encoding),
+                    send_compressed: Some(encoding),
                     ..self
                 }
             }
@@ -226,7 +226,7 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).unary(#proxy_service_ident(server.inner.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressed, &server.accept_compressed).unary(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -270,7 +270,7 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).client_streaming(#proxy_service_ident(server.inner.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressed, &server.accept_compressed).client_streaming(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -314,7 +314,7 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).server_streaming(#proxy_service_ident(server.inner.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressed, &server.accept_compressed).server_streaming(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 
@@ -358,7 +358,7 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
         crate_name,
         codec_list,
         quote! {
-            #crate_name::server::GrpcServer::new(codec, server.send_compressd, &server.accept_compressed).bidirectional_streaming(#proxy_service_ident(server.inner.clone()), req).await
+            #crate_name::server::GrpcServer::new(codec, server.send_compressed, &server.accept_compressed).bidirectional_streaming(#proxy_service_ident(server.inner.clone()), req).await
         },
     );
 

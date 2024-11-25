@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.1.5] 2024-11-25
+
+- Bump `opentelemetry` to `0.27.0`
+- Add WebSocketStream::get_config method to get the WebSocket configuration. [#900](https://github.com/poem-web/poem/pull/900)
+- feat: implement conversion from libcookie to poem cookie [#898](https://github.com/poem-web/poem/pull/898)
+
 # [3.1.4] 2024-11-20
 
 - Add `Server::http2_max_header_list_size` method to set the max size of received header frames.
@@ -11,11 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [3.1.3] 2024-10-21
 
-- Add `Middlware::combine_if` method.
+- Add `Middleware::combine_if` method.
 
 # [3.1.2] 2024-10-21
 
-- Add `Middlware::combine` method to combine two middlewares.
+- Add `Middleware::combine` method to combine two middlewares.
 
 # [3.1.1] 2024-10-02
 

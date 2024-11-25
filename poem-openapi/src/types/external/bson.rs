@@ -20,7 +20,7 @@ impl Type for ObjectId {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(oid)".into()
+        "string_oid".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

@@ -43,10 +43,7 @@ fn generics() {
         delete_user: T2,
     }
 
-    assert_eq!(
-        <Obj<i32, i64>>::name(),
-        "Obj<integer(int32), integer(int64)>"
-    );
+    assert_eq!(<Obj<i32, i64>>::name(), "Obj_integer_int32_integer_int64");
     let meta = get_meta::<Obj<i32, i64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "integer");
     assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("int32"));
@@ -54,10 +51,7 @@ fn generics() {
     assert_eq!(meta.properties[1].1.unwrap_inline().ty, "integer");
     assert_eq!(meta.properties[1].1.unwrap_inline().format, Some("int64"));
 
-    assert_eq!(
-        <Obj<f32, f64>>::name(),
-        "Obj<number(float), number(double)>"
-    );
+    assert_eq!(<Obj<f32, f64>>::name(), "Obj_number_float_number_double");
     let meta = get_meta::<Obj<f32, f64>>();
     assert_eq!(meta.properties[0].1.unwrap_inline().ty, "number");
     assert_eq!(meta.properties[0].1.unwrap_inline().format, Some("float"));

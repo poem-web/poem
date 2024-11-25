@@ -514,11 +514,11 @@ async fn generics() {
 
     assert_eq!(
         <MyObj<i32, i64>>::schema_ref(),
-        MetaSchemaRef::Reference("MyObj<integer(int32), integer(int64)>".to_string())
+        MetaSchemaRef::Reference("MyObj_integer_int32_integer_int64".to_string())
     );
     assert_eq!(
         <MyObj<f32, f64>>::schema_ref(),
-        MetaSchemaRef::Reference("MyObj<number(float), number(double)>".to_string())
+        MetaSchemaRef::Reference("MyObj_number_float_number_double".to_string())
     );
 
     assert_eq!(schema_i32_i64.any_of[0], i32::schema_ref());

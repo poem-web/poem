@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#[5.1.4] 2024-11-25
+
+- Assign the description to the request object in OpenAPI [#886](https://github.com/poem-web/poem/pull/886)
+- Implemented nullable fields for openapi spec generation [#865](https://github.com/poem-web/poem/pull/865)
+- refactor: change type name delimiters from `<>` `()` `[]` to `_` [#904](https://github.com/poem-web/poem/pull/904)
+
 #[5.1.3] 2024-11-20
 
 - Update MSRV to `1.81.0`
@@ -49,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [4.0.0] 2024-01-06
 
 - upgrade to `hyper1`
-- added documetation on how to merge API specs [#716](https://github.com/poem-web/poem/pull/716)
+- added documentation on how to merge API specs [#716](https://github.com/poem-web/poem/pull/716)
 - impl Type for std::time::Duration instead of only humantime::Duration [#713](https://github.com/poem-web/poem/pull/713)
 
 # [3.0.6] 2023-11-19
@@ -96,7 +102,7 @@ struct Obj {
 
 # [3.0.1] 2023-08-02
 
-- openapi: allows multiple secutity schemes on one operation [#621](https://github.com/poem-web/poem/issues/621)
+- openapi: allows multiple security schemes on one operation [#621](https://github.com/poem-web/poem/issues/621)
 
 # [3.0.0] 2023-06-21
 
@@ -420,7 +426,7 @@ struct Obj {
 
 # [1.2.11] 2021-12-27
 
-- Remove the `OpenApi::combine` method, `OpenApiSerice::new` can be passed a tuple to combine multiple API objects.
+- Remove the `OpenApi::combine` method, `OpenApiService::new` can be passed a tuple to combine multiple API objects.
 
 # [1.2.10] 2021-12-26
 
@@ -542,7 +548,7 @@ enum UploadImageRequest {
 
 # [1.0.35] 2021-12-05
 
-- If a OpenAPI name conflict is detected when creating schema, it will cause panic.
+- If an OpenAPI name conflict is detected when creating schema, it will cause panic.
 
 # [1.0.33] 2021-11-30
 

@@ -328,6 +328,12 @@ impl<'a> FromRequest<'a> for Cookie {
     }
 }
 
+impl From<libcookie::Cookie<'static>> for Cookie {
+    fn from(value: libcookie::Cookie<'static>) -> Self {
+        Self(value)
+    }
+}
+
 /// A collection of cookies that tracks its modifications.
 ///
 /// # Example

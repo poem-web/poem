@@ -316,7 +316,7 @@ impl<T: Type> Type for MaybeUndefined<T> {
     type RawElementValueType = T::RawElementValueType;
 
     fn name() -> Cow<'static, str> {
-        format!("optional<{}>", T::name()).into()
+        format!("optional_{}", T::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

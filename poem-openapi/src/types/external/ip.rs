@@ -37,7 +37,7 @@ macro_rules! impl_type_for_ip {
             type RawElementValueType = Self;
 
             fn name() -> Cow<'static, str> {
-                format!("string({})", $format).into()
+                format!("string_{}", $format).into()
             }
 
             fn schema_ref() -> MetaSchemaRef {

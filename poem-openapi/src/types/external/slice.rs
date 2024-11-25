@@ -15,7 +15,7 @@ impl<T: Type> Type for &[T] {
     type RawElementValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
-        format!("[{}]", T::name()).into()
+        format!("slice_{}", T::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

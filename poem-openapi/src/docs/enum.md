@@ -1,4 +1,4 @@
-Define a OpenAPI enum
+Define an OpenAPI enum
 
 # Macro parameters
 
