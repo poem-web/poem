@@ -19,7 +19,7 @@ impl<T: Type> Type for BTreeSet<T> {
     type RawElementValueType = T::RawValueType;
 
     fn name() -> Cow<'static, str> {
-        format!("[{}]", T::name()).into()
+        format!("set_{}", T::name()).into()
     }
 
     fn schema_ref() -> MetaSchemaRef {

@@ -22,7 +22,7 @@ impl Type for Uri {
     type RawElementValueType = Self;
 
     fn name() -> Cow<'static, str> {
-        "string(uri)".into()
+        "string_uri".into()
     }
 
     fn schema_ref() -> MetaSchemaRef {
