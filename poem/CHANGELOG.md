@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [3.1.5] 2024-11-25
 
 - Bump `opentelemetry` to `0.27.0`
+- Add WebSocketStream::get_config method to get the WebSocket configuration. [#900](https://github.com/poem-web/poem/pull/900)
+- feat: implement conversion from libcookie to poem cookie [#898](https://github.com/poem-web/poem/pull/898)
 
 # [3.1.4] 2024-11-20
 

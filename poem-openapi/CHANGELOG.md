@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#[5.1.4] 2024-11-25
+
+- Assign the description to the request object in OpenAPI [#886](https://github.com/poem-web/poem/pull/886)
+- Implemented nullable fields for openapi spec generation [#865](https://github.com/poem-web/poem/pull/865)
+- refactor: change type name delimiters from `<>` `()` `[]` to `_` [#904](https://github.com/poem-web/poem/pull/904)
+
 #[5.1.3] 2024-11-20
 
 - Update MSRV to `1.81.0`
