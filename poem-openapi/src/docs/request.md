@@ -1,4 +1,4 @@
-Define a OpenAPI request.
+Define an OpenAPI request.
 
 # Item parameters
 

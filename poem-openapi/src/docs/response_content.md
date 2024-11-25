@@ -1,4 +1,4 @@
-Define a OpenAPI response content.
+Define an OpenAPI response content.
 
 # Item parameters
 
