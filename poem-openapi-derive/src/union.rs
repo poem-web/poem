@@ -151,6 +151,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         }
 
                         let schema = #crate_name::registry::MetaSchema {
+                            description: #description,
                             all_of: ::std::vec![
                                 #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
                                     required: #required,
