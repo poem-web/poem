@@ -1,0 +1,14 @@
+[package]
+name = "example-grpc-helloworld-typename"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+poem.workspace = true
+poem-grpc.workspace = true
+prost.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[build-dependencies]
+poem-grpc-build.workspace = true
