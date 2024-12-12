@@ -37,7 +37,7 @@ impl<T: Type> Payload for Xml<T> {
                 && (content_type.subtype() == "xml"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "xml")))
+                    .is_some_and(|v| v == "xml")))
     }
 
     fn schema_ref() -> MetaSchemaRef {

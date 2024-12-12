@@ -24,7 +24,7 @@ impl Serialize for MetaSchemaRef {
 
 struct PathMap<'a>(&'a [MetaApi], Option<&'a str>);
 
-impl<'a> Serialize for PathMap<'a> {
+impl Serialize for PathMap<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut s = serializer.serialize_map(Some(self.0.len()))?;
         for api in self.0 {
@@ -66,7 +66,7 @@ impl Serialize for MetaResponses {
 
 struct WebhookMap<'a>(&'a [MetaWebhook]);
 
-impl<'a> Serialize for WebhookMap<'a> {
+impl Serialize for WebhookMap<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut s = serializer.serialize_map(Some(self.0.len()))?;
         for webhook in self.0 {
@@ -86,7 +86,7 @@ pub(crate) struct Document<'a> {
     pub(crate) url_prefix: Option<&'a str>,
 }
 
-impl<'a> Serialize for Document<'a> {
+impl Serialize for Document<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]

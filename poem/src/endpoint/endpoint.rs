@@ -93,7 +93,7 @@ where
     }
 }
 
-/// The enum `EitherEndpoint` with variants `Left`` and `Right` is a general
+/// The enum `EitherEndpoint` with variants `Left` and `Right` is a general
 /// purpose sum type with two cases.
 pub enum EitherEndpoint<A, B> {
     /// A endpoint of type `A`

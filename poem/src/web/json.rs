@@ -137,7 +137,7 @@ fn is_json_content_type(content_type: &str) -> bool {
         && (content_type.subtype() == "json"
         || content_type
             .suffix()
-            .map_or(false, |v| v == "json")))
+            .is_some_and(|v| v == "json")))
 }
 
 impl<T: Serialize + Send> IntoResponse for Json<T> {

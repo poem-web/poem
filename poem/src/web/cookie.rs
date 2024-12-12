@@ -574,7 +574,7 @@ pub struct PrivateCookieJar<'a> {
     cookie_jar: &'a CookieJar,
 }
 
-impl<'a> PrivateCookieJar<'a> {
+impl PrivateCookieJar<'_> {
     /// Adds cookie to the parent jar. The cookie’s value is encrypted with
     /// authenticated encryption assuring confidentiality, integrity, and
     /// authenticity.
@@ -608,7 +608,7 @@ pub struct SignedCookieJar<'a> {
     cookie_jar: &'a CookieJar,
 }
 
-impl<'a> SignedCookieJar<'a> {
+impl SignedCookieJar<'_> {
     /// Adds cookie to the parent jar. The cookie’s value is signed assuring
     /// integrity and authenticity.
     pub fn add(&self, cookie: Cookie) {

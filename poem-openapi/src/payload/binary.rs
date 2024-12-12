@@ -92,7 +92,7 @@ impl<T: Send> Payload for Binary<T> {
                 && (content_type.subtype() == "octet-stream"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "octet-stream")))
+                    .is_some_and(|v| v == "octet-stream")))
     }
 
     fn schema_ref() -> MetaSchemaRef {

@@ -37,7 +37,7 @@ impl<T: Type> Payload for Json<T> {
                 && (content_type.subtype() == "json"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "json")))
+                    .is_some_and(|v| v == "json")))
     }
 
     fn schema_ref() -> MetaSchemaRef {
