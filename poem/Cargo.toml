@@ -131,7 +131,9 @@ libcookie = { package = "cookie", version = "0.18", features = [
     "secure",
 ], optional = true }
 opentelemetry-http = { version = "0.27.0", optional = true }
-opentelemetry-semantic-conventions = { version = "0.16.0", optional = true }
+opentelemetry-semantic-conventions = { version = "0.27.0", optional = true, features = [
+    "semconv_experimental"
+] }
 opentelemetry-prometheus = { version = "0.17.0", optional = true }
 libprometheus = { package = "prometheus", version = "0.13.0", optional = true }
 libopentelemetry = { package = "opentelemetry", version = "0.27.0", features = [
