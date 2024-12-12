@@ -37,7 +37,7 @@ impl<T: Type> Payload for Yaml<T> {
                 && (content_type.subtype() == "yaml"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "yaml")))
+                    .is_some_and(|v| v == "yaml")))
     }
 
     fn schema_ref() -> MetaSchemaRef {

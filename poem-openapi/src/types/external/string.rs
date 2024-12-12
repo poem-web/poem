@@ -83,7 +83,7 @@ impl ToHeader for String {
     }
 }
 
-impl<'a> Type for &'a str {
+impl Type for &str {
     const IS_REQUIRED: bool = true;
 
     type RawValueType = Self;
@@ -109,7 +109,7 @@ impl<'a> Type for &'a str {
     }
 }
 
-impl<'a> ToJSON for &'a str {
+impl ToJSON for &str {
     fn to_json(&self) -> Option<Value> {
         Some(Value::String(self.to_string()))
     }

@@ -35,7 +35,7 @@ impl<T: Send> Payload for Html<T> {
                 && (content_type.subtype() == "html"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "html")))
+                    .is_some_and(|v| v == "html")))
     }
 
     fn schema_ref() -> MetaSchemaRef {

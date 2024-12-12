@@ -130,7 +130,7 @@ fn is_xml_content_type(content_type: &str) -> bool {
         && (content_type.subtype() == "xml"
         || content_type
             .suffix()
-            .map_or(false, |v| v == "xml")))
+            .is_some_and(|v| v == "xml")))
 }
 
 impl<T: Serialize + Send> IntoResponse for Xml<T> {
