@@ -8,4 +8,4 @@ publish.workspace = true
 poem.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-thiserror = "1.0.30"
+thiserror = "2.0"
