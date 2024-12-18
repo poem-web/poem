@@ -51,7 +51,7 @@ impl<T: Type> Payload for Json<T> {
 }
 
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
-    const IS_REQUIRED: bool = true;
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
         let data = Vec::<u8>::from_request(request, body).await?;
