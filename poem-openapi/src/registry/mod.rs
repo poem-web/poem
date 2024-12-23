@@ -11,7 +11,7 @@ use poem::http::Method;
 pub(crate) use ser::Document;
 use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::Value;
-
+use crate::ParameterStyle;
 use crate::types::Type;
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -372,6 +372,7 @@ pub struct MetaOperationParam {
     pub required: bool,
     pub deprecated: bool,
     pub explode: bool,
+    pub style: Option<ParameterStyle>
 }
 
 #[derive(Debug, PartialEq, Serialize)]

@@ -527,6 +527,7 @@ impl<T, W> OpenApiService<T, W> {
                         required: *is_required,
                         deprecated: header.deprecated,
                         explode: true,
+                        style: None,
                     },
                 );
             }
