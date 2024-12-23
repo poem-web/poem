@@ -6,12 +6,12 @@ use syn::{
     Path, ReturnType, Type,
 };
 
-use crate::parameter_style::ParameterStyle;
 use crate::{
     common_args::{
         APIMethod, CodeSample, DefaultValue, ExampleValue, ExternalDocument, ExtraHeader,
     },
     error::GeneratorResult,
+    parameter_style::ParameterStyle,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
         optional_literal, optional_literal_string, parse_oai_attrs, remove_description,

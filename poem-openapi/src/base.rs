@@ -31,9 +31,11 @@ pub enum ParameterStyle {
     Simple,
     /// Space-separated array values. Has effect only for non-exploded arrays.
     SpaceDelimited,
-    /// Pipeline-separated array values. Has effect only for non-exploded arrays.
+    /// Pipeline-separated array values. Has effect only for non-exploded
+    /// arrays.
     PipeDelimited,
-    /// Bracket-nested objects, e.g. `paramName[prop1]=value1&paramName[prop2]=value2`
+    /// Bracket-nested objects, e.g.
+    /// `paramName[prop1]=value1&paramName[prop2]=value2`
     DeepObject,
 }
 
@@ -96,7 +98,7 @@ pub struct ExtractParamOptions<T> {
     /// separate parameters for each value of the array or key-value pair of the
     /// map.
     pub explode: bool,
-    
+
     /// The style of the parameter.
     pub style: Option<ParameterStyle>,
 }
