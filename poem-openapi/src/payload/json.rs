@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// A JSON payload.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Json<T>(pub T);
 
 impl<T> Deref for Json<T> {
