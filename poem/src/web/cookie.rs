@@ -542,7 +542,17 @@ impl CookieJar {
             if let Ok(value) = value.to_str() {
                 for cookie_str in value.split(';').map(str::trim) {
                     if let Ok(cookie) = libcookie::Cookie::parse_encoded(cookie_str) {
-                        cookie_jar.add_original(cookie.into_owned());
+                        // This check is important. Poem currently only
+                        // supports tracking a single cookie by name.
+                        // RFC 6265, Section 5.4, says that user agents SHOULD
+                        // sort cookies from most specific to least specific
+                        // path.
+                        // That means that poem should take the *first* cookie
+                        // for a given name (instead of the *last*, as it would
+                        // happen if this condition wasn't enforced).
+                        if cookie_jar.get(cookie.name()).is_none() {
+                            cookie_jar.add_original(cookie.into_owned());
+                        }
                     }
                 }
             }
