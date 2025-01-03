@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use libcsrf::{
@@ -83,6 +83,10 @@ pub struct Csrf {
     http_only: bool,
     same_site: Option<SameSite>,
     ttl: Duration,
+    // Using Arc<Cow<'static, _>> here because the path is most likely going
+    // to be a static str, and if it's not, we don't want to have to copy it
+    // into every endpoint.
+    path: Arc<Cow<'static, str>>,
 }
 
 impl Default for Csrf {
@@ -94,6 +98,7 @@ impl Default for Csrf {
             http_only: true,
             same_site: Some(SameSite::Strict),
             ttl: Duration::from_secs(24 * 60 * 60),
+            path: Arc::new(Cow::Borrowed("/")),
         }
     }
 }
@@ -147,6 +152,17 @@ impl Csrf {
         }
     }
 
+    /// Set the path for which the CSRF cookie should be set.
+    ///
+    /// By default, this is `"/"`.
+    #[must_use]
+    pub fn path(self, value: impl Into<Cow<'static, str>>) -> Self {
+        Self {
+            path: Arc::new(value.into()),
+            ..self
+        }
+    }
+
     /// Sets the protection ttl. This will be used for both the cookie
     /// expiry and the time window over which CSRF tokens are considered
     /// valid.
@@ -170,6 +186,7 @@ impl<E: Endpoint> Middleware<E> for Csrf {
             http_only: self.http_only,
             same_site: self.same_site,
             ttl: self.ttl,
+            path: Arc::clone(&self.path),
         })
     }
 }
@@ -184,6 +201,7 @@ pub struct CsrfEndpoint<E> {
     http_only: bool,
     same_site: Option<SameSite>,
     ttl: Duration,
+    path: Arc<Cow<'static, str>>,
 }
 
 impl<E> CsrfEndpoint<E> {
@@ -226,6 +244,7 @@ impl<E: Endpoint> Endpoint for CsrfEndpoint<E> {
             cookie.set_http_only(self.http_only);
             cookie.set_same_site(self.same_site);
             cookie.set_max_age(self.ttl);
+            cookie.set_path(&**self.path);
             cookie
         };
 
