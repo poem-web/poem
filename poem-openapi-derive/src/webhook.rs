@@ -234,6 +234,7 @@ fn generate_operation(
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED,
                     deprecated: #deprecated,
                     explode: #explode,
+                    style: ::std::option::Option::None
                 };
                 params.push(meta_param);
             }

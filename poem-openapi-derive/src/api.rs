@@ -11,6 +11,7 @@ use crate::{
         APIMethod, CodeSample, DefaultValue, ExampleValue, ExternalDocument, ExtraHeader,
     },
     error::GeneratorResult,
+    parameter_style::ParameterStyle,
     utils::{
         convert_oai_path, get_crate_name, get_description, get_summary_and_description,
         optional_literal, optional_literal_string, parse_oai_attrs, remove_description,
@@ -75,7 +76,8 @@ struct APIOperationParam {
     validator: Option<Validators>,
     #[darling(default)]
     explode: Option<bool>,
-
+    #[darling(default)]
+    style: Option<ParameterStyle>,
     // for oauth
     #[darling(multiple, default, rename = "scope")]
     scopes: Vec<Path>,
@@ -347,12 +349,20 @@ fn generate_operation(
         // do extract
         let explode = operation_param.explode.unwrap_or(true);
 
+        let style = match &operation_param.style {
+            Some(operation_param) => {
+                quote!(::std::option::Option::Some(#crate_name::ParameterStyle::#operation_param))
+            }
+            None => quote!(::std::option::Option::None),
+        };
+
         parse_args.push(quote! {
             let mut param_opts = #crate_name::ExtractParamOptions {
                 name: #param_name,
                 default_value: #default_value,
                 example_value: #example_value,
                 explode: #explode,
+                style: #style,
             };
 
             let #pname = match <#arg_ty as #crate_name::ApiExtractor>::from_request(&request, &mut body, param_opts).await {
@@ -390,6 +400,7 @@ fn generate_operation(
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED && !#has_default,
                     deprecated: #deprecated,
                     explode: #explode,
+                    style: #style,
                 };
                 params.push(meta_param);
             }
@@ -523,6 +534,7 @@ fn generate_operation(
                 required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
                 deprecated: #deprecated,
                 explode: true,
+                style: None,
             });
         });
     }

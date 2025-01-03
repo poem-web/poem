@@ -25,6 +25,8 @@ mod union;
 mod utils;
 mod webhook;
 
+mod parameter_style;
+
 use darling::FromMeta;
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, ItemImpl, ItemTrait};
