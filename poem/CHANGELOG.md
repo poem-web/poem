@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.1.6] 2025-01-04
+
+- fix: update otel semconv as well [#916](https://github.com/poem-web/poem/pull/916)
+- chore: bump thiserror and tokio-tungstenite [#931](https://github.com/poem-web/poem/pull/931)
+- Implement middleware for `&T: Middleware<_>` [#936](https://github.com/poem-web/poem/pull/936)
+- Respect client cookie precedence [#943](https://github.com/poem-web/poem/pull/943)
+- Set a Path on the CSRF cookie [#944](https://github.com/poem-web/poem/pull/944)
+
 # [3.1.5] 2024-11-25
 
 - Bump `opentelemetry` to `0.27.0`
