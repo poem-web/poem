@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// A JSON payload.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct Json<T>(pub T);
 
 impl<T> Deref for Json<T> {
@@ -37,7 +37,7 @@ impl<T: Type> Payload for Json<T> {
                 && (content_type.subtype() == "json"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "json")))
+                    .is_some_and(|v| v == "json")))
     }
 
     fn schema_ref() -> MetaSchemaRef {
@@ -51,7 +51,7 @@ impl<T: Type> Payload for Json<T> {
 }
 
 impl<T: ParseFromJSON> ParsePayload for Json<T> {
-    const IS_REQUIRED: bool = true;
+    const IS_REQUIRED: bool = T::IS_REQUIRED;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
         let data = Vec::<u8>::from_request(request, body).await?;

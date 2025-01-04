@@ -118,7 +118,7 @@ fn is_form_content_type(content_type: &str) -> bool {
         && (content_type.subtype() == "x-www-form-urlencoded"
         || content_type
             .suffix()
-            .map_or(false, |v| v == "x-www-form-urlencoded")))
+            .is_some_and(|v| v == "x-www-form-urlencoded")))
 }
 
 #[cfg(test)]

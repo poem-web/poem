@@ -222,6 +222,76 @@ pub(crate) struct ExtraHeader {
     pub(crate) deprecated: bool,
 }
 
+pub(crate) enum LitOrPath<T> {
+    Lit(T),
+    Path(syn::Path),
+}
+
+impl<T> darling::FromMeta for LitOrPath<T>
+where
+    T: darling::FromMeta,
+{
+    fn from_nested_meta(item: &darling::ast::NestedMeta) -> darling::Result<Self> {
+        T::from_nested_meta(item)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_nested_meta(item).map(Self::Path))
+    }
+
+    fn from_meta(item: &syn::Meta) -> darling::Result<Self> {
+        T::from_meta(item)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_meta(item).map(Self::Path))
+    }
+
+    fn from_none() -> Option<Self> {
+        T::from_none()
+            .map(Self::Lit)
+            .or_else(|| syn::Path::from_none().map(Self::Path))
+    }
+
+    fn from_word() -> darling::Result<Self> {
+        T::from_word()
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_word().map(Self::Path))
+    }
+
+    fn from_list(items: &[darling::ast::NestedMeta]) -> darling::Result<Self> {
+        T::from_list(items)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_list(items).map(Self::Path))
+    }
+
+    fn from_value(value: &Lit) -> darling::Result<Self> {
+        T::from_value(value)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_value(value).map(Self::Path))
+    }
+
+    fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
+        T::from_expr(expr)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_expr(expr).map(Self::Path))
+    }
+
+    fn from_char(value: char) -> darling::Result<Self> {
+        T::from_char(value)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_char(value).map(Self::Path))
+    }
+
+    fn from_string(value: &str) -> darling::Result<Self> {
+        T::from_string(value)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_string(value).map(Self::Path))
+    }
+
+    fn from_bool(value: bool) -> darling::Result<Self> {
+        T::from_bool(value)
+            .map(Self::Lit)
+            .or_else(|_| syn::Path::from_bool(value).map(Self::Path))
+    }
+}
+
 #[derive(FromMeta)]
 pub(crate) struct CodeSample {
     pub(crate) lang: String,

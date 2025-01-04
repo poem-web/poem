@@ -137,25 +137,21 @@ mod tests {
             .unwrap();
 
         client_stream
-            .send(tokio_tungstenite::tungstenite::Message::Text(
-                "aBc".to_string(),
-            ))
+            .send(tokio_tungstenite::tungstenite::Message::Text("aBc".into()))
             .await
             .unwrap();
         assert_eq!(
             client_stream.next().await.unwrap().unwrap(),
-            tokio_tungstenite::tungstenite::Message::Text("ABC".to_string())
+            tokio_tungstenite::tungstenite::Message::Text("ABC".into())
         );
 
         client_stream
-            .send(tokio_tungstenite::tungstenite::Message::Text(
-                "def".to_string(),
-            ))
+            .send(tokio_tungstenite::tungstenite::Message::Text("def".into()))
             .await
             .unwrap();
         assert_eq!(
             client_stream.next().await.unwrap().unwrap(),
-            tokio_tungstenite::tungstenite::Message::Text("DEF".to_string())
+            tokio_tungstenite::tungstenite::Message::Text("DEF".into())
         );
 
         handle.abort();

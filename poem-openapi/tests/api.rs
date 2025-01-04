@@ -353,13 +353,15 @@ async fn payload_request() {
 
 #[tokio::test]
 async fn response() {
+    const ALREADY_EXISTS_CODE: u16 = 409;
+
     #[derive(ApiResponse)]
     enum MyResponse {
         /// Ok
         #[oai(status = 200)]
         Ok,
         /// Already exists
-        #[oai(status = 409)]
+        #[oai(status = ALREADY_EXISTS_CODE)]
         AlreadyExists(Json<u16>),
         /// Default
         Default(StatusCode, PlainText<String>),

@@ -93,7 +93,7 @@ impl<T: Send> Payload for Base64<T> {
                 && (content_type.subtype() == "plain"
                 || content_type
                     .suffix()
-                    .map_or(false, |v| v == "plain")))
+                    .is_some_and(|v| v == "plain")))
     }
 
     fn schema_ref() -> MetaSchemaRef {

@@ -131,7 +131,7 @@ fn is_yaml_content_type(content_type: &str) -> bool {
         && (content_type.subtype() == "yaml"
         || content_type
             .suffix()
-            .map_or(false, |v| v == "yaml")))
+            .is_some_and(|v| v == "yaml")))
 }
 
 impl<T: Serialize + Send> IntoResponse for Yaml<T> {

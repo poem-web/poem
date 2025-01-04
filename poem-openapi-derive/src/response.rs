@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Generics, Path, Type};
 
 use crate::{
-    common_args::ExtraHeader,
+    common_args::{ExtraHeader, LitOrPath},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal, optional_literal_string},
 };
@@ -33,7 +33,7 @@ struct ResponseItem {
     fields: Fields<ResponseField>,
 
     #[darling(default)]
-    status: Option<u16>,
+    status: Option<LitOrPath<u16>>,
     #[darling(default)]
     content_type: Option<String>,
     #[darling(default, multiple, rename = "header")]
@@ -218,7 +218,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 // #[oai(status = 200)]
                 // Item(media)
                 let media_ty = &values[0].ty;
-                let status = get_status(variant.ident.span(), variant.status)?;
+                let status = get_status(variant.ident.span(), &variant.status)?;
                 let (update_response_content_type, update_meta_content_type) = update_content_type(
                     &crate_name,
                     variant.content_type.as_deref(),
@@ -257,7 +257,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             0 => {
                 // #[oai(status = 200)]
                 // Item
-                let status = get_status(variant.ident.span(), variant.status)?;
+                let status = get_status(variant.ident.span(), &variant.status)?;
                 let item = if !headers.is_empty() {
                     quote!(#ident::#item_ident(#(#match_headers),*))
                 } else {
@@ -362,16 +362,23 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     Ok(expanded)
 }
 
-fn get_status(span: Span, status: Option<u16>) -> GeneratorResult<TokenStream> {
-    let status = status.ok_or_else(|| Error::new(span, "Missing status attribute"))?;
-    if !(100..1000).contains(&status) {
-        return Err(Error::new(
-            span,
-            "Invalid status code, it must be greater or equal to 100 and less than 1000.",
-        )
-        .into());
+fn get_status(span: Span, status: &Option<LitOrPath<u16>>) -> GeneratorResult<TokenStream> {
+    let status = status
+        .as_ref()
+        .ok_or_else(|| Error::new(span, "Missing status attribute"))?;
+    match status {
+        LitOrPath::Lit(status) => {
+            if !(100..1000).contains(status) {
+                return Err(Error::new(
+                    span,
+                    "Invalid status code, it must be greater or equal to 100 and less than 1000.",
+                )
+                .into());
+            }
+            Ok(quote!(#status))
+        }
+        LitOrPath::Path(ident) => Ok(quote!(#ident)),
     }
-    Ok(quote!(#status))
 }
 
 fn parse_fields(

@@ -168,7 +168,7 @@ pub struct GetBinaryAll<'a> {
     iter: poem::http::header::ValueIter<'a, HeaderValue>,
 }
 
-impl<'a> Iterator for GetBinaryAll<'a> {
+impl Iterator for GetBinaryAll<'_> {
     type Item = Vec<u8>;
 
     fn next(&mut self) -> Option<Self::Item> {

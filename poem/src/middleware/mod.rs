@@ -301,6 +301,14 @@ impl<E: Endpoint> Middleware<E> for () {
     }
 }
 
+impl<E: Endpoint, T: Middleware<E>> Middleware<E> for &T {
+    type Output = T::Output;
+
+    fn transform(&self, ep: E) -> Self::Output {
+        T::transform(self, ep)
+    }
+}
+
 /// A middleware that combines two middlewares.
 pub struct CombineMiddleware<A, B, E> {
     a: A,
@@ -322,9 +330,8 @@ where
     }
 }
 
-/// The enum `EitherMiddleware` with variants `Left`` and `Right` is a general
+/// The enum `EitherMiddleware` with variants `Left` and `Right` is a general
 /// purpose sum type with two cases.
-
 pub enum EitherMiddleware<A, B, E> {
     /// A middleware of type `A`
     A(A, PhantomData<E>),

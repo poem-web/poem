@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#[5.1.5] 2025-01-04
+
+- Add description to Union descriminator object schema [#921](https://github.com/poem-web/poem/pull/921)
+- make Json from poem-openapi derive Default because Json from poem does [#938](https://github.com/poem-web/poem/pull/938)
+- Pass `ParsePayload<T>::IS_REQUIRED` to `T` instead of defaulting to `true` [#932](https://github.com/poem-web/poem/pull/932)
+- allow path in status for ApiResponse [#937](https://github.com/poem-web/poem/pull/937)
+
 #[5.1.4] 2024-11-25
 
 - Assign the description to the request object in OpenAPI [#886](https://github.com/poem-web/poem/pull/886)
