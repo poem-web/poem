@@ -7,6 +7,7 @@ use std::{
 
 use futures_util::FutureExt;
 use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
+use serde::Serialize;
 
 use crate::{
     payload::Payload,
@@ -15,6 +16,28 @@ use crate::{
         MetaResponses, MetaSchemaRef, MetaWebhook, Registry,
     },
 };
+
+/// The style of the passed parameter. See https://swagger.io/docs/specification/v3_0/serialization/ for details
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ParameterStyle {
+    /// Dot-prefixed values, also known as label expansion.
+    Label,
+    /// Semicolon-prefixed values, also known as path-style expansion.
+    Matrix,
+    /// Ampersand-separated values, also known as form-style query expansion.
+    Form,
+    /// Comma-separated values
+    Simple,
+    /// Space-separated array values. Has effect only for non-exploded arrays.
+    SpaceDelimited,
+    /// Pipeline-separated array values. Has effect only for non-exploded
+    /// arrays.
+    PipeDelimited,
+    /// Bracket-nested objects, e.g.
+    /// `paramName[prop1]=value1&paramName[prop2]=value2`
+    DeepObject,
+}
 
 /// API extractor types.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -75,6 +98,9 @@ pub struct ExtractParamOptions<T> {
     /// separate parameters for each value of the array or key-value pair of the
     /// map.
     pub explode: bool,
+
+    /// The style of the parameter.
+    pub style: Option<ParameterStyle>,
 }
 
 impl<T> Default for ExtractParamOptions<T> {
@@ -84,6 +110,7 @@ impl<T> Default for ExtractParamOptions<T> {
             default_value: None,
             example_value: None,
             explode: true,
+            style: None,
         }
     }
 }
