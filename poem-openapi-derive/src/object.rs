@@ -333,6 +333,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     };
     let meta = quote! {
         #crate_name::registry::MetaSchema {
+            title: ::std::option::Option::Some(#object_name),
             description: #description,
             external_docs: #external_docs,
             required: {
