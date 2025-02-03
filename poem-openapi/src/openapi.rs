@@ -291,7 +291,7 @@ impl<T, W> OpenApiService<T, W> {
 
     /// Appends a server to the API container.
     ///
-    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#serverObject>
+    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#server-object>
     #[must_use]
     pub fn server(mut self, server: impl Into<ServerObject>) -> Self {
         let server = server.into();
