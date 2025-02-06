@@ -108,6 +108,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut register_types = Vec::new();
     let mut fields = Vec::new();
     let mut meta_fields = Vec::new();
+    let mut additional_properties = quote! { ::std::option::Option::None };
     let mut required_fields = Vec::new();
     let object_name = create_object_name(&crate_name, &oai_typename, &args.generics);
 
@@ -283,10 +284,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             _ => quote!(::std::option::Option::None),
         };
 
+        register_types.push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
         if !*field.flatten {
-            register_types
-                .push(quote!(<#field_ty as #crate_name::types::Type>::register(registry);));
-
             meta_fields.push(quote! {{
                 let original_schema = <#field_ty as #crate_name::types::Type>::schema_ref();
                 let patch_schema = {
@@ -316,6 +315,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             meta_fields.push(quote! {
                 fields.extend(registry.create_fake_schema::<#field_ty>().properties);
             });
+            additional_properties = quote! {
+                registry.create_fake_schema::<#field_ty>().additional_properties
+            };
             required_fields.push(quote! {
                 fields.extend(registry.create_fake_schema::<#field_ty>().required);
             });
@@ -346,6 +348,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 #(#meta_fields)*
                 fields
             },
+            additional_properties: #additional_properties,
             deprecated: #deprecated,
             ..#crate_name::registry::MetaSchema::new("object")
         }
