@@ -58,7 +58,7 @@ impl TokioMetrics {
 impl<E: Endpoint> Middleware<E> for TokioMetrics {
     type Output = TokioMetricsEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         let monitor = TaskMonitor::new();
         let interval = self.interval;
         let metrics = self.metrics.clone();

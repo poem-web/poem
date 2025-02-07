@@ -24,7 +24,7 @@ impl SizeLimit {
 impl<E: Endpoint> Middleware<E> for SizeLimit {
     type Output = SizeLimitEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         SizeLimitEndpoint {
             inner: ep,
             max_size: self.max_size,

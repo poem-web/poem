@@ -208,7 +208,7 @@ impl Cors {
 impl<E: Endpoint> Middleware<E> for Cors {
     type Output = CorsEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         CorsEndpoint {
             inner: ep,
             allow_credentials: self.allow_credentials,

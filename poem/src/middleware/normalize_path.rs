@@ -62,7 +62,7 @@ impl NormalizePath {
 impl<E: Endpoint> Middleware<E> for NormalizePath {
     type Output = NormalizePathEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         NormalizePathEndpoint {
             inner: ep,
             merge_slash: Regex::new("//+").unwrap(),

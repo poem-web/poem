@@ -37,7 +37,7 @@ where
 {
     type Output = OpenTelemetryTracingEndpoint<T, E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         OpenTelemetryTracingEndpoint {
             tracer: self.tracer.clone(),
             inner: ep,

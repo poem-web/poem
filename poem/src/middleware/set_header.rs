@@ -93,7 +93,7 @@ impl SetHeader {
 impl<E: Endpoint> Middleware<E> for SetHeader {
     type Output = SetHeaderEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         SetHeaderEndpoint {
             inner: ep,
             actions: self.actions.clone(),

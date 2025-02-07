@@ -114,7 +114,7 @@ impl<H> CatchPanic<H> {
 impl<E: Endpoint, H: PanicHandler> Middleware<E> for CatchPanic<H> {
     type Output = CatchPanicEndpoint<E, H>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         CatchPanicEndpoint {
             inner: ep,
             panic_handler: self.panic_handler.clone(),

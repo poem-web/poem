@@ -44,7 +44,7 @@ where
 {
     type Output = ForceHttpsEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         ForceHttpsEndpoint {
             inner: ep,
             https_port: self.https_port,

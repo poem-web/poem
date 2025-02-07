@@ -19,7 +19,7 @@ where
 {
     type Output = AddDataEndpoint<E, T>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         AddDataEndpoint {
             inner: ep,
             value: self.value.clone(),

@@ -74,7 +74,7 @@ use crate::endpoint::{EitherEndpoint, Endpoint};
 /// impl<E: Endpoint> Middleware<E> for TokenMiddleware {
 ///     type Output = TokenMiddlewareImpl<E>;
 ///
-///     fn transform(&self, ep: E) -> Self::Output {
+///     fn transform(self, ep: E) -> Self::Output {
 ///         TokenMiddlewareImpl { ep }
 ///     }
 /// }
@@ -180,7 +180,7 @@ pub trait Middleware<E: Endpoint> {
     type Output: Endpoint;
 
     /// Transform the input [`Endpoint`] to another one.
-    fn transform(&self, ep: E) -> Self::Output;
+    fn transform(self, ep: E) -> Self::Output;
 
     /// Create a new middleware by combining two middlewares.
     ///
@@ -296,16 +296,8 @@ impl<E: Endpoint> Middleware<E> for () {
     type Output = E;
 
     #[inline]
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         ep
-    }
-}
-
-impl<E: Endpoint, T: Middleware<E>> Middleware<E> for &T {
-    type Output = T::Output;
-
-    fn transform(&self, ep: E) -> Self::Output {
-        T::transform(self, ep)
     }
 }
 
@@ -325,7 +317,7 @@ where
     type Output = B::Output;
 
     #[inline]
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         self.b.transform(self.a.transform(ep))
     }
 }
@@ -362,7 +354,7 @@ where
     type Output = EitherEndpoint<A::Output, B::Output>;
 
     #[inline]
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         match self {
             EitherMiddleware::A(a, _) => EitherEndpoint::A(a.transform(ep)),
             EitherMiddleware::B(b, _) => EitherEndpoint::B(b.transform(ep)),
@@ -383,7 +375,7 @@ where
 {
     type Output = E2;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         (self.0)(ep)
     }
 }

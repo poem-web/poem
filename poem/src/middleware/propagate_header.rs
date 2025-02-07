@@ -33,7 +33,7 @@ impl PropagateHeader {
 impl<E: Endpoint> Middleware<E> for PropagateHeader {
     type Output = PropagateHeaderEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         PropagateHeaderEndpoint {
             inner: ep,
             headers: self.headers.clone(),

@@ -111,7 +111,7 @@ impl Compression {
 impl<E: Endpoint> Middleware<E> for Compression {
     type Output = CompressionEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         CompressionEndpoint {
             ep,
             level: self.level,

@@ -17,7 +17,7 @@ struct BasicAuth {
 impl<E: Endpoint> Middleware<E> for BasicAuth {
     type Output = BasicAuthEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         BasicAuthEndpoint {
             ep,
             username: self.username.clone(),
