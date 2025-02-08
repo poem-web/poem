@@ -61,3 +61,12 @@ async fn generic() {
         Some("string")
     );
 }
+
+#[tokio::test]
+async fn rename_new_type() {
+    #[derive(NewType)]
+    #[oai(rename = "TYPE_A")]
+    struct TypeA(String);
+
+    assert_eq!(TypeA::name(), "TYPE_A");
+}
