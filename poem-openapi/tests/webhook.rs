@@ -179,6 +179,7 @@ async fn response() {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: vec![MetaMediaType {
                     content_type: "application/json; charset=utf-8",
                     schema: i32::schema_ref(),

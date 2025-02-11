@@ -35,6 +35,8 @@ struct ResponseItem {
     #[darling(default)]
     status: Option<LitOrPath<u16>>,
     #[darling(default)]
+    status_range: Option<String>,
+    #[darling(default)]
     content_type: Option<String>,
     #[darling(default, multiple, rename = "header")]
     headers: Vec<ExtraHeader>,
@@ -79,6 +81,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let mut schemas = Vec::new();
 
     for variant in e {
+        if matches!((&variant.status, &variant.status_range), (Some(_), Some(_))) {
+            return Err(Error::new(
+                variant.ident.span(),
+                "status and status_range cannot be used together.",
+            )
+            .into());
+        }
+
         let item_ident = &variant.ident;
         let item_description = get_description(&variant.attrs)?;
         let item_description = optional_literal(&item_description);
@@ -176,6 +186,71 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         match values.len() {
+            2 if variant.status_range.is_some() => {
+                // #[oai(status_range = "2XX")]
+                // Item(StatusCode, media)
+                let status_range = get_status_range(variant.ident.span(), &variant.status_range)?;
+                let media_ty = &values[1].ty;
+                let (update_response_content_type, update_meta_content_type) = update_content_type(
+                    &crate_name,
+                    variant.content_type.as_deref(),
+                    variant.actual_type.as_ref(),
+                );
+                into_responses.push(quote! {
+                    #ident::#item_ident(status, media, #(#match_headers),*) => {
+                        let mut resp = #crate_name::__private::poem::IntoResponse::into_response(media);
+                        resp.set_status(status);
+                        #(#with_headers)*
+                        #update_response_content_type
+                        resp
+                    }
+                });
+                error_messages.push(quote! {
+                    #ident::#item_ident(status, media, #(#match_headers),*) => #item_description,
+                });
+                responses_meta.push(quote! {
+                    #crate_name::registry::MetaResponse {
+                        description: #item_description.unwrap_or_default(),
+                        status: ::std::option::Option::None,
+                        status_range: ::std::option::Option::Some(#status_range),
+                        content: {
+                            let mut content = <#media_ty as #crate_name::ResponseContent>::media_types();
+                            #update_meta_content_type
+                            content
+                        },
+                        headers: ::std::vec![#(#meta_headers),*],
+                    }
+                });
+                if let Some(actual_type) = variant.actual_type.as_ref() {
+                    schemas.push(actual_type);
+                } else {
+                    schemas.push(media_ty);
+                }
+            }
+            1 if variant.status_range.is_some() => {
+                // #[oai(status_range = "2XX")]
+                // Item(StatusCode)
+                let status_range = get_status_range(variant.ident.span(), &variant.status_range)?;
+                into_responses.push(quote! {
+                    #ident::#item_ident(status, #(#match_headers),*) => {
+                        let mut resp = <#crate_name::__private::poem::http::StatusCode as #crate_name::__private::poem::IntoResponse>::into_response(status);
+                        #(#with_headers)*
+                        resp
+                    }
+                });
+                error_messages.push(quote! {
+                    #ident::#item_ident(status, #(#match_headers),*) => #item_description,
+                });
+                responses_meta.push(quote! {
+                    #crate_name::registry::MetaResponse {
+                        description: #item_description.unwrap_or_default(),
+                        status: ::std::option::Option::None,
+                        status_range: ::std::option::Option::Some(#status_range),
+                        content: ::std::vec![],
+                        headers: ::std::vec![#(#meta_headers),*],
+                    }
+                });
+            }
             2 => {
                 // Item(StatusCode, media)
                 let media_ty = &values[1].ty;
@@ -200,6 +275,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::None,
+                        status_range: ::std::option::Option::None,
                         content: {
                             let mut content = <#media_ty as #crate_name::ResponseContent>::media_types();
                             #update_meta_content_type
@@ -240,6 +316,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
+                        status_range: ::std::option::Option::None,
                         content: {
                             let mut content = <#media_ty as #crate_name::ResponseContent>::media_types();
                             #update_meta_content_type
@@ -279,6 +356,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     #crate_name::registry::MetaResponse {
                         description: #item_description.unwrap_or_default(),
                         status: ::std::option::Option::Some(#status),
+                        status_range: ::std::option::Option::None,
                         content: ::std::vec![],
                         headers: ::std::vec![#(#meta_headers),*],
                     }
@@ -378,6 +456,23 @@ fn get_status(span: Span, status: &Option<LitOrPath<u16>>) -> GeneratorResult<To
             Ok(quote!(#status))
         }
         LitOrPath::Path(ident) => Ok(quote!(#ident)),
+    }
+}
+
+fn get_status_range(span: Span, status_range: &Option<String>) -> GeneratorResult<TokenStream> {
+    let status_range = status_range
+        .as_ref()
+        .ok_or_else(|| Error::new(span, "Missing status range attribute"))?;
+
+    match status_range.as_str() {
+        "1XX" | "2XX" | "3XX" | "4XX" | "5XX" => {
+            Ok(quote!(<_ as ::std::convert::Into<String>>::into(#status_range)))
+        }
+        _ => Err(Error::new(
+            span,
+            "Invalid status range, you may only use 1XX, 2XX, 3XX, 4XX, or 5XX.",
+        )
+        .into()),
     }
 }
 

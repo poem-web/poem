@@ -50,12 +50,14 @@ fn meta() {
                 MetaResponse {
                     description: "Ok",
                     status: Some(200),
+                    status_range: None,
                     content: vec![],
                     headers: vec![]
                 },
                 MetaResponse {
                     description: "A\nB\n\nC",
                     status: Some(400),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/json; charset=utf-8",
                         schema: MetaSchemaRef::Reference("BadRequestResult".to_string())
@@ -65,6 +67,7 @@ fn meta() {
                 MetaResponse {
                     description: "yaml response",
                     status: Some(400),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/yaml; charset=utf-8",
                         schema: MetaSchemaRef::Reference("BadRequestResult".to_string())
@@ -74,6 +77,7 @@ fn meta() {
                 MetaResponse {
                     description: "",
                     status: None,
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "text/plain; charset=utf-8",
                         schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
@@ -271,6 +275,7 @@ async fn generic() {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: vec![MetaMediaType {
                     content_type: "application/json; charset=utf-8",
                     schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
@@ -305,6 +310,7 @@ async fn item_content_type() {
                 MetaResponse {
                     description: "",
                     status: Some(200),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/json2",
                         schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
@@ -316,6 +322,7 @@ async fn item_content_type() {
                 MetaResponse {
                     description: "",
                     status: None,
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/json3",
                         schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(

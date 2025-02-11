@@ -84,6 +84,7 @@ impl<T: ToXML> ApiResponse for Xml<T> {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: vec![MetaMediaType {
                     content_type: Self::CONTENT_TYPE,
                     schema: Self::schema_ref(),
