@@ -203,6 +203,11 @@ pub trait ApiExtractor<'a>: Sized {
         vec![]
     }
 
+    /// Returns `true` if the extractor is a security scheme with a fallback.
+    fn has_security_fallback() -> bool {
+        false
+    }
+
     /// Returns the location of the parameter if this extractor is parameter.
     fn param_in() -> Option<MetaParamIn> {
         None

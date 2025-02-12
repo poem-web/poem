@@ -428,6 +428,9 @@ fn generate_operation(
                         (security_name, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
                     ]));
                 }
+                if <#arg_ty as #crate_name::ApiExtractor>::has_security_fallback() {
+                    security.push(::std::collections::HashMap::<&'static str, ::std::vec::Vec<&'static str>>::new());
+                }
             }
         });
     }

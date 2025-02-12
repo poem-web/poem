@@ -496,6 +496,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             let mut registers = Vec::new();
             let mut security_schemes = Vec::new();
             let mut from_requests = Vec::new();
+            let mut has_fallback = false;
 
             if items.is_empty() {
                 return Err(Error::new_spanned(ident, "At least one member is required.").into());
@@ -503,6 +504,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
             for item in items {
                 if item.fallback {
+                    has_fallback = true;
                     continue;
                 }
 
@@ -558,6 +560,10 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         let mut security_schemes = ::std::vec![];
                         #(#security_schemes)*
                         security_schemes
+                    }
+
+                    fn has_security_fallback() -> bool {
+                        #has_fallback
                     }
 
                     async fn from_request(
