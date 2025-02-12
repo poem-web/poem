@@ -471,6 +471,28 @@ impl<T, W> OpenApiService<T, W> {
         crate::ui::redoc::create_html(&self.spec())
     }
 
+    /// Create the Stoplight Elements endpoint.
+    #[must_use]
+    #[cfg(feature = "stoplight-elements")]
+    pub fn stoplight_elements(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::stoplight_elements::create_endpoint(&self.spec())
+    }
+
+    /// Create the Stoplight Elements HTML.
+    #[must_use]
+    #[cfg(feature = "stoplight-elements")]
+    pub fn stoplight_elements_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::stoplight_elements::create_html(&self.spec())
+    }
+
     /// Create an endpoint to serve the open api specification as JSON.
     pub fn spec_endpoint(&self) -> impl Endpoint
     where
