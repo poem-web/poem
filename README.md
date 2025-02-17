@@ -2,7 +2,7 @@
 
 <div align="center">
   <!-- CI -->
-  <img src="https://github.com/poem-web/poem/workflows/CI/badge.svg" />
+  <img src="https://github.com/poem-web/poem/actions/workflows/ci.yml/badge.svg" />
   <!-- codecov -->
   <img src="https://codecov.io/gh/poem-web/poem/branch/master/graph/badge.svg" />
   <a href="https://github.com/rust-secure-code/safety-dance/">
