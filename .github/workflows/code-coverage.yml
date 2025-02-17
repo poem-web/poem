@@ -15,13 +15,13 @@ jobs:
           - 6379:6379
         options: --entrypoint redis-server
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
       - name: Install Stable Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.81.0
+          toolchain: 1.83.0
           components: rustfmt
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
