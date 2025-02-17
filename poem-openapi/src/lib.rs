@@ -142,10 +142,11 @@ mod base;
 mod openapi;
 mod path_util;
 #[cfg(any(
-    feature = "swagger-ui",
+    feature = "openapi-explorer",
     feature = "rapidoc",
     feature = "redoc",
-    feature = "openapi-explorer"
+    feature = "stoplight-elements",
+    feature = "swagger-ui",
 ))]
 mod ui;
 
