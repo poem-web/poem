@@ -233,6 +233,20 @@ impl Cookie {
         self.0.secure().unwrap_or_default()
     }
 
+    /// Returns whether this cookie was marked `Partitioned` or not.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use poem::web::cookie::Cookie;
+    ///
+    /// let cookie = Cookie::parse("foo=bar; Partitioned").unwrap();
+    /// assert!(cookie.partitioned());
+    /// ```
+    pub fn partitioned(&self) -> bool {
+        self.0.partitioned().unwrap_or_default()
+    }
+
     /// Sets the `domain` of `self` to `domain`.
     pub fn set_domain(&mut self, domain: impl Into<String>) {
         self.0.set_domain(domain.into());
@@ -276,6 +290,11 @@ impl Cookie {
     /// Sets the value of `Secure` in `self` to `value`.
     pub fn set_secure(&mut self, value: impl Into<Option<bool>>) {
         self.0.set_secure(value);
+    }
+
+    /// Sets the value of `Partitioned` in `self` to `value`.
+    pub fn set_partitioned(&mut self, value: impl Into<Option<bool>>) {
+        self.0.set_partitioned(value);
     }
 
     /// Sets the value of `self` to `value`.
