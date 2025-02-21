@@ -1,9 +1,5 @@
-use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
-use opentelemetry_sdk::{
-    propagation::TraceContextPropagator,
-    trace::{Config, TracerProvider},
-    Resource,
-};
+use opentelemetry::{global, trace::TracerProvider as _};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
 use poem::{
     get, handler,
     listener::TcpListener,
@@ -11,21 +7,15 @@ use poem::{
     EndpointExt, Route, Server,
 };
 
-fn init_tracer() -> TracerProvider {
+fn init_tracer() -> SdkTracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_sdk::trace::TracerProvider::builder()
-        .with_config(
-            Config::default().with_resource(Resource::new(vec![KeyValue::new(
-                "service.name",
-                "server2",
-            )])),
-        )
+    SdkTracerProvider::builder()
+        .with_resource(Resource::builder().with_service_name("server2").build())
         .with_batch_exporter(
             opentelemetry_otlp::SpanExporter::builder()
                 .with_tonic()
                 .build()
                 .expect("Trace exporter should initialize."),
-            opentelemetry_sdk::runtime::Tokio,
         )
         .build()
 }

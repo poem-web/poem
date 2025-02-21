@@ -6,25 +6,24 @@ use opentelemetry::{
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::TracerProvider};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider};
 use reqwest::{Client, Method, Url};
 
-fn init_tracer() -> TracerProvider {
+fn init_tracer() -> SdkTracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_sdk::trace::TracerProvider::builder()
+    SdkTracerProvider::builder()
         .with_batch_exporter(
             opentelemetry_otlp::SpanExporter::builder()
                 .with_tonic()
                 .build()
                 .expect("Trace exporter should initialize."),
-            opentelemetry_sdk::runtime::Tokio,
         )
         .build()
 }
 
 #[tokio::main]
 async fn main() {
-    let _tracer = init_tracer();
+    let tracer = init_tracer();
     let client = Client::new();
     let span = global::tracer("example-opentelemetry/client").start("request/server1");
     let cx = Context::current_with_span(span);
@@ -57,5 +56,5 @@ async fn main() {
     .with_context(cx)
     .await;
 
-    global::shutdown_tracer_provider();
+    tracer.shutdown().expect("Always shutdown tracer");
 }
