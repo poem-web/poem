@@ -4,6 +4,7 @@ use poem_openapi::{
     Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
+use std::collections::HashMap;
 
 fn get_meta<T: Type>() -> MetaSchema {
     let mut registry = Registry::new();
@@ -651,6 +652,47 @@ fn flatten_field() {
     assert_eq!(
         Obj::parse_from_json(Some(json!({"a": 100, "b": 200, "c":
 300})))
+        .unwrap(),
+        obj
+    );
+}
+
+#[test]
+fn flatten_hash_map() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct Obj1 {
+        a: i32,
+        b: i32,
+    }
+
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct Obj {
+        c: i32,
+        #[oai(flatten)]
+        map: HashMap<String, Obj1>,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.required, vec!["c"]);
+    assert_eq!(meta.properties[0].0, "c");
+    assert_eq!(
+        meta.additional_properties,
+        Some(Box::new(MetaSchemaRef::Reference("Obj1".to_owned())))
+    );
+
+    let mut map = HashMap::new();
+    map.insert("k1".to_owned(), Obj1 { a: 100, b: 200 });
+    map.insert("k2".to_owned(), Obj1 { a: 300, b: 400 });
+    let obj = Obj { map, c: 300 };
+
+    assert_eq!(
+        obj.to_json(),
+        Some(json!({"k1": { "a": 100, "b": 200 }, "k2": { "a": 300, "b": 400 }, "c": 300}))
+    );
+    assert_eq!(
+        Obj::parse_from_json(Some(
+            json!({"k1": { "a": 100, "b": 200 }, "k2": { "a": 300, "b": 400 }, "c": 300})
+        ))
         .unwrap(),
         obj
     );
