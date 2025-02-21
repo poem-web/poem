@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#[5.1.6] 2025-02-21
+
+- Allows passing the style of a parameter in the openapi spec. [#940](https://github.com/poem-web/poem/pull/940)
+- Add support for Stoplight Elements [#954](https://github.com/poem-web/poem/pull/954)
+- Correct server object reference URL anchor [#957](https://github.com/poem-web/poem/pull/957)
+- feat(openapi): reflect fallback security scheme in spec [#958](https://github.com/poem-web/poem/pull/958)
+- Fix missing condition for Stoplight Elements UI [#972](https://github.com/poem-web/poem/pull/972)
+- Update MSRV to `1.83.0`
+
 #[5.1.5] 2025-01-04
 
 - Add description to Union descriminator object schema [#921](https://github.com/poem-web/poem/pull/921)

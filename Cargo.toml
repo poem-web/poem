@@ -17,7 +17,7 @@ license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/poem/"
 homepage = "https://github.com/poem-web/poem"
 repository = "https://github.com/poem-web/poem"
-rust-version = "1.81"
+rust-version = "1.83"
 
 [workspace.dependencies]
 poem = { path = "poem", version = "3.1.0", default-features = false }

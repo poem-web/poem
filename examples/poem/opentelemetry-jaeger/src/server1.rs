@@ -8,7 +8,7 @@ use opentelemetry::{
 use opentelemetry_http::HeaderInjector;
 use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
-    trace::{Config, Tracer, TracerProvider},
+    trace::{SdkTracerProvider, Tracer},
     Resource,
 };
 use poem::{
@@ -20,21 +20,15 @@ use poem::{
 };
 use reqwest::{Client, Url};
 
-fn init_tracer() -> TracerProvider {
+fn init_tracer() -> SdkTracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
-    opentelemetry_sdk::trace::TracerProvider::builder()
-        .with_config(
-            Config::default().with_resource(Resource::new(vec![KeyValue::new(
-                "service.name",
-                "server1",
-            )])),
-        )
+    SdkTracerProvider::builder()
+        .with_resource(Resource::builder().with_service_name("server1").build())
         .with_batch_exporter(
             opentelemetry_otlp::SpanExporter::builder()
                 .with_tonic()
                 .build()
                 .expect("Trace exporter should initialize."),
-            opentelemetry_sdk::runtime::Tokio,
         )
         .build()
 }

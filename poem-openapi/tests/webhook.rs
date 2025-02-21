@@ -126,6 +126,7 @@ async fn parameters() {
                 required: true,
                 deprecated: false,
                 explode: true,
+                style: None,
             },
             MetaOperationParam {
                 name: "b".to_string(),
@@ -135,6 +136,7 @@ async fn parameters() {
                 required: true,
                 deprecated: false,
                 explode: true,
+                style: None,
             }
         ]
     );

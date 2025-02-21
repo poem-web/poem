@@ -21,7 +21,7 @@ jobs:
       - name: Install Stable Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.81.0
+          toolchain: 1.83.0
           components: rustfmt
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -34,7 +34,7 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
       - name: Archive Code Coverage Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: cobertura.xml

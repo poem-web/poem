@@ -11,6 +11,7 @@ use poem_openapi::{
     registry::{MetaOAuthFlow, MetaOAuthFlows, MetaOAuthScope, MetaSecurityScheme, Registry},
     ApiExtractor, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
+use serde_json::{json, Map, Value};
 
 use crate::headers::Authorization;
 
@@ -22,6 +23,7 @@ fn rename() {
     struct MySecurityScheme(Basic);
 
     assert_eq!(MySecurityScheme::security_schemes(), &["ABC"]);
+    assert!(!MySecurityScheme::has_security_fallback());
 }
 
 #[test]
@@ -32,6 +34,7 @@ fn default_rename() {
     struct MySecurityScheme(Basic);
 
     assert_eq!(MySecurityScheme::security_schemes(), &["MySecurityScheme"]);
+    assert!(!MySecurityScheme::has_security_fallback());
 }
 
 #[test]
@@ -54,6 +57,7 @@ fn desc() {
             .description,
         Some("ABC\n\nD")
     );
+    assert!(!MySecurityScheme::has_security_fallback());
 }
 
 #[tokio::test]
@@ -97,6 +101,7 @@ async fn basic_auth() {
             openid_connect_url: None
         }
     );
+    assert!(!MySecurityScheme::has_security_fallback());
 
     struct MyApi;
 
@@ -139,6 +144,7 @@ async fn bearer_auth() {
             openid_connect_url: None
         }
     );
+    assert!(!MySecurityScheme::has_security_fallback());
 
     struct MyApi;
 
@@ -229,6 +235,10 @@ async fn api_key_auth() {
             openid_connect_url: None
         }
     );
+
+    assert!(!MySecuritySchemeInCookie::has_security_fallback());
+    assert!(!MySecuritySchemeInHeader::has_security_fallback());
+    assert!(!MySecuritySchemeInQuery::has_security_fallback());
 
     struct MyApi;
 
@@ -437,6 +447,7 @@ async fn oauth2_auth() {
             openid_connect_url: None
         }
     );
+    assert!(!MySecurityScheme::has_security_fallback())
 }
 
 #[tokio::test]
@@ -550,6 +561,12 @@ async fn multiple_auth_methods() {
         MySecurityScheme2(MySecurityScheme2),
     }
 
+    assert_eq!(
+        MySecurityScheme::security_schemes(),
+        vec!["MySecurityScheme1", "MySecurityScheme2"]
+    );
+    assert!(!MySecurityScheme::has_security_fallback());
+
     struct MyApi;
 
     #[OpenApi]
@@ -568,6 +585,7 @@ async fn multiple_auth_methods() {
     }
 
     let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec = serde_json::from_str::<Value>(&service.spec()).unwrap();
     let client = TestClient::new(service);
     let resp = client
         .get("/test")
@@ -587,6 +605,18 @@ async fn multiple_auth_methods() {
 
     let resp = client.get("/test").send().await;
     resp.assert_status(StatusCode::UNAUTHORIZED);
+
+    assert_eq!(
+        &spec["paths"]["/test"]["get"]["security"],
+        &json!([
+          {
+            "MySecurityScheme1": []
+          },
+          {
+            "MySecurityScheme2": []
+          }
+        ])
+    )
 }
 
 #[tokio::test]
@@ -601,6 +631,15 @@ async fn fallback() {
         #[oai(fallback)]
         NoAuth,
     }
+
+    let mut registry = Registry::new();
+    MySecurityScheme::register(&mut registry);
+
+    assert_eq!(
+        MySecurityScheme::security_schemes(),
+        vec!["MySecuritySchemeBasic"]
+    );
+    assert!(MySecurityScheme::has_security_fallback());
 
     struct MyApi;
 
@@ -618,6 +657,7 @@ async fn fallback() {
     }
 
     let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec = serde_json::from_str::<Value>(&service.spec()).unwrap();
     let client = TestClient::new(service);
 
     let resp = client
@@ -631,4 +671,14 @@ async fn fallback() {
     let resp = client.get("/test").send().await;
     resp.assert_status_is_ok();
     resp.assert_text("NoAuth").await;
+
+    assert_eq!(
+        &spec["paths"]["/test"]["get"]["security"],
+        &json!([
+          {
+            "MySecuritySchemeBasic": []
+          },
+          {}
+        ])
+    )
 }

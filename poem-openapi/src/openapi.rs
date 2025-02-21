@@ -291,7 +291,7 @@ impl<T, W> OpenApiService<T, W> {
 
     /// Appends a server to the API container.
     ///
-    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#serverObject>
+    /// Reference: <https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#server-object>
     #[must_use]
     pub fn server(mut self, server: impl Into<ServerObject>) -> Self {
         let server = server.into();
@@ -471,6 +471,28 @@ impl<T, W> OpenApiService<T, W> {
         crate::ui::redoc::create_html(&self.spec())
     }
 
+    /// Create the Stoplight Elements endpoint.
+    #[must_use]
+    #[cfg(feature = "stoplight-elements")]
+    pub fn stoplight_elements(&self) -> impl Endpoint
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::stoplight_elements::create_endpoint(&self.spec())
+    }
+
+    /// Create the Stoplight Elements HTML.
+    #[must_use]
+    #[cfg(feature = "stoplight-elements")]
+    pub fn stoplight_elements_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::stoplight_elements::create_html(&self.spec())
+    }
+
     /// Create an endpoint to serve the open api specification as JSON.
     pub fn spec_endpoint(&self) -> impl Endpoint
     where
@@ -527,6 +549,7 @@ impl<T, W> OpenApiService<T, W> {
                         required: *is_required,
                         deprecated: header.deprecated,
                         explode: true,
+                        style: None,
                     },
                 );
             }

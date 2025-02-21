@@ -9,7 +9,7 @@ use poem_openapi::{
     payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaExternalDocument, MetaOperation, MetaParamIn, MetaSchema, Registry},
     types::Type,
-    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, Tags,
+    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ParameterStyle, Tags,
 };
 
 #[tokio::test]
@@ -1000,4 +1000,27 @@ async fn issue_489() {
         .send()
         .await
         .assert_status(StatusCode::METHOD_NOT_ALLOWED);
+}
+
+#[tokio::test]
+async fn parameter_style() {
+    #[allow(dead_code)]
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        #[allow(dead_code)]
+        async fn index(
+            &self,
+            #[oai(style = "deep_object")] Query(input): Query<String>,
+        ) -> PlainText<String> {
+            PlainText(format!("hello, world! {input}"))
+        }
+    }
+
+    assert_eq!(
+        Api::meta()[0].paths[0].operations[0].params[0].style,
+        Some(ParameterStyle::DeepObject)
+    )
 }
