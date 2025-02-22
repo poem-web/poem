@@ -2,26 +2,32 @@
 
 ## Setup
 
-1. Declare the database URL
+1. Install sqlx-cli
 
+```bash
+cargo install sqlx-cli --no-default-features --features sqlite
 ```
+
+2. Declare the database URL
+
+```bash
 export DATABASE_URL="sqlite:todos.db"
 ```
 
-2. Create the database
+3. Create the database
 
-```
+```bash
 sqlx db create
 ```
 
-3. Run sql migrations
+4. Run sql migrations
 
-```
+```bash
 sqlx migrate run
 ```
 
-4. Start the server
+5. Start the server
 
-```
+```bash
 cargo run
 ```
