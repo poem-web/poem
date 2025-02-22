@@ -75,6 +75,7 @@ pub struct StaticFilesEndpoint {
     show_files_listing: bool,
     index_file: Option<String>,
     fallback_to_index: bool,
+    no_cache_index: bool,
     prefer_utf8: bool,
     redirect_to_slash: bool,
 }
@@ -100,6 +101,7 @@ impl StaticFilesEndpoint {
             show_files_listing: false,
             index_file: None,
             fallback_to_index: false,
+            no_cache_index: false,
             prefer_utf8: true,
             redirect_to_slash: false,
         }
@@ -159,6 +161,15 @@ impl StaticFilesEndpoint {
             ..self
         }
     }
+
+    /// Set `Cache-Control: no-cache` header for index file.
+    #[must_use]
+    pub fn no_cache_index(self) -> Self {
+        Self {
+            no_cache_index: true,
+            ..self
+        }
+    }
 }
 
 impl Endpoint for StaticFilesEndpoint {
@@ -201,7 +212,7 @@ impl Endpoint for StaticFilesEndpoint {
                     if index_path.is_file() {
                         return Ok(StaticFileRequest::from_request_without_body(&req)
                             .await?
-                            .create_response(&index_path, self.prefer_utf8)?
+                            .create_response(&index_path, self.prefer_utf8, self.no_cache_index)?
                             .into_response());
                     }
                 }
@@ -212,7 +223,7 @@ impl Endpoint for StaticFilesEndpoint {
         if file_path.is_file() {
             Ok(StaticFileRequest::from_request_without_body(&req)
                 .await?
-                .create_response(&file_path, self.prefer_utf8)?
+                .create_response(&file_path, self.prefer_utf8, false)?
                 .into_response())
         } else {
             if self.redirect_to_slash
@@ -231,7 +242,7 @@ impl Endpoint for StaticFilesEndpoint {
                 if index_path.is_file() {
                     return Ok(StaticFileRequest::from_request_without_body(&req)
                         .await?
-                        .create_response(&index_path, self.prefer_utf8)?
+                        .create_response(&index_path, self.prefer_utf8, self.no_cache_index)?
                         .into_response());
                 }
             }
@@ -283,6 +294,7 @@ impl Endpoint for StaticFilesEndpoint {
 pub struct StaticFileEndpoint {
     path: PathBuf,
     prefer_utf8: bool,
+    no_cache: bool,
 }
 
 impl StaticFileEndpoint {
@@ -299,6 +311,7 @@ impl StaticFileEndpoint {
         Self {
             path: path.into(),
             prefer_utf8: true,
+            no_cache: false,
         }
     }
 
@@ -312,6 +325,18 @@ impl StaticFileEndpoint {
             ..self
         }
     }
+
+    /// Specifies whether responses should have `Cache-Control: no-cache`
+    /// header.
+    ///
+    /// Default is `false`.
+    #[must_use]
+    pub fn no_cache(self, value: bool) -> Self {
+        Self {
+            no_cache: value,
+            ..self
+        }
+    }
 }
 
 impl Endpoint for StaticFileEndpoint {
@@ -320,7 +345,7 @@ impl Endpoint for StaticFileEndpoint {
     async fn call(&self, req: Request) -> Result<Self::Output> {
         Ok(StaticFileRequest::from_request_without_body(&req)
             .await?
-            .create_response(&self.path, self.prefer_utf8)?
+            .create_response(&self.path, self.prefer_utf8, self.no_cache)?
             .into_response())
     }
 }

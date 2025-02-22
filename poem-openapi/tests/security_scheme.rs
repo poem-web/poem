@@ -11,7 +11,7 @@ use poem_openapi::{
     registry::{MetaOAuthFlow, MetaOAuthFlows, MetaOAuthScope, MetaSecurityScheme, Registry},
     ApiExtractor, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::headers::Authorization;
 
