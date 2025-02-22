@@ -7,6 +7,6 @@ publish.workspace = true
 [dependencies]
 poem.workspace = true
 poem-openapi.workspace = true
-sqlx = { version = "0.6.0", features = ["runtime-tokio-rustls", "sqlite"] }
+sqlx = { version = "0.8.3", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tokio-stream.workspace = true
