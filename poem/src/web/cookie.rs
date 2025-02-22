@@ -278,6 +278,11 @@ impl Cookie {
         self.0.set_secure(value);
     }
 
+    /// Sets the value of `Partitioned` in `self` to `value`.
+    pub fn set_partitioned(&mut self, value: impl Into<Option<bool>>) {
+        self.0.set_partitioned(value);
+    }
+
     /// Sets the value of `self` to `value`.
     pub fn set_value_str(&mut self, value: impl Into<String>) {
         self.0.set_value(value.into());
