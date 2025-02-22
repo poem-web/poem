@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
-    common_args::ExternalDocument,
+    common_args::{ExternalDocument, LitOrPath},
     error::GeneratorResult,
     utils::{
         get_crate_name, get_summary_and_description, optional_literal, optional_literal_string,
@@ -39,6 +39,8 @@ struct NewTypeArgs {
     external_docs: Option<ExternalDocument>,
     #[darling(default)]
     example: bool,
+    #[darling(default)]
+    rename: Option<LitOrPath<String>>,
 }
 
 const fn default_true() -> bool {
@@ -88,6 +90,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     } else {
         quote!(None)
+    };
+
+    let name = match args.rename {
+        Some(LitOrPath::Lit(name)) => quote! {
+            ::std::borrow::Cow::from(#name)
+        },
+        Some(LitOrPath::Path(path)) => quote! {
+            ::std::borrow::Cow::from(#path)
+        },
+        None => quote! {
+            <#inner_ty as #crate_name::types::Type>::name()
+        },
     };
 
     let schema_ref = quote! {
@@ -182,7 +196,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             type RawElementValueType = <#inner_ty as #crate_name::types::Type>::RawElementValueType;
 
             fn name() -> ::std::borrow::Cow<'static, str> {
-                <#inner_ty as #crate_name::types::Type>::name()
+                #name
             }
 
             fn schema_ref() -> #crate_name::registry::MetaSchemaRef {
