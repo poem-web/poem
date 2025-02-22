@@ -427,6 +427,10 @@ mod tests {
 
     #[tokio::test]
     async fn tls_listener() {
+        tokio_rustls::rustls::crypto::aws_lc_rs::default_provider()
+            .install_default()
+            .expect("Failed to install rustls crypto provider");
+
         let listener = TcpListener::bind("127.0.0.1:0").rustls(
             RustlsConfig::new().fallback(
                 RustlsCertificate::new()
