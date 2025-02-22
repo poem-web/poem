@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     marker::PhantomData,
 };
 
@@ -14,7 +14,7 @@ use crate::{
     base::UrlQuery,
     registry::{
         Document, MetaContact, MetaExternalDocument, MetaHeader, MetaInfo, MetaLicense,
-        MetaOperationParam, MetaParamIn, MetaSchemaRef, MetaServer, Registry,
+        MetaOperationParam, MetaParamIn, MetaSchemaRef, MetaServer, MetaServerVariable, Registry,
     },
     types::Type,
     OpenApi, Webhook,
@@ -25,6 +25,7 @@ use crate::{
 pub struct ServerObject {
     url: String,
     description: Option<String>,
+    variables: BTreeMap<String, MetaServerVariable>,
 }
 
 impl<T: Into<String>> From<T> for ServerObject {
@@ -39,6 +40,7 @@ impl ServerObject {
         Self {
             url: url.into(),
             description: None,
+            variables: BTreeMap::new(),
         }
     }
 
@@ -49,6 +51,49 @@ impl ServerObject {
             description: Some(description.into()),
             ..self
         }
+    }
+
+    /// Adds a server variable with a limited set of values.
+    ///
+    /// The variable name must be present in the server URL in curly braces.
+    #[must_use]
+    pub fn enum_variable(
+        mut self,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        default: impl Into<String>,
+        enum_values: Vec<impl Into<String>>,
+    ) -> Self {
+        self.variables.insert(
+            name.into(),
+            MetaServerVariable {
+                description: description.into(),
+                default: default.into(),
+                enum_values: enum_values.into_iter().map(Into::into).collect(),
+            },
+        );
+        self
+    }
+
+    /// Adds a server variable that can take any value.
+    ///
+    /// The variable name must be present in the server URL in curly braces.
+    #[must_use]
+    pub fn variable(
+        mut self,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        default: impl Into<String>,
+    ) -> Self {
+        self.variables.insert(
+            name.into(),
+            MetaServerVariable {
+                description: description.into(),
+                default: default.into(),
+                enum_values: Vec::new(),
+            },
+        );
+        self
     }
 }
 
@@ -298,6 +343,7 @@ impl<T, W> OpenApiService<T, W> {
         self.servers.push(MetaServer {
             url: server.url,
             description: server.description,
+            variables: server.variables,
         });
         self
     }
