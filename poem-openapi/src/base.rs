@@ -336,6 +336,7 @@ impl ApiResponse for () {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: vec![],
                 headers: vec![],
             }],
@@ -389,6 +390,7 @@ where
             responses: vec![MetaResponse {
                 description: "A websocket response",
                 status: Some(101),
+                status_range: None,
                 content: vec![],
                 headers: vec![],
             }],

@@ -428,6 +428,8 @@ pub struct MetaResponse {
     pub description: &'static str,
     #[serde(skip)]
     pub status: Option<u16>,
+    #[serde(skip)]
+    pub status_range: Option<String>,
     #[serde(
         skip_serializing_if = "Vec::is_empty",
         serialize_with = "serialize_content"

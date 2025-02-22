@@ -82,6 +82,7 @@ impl<T: ToYAML> ApiResponse for Yaml<T> {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: vec![MetaMediaType {
                     content_type: Self::CONTENT_TYPE,
                     schema: Self::schema_ref(),

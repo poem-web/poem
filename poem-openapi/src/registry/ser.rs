@@ -57,7 +57,10 @@ impl Serialize for MetaResponses {
         for resp in &self.responses {
             match resp.status {
                 Some(status) => s.serialize_entry(&format!("{status}"), resp)?,
-                None => s.serialize_entry("default", resp)?,
+                None => match &resp.status_range {
+                    Some(status_range) => s.serialize_entry(&format!("{status_range}"), resp)?,
+                    None => s.serialize_entry("default", resp)?,
+                },
             }
         }
         s.end()

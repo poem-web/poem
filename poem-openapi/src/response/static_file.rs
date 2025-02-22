@@ -18,6 +18,7 @@ impl ApiResponse for StaticFileResponse {
                 MetaResponse {
                     description: "",
                     status: Some(200),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: Binary::<Body>::CONTENT_TYPE,
                         schema: Binary::<Body>::schema_ref(),
@@ -45,35 +46,41 @@ impl ApiResponse for StaticFileResponse {
                 MetaResponse {
                     description: "Not modified",
                     status: Some(304),
+                    status_range: None,
                     content: vec![],
                     headers: vec![],
                 },
                 MetaResponse {
                     description: "Bad request",
                     status: Some(400),
+                    status_range: None,
                     content: vec![],
                     headers: vec![],
                 },
                 MetaResponse {
                     description: "Resource was not found",
                     status: Some(404),
+                    status_range: None,
                     content: vec![],
                     headers: vec![],
                 },
                 MetaResponse {
                     description: "Precondition failed",
                     status: Some(412),
+                    status_range: None,
                     content: vec![],
                     headers: vec![],
                 },
                 MetaResponse {
                     description: "The Content-Range response HTTP header indicates where in a full body message a partial message belongs.",
                     status: Some(416),
+                    status_range: None,
                     content: vec![],
                     headers: vec![],
                 }, MetaResponse {
                     description: "Internal server error",
                     status: Some(500),
+                    status_range: None,
                     content: vec![],
                     headers: vec![],
                 },

@@ -8,6 +8,7 @@ use poem::{
     Error, IntoResponse,
 };
 use poem_openapi::{
+    param::Query,
     payload::{Binary, Json, Payload, PlainText, Yaml},
     registry::{
         MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry,
@@ -16,7 +17,7 @@ use poem_openapi::{
     ApiResponse, Object, OpenApi, OpenApiService,
 };
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 #[derive(PartialEq, Deserialize, Clone, Debug, Object)]
 struct BadRequestResult {
@@ -50,12 +51,14 @@ fn meta() {
                 MetaResponse {
                     description: "Ok",
                     status: Some(200),
+                    status_range: None,
                     content: vec![],
                     headers: vec![]
                 },
                 MetaResponse {
                     description: "A\nB\n\nC",
                     status: Some(400),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/json; charset=utf-8",
                         schema: MetaSchemaRef::Reference("BadRequestResult".to_string())
@@ -65,6 +68,7 @@ fn meta() {
                 MetaResponse {
                     description: "yaml response",
                     status: Some(400),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/yaml; charset=utf-8",
                         schema: MetaSchemaRef::Reference("BadRequestResult".to_string())
@@ -74,6 +78,7 @@ fn meta() {
                 MetaResponse {
                     description: "",
                     status: None,
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "text/plain; charset=utf-8",
                         schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string"))),
@@ -271,6 +276,7 @@ async fn generic() {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: vec![MetaMediaType {
                     content_type: "application/json; charset=utf-8",
                     schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
@@ -305,6 +311,7 @@ async fn item_content_type() {
                 MetaResponse {
                     description: "",
                     status: Some(200),
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/json2",
                         schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
@@ -316,6 +323,7 @@ async fn item_content_type() {
                 MetaResponse {
                     description: "",
                     status: None,
+                    status_range: None,
                     content: vec![MetaMediaType {
                         content_type: "application/json3",
                         schema: MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format(
@@ -545,4 +553,63 @@ async fn actual_type() {
     Api::register(&mut registry);
     let type_name: Vec<&String> = registry.schemas.keys().collect();
     assert_eq!(&type_name, &["MyObj"]);
+}
+
+#[tokio::test]
+async fn status_range() {
+    #[derive(Debug, ApiResponse)]
+    enum MyResponse {
+        #[oai(status_range = "2XX")]
+        Ok(StatusCode, Json<String>),
+        #[oai(status_range = "4XX")]
+        ClientError(StatusCode),
+        #[oai(status_range = "5XX")]
+        ServerError(StatusCode),
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, Query(error): Query<Option<String>>) -> MyResponse {
+            match error.as_deref() {
+                Some("client") => MyResponse::ClientError(StatusCode::EXPECTATION_FAILED),
+                Some("server") => MyResponse::ServerError(StatusCode::INSUFFICIENT_STORAGE),
+                _ => MyResponse::Ok(StatusCode::ACCEPTED, Json("hello world".into())),
+            }
+        }
+    }
+
+    let service = OpenApiService::new(Api, "test", "1.0");
+    let spec = serde_json::from_str::<serde_json::Value>(&service.spec()).unwrap();
+    assert_eq!(
+        spec["paths"]["/"]["get"]["responses"],
+        json!({
+          "2XX": {
+            "description": "",
+            "content": {
+              "application/json; charset=utf-8": { "schema": { "type": "string" } }
+            }
+          },
+          "4XX": {
+            "description": ""
+          },
+          "5XX": {
+            "description": ""
+          }
+        })
+    );
+
+    let cli = TestClient::new(service);
+
+    let resp = cli.get("/").send().await;
+    resp.assert_status(StatusCode::ACCEPTED);
+    resp.assert_json(json!("hello world")).await;
+
+    let resp = cli.get("/?error=client").send().await;
+    resp.assert_status(StatusCode::EXPECTATION_FAILED);
+
+    let resp = cli.get("/?error=server").send().await;
+    resp.assert_status(StatusCode::INSUFFICIENT_STORAGE);
 }

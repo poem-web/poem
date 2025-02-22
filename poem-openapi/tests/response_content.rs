@@ -63,6 +63,7 @@ async fn use_in_api_response() {
             responses: vec![MetaResponse {
                 description: "",
                 status: Some(200),
+                status_range: None,
                 content: MyResponseContent::media_types(),
                 headers: vec![]
             }]
