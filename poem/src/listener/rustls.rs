@@ -9,7 +9,7 @@ use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        crypto::ring::sign::any_supported_type,
+        crypto::aws_lc_rs::sign::any_supported_type,
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
         RootCertStore, ServerConfig,
@@ -427,6 +427,10 @@ mod tests {
 
     #[tokio::test]
     async fn tls_listener() {
+        tokio_rustls::rustls::crypto::aws_lc_rs::default_provider()
+            .install_default()
+            .expect("Failed to install rustls crypto provider");
+
         let listener = TcpListener::bind("127.0.0.1:0").rustls(
             RustlsConfig::new().fallback(
                 RustlsCertificate::new()
