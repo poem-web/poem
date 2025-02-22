@@ -177,7 +177,7 @@ impl Csrf {
 impl<E: Endpoint> Middleware<E> for Csrf {
     type Output = CookieJarManagerEndpoint<CsrfEndpoint<E>>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         CookieJarManager::new().transform(CsrfEndpoint {
             inner: ep,
             protect: Arc::new(AesGcmCsrfProtection::from_key(self.key)),
