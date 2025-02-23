@@ -26,6 +26,7 @@ pub struct CookieConfig {
     http_only: bool,
     max_age: Option<Duration>,
     same_site: Option<SameSite>,
+    partitioned: bool,
 }
 
 impl Default for CookieConfig {
@@ -39,6 +40,7 @@ impl Default for CookieConfig {
             http_only: true,
             max_age: None,
             same_site: None,
+            partitioned: false,
         }
     }
 }
@@ -119,6 +121,15 @@ impl CookieConfig {
         }
     }
 
+    /// Sets the `Partitioned` to the session cookie. Default is `false`.
+    #[must_use]
+    pub fn partitioned(self, value: bool) -> Self {
+        Self {
+            partitioned: value,
+            ..self
+        }
+    }
+
     /// Sets the `MaxAge` to the session cookie.
     #[must_use]
     pub fn max_age(self, value: impl Into<Option<Duration>>) -> Self {
@@ -152,6 +163,7 @@ impl CookieConfig {
         }
 
         cookie.set_same_site(self.same_site);
+        cookie.set_partitioned(self.partitioned);
 
         match &self.security {
             CookieSecurity::Plain => cookie_jar.add(cookie),
