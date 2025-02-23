@@ -70,3 +70,14 @@ async fn rename_new_type() {
 
     assert_eq!(TypeA::name(), "TYPE_A");
 }
+
+#[tokio::test]
+async fn rename_new_type_using_const() {
+    const NEW_NAME: &str = "NEW_NAME";
+
+    #[derive(NewType)]
+    #[oai(rename = NEW_NAME)]
+    struct TypeA(String);
+
+    assert_eq!(TypeA::name(), NEW_NAME);
+}
