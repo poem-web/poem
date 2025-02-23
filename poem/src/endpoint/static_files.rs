@@ -18,7 +18,7 @@ struct DirectoryTemplate<'a> {
     files: Vec<FileRef>,
 }
 
-impl<'a> DirectoryTemplate<'a> {
+impl DirectoryTemplate<'_> {
     fn render(&self) -> String {
         let mut s = format!(
             r#"
