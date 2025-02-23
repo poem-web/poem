@@ -548,6 +548,43 @@ async fn poem_extract() {
 }
 
 #[tokio::test]
+async fn issue_948() {
+    struct Api;
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello/:another_param", method = "post")]
+        async fn another_param_handler(
+            &self,
+            Path(another_param): Path<String>,
+        ) -> PlainText<String> {
+            PlainText(format!("POST /hello/{another_param}"))
+        }
+
+        #[oai(path = "/hello/:param", method = "get")]
+        async fn param_handler(&self, Path(param): Path<String>) -> PlainText<String> {
+            PlainText(format!("GET /hello/{param}"))
+        }
+    }
+
+    let meta = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/hello/{another_param}");
+    assert_eq!(meta.paths[0].operations[0].method, Method::POST);
+
+    assert_eq!(meta.paths[1].path, "/hello/{param}");
+    assert_eq!(meta.paths[1].operations[0].method, Method::GET);
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let client = TestClient::new(ep);
+    let res = client.get("/hello/something").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("GET /hello/something").await;
+
+    let res = client.post("/hello/another_something").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("POST /hello/another_something").await;
+}
+
+#[tokio::test]
 async fn returning_borrowed_value() {
     struct Api {
         value1: i32,
