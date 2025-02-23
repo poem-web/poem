@@ -10,7 +10,7 @@ use rcgen::{
 };
 use tokio_rustls::{
     rustls::{
-        crypto::ring::sign::any_ecdsa_type,
+        crypto::aws_lc_rs::sign::any_ecdsa_type,
         pki_types::{CertificateDer, PrivateKeyDer},
         sign::CertifiedKey,
         ServerConfig,
