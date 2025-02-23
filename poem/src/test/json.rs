@@ -61,7 +61,7 @@ macro_rules! impl_assert_array_types {
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct TestJsonValue<'a>(&'a Value);
 
-impl<'a> PartialEq<Value> for TestJsonValue<'a> {
+impl PartialEq<Value> for TestJsonValue<'_> {
     fn eq(&self, other: &Value) -> bool {
         self.0 == other
     }
@@ -164,7 +164,7 @@ impl<'a> TestJsonValue<'a> {
 #[derive(Debug, Copy, Clone)]
 pub struct TestJsonArray<'a>(&'a [Value]);
 
-impl<'a, T> PartialEq<T> for TestJsonArray<'a>
+impl<T> PartialEq<T> for TestJsonArray<'_>
 where
     T: AsRef<[Value]>,
 {

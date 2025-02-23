@@ -139,10 +139,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
         let cert_resolver = Arc::new(ResolveServerCert::default());
 
         if let (Some(certs), Some(key)) = (cache_certs, cert_key) {
-            let certs = certs
-                .into_iter()
-                .map(CertificateDer::from)
-                .collect::<Vec<_>>();
+            let certs = certs.into_iter().collect::<Vec<_>>();
 
             let expires_at = match certs
                 .first()
