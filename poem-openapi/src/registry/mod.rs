@@ -372,6 +372,7 @@ pub struct MetaOperationParam {
     pub required: bool,
     pub deprecated: bool,
     pub explode: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<ParameterStyle>,
 }
 
