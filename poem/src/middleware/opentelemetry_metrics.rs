@@ -50,7 +50,7 @@ impl OpenTelemetryMetrics {
 impl<E: Endpoint> Middleware<E> for OpenTelemetryMetrics {
     type Output = OpenTelemetryMetricsEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         OpenTelemetryMetricsEndpoint {
             request_count: self.request_count.clone(),
             error_count: self.error_count.clone(),

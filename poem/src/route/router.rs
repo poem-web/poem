@@ -639,7 +639,7 @@ mod tests {
     impl<E: Endpoint> crate::Middleware<E> for PathPatternSpy {
         type Output = PathPatternSpyEndpoint<E>;
 
-        fn transform(&self, ep: E) -> Self::Output {
+        fn transform(self, ep: E) -> Self::Output {
             PathPatternSpyEndpoint {
                 spy: self.clone(),
                 inner: ep,
