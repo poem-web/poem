@@ -145,7 +145,7 @@ tokio-native-tls = { version = "0.3.0", optional = true }
 tokio-openssl = { version = "0.6.3", optional = true }
 openssl = { version = "0.10.71", optional = true }
 base64 = { workspace = true, optional = true }
-libcsrf = { package = "csrf", version = "0.4.1", optional = true }
+libcsrf = { package = "csrf", version = "0.5.0", optional = true }
 httpdate = { version = "1.0.2", optional = true }
 sse-codec = { version = "0.3.2", optional = true }
 fluent = { version = "0.16.0", optional = true }
