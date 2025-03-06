@@ -78,7 +78,7 @@ impl CompressionAlgo {
             CompressionAlgo::ZSTD => Box::pin(
                 async_compression::tokio::bufread::ZstdEncoder::with_quality(
                     BufReader::new(reader),
-                    level.unwrap_or(CompressionLevel::Fastest),
+                    level.unwrap_or(CompressionLevel::Default),
                 ),
             ),
         }
