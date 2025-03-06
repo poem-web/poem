@@ -22,6 +22,8 @@ pub enum CompressionAlgo {
     DEFLATE,
     /// gzip
     GZIP,
+    /// Zstandard
+    ZSTD,
 }
 
 impl FromStr for CompressionAlgo {
@@ -32,6 +34,7 @@ impl FromStr for CompressionAlgo {
             "br" => CompressionAlgo::BR,
             "deflate" => CompressionAlgo::DEFLATE,
             "gzip" => CompressionAlgo::GZIP,
+            "zstd" => CompressionAlgo::ZSTD,
             _ => return Err(()),
         })
     }
@@ -44,6 +47,7 @@ impl CompressionAlgo {
             CompressionAlgo::BR => "br",
             CompressionAlgo::DEFLATE => "deflate",
             CompressionAlgo::GZIP => "gzip",
+            CompressionAlgo::ZSTD => "zstd",
         }
     }
 
@@ -71,6 +75,12 @@ impl CompressionAlgo {
                     level.unwrap_or(CompressionLevel::Default),
                 ),
             ),
+            CompressionAlgo::ZSTD => Box::pin(
+                async_compression::tokio::bufread::ZstdEncoder::with_quality(
+                    BufReader::new(reader),
+                    level.unwrap_or(CompressionLevel::Fastest),
+                ),
+            ),
         }
     }
 
@@ -86,6 +96,9 @@ impl CompressionAlgo {
                 async_compression::tokio::bufread::DeflateDecoder::new(BufReader::new(reader)),
             ),
             CompressionAlgo::GZIP => Box::pin(async_compression::tokio::bufread::GzipDecoder::new(
+                BufReader::new(reader),
+            )),
+            CompressionAlgo::ZSTD => Box::pin(async_compression::tokio::bufread::ZstdDecoder::new(
                 BufReader::new(reader),
             )),
         }
