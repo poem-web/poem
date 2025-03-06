@@ -5,10 +5,10 @@ use std::{
 
 use poem::{
     endpoint::{make_sync, BoxEndpoint},
-    middleware::CookieJarManager,
-    web::cookie::CookieKey,
     Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route, RouteMethod,
 };
+#[cfg(feature = "cookie")]
+use poem::{middleware::CookieJarManager, web::cookie::CookieKey};
 
 use crate::{
     base::UrlQuery,
@@ -220,6 +220,7 @@ pub struct OpenApiService<T, W> {
     info: MetaInfo,
     external_document: Option<MetaExternalDocument>,
     servers: Vec<MetaServer>,
+    #[cfg(feature = "cookie")]
     cookie_key: Option<CookieKey>,
     extra_response_headers: Vec<(ExtraHeader, MetaSchemaRef, bool)>,
     extra_request_headers: Vec<(ExtraHeader, MetaSchemaRef, bool)>,
@@ -244,6 +245,7 @@ impl<T> OpenApiService<T, ()> {
             },
             external_document: None,
             servers: Vec::new(),
+            #[cfg(feature = "cookie")]
             cookie_key: None,
             extra_response_headers: vec![],
             extra_request_headers: vec![],
@@ -261,6 +263,7 @@ impl<T, W> OpenApiService<T, W> {
             info: self.info,
             external_document: self.external_document,
             servers: self.servers,
+            #[cfg(feature = "cookie")]
             cookie_key: self.cookie_key,
             extra_response_headers: self.extra_response_headers,
             extra_request_headers: self.extra_request_headers,
@@ -371,6 +374,7 @@ impl<T, W> OpenApiService<T, W> {
 
     /// Sets the cookie key.
     #[must_use]
+    #[cfg(feature = "cookie")]
     pub fn cookie_key(self, key: CookieKey) -> Self {
         Self {
             cookie_key: Some(key),
@@ -628,6 +632,7 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
             Ok(req)
         }
 
+        #[cfg(feature = "cookie")]
         let cookie_jar_manager = match self.cookie_key {
             Some(key) => CookieJarManager::with_key(key),
             None => CookieJarManager::new(),
@@ -663,11 +668,10 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
                 )
             });
 
-        route
-            .with(cookie_jar_manager)
-            .before(extract_query)
-            .map_to_response()
-            .boxed()
+        #[cfg(feature = "cookie")]
+        let route = route.with(cookie_jar_manager);
+
+        route.before(extract_query).map_to_response().boxed()
     }
 }
 

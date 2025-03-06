@@ -1,10 +1,6 @@
-use poem::{
-    error::ResponseError,
-    http::{header, StatusCode},
-    test::TestClient,
-    web::{cookie::Cookie, headers},
-    Request,
-};
+use poem::{error::ResponseError, http::StatusCode, test::TestClient, web::headers, Request};
+#[cfg(feature = "cookie")]
+use poem::{http::header, web::cookie::Cookie};
 use poem_openapi::{
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
@@ -275,16 +271,19 @@ async fn api_key_auth() {
     resp.assert_status_is_ok();
     resp.assert_text("abcdef").await;
 
-    let resp = cli
-        .get("/cookie")
-        .header(
-            header::COOKIE,
-            Cookie::new_with_str("key", "abcdef").to_string(),
-        )
-        .send()
-        .await;
-    resp.assert_status_is_ok();
-    resp.assert_text("abcdef").await;
+    #[cfg(feature = "cookie")]
+    {
+        let resp = cli
+            .get("/cookie")
+            .header(
+                header::COOKIE,
+                Cookie::new_with_str("key", "abcdef").to_string(),
+            )
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_text("abcdef").await;
+    }
 }
 
 #[tokio::test]
