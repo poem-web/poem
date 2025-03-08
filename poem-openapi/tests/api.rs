@@ -1003,7 +1003,7 @@ async fn issue_489() {
 }
 
 #[tokio::test]
-async fn parameter_style() {
+async fn parameter_style_some() {
     #[allow(dead_code)]
     struct Api;
 
@@ -1022,5 +1022,28 @@ async fn parameter_style() {
     assert_eq!(
         Api::meta()[0].paths[0].operations[0].params[0].style,
         Some(ParameterStyle::DeepObject)
-    )
+    );
+
+    let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
+    assert!(spec.contains("\"style\": \"deepObject\""));
+}
+
+#[tokio::test]
+async fn parameter_style_none() {
+    #[allow(dead_code)]
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        #[allow(dead_code)]
+        async fn index(&self, #[oai()] Query(input): Query<String>) -> PlainText<String> {
+            PlainText(format!("hello, world! {input}"))
+        }
+    }
+
+    assert_eq!(Api::meta()[0].paths[0].operations[0].params[0].style, None);
+
+    let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
+    assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }
