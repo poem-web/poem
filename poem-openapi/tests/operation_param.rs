@@ -1,10 +1,13 @@
+use poem::test::TestClient;
+#[cfg(feature = "cookie")]
 use poem::{
     http::header,
-    test::TestClient,
     web::cookie::{Cookie, CookieJar, CookieKey},
 };
+#[cfg(feature = "cookie")]
+use poem_openapi::param::{Cookie as ParamCookie, CookiePrivate, CookieSigned};
 use poem_openapi::{
-    param::{Cookie as ParamCookie, CookiePrivate, CookieSigned, Header, Path, Query},
+    param::{Header, Path, Query},
     registry::{MetaApi, MetaParamIn, MetaSchema, MetaSchemaRef},
     types::Type,
     OpenApi, OpenApiService,
@@ -261,6 +264,7 @@ async fn path() {
         .assert_status_is_ok();
 }
 
+#[cfg(feature = "cookie")]
 #[tokio::test]
 async fn cookie() {
     struct Api;
@@ -301,6 +305,7 @@ async fn cookie() {
         .assert_status_is_ok();
 }
 
+#[cfg(feature = "cookie")]
 #[tokio::test]
 async fn cookie_default() {
     struct Api;
@@ -579,6 +584,7 @@ async fn header_rename() {
         .assert_status_is_ok();
 }
 
+#[cfg(feature = "cookie")]
 #[tokio::test]
 async fn cookie_rename() {
     struct Api;
