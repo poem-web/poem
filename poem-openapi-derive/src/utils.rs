@@ -117,6 +117,7 @@ pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, S
     let mut oai_path = String::new();
     let mut new_path = String::new();
     let mut vars = HashSet::new();
+    let mut param_count = 0;
 
     for s in path.split('/') {
         if s.is_empty() {
@@ -129,7 +130,8 @@ pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, S
             oai_path.push('}');
 
             new_path.push_str("/:");
-            new_path.push_str(var);
+            new_path.push_str(&format!("param{param_count}"));
+            param_count += 1;
 
             if !vars.insert(var) {
                 return Err(Error::new(
