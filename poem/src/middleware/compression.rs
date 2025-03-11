@@ -13,6 +13,7 @@ enum ContentCoding {
     Deflate,
     Gzip,
     Star,
+    Zstd,
 }
 
 impl FromStr for ContentCoding {
@@ -27,6 +28,8 @@ impl FromStr for ContentCoding {
             Ok(ContentCoding::Brotli)
         } else if s == "*" {
             Ok(ContentCoding::Star)
+        } else if s == "zsdt" {
+            Ok(ContentCoding::Zstd)
         } else {
             Err(())
         }
@@ -58,6 +61,7 @@ fn parse_accept_encoding(
                         enabled_algorithms.contains(&CompressionAlgo::DEFLATE)
                     }
                     ContentCoding::Gzip => enabled_algorithms.contains(&CompressionAlgo::GZIP),
+                    ContentCoding::Zstd => enabled_algorithms.contains(&CompressionAlgo::ZSTD),
                     _ => true,
                 }
             } else {
@@ -134,6 +138,7 @@ fn coding_priority(c: &ContentCoding) -> u8 {
         ContentCoding::Deflate => 1,
         ContentCoding::Gzip => 2,
         ContentCoding::Brotli => 3,
+        ContentCoding::Zstd => 4,
         _ => 0,
     }
 }
@@ -158,7 +163,8 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
             parse_accept_encoding(req.headers(), &self.algorithms).map(|coding| match coding {
                 ContentCoding::Gzip => CompressionAlgo::GZIP,
                 ContentCoding::Deflate => CompressionAlgo::DEFLATE,
-                ContentCoding::Star | ContentCoding::Brotli => CompressionAlgo::BR,
+                ContentCoding::Brotli => CompressionAlgo::BR,
+                ContentCoding::Star | ContentCoding::Zstd => CompressionAlgo::ZSTD,
             });
 
         let resp = self.ep.call(req).await?;
@@ -250,10 +256,10 @@ mod tests {
             .send()
             .await;
         resp.assert_status_is_ok();
-        resp.assert_header("Content-Encoding", "br");
+        resp.assert_header("Content-Encoding", "zstd");
 
         let mut data = Vec::new();
-        let mut reader = CompressionAlgo::BR.decompress(resp.0.into_body().into_async_read());
+        let mut reader = CompressionAlgo::ZSTD.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }
