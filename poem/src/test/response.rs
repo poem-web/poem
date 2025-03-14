@@ -17,16 +17,19 @@ impl TestResponse {
     }
 
     /// Asserts that the status code is equals to `status`.
+    #[track_caller]
     pub fn assert_status(&self, status: StatusCode) {
         assert_eq!(self.0.status(), status);
     }
 
     /// Asserts that the status code is `200 OK`.
+    #[track_caller]
     pub fn assert_status_is_ok(&self) {
         self.assert_status(StatusCode::OK);
     }
 
     /// Asserts that header `key` is not exist.
+    #[track_caller]
     pub fn assert_header_is_not_exist<K>(&self, key: K)
     where
         K: TryInto<HeaderName>,
@@ -36,6 +39,7 @@ impl TestResponse {
     }
 
     /// Asserts that header `key` exist.
+    #[track_caller]
     pub fn assert_header_exist<K>(&self, key: K)
     where
         K: TryInto<HeaderName>,
@@ -45,6 +49,7 @@ impl TestResponse {
     }
 
     /// Asserts that header `key` is equals to `value`.
+    #[track_caller]
     pub fn assert_header<K, V>(&self, key: K, value: V)
     where
         K: TryInto<HeaderName>,
@@ -66,6 +71,7 @@ impl TestResponse {
     }
 
     /// Asserts that the header `key` is equal to `values` separated by commas.
+    #[track_caller]
     pub fn assert_header_csv<K, V, I>(&self, key: K, values: I)
     where
         K: TryInto<HeaderName>,
@@ -95,6 +101,7 @@ impl TestResponse {
     }
 
     /// Asserts that header `key` is equals to `values`.
+    #[track_caller]
     pub fn assert_header_all<K, V, I>(&self, key: K, values: I)
     where
         K: TryInto<HeaderName>,
@@ -126,6 +133,7 @@ impl TestResponse {
     }
 
     /// Asserts that content type is equals to `content_type`.
+    #[track_caller]
     pub fn assert_content_type(&self, content_type: &str) {
         self.assert_header(header::CONTENT_TYPE, content_type);
     }
