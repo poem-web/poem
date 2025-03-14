@@ -28,6 +28,7 @@ macro_rules! impl_assert_types {
     ($($(#[$docs:meta])* ($ty:ty, $name:ident, $method:ident)),*) => {
         $(
         $(#[$docs])*
+        #[track_caller]
         pub fn $name(&self, value: $ty) {
             assert_eq!(self.$method(), value);
         }
@@ -50,6 +51,7 @@ macro_rules! impl_assert_array_types {
     ($($(#[$docs:meta])* ($ty:ty, $name:ident, $method:ident)),*) => {
         $(
         $(#[$docs])*
+        #[track_caller]
         pub fn $name(&self, values: &[$ty]) {
             assert_eq!(self.$method(), values);
         }
@@ -105,11 +107,13 @@ impl<'a> TestJsonValue<'a> {
     );
 
     /// Asserts that value is `float` and it equals to `value`.
+    #[track_caller]
     pub fn assert_f64(&self, value: f64) {
         assert!((self.f64() - value).abs() < f64::EPSILON);
     }
 
     /// Asserts that value is `float` array and it equals to `values`.
+    #[track_caller]
     pub fn assert_f64_array(&self, values: &[f64]) {
         assert!(self
             .f64_array()
@@ -145,11 +149,13 @@ impl<'a> TestJsonValue<'a> {
     }
 
     /// Asserts that the value is null.
+    #[track_caller]
     pub fn assert_null(&self) {
         assert!(self.0.is_null())
     }
 
     /// Asserts that the value is not null.
+    #[track_caller]
     pub fn assert_not_null(&self) {
         assert!(!self.0.is_null())
     }
@@ -202,22 +208,26 @@ impl<'a> TestJsonArray<'a> {
     }
 
     /// Asserts the array length is equals to `len`.
+    #[track_caller]
     pub fn assert_len(&self, len: usize) {
         assert_eq!(self.len(), len);
     }
 
     /// Asserts the array is empty.
+    #[track_caller]
     pub fn assert_is_empty(&self) {
         assert!(self.is_empty());
     }
 
     /// Asserts the array contains values that satisfies a predicate.
+    #[track_caller]
     pub fn assert_contains(&self, f: impl FnMut(TestJsonValue<'_>) -> bool) {
         assert!(self.0.iter().map(TestJsonValue).any(f));
     }
 
     /// Asserts the array contains exactly one value that satisfies a
     /// predicate.
+    #[track_caller]
     pub fn assert_contains_exactly_one(&self, f: impl Fn(TestJsonValue<'_>) -> bool) {
         assert_eq!(
             self.0
@@ -264,11 +274,13 @@ impl<'a> TestJsonObject<'a> {
     }
 
     /// Asserts the object length is equals to `len`.
+    #[track_caller]
     pub fn assert_len(&self, len: usize) {
         assert_eq!(self.len(), len);
     }
 
     /// Asserts the object is empty.
+    #[track_caller]
     pub fn assert_is_empty(&self) {
         assert!(self.is_empty());
     }
