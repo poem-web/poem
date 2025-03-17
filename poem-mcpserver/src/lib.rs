@@ -9,6 +9,7 @@
 pub mod protocol;
 mod server;
 #[cfg(feature = "sse")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
 pub mod sse;
 pub mod stdio;
 pub mod tool;
