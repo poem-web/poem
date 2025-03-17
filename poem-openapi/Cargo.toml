@@ -61,7 +61,7 @@ hostname-validator = { version = "1.1.0", optional = true }
 chrono = { workspace = true, optional = true, default-features = false, features = [
   "clock",
 ] }
-time = { version = "0.3.36", optional = true, features = [
+time = { workspace = true, optional = true, features = [
   "parsing",
   "formatting",
 ] }

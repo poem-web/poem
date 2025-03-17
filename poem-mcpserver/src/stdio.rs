@@ -25,6 +25,8 @@ where
     let mut input = BufReader::new(tokio::io::stdin()).lines();
 
     while let Some(line) = input.next_line().await? {
+        tracing::info!(request = &line, "received request");
+
         let Ok(request) = serde_json::from_str::<Request>(&line) else {
             continue;
         };
@@ -42,6 +44,7 @@ where
         }
 
         if let Some(resp) = server.handle_request(request).await {
+            tracing::info!(response = ?resp, "sending response");
             print_response(resp);
         }
     }

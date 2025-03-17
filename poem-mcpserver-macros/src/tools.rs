@@ -36,7 +36,7 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                 Some(name) => name.clone(),
                 None => method.sig.ident.to_string(),
             };
-            let tool_description = get_description(&method.attrs);
+            let tool_description = get_description(&method.attrs).unwrap_or_default();
 
             if method.sig.asyncness.is_none() {
                 return Err(Error::custom("must be asynchronous").with_span(&method.sig.ident));

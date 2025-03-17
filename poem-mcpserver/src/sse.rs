@@ -41,11 +41,9 @@ where
 {
     let connections = data.connections.lock().await;
     let Some(sender) = connections.get(&session_id) else {
-        return StatusCode::BAD_REQUEST;
+        return StatusCode::NOT_FOUND;
     };
-    if sender.send(request.0).await.is_err() {
-        return StatusCode::BAD_REQUEST;
-    }
+    _ = sender.send(request.0).await;
     StatusCode::OK
 }
 
@@ -60,12 +58,15 @@ where
     let mut connections = data.connections.lock().await;
     let (tx, mut rx) = tokio::sync::mpsc::channel(32);
 
+    tracing::info!(session_id = session_id, "new mcp connection");
     connections.insert(session_id.clone(), tx);
 
     SSE::new(async_stream::stream! {
         yield Event::message(format!("?session_id={}", session_id)).event_type("endpoint");
         while let Some(req) = rx.recv().await {
+            tracing::info!(session_id = session_id, request = ?req, "received request");
             if let Some(resp) = server.handle_request(req).await {
+                tracing::info!(session_id = session_id, response = ?resp, "sending response");
                 yield Event::message(serde_json::to_string(&resp).unwrap()).event_type("message");
             }
         }
@@ -77,7 +78,7 @@ where
 pub fn sse_endpoint<F, ToolsType>(server_factory: F) -> impl IntoEndpoint
 where
     F: Fn() -> McpServer<ToolsType> + Send + Sync + 'static,
-    ToolsType: Tools + 'static,
+    ToolsType: Tools + Send + Sync + 'static,
 {
     get(events_handler::<ToolsType>::default())
         .post(post_handler::<ToolsType>::default())

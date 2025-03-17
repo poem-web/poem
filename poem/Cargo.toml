@@ -79,7 +79,7 @@ hyper = { version = "1.0.0", features = ["http1", "http2"] }
 hyper-util = { version = "0.1.6", features = ["server-auto", "tokio"] }
 http-body-util = "0.1.0"
 tokio = { workspace = true, features = ["sync", "time", "macros", "net"] }
-tokio-util = { version = "0.7.0", features = ["io"] }
+tokio-util = { workspace = true, features = ["io"] }
 serde.workspace = true
 sonic-rs = { workspace = true, optional = true }
 serde_json.workspace = true
