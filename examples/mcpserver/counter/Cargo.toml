@@ -1,0 +1,10 @@
+[package]
+name = "counter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poem-mcpserver.workspace = true
+serde = { version = "1.0.219", features = ["derive"] }
+schemars = "0.8.22"
+tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread", "sync"] }

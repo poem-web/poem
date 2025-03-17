@@ -1,0 +1,21 @@
+[package]
+name = "poem-mcpserver-macros"
+version = "0.1.2"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Macros for poem-mcpserver"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+darling = "0.20.10"
+proc-macro-crate = "3.3.0"
+proc-macro2 = "1.0.94"
+quote = "1.0.40"
+syn = "2.0.100"
