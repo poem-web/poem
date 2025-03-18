@@ -1,4 +1,5 @@
-//! The protocol module contains all the necessary components to implement the MCP protocol.
+//! The protocol module contains all the necessary components to implement the
+//! MCP protocol.
 
 pub mod initialize;
 pub mod rpc;
