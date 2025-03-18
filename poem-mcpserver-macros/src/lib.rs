@@ -3,7 +3,7 @@ mod utils;
 
 use darling::FromMeta;
 use proc_macro::TokenStream;
-use syn::{ItemImpl, parse_macro_input};
+use syn::{parse_macro_input, ItemImpl};
 
 macro_rules! parse_nested_meta {
     ($ty:ty, $args:expr) => {{

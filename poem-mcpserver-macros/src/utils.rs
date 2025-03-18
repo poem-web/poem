@@ -1,6 +1,6 @@
 use darling::{Error, FromMeta};
-use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream};
+use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::{Attribute, Expr, ExprLit, Ident, Lit, Meta};
 

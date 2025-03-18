@@ -131,31 +131,36 @@ impl<E> RpcError<E> {
         }
     }
 
-    /// Create a JSON-RPC error with code `PARSE_ERROR(-32700)` and the given message.
+    /// Create a JSON-RPC error with code `PARSE_ERROR(-32700)` and the given
+    /// message.
     #[inline]
     pub fn parse_error(message: impl Into<String>) -> Self {
         RpcError::new(PARSE_ERROR, message)
     }
 
-    /// Create a JSON-RPC error with code `INVALID_REQUEST(-32600)` and the given message.
+    /// Create a JSON-RPC error with code `INVALID_REQUEST(-32600)` and the
+    /// given message.
     #[inline]
     pub fn invalid_request(message: impl Into<String>) -> Self {
         RpcError::new(INVALID_REQUEST, message)
     }
 
-    /// Create a JSON-RPC error with code `METHOD_NOT_FOUND(-32601)` and the given message.
+    /// Create a JSON-RPC error with code `METHOD_NOT_FOUND(-32601)` and the
+    /// given message.
     #[inline]
     pub fn method_not_found(message: impl Into<String>) -> Self {
         RpcError::new(METHOD_NOT_FOUND, message)
     }
 
-    /// Create a JSON-RPC error with code `INVALID_PARAMS(-32602)` and the given message.
+    /// Create a JSON-RPC error with code `INVALID_PARAMS(-32602)` and the given
+    /// message.
     #[inline]
     pub fn invalid_params(message: impl Into<String>) -> Self {
         RpcError::new(INVALID_PARAMS, message)
     }
 
-    /// Create a JSON-RPC error with code `INTERNAL_ERROR(-32603)` and the given message.
+    /// Create a JSON-RPC error with code `INTERNAL_ERROR(-32603)` and the given
+    /// message.
     #[inline]
     pub fn internal_error(message: impl Into<String>) -> Self {
         RpcError::new(INTERNAL_ERROR, message)

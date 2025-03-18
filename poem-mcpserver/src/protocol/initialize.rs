@@ -33,9 +33,11 @@ pub struct InitializeRequest {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Capability {
-    /// Indicates whether the server will emit notifications when the list of available prompts changes.
+    /// Indicates whether the server will emit notifications when the list of
+    /// available prompts changes.
     pub list_changed: bool,
-    /// Whether the client can subscribe to be notified of changes to individual resources.
+    /// Whether the client can subscribe to be notified of changes to individual
+    /// resources.
     pub subscribe: bool,
 }
 
@@ -72,8 +74,8 @@ pub struct InitializeResponse {
 }
 
 mod protocol_version_serde {
-    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
-    use time::{Date, format_description::BorrowedFormatItem};
+    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+    use time::{format_description::BorrowedFormatItem, Date};
 
     const DESC: &[BorrowedFormatItem] = time::macros::format_description!("[year]-[month]-[day]");
 
