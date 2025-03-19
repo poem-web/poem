@@ -60,3 +60,7 @@ pub(crate) fn remove_mcp_attrs(attrs: &mut Vec<Attribute>) {
         attrs.remove(idx);
     }
 }
+
+pub(crate) fn remove_description(attrs: &mut Vec<Attribute>) {
+    attrs.retain(|attr| !attr.path().is_ident("doc"));
+}

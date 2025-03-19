@@ -1,7 +1,13 @@
 //! Server-sent events endpoint for handling MCP requests.
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context, Poll},
+};
 
+use pin_project_lite::pin_project;
 use poem::{
     get, handler,
     http::StatusCode,
@@ -12,7 +18,8 @@ use poem::{
     EndpointExt, IntoEndpoint, IntoResponse,
 };
 use serde::Deserialize;
-use tokio::sync::{mpsc::Sender, Mutex};
+use tokio::sync::mpsc::Sender;
+use tokio_stream::Stream;
 
 use crate::{protocol::rpc::Request as McpRequest, tool::Tools, McpServer};
 
@@ -39,12 +46,41 @@ async fn post_handler<ToolsType>(
 where
     ToolsType: Tools + Send + Sync + 'static,
 {
-    let connections = data.connections.lock().await;
+    let connections = data.connections.lock().unwrap().clone();
     let Some(sender) = connections.get(&session_id) else {
         return StatusCode::NOT_FOUND;
     };
     _ = sender.send(request.0).await;
     StatusCode::OK
+}
+
+pin_project! {
+    struct SseStream<S, ToolsType> {
+        #[pin]
+        inner: S,
+        session_id: String,
+        state: Arc<State<ToolsType>>,
+    }
+
+    impl<S, ToolsType> PinnedDrop for SseStream<S, ToolsType> {
+        fn drop(this: Pin<&mut Self>) {
+            this.state.connections.lock().unwrap().remove(&this.session_id);
+            tracing::info!(session_id = this.session_id, "mcp connection closed");
+        }
+    }
+}
+
+impl<S, ToolsType> Stream for SseStream<S, ToolsType>
+where
+    S: Stream<Item = Event> + Send + 'static,
+    ToolsType: Tools + Send + Sync + 'static,
+{
+    type Item = S::Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.project();
+        this.inner.poll_next(cx)
+    }
 }
 
 #[handler]
@@ -55,22 +91,28 @@ where
     let session_id = session_id();
     let mut server = (data.server_factory)();
     let state = data.0.clone();
-    let mut connections = data.connections.lock().await;
+    let mut connections = data.connections.lock().unwrap();
     let (tx, mut rx) = tokio::sync::mpsc::channel(32);
 
     tracing::info!(session_id = session_id, "new mcp connection");
     connections.insert(session_id.clone(), tx);
 
-    SSE::new(async_stream::stream! {
-        yield Event::message(format!("?session_id={}", session_id)).event_type("endpoint");
-        while let Some(req) = rx.recv().await {
-            tracing::info!(session_id = session_id, request = ?req, "received request");
-            if let Some(resp) = server.handle_request(req).await {
-                tracing::info!(session_id = session_id, response = ?resp, "sending response");
-                yield Event::message(serde_json::to_string(&resp).unwrap()).event_type("message");
+    SSE::new(SseStream {
+        inner: {
+            let session_id = session_id.clone();
+            async_stream::stream! {
+                yield Event::message(format!("?session_id={}", session_id)).event_type("endpoint");
+                while let Some(req) = rx.recv().await {
+                    tracing::info!(session_id = session_id, request = ?req, "received request");
+                    if let Some(resp) = server.handle_request(req).await {
+                        tracing::info!(session_id = session_id, response = ?resp, "sending response");
+                        yield Event::message(serde_json::to_string(&resp).unwrap()).event_type("message");
+                    }
+                }
             }
-        }
-        state.connections.lock().await.remove(&session_id);
+        },
+        session_id: session_id.clone(),
+        state: state.clone(),
     })
 }
 

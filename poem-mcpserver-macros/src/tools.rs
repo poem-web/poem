@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{FnArg, ImplItem, ItemImpl, Pat};
 
-use crate::utils::{get_crate_name, get_description, parse_mcp_attrs, remove_mcp_attrs};
+use crate::utils::*;
 
 #[derive(FromMeta, Default)]
 pub(crate) struct ToolsArgs {}
@@ -60,11 +60,11 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
             let mut args = vec![];
             let mut arg_names = vec![];
 
-            for arg in method.sig.inputs.iter().skip(1) {
+            for arg in method.sig.inputs.iter_mut().skip(1) {
                 let FnArg::Typed(pat) = arg else {
                     unreachable!()
                 };
-                let Pat::Ident(ident) = &*pat.pat else {
+                let Pat::Ident(ident) = &mut *pat.pat else {
                     return Err(Error::custom("expected ident").with_span(&pat.pat).into());
                 };
 
@@ -73,8 +73,11 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                     Some(name) => quote!(#name),
                     None => quote!(#ident),
                 };
+                let param_desc = get_description(&pat.attrs).map(|desc| quote!( #[doc = #desc]));
+                remove_description(&mut pat.attrs);
                 let param_ty = &pat.ty;
                 args.push(quote! {
+                    #param_desc
                     #param_name: #param_ty,
                 });
                 arg_names.push(quote! {

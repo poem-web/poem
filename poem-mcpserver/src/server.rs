@@ -79,7 +79,20 @@ where
             jsonrpc: JSON_RPC_VERSION.to_string(),
             id,
             result: Some(ToolsListResponse {
-                tools: ToolsType::list(),
+                tools: {
+                    let mut tools = ToolsType::list();
+                    for tool in &mut tools {
+                        if let Some(object) = tool.input_schema.as_object_mut() {
+                            if !object.contains_key("properties") {
+                                object.insert(
+                                    "properties".to_string(),
+                                    Value::Object(Default::default()),
+                                );
+                            }
+                        }
+                    }
+                    tools
+                },
             }),
             error: None,
         }

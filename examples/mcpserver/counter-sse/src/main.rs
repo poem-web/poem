@@ -31,7 +31,7 @@ impl Counter {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:3000");
+    let listener = TcpListener::bind("127.0.0.1:8000");
     let app = Route::new()
         .at(
             "/sse",
