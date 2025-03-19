@@ -55,12 +55,19 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
-        let mut values = request
+        let mut values = match request
             .extensions()
-            .get::<UrlQuery>()
-            .unwrap()
-            .get_all(param_opts.name)
-            .peekable();
+            .get::<UrlQuery>() {
+                Some(query) => {
+                    query.get_all(param_opts.name)
+                },
+                None => {
+                    return Err(ParseParamError {
+                        name: param_opts.name,
+                        reason: "parameter not found".to_string(),
+                    })?
+                },
+            }.peekable();
 
         match &param_opts.default_value {
             Some(default_value) if values.peek().is_none() => {
@@ -80,7 +87,15 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
                     .into()
                 })
         } else {
-            let values = values.next().unwrap().split(',').map(|v| v.trim());
+            let first_value = match values.next() {
+                Some(val) => val,
+                None => return Err(ParseParamError {
+                    name: param_opts.name,
+                    reason: "parameter not found".to_string(),
+                }.into()),
+            };
+
+            let values = first_value.split(',').map(|v| v.trim());
             ParseFromParameter::parse_from_parameters(values)
                 .map(Self)
                 .map_err(|err| {
