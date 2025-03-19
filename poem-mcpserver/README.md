@@ -20,13 +20,20 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.83.0.html">
+  <a>
     <img src="https://img.shields.io/badge/rustc-1.83.0+-ab6000.svg"
       alt="rustc 1.83.0+" />
   </a>
 </div>
 
 ## Example
+
+```toml
+[dependencies]
+poem-mcpserver.workspace = "*"
+serde = { version = "1.0", features = ["derive"] }
+schemars = "0.8.22"
+```
 
 ```rust
 use poem_mcpserver::{stdio::stdio, tool::Text, McpServer, Tools};
