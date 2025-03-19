@@ -3,7 +3,7 @@
 <div align="center">
   <!-- Crates version -->
   <a href="https://crates.io/crates/poem-mcpserver">
-    <img src="https://img.shields.io/crates/v/poem-grpc.svg?style=flat-square"
+    <img src="https://img.shields.io/crates/v/poem-mcpserver.svg?style=flat-square"
     alt="Crates.io version" />
   </a>
   <!-- Downloads -->

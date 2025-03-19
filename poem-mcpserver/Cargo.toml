@@ -10,7 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 readme = "README.md"
 description = "MCP Server implementation for Poem"
-keywords = ["framework", "async", "gcp", "ai"]
+keywords = ["framework", "async", "mcp", "ai", "Model-Context-Protocol"]
 categories = [
     "network-programming",
     "asynchronous",
@@ -31,7 +31,7 @@ time = { workspace = true, features = ["macros", "formatting", "parsing"] }
 tokio = { workspace = true, features = ["io-std", "io-util", "rt"] }
 poem = { workspace = true, features = ["sse"], optional = true }
 rand.workspace = true
-tokio-stream = "0.1.17"
+tokio-stream.workspace = true
 async-stream.workspace = true
 tracing.workspace = true
 pin-project-lite = "0.2.16"
