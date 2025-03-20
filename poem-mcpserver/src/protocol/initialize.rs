@@ -29,10 +29,19 @@ pub struct InitializeRequest {
     pub client_info: ClientInfo,
 }
 
-/// A capability information.
+/// Prompts capability.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Capability {
+pub struct PromptsCapability {
+    /// Indicates whether the server will emit notifications when the list of
+    /// available prompts changes.
+    pub list_changed: bool,
+}
+
+/// Resources capability.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourcesCapability {
     /// Indicates whether the server will emit notifications when the list of
     /// available prompts changes.
     pub list_changed: bool,
@@ -41,12 +50,25 @@ pub struct Capability {
     pub subscribe: bool,
 }
 
+/// Tools capability.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolsCapability {
+    /// Indicates whether the server will emit notifications when the list of
+    /// available prompts changes.
+    pub list_changed: bool,
+}
+
 /// The server capabilities.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerCapabilities {
-    /// The tools capability.
-    pub tools: Capability,
+    /// Prompts capability.
+    pub prompts: PromptsCapability,
+    /// Resources capability.
+    pub resources: ResourcesCapability,
+    /// Tools capability.
+    pub tools: ToolsCapability,
 }
 
 /// The server information.

@@ -1,6 +1,6 @@
 [package]
 name = "poem-mcpserver"
-version = "0.1.5"
+version = "0.1.6"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 readme = "README.md"
 description = "MCP Server implementation for Poem"
-keywords = ["framework", "async", "mcp", "ai", "Model-Context-Protocol"]
+keywords = ["framework", "async", "mcp", "ai"]
 categories = [
     "network-programming",
     "asynchronous",
