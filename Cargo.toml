@@ -26,7 +26,7 @@ poem = { path = "poem", version = "3.1.7", default-features = false }
 poem-derive = { path = "poem-derive", version = "3.1.4" }
 poem-openapi-derive = { path = "poem-openapi-derive", version = "5.1.8" }
 poem-grpc-build = { path = "poem-grpc-build", version = "0.5.2" }
-poem-mcpserver-macros = { path = "poem-mcpserver-macros", version = "0.1.5" }
+poem-mcpserver-macros = { path = "poem-mcpserver-macros", version = "0.1.6" }
 
 proc-macro-crate = "3.0.0"
 proc-macro2 = "1.0.29"

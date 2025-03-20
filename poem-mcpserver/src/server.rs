@@ -3,7 +3,8 @@ use serde_json::Value;
 use crate::{
     protocol::{
         initialize::{
-            Capability, InitializeRequest, InitializeResponse, ServerCapabilities, ServerInfo,
+            InitializeRequest, InitializeResponse, PromptsCapability, ResourcesCapability,
+            ServerCapabilities, ServerInfo, ToolsCapability,
         },
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
@@ -58,9 +59,15 @@ where
             result: Some(InitializeResponse {
                 protocol_version: MCP_PROTOCOL_VERSION,
                 capabilities: ServerCapabilities {
-                    tools: Capability {
+                    prompts: PromptsCapability {
+                        list_changed: false,
+                    },
+                    resources: ResourcesCapability {
                         list_changed: false,
                         subscribe: false,
+                    },
+                    tools: ToolsCapability {
+                        list_changed: false,
                     },
                 },
                 server_info: ServerInfo {
