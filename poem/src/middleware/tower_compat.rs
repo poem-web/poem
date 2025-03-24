@@ -3,9 +3,9 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{FutureExt, future::BoxFuture};
 use http::StatusCode;
-use tower::{buffer::Buffer, BoxError, Layer, Service, ServiceExt};
+use tower::{BoxError, Layer, Service, ServiceExt, buffer::Buffer};
 
 use crate::{Endpoint, Error, IntoResponse, Middleware, Request, Result};
 
@@ -102,7 +102,7 @@ where
 mod tests {
 
     use super::*;
-    use crate::{endpoint::make_sync, test::TestClient, EndpointExt};
+    use crate::{EndpointExt, endpoint::make_sync, test::TestClient};
 
     #[tokio::test]
     async fn test_tower_layer() {

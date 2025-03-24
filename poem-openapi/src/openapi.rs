@@ -4,20 +4,20 @@ use std::{
 };
 
 use poem::{
-    endpoint::{make_sync, BoxEndpoint},
     Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route, RouteMethod,
+    endpoint::{BoxEndpoint, make_sync},
 };
 #[cfg(feature = "cookie")]
 use poem::{middleware::CookieJarManager, web::cookie::CookieKey};
 
 use crate::{
+    OpenApi, Webhook,
     base::UrlQuery,
     registry::{
         Document, MetaContact, MetaExternalDocument, MetaHeader, MetaInfo, MetaLicense,
         MetaOperationParam, MetaParamIn, MetaSchemaRef, MetaServer, Registry,
     },
     types::Type,
-    OpenApi, Webhook,
 };
 
 /// An object representing a Server.
@@ -393,12 +393,12 @@ impl<T, W> OpenApiService<T, W> {
     /// Create the OpenAPI Explorer endpoint.
     #[must_use]
     #[cfg(feature = "openapi-explorer")]
-    pub fn openapi_explorer(&self) -> impl Endpoint
+    pub fn openapi_explorer(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::openapi_explorer::create_endpoint(&self.spec())
+        crate::ui::openapi_explorer::create_endpoint(self.spec())
     }
 
     /// Create the OpenAPI Explorer HTML
@@ -414,12 +414,12 @@ impl<T, W> OpenApiService<T, W> {
     /// Create the Swagger UI endpoint.
     #[must_use]
     #[cfg(feature = "swagger-ui")]
-    pub fn swagger_ui(&self) -> impl Endpoint
+    pub fn swagger_ui(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::swagger_ui::create_endpoint(&self.spec())
+        crate::ui::swagger_ui::create_endpoint(self.spec())
     }
 
     /// Create the Swagger UI HTML
@@ -435,12 +435,12 @@ impl<T, W> OpenApiService<T, W> {
     /// Create the Rapidoc endpoint.
     #[must_use]
     #[cfg(feature = "rapidoc")]
-    pub fn rapidoc(&self) -> impl Endpoint
+    pub fn rapidoc(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::rapidoc::create_endpoint(&self.spec())
+        crate::ui::rapidoc::create_endpoint(self.spec())
     }
 
     /// Create the Rapidoc HTML
@@ -456,12 +456,12 @@ impl<T, W> OpenApiService<T, W> {
     /// Create the Redoc endpoint.
     #[must_use]
     #[cfg(feature = "redoc")]
-    pub fn redoc(&self) -> impl Endpoint
+    pub fn redoc(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::redoc::create_endpoint(&self.spec())
+        crate::ui::redoc::create_endpoint(self.spec())
     }
 
     /// Create the Redoc HTML
@@ -478,12 +478,12 @@ impl<T, W> OpenApiService<T, W> {
     /// Create the Stoplight Elements endpoint.
     #[must_use]
     #[cfg(feature = "stoplight-elements")]
-    pub fn stoplight_elements(&self) -> impl Endpoint
+    pub fn stoplight_elements(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::stoplight_elements::create_endpoint(&self.spec())
+        crate::ui::stoplight_elements::create_endpoint(self.spec())
     }
 
     /// Create the Stoplight Elements HTML.
@@ -498,7 +498,7 @@ impl<T, W> OpenApiService<T, W> {
     }
 
     /// Create an endpoint to serve the open api specification as JSON.
-    pub fn spec_endpoint(&self) -> impl Endpoint
+    pub fn spec_endpoint(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,
@@ -512,7 +512,7 @@ impl<T, W> OpenApiService<T, W> {
     }
 
     /// Create an endpoint to serve the open api specification as YAML.
-    pub fn spec_endpoint_yaml(&self) -> impl Endpoint
+    pub fn spec_endpoint_yaml(&self) -> impl Endpoint + 'static
     where
         T: OpenApi,
         W: Webhook,

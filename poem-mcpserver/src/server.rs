@@ -2,13 +2,13 @@ use serde_json::Value;
 
 use crate::{
     protocol::{
+        JSON_RPC_VERSION, MCP_PROTOCOL_VERSION,
         initialize::{
             InitializeRequest, InitializeResponse, PromptsCapability, ResourcesCapability,
             ServerCapabilities, ServerInfo, ToolsCapability,
         },
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
-        JSON_RPC_VERSION, MCP_PROTOCOL_VERSION,
     },
     tool::{NoTools, Tools},
 };
@@ -16,6 +16,13 @@ use crate::{
 /// A server that can be used to handle MCP requests.
 pub struct McpServer<ToolsType = NoTools> {
     tools: ToolsType,
+}
+
+impl Default for McpServer<NoTools> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl McpServer<NoTools> {

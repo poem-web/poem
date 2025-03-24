@@ -8,9 +8,9 @@ use std::{
 use fluent::{FluentMessage, FluentResource};
 use intl_memoizer::concurrent::IntlLangMemoizer;
 use smallvec::SmallVec;
-use unic_langid::{langid, LanguageIdentifier};
+use unic_langid::{LanguageIdentifier, langid};
 
-use crate::{error::I18NError, Result};
+use crate::{Result, error::I18NError};
 
 type FluentBundle = fluent::bundle::FluentBundle<FluentResource, IntlLangMemoizer>;
 

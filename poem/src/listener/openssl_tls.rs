@@ -4,8 +4,8 @@ use std::{
 };
 
 use futures_util::{
-    stream::{BoxStream, Chain, Pending},
     Stream, StreamExt,
+    stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
 use openssl::{

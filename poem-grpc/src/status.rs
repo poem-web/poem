@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use http::{header::HeaderValue, HeaderMap};
-use percent_encoding::{percent_decode_str, percent_encode, AsciiSet, CONTROLS};
+use http::{HeaderMap, header::HeaderValue};
+use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, percent_encode};
 
 use crate::Metadata;
 
@@ -332,6 +332,7 @@ impl Status {
         headers
     }
 
+    #[allow(clippy::result_large_err)]
     pub(crate) fn from_headers(headers: &HeaderMap) -> Result<Option<Status>, Status> {
         if let Some(value) = headers.get(GRPC_STATUS_HEADER_CODE) {
             let code: Code = value

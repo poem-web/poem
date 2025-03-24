@@ -3,8 +3,8 @@ use std::time::Instant;
 use tracing::{Instrument, Level};
 
 use crate::{
-    route::PathPattern, web::RealIp, Endpoint, FromRequest, IntoResponse, Middleware, Request,
-    Response, Result,
+    Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result, route::PathPattern,
+    web::RealIp,
 };
 
 /// Middleware for [`tracing`](https://crates.io/crates/tracing).

@@ -1,7 +1,7 @@
 use std::task::Poll;
 
 use bytes::Bytes;
-use futures_util::{stream::BoxStream, Stream, StreamExt};
+use futures_util::{Stream, StreamExt, stream::BoxStream};
 use tokio::time::Duration;
 
 use super::Event;
@@ -14,11 +14,10 @@ use crate::{Body, IntoResponse, Response};
 /// ```
 /// use futures_util::stream;
 /// use poem::{
-///     handler,
+///     Endpoint, Request, handler,
 ///     http::StatusCode,
 ///     test::TestClient,
 ///     web::sse::{Event, SSE},
-///     Endpoint, Request,
 /// };
 ///
 /// #[handler]

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::registry::{
     MetaApi, MetaExternalDocument, MetaInfo, MetaPath, MetaResponses, MetaSchema, MetaSchemaRef,
@@ -58,7 +58,7 @@ impl Serialize for MetaResponses {
             match resp.status {
                 Some(status) => s.serialize_entry(&format!("{status}"), resp)?,
                 None => match &resp.status_range {
-                    Some(status_range) => s.serialize_entry(&format!("{status_range}"), resp)?,
+                    Some(status_range) => s.serialize_entry(status_range, resp)?,
                     None => s.serialize_entry("default", resp)?,
                 },
             }

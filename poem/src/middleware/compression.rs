@@ -3,9 +3,9 @@ use std::{collections::HashSet, str::FromStr};
 use headers::HeaderMap;
 
 use crate::{
+    Body, Endpoint, IntoResponse, Middleware, Request, Response, Result,
     http::header,
     web::{Compress, CompressionAlgo, CompressionLevel},
-    Body, Endpoint, IntoResponse, Middleware, Request, Response, Result,
 };
 
 enum ContentCoding {
@@ -186,7 +186,7 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{handler, test::TestClient, EndpointExt};
+    use crate::{EndpointExt, handler, test::TestClient};
 
     const DATA: &str = "abcdefghijklmnopqrstuvwxyz1234567890";
     const DATA_REV: &str = "0987654321zyxwvutsrqponmlkjihgfedcba";

@@ -1,9 +1,9 @@
-use tracing::{error, error_span, Instrument};
+use tracing::{Instrument, error, error_span};
 use uuid::Uuid;
 
 use crate::{
-    http::StatusCode, Endpoint, Error, FromRequest, IntoResponse, Middleware, Request, Response,
-    Result,
+    Endpoint, Error, FromRequest, IntoResponse, Middleware, Request, Response, Result,
+    http::StatusCode,
 };
 
 const X_REQUEST_ID: &str = "x-request-id";
@@ -139,7 +139,7 @@ impl IntoResponse for ReqId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{get, handler, test::TestClient, EndpointExt, Route};
+    use crate::{EndpointExt, Route, get, handler, test::TestClient};
 
     #[handler(internal)]
     fn reply_with_req_id(req_id: ReqId) -> ReqId {

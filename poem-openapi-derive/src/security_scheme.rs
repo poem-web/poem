@@ -1,7 +1,7 @@
 use darling::{
+    FromDeriveInput, FromMeta, FromVariant,
     ast::{Data, Fields, Style},
     util::SpannedValue,
-    FromDeriveInput, FromMeta, FromVariant,
 };
 use http::header::HeaderName;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -253,7 +253,7 @@ impl SecuritySchemeArgs {
                     &self.ident,
                     r#"Missing a key name. #[oai(key_name = "...")]"#,
                 )
-                .into())
+                .into());
             }
         }
 

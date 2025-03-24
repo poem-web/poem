@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use crate::{status::Status, streaming::Streaming, Request, Response};
+use crate::{Request, Response, status::Status, streaming::Streaming};
 
 /// Represent a GRPC service
 pub trait Service {

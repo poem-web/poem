@@ -1,11 +1,11 @@
 use headers::{Header, HeaderMapExt};
-use http::{header, header::HeaderName, Extensions, HeaderMap, HeaderValue, Method};
+use http::{Extensions, HeaderMap, HeaderValue, Method, header, header::HeaderName};
 use serde::Serialize;
 use serde_json::Value;
 
 use crate::{
-    test::{TestClient, TestForm, TestResponse},
     Body, Endpoint, Request,
+    test::{TestClient, TestForm, TestResponse},
 };
 
 /// A request builder for testing.
@@ -37,7 +37,7 @@ impl<'a, E> TestRequestBuilder<'a, E> {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, test::TestClient, web::Query, Route};
+    /// use poem::{Route, handler, test::TestClient, web::Query};
     /// use serde::Deserialize;
     ///
     /// #[derive(Deserialize)]
@@ -181,7 +181,7 @@ impl<'a, E> TestRequestBuilder<'a, E> {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, test::TestClient, web::Data, Route};
+    /// use poem::{Route, handler, test::TestClient, web::Data};
     ///
     /// #[handler]
     /// fn index(Data(value): Data<&i32>) -> String {

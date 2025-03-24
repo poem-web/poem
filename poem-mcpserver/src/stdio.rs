@@ -4,12 +4,12 @@ use serde::Serialize;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::{
+    McpServer,
     protocol::{
-        rpc::{Request, Response, RpcError},
         JSON_RPC_VERSION,
+        rpc::{Request, Response, RpcError},
     },
     tool::Tools,
-    McpServer,
 };
 
 fn print_response(response: impl Serialize) {

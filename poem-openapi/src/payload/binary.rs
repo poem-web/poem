@@ -4,9 +4,9 @@ use bytes::Bytes;
 use poem::{Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 
 use crate::{
+    ApiResponse,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
-    ApiResponse,
 };
 
 /// A binary payload.
@@ -15,14 +15,14 @@ use crate::{
 ///
 /// ```rust
 /// use poem::{
+///     Body, IntoEndpoint, Request, Result,
 ///     error::BadRequest,
 ///     http::{Method, StatusCode, Uri},
 ///     test::TestClient,
-///     Body, IntoEndpoint, Request, Result,
 /// };
 /// use poem_openapi::{
-///     payload::{Binary, Json},
 ///     OpenApi, OpenApiService,
+///     payload::{Binary, Json},
 /// };
 /// use tokio::io::AsyncReadExt;
 ///

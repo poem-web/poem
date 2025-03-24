@@ -3,10 +3,10 @@ use std::ops::{Deref, DerefMut};
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 
 use crate::{
+    ApiResponse,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
-    ApiResponse,
 };
 
 /// A UTF8 string payload.

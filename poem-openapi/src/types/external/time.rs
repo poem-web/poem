@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use poem::web::Field;
 use serde_json::Value;
 use time::{
-    format_description::well_known::Rfc3339, macros::format_description, Date, OffsetDateTime,
-    PrimitiveDateTime, Time,
+    Date, OffsetDateTime, PrimitiveDateTime, Time, format_description::well_known::Rfc3339,
+    macros::format_description,
 };
 
 use crate::{

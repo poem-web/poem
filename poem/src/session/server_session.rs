@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use rand::{rng, Rng};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use rand::{Rng, rng};
 
 use crate::{
-    middleware::{CookieJarManager, CookieJarManagerEndpoint},
-    session::{session_storage::SessionStorage, CookieConfig, Session, SessionStatus},
     Endpoint, Middleware, Request, Result,
+    middleware::{CookieJarManager, CookieJarManagerEndpoint},
+    session::{CookieConfig, Session, SessionStatus, session_storage::SessionStorage},
 };
 
 /// Middleware for server-side session.

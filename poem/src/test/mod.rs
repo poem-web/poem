@@ -3,7 +3,7 @@
 //! # Basic usage
 //!
 //! ```
-//! use poem::{handler, test::TestClient, Route};
+//! use poem::{Route, handler, test::TestClient};
 //!
 //! #[handler]
 //! fn index() -> &'static str {
@@ -26,7 +26,7 @@
 //! # Check the JSON response
 //!
 //! ```no_run
-//! use poem::{handler, test::TestClient, web::Json, Route};
+//! use poem::{Route, handler, test::TestClient, web::Json};
 //! use serde::Serialize;
 //!
 //! #[derive(Serialize)]

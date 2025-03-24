@@ -7,10 +7,10 @@ use poem::{
 #[cfg(feature = "cookie")]
 use poem_openapi::param::{Cookie as ParamCookie, CookiePrivate, CookieSigned};
 use poem_openapi::{
+    OpenApi, OpenApiService,
     param::{Header, Path, Query},
     registry::{MetaApi, MetaParamIn, MetaSchema, MetaSchemaRef},
     types::Type,
-    OpenApi, OpenApiService,
 };
 use serde_json::json;
 

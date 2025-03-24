@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat: support zstd compression [#998](https://github.com/poem-web/poem/pull/998)
 - chore: add track_caller to test asserts [#1002](https://github.com/poem-web/poem/pull/1002)
 - chore(poem): fix ring security issue warning, bump tokio-metrics [#1006](https://github.com/poem-web/poem/pull/998)
+- fix: update OpenTelemetry [#1010](https://github.com/poem-web/poem/pull/1010)
+- Update MSRV to `1.85.0`
 
 # [3.1.7] 2025-02-21
 

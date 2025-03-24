@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use futures_util::StreamExt;
-use poem::{endpoint::BoxEndpoint, IntoEndpoint};
+use poem::{IntoEndpoint, endpoint::BoxEndpoint};
 use tokio::sync::watch::{Receiver, Sender};
 
 use crate::{Code, Request, Response, Service, Status, Streaming};

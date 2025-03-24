@@ -1,9 +1,9 @@
 use poem_openapi::{
+    Object, Union,
     registry::{
         MetaDiscriminatorObject, MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry,
     },
     types::{ParseFromJSON, ToJSON, Type},
-    Object, Union,
 };
 use serde_json::json;
 

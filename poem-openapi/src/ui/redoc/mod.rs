@@ -1,4 +1,4 @@
-use poem::{endpoint::make_sync, web::Html, Endpoint};
+use poem::{Endpoint, endpoint::make_sync, web::Html};
 
 const REDOC_JS: &str = include_str!("redoc.standalone.js");
 
@@ -42,7 +42,7 @@ pub(crate) fn create_html(document: &str) -> String {
         .replace("{:spec}", document)
 }
 
-pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = create_html(document);
+pub(crate) fn create_endpoint(document: String) -> impl Endpoint {
+    let ui_html = create_html(&document);
     poem::Route::new().at("/", make_sync(move |_| Html(ui_html.clone())))
 }

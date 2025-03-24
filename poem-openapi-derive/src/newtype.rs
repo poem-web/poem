@@ -1,7 +1,7 @@
 use darling::{
+    FromDeriveInput,
     ast::{Data, Style},
     util::Ignored,
-    FromDeriveInput,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
@@ -61,7 +61,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         _ => {
             return Err(
                 Error::new_spanned(ident, "NewType can only be applied to an struct.").into(),
-            )
+            );
         }
     };
 

@@ -1,8 +1,8 @@
 use std::{borrow::Cow, sync::Arc};
 
-use http::{header, uri::Scheme, Uri};
+use http::{Uri, header, uri::Scheme};
 
-use crate::{web::Redirect, Endpoint, IntoResponse, Middleware, Request, Response, Result};
+use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result, web::Redirect};
 
 type FilterFn = Arc<dyn Fn(&Request) -> bool + Send + Sync>;
 

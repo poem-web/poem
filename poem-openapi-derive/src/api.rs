@@ -1,9 +1,9 @@
-use darling::{util::SpannedValue, FromMeta};
+use darling::{FromMeta, util::SpannedValue};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, Error, Expr, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat,
-    Path, ReturnType, Type,
+    Error, Expr, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat, Path, ReturnType, Type, ext::IdentExt,
+    visit_mut::VisitMut,
 };
 
 use crate::{
@@ -13,9 +13,9 @@ use crate::{
     error::GeneratorResult,
     parameter_style::ParameterStyle,
     utils::{
-        convert_oai_path, get_crate_name, get_description, get_summary_and_description,
-        optional_literal, optional_literal_string, parse_oai_attrs, remove_description,
-        remove_oai_attrs, RemoveLifetime,
+        RemoveLifetime, convert_oai_path, get_crate_name, get_description,
+        get_summary_and_description, optional_literal, optional_literal_string, parse_oai_attrs,
+        remove_description, remove_oai_attrs,
     },
     validators::Validators,
 };
@@ -258,7 +258,7 @@ fn generate_operation(
                                 tuple_struct,
                                 "Only single element tuple structs are supported",
                             )
-                            .into())
+                            .into());
                         }
                     },
                     _ => return Err(Error::new_spanned(pat, "Invalid param definition").into()),
@@ -278,7 +278,7 @@ fn generate_operation(
         };
         let is_path = match &*arg_ty {
             syn::Type::Path(syn::TypePath { qself: _, path }) => {
-                path.segments.iter().any(|v| v.ident.to_string() == "Path")
+                path.segments.iter().any(|v| v.ident == "Path")
             }
             _ => false,
         };

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#[5.1.7] 2025-03-24
+#[5.1.9] 2025-03-24
 
 - fix(openapi): do not use `cookie` feature by default [#986](https://github.com/poem-web/poem/pull/986)
 - fix: guard cookie features behind feature toggle [#997](https://github.com/poem-web/poem/pull/997)
@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(openapi): exclude style parameter when serializing if none [#989](https://github.com/poem-web/poem/pull/989)
 - fix(poem-openapi): handle additional_properties correctly in flatten [#961](https://github.com/poem-web/poem/pull/961)
 - fix(poem-openapi-derive): Allow different path param names on same route [#952](https://github.com/poem-web/poem/pull/952)
+- Update MSRV to `1.85.0`
 
 #[5.1.6] 2025-02-21
 

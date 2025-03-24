@@ -1,15 +1,15 @@
 use std::{future::Future, marker::PhantomData, sync::Arc};
 
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{FutureExt, future::BoxFuture};
 
 use super::{
     After, AndThen, Around, Before, CatchAllError, CatchError, InspectAllError, InspectError, Map,
     MapToResponse, ToResponse,
 };
 use crate::{
+    Error, IntoResponse, Middleware, Request, Response, Result,
     error::IntoResult,
     middleware::{AddData, AddDataEndpoint},
-    Error, IntoResponse, Middleware, Request, Response, Result,
 };
 
 /// An HTTP request handler.
@@ -29,8 +29,8 @@ pub trait Endpoint: Send + Sync {
     ///
     /// ```
     /// use poem::{
-    ///     error::NotFoundError, handler, http::StatusCode, test::TestClient, Endpoint, Request,
-    ///     Result,
+    ///     Endpoint, Request, Result, error::NotFoundError, handler, http::StatusCode,
+    ///     test::TestClient,
     /// };
     ///
     /// #[handler]
@@ -124,7 +124,7 @@ where
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make_sync, http::Method, test::TestClient, Endpoint, Request};
+/// use poem::{Endpoint, Request, endpoint::make_sync, http::Method, test::TestClient};
 ///
 /// let ep = make_sync(|req| req.method().to_string());
 /// let cli = TestClient::new(ep);
@@ -154,7 +154,7 @@ where
 /// # Example
 ///
 /// ```
-/// use poem::{endpoint::make, http::Method, test::TestClient, Endpoint, Request};
+/// use poem::{Endpoint, Request, endpoint::make, http::Method, test::TestClient};
 ///
 /// let ep = make(|req| async move { req.method().to_string() });
 /// let app = TestClient::new(ep);
@@ -258,8 +258,8 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     get, handler, http::StatusCode, middleware::AddData, test::TestClient, web::Data, Endpoint,
-    ///     EndpointExt, Request, Route,
+    ///     Endpoint, EndpointExt, Request, Route, get, handler, http::StatusCode, middleware::AddData,
+    ///     test::TestClient, web::Data,
     /// };
     ///
     /// #[handler]
@@ -290,12 +290,11 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     get, handler,
+    ///     Endpoint, EndpointExt, Request, Route, get, handler,
     ///     http::{StatusCode, Uri},
     ///     middleware::AddData,
     ///     test::TestClient,
     ///     web::Data,
-    ///     Endpoint, EndpointExt, Request, Route,
     /// };
     ///
     /// #[handler]
@@ -339,7 +338,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     handler, http::StatusCode, test::TestClient, web::Data, Endpoint, EndpointExt, Request,
+    ///     Endpoint, EndpointExt, Request, handler, http::StatusCode, test::TestClient, web::Data,
     /// };
     ///
     /// #[handler]
@@ -382,7 +381,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     handler, http::StatusCode, test::TestClient, Endpoint, EndpointExt, Error, Request, Result,
+    ///     Endpoint, EndpointExt, Error, Request, Result, handler, http::StatusCode, test::TestClient,
     /// };
     ///
     /// #[handler]
@@ -416,7 +415,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, http::StatusCode, Endpoint, EndpointExt, Error, Request, Result};
+    /// use poem::{Endpoint, EndpointExt, Error, Request, Result, handler, http::StatusCode};
     ///
     /// #[handler]
     /// async fn index() -> &'static str {
@@ -453,9 +452,8 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     handler,
+    ///     Endpoint, EndpointExt, Error, Request, Result, handler,
     ///     http::{HeaderMap, HeaderValue, StatusCode},
-    ///     Endpoint, EndpointExt, Error, Request, Result,
     /// };
     ///
     /// #[handler]
@@ -499,7 +497,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    ///     Endpoint, EndpointExt, Error, Request, Response, Result, endpoint::make, http::StatusCode,
     /// };
     ///
     /// let ep1 = make(|_| async { "hello" }).map_to_response();
@@ -532,7 +530,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    ///     Endpoint, EndpointExt, Error, Request, Response, Result, endpoint::make, http::StatusCode,
     /// };
     ///
     /// let ep1 = make(|_| async { "hello" }).to_response();
@@ -560,7 +558,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    ///     Endpoint, EndpointExt, Error, Request, Response, Result, endpoint::make, http::StatusCode,
     /// };
     ///
     /// let ep = make(|_| async { "hello" }).map(|value| async move { format!("{}, world!", value) });
@@ -589,7 +587,7 @@ pub trait EndpointExt: IntoEndpoint {
     ///
     /// ```
     /// use poem::{
-    ///     endpoint::make, http::StatusCode, Endpoint, EndpointExt, Error, Request, Response, Result,
+    ///     Endpoint, EndpointExt, Error, Request, Response, Result, endpoint::make, http::StatusCode,
     /// };
     ///
     /// let ep1 = make(|_| async { "hello" })
@@ -624,8 +622,8 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     /// use http::Uri;
     /// use poem::{
-    ///     handler, http::StatusCode, web::Json, Endpoint, EndpointExt, Error, IntoResponse, Request,
-    ///     Response, Route,
+    ///     Endpoint, EndpointExt, Error, IntoResponse, Request, Response, Route, handler,
+    ///     http::StatusCode, web::Json,
     /// };
     /// use serde::Serialize;
     ///
@@ -676,8 +674,8 @@ pub trait EndpointExt: IntoEndpoint {
     /// ```
     /// use http::Uri;
     /// use poem::{
-    ///     error::NotFoundError, handler, http::StatusCode, Endpoint, EndpointExt, IntoResponse,
-    ///     Request, Response, Route,
+    ///     Endpoint, EndpointExt, IntoResponse, Request, Response, Route, error::NotFoundError,
+    ///     handler, http::StatusCode,
     /// };
     ///
     /// #[handler]
@@ -718,7 +716,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{handler, EndpointExt, Route};
+    /// use poem::{EndpointExt, Route, handler};
     ///
     /// #[handler]
     /// fn index() {}
@@ -740,7 +738,7 @@ pub trait EndpointExt: IntoEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{error::NotFoundError, handler, EndpointExt, Route};
+    /// use poem::{EndpointExt, Route, error::NotFoundError, handler};
     ///
     /// #[handler]
     /// fn index() {}
@@ -785,13 +783,13 @@ mod test {
     use http::{HeaderValue, Uri};
 
     use crate::{
+        Endpoint, EndpointExt, Error, IntoEndpoint, Request, Route,
         endpoint::{make, make_sync},
         get, handler,
         http::{Method, StatusCode},
         middleware::SetHeader,
         test::TestClient,
         web::Data,
-        Endpoint, EndpointExt, Error, IntoEndpoint, Request, Route,
     };
 
     #[tokio::test]

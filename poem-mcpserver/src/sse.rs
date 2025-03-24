@@ -9,19 +9,18 @@ use std::{
 
 use pin_project_lite::pin_project;
 use poem::{
-    get, handler,
+    EndpointExt, IntoEndpoint, IntoResponse, get, handler,
     http::StatusCode,
     web::{
-        sse::{Event, SSE},
         Data, Json, Query,
+        sse::{Event, SSE},
     },
-    EndpointExt, IntoEndpoint, IntoResponse,
 };
 use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 use tokio_stream::Stream;
 
-use crate::{protocol::rpc::Request as McpRequest, tool::Tools, McpServer};
+use crate::{McpServer, protocol::rpc::Request as McpRequest, tool::Tools};
 
 struct State<ToolsType> {
     server_factory: Box<dyn Fn() -> McpServer<ToolsType> + Send + Sync>,

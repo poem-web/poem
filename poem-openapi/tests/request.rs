@@ -1,8 +1,8 @@
 use poem_openapi::{
+    ApiExtractor, ApiRequest, Object,
     payload::{Json, PlainText},
     registry::{MetaMediaType, MetaRequest, MetaSchema, MetaSchemaRef},
     types::ParseFromJSON,
-    ApiExtractor, ApiRequest, Object,
 };
 
 #[derive(Debug, Object, Eq, PartialEq)]

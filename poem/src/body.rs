@@ -9,13 +9,13 @@ use bytes::{Bytes, BytesMut};
 use futures_util::{Stream, TryStreamExt};
 use http_body_util::BodyExt;
 use hyper::body::{Body as _, Frame};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use sync_wrapper::SyncStream;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
-    error::{ParseJsonError, ReadBodyError},
     Result,
+    error::{ParseJsonError, ReadBodyError},
 };
 
 pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;
@@ -192,7 +192,7 @@ impl Body {
     /// # Example
     ///
     /// ```
-    /// use poem::{error::ReadBodyError, handler, http::StatusCode, Body, Endpoint, Request, Result};
+    /// use poem::{Body, Endpoint, Request, Result, error::ReadBodyError, handler, http::StatusCode};
     ///
     /// #[handler]
     /// async fn index(data: Body) -> Result<()> {
@@ -271,15 +271,17 @@ impl Body {
     /// Consumes this body object to return a bytes stream.
     pub fn into_bytes_stream(self) -> impl Stream<Item = Result<Bytes, IoError>> + Send + 'static {
         let mut body = self.0;
-        futures_util::stream::poll_fn(move |ctx| loop {
-            match Pin::new(&mut body).poll_frame(ctx) {
-                Poll::Ready(Some(Ok(frame))) => match frame.into_data() {
-                    Ok(data) => return Poll::Ready(Some(Ok(data))),
-                    Err(_) => continue,
-                },
-                Poll::Ready(Some(Err(err))) => return Poll::Ready(Some(Err(err))),
-                Poll::Ready(None) => return Poll::Ready(None),
-                Poll::Pending => return Poll::Pending,
+        futures_util::stream::poll_fn(move |ctx| {
+            loop {
+                match Pin::new(&mut body).poll_frame(ctx) {
+                    Poll::Ready(Some(Ok(frame))) => match frame.into_data() {
+                        Ok(data) => return Poll::Ready(Some(Ok(data))),
+                        Err(_) => continue,
+                    },
+                    Poll::Ready(Some(Err(err))) => return Poll::Ready(Some(Err(err))),
+                    Poll::Ready(None) => return Poll::Ready(None),
+                    Poll::Pending => return Poll::Pending,
+                }
             }
         })
     }

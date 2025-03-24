@@ -14,9 +14,9 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::ParseCookieError,
-    http::{header, HeaderMap},
     FromRequest, Request, RequestBody, Result,
+    error::ParseCookieError,
+    http::{HeaderMap, header},
 };
 
 /// The `SameSite` cookie attribute.
@@ -359,12 +359,11 @@ impl From<libcookie::Cookie<'static>> for Cookie {
 ///
 /// ```
 /// use poem::{
-///     get, handler,
-///     http::{header, StatusCode},
+///     Endpoint, EndpointExt, Request, Route, get, handler,
+///     http::{StatusCode, header},
 ///     middleware::CookieJarManager,
 ///     test::TestClient,
 ///     web::cookie::{Cookie, CookieJar},
-///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]

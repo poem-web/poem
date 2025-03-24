@@ -1,14 +1,14 @@
 use darling::{
+    FromDeriveInput, FromVariant,
     ast::{Data, Fields},
     util::Ignored,
-    FromDeriveInput, FromVariant,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
+use syn::{Attribute, DeriveInput, Error, Generics, Type, ext::IdentExt};
 
 use crate::{
-    common_args::{apply_rename_rule_variant, ExternalDocument, RenameRule},
+    common_args::{ExternalDocument, RenameRule, apply_rename_rule_variant},
     error::GeneratorResult,
     utils::{create_object_name, get_crate_name, get_description, optional_literal},
 };
@@ -190,7 +190,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             _ => {
                 return Err(
                     Error::new_spanned(&variant.ident, "Incorrect oneof definition.").into(),
-                )
+                );
             }
         }
     }

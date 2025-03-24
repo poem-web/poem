@@ -15,7 +15,7 @@
 //! # Quickstart
 //!
 //! ```no_run
-//! use poem::{get, handler, listener::TcpListener, web::Path, IntoResponse, Route, Server};
+//! use poem::{IntoResponse, Route, Server, get, handler, listener::TcpListener, web::Path};
 //!
 //! #[handler]
 //! fn hello(Path(name): Path<String>) -> String {
@@ -40,8 +40,8 @@
 //!
 //! ```
 //! use poem::{
-//!     error::NotFoundError, handler, http::StatusCode, test::TestClient, Endpoint, Request,
-//!     Result,
+//!     Endpoint, Request, Result, error::NotFoundError, handler, http::StatusCode,
+//!     test::TestClient,
 //! };
 //!
 //! #[handler]
@@ -94,8 +94,8 @@
 //!
 //! ```
 //! use poem::{
-//!     error::ParseQueryError, handler, http::StatusCode, web::Query, IntoResponse, Response,
-//!     Result,
+//!     IntoResponse, Response, Result, error::ParseQueryError, handler, http::StatusCode,
+//!     web::Query,
 //! };
 //! use serde::Deserialize;
 //!
@@ -125,7 +125,7 @@
 //! - [`RouteMethod`] Routing for HTTP method
 //!
 //! ```
-//! use poem::{get, handler, post, web::Path, Route};
+//! use poem::{Route, get, handler, post, web::Path};
 //!
 //! #[handler]
 //! async fn get_user(id: Path<String>) {}
@@ -159,7 +159,7 @@
 //! The `result_response` function returns a `Result` type, which means that an
 //! error may occur.
 //! ```
-//! use poem::{handler, http::StatusCode, Result};
+//! use poem::{Result, handler, http::StatusCode};
 //!
 //! #[handler]
 //! fn string_response() -> String {
@@ -187,7 +187,7 @@
 //!
 //! ```
 //! use poem::{
-//!     error::NotFoundError, handler, http::StatusCode, EndpointExt, IntoResponse, Response, Route,
+//!     EndpointExt, IntoResponse, Response, Route, error::NotFoundError, handler, http::StatusCode,
 //! };
 //!
 //! #[handler]
@@ -213,7 +213,7 @@
 //! apply a middleware to an endpoint. It actually converts the original
 //! endpoint to a new endpoint.
 //! ```
-//! use poem::{handler, middleware::Tracing, EndpointExt, Route};
+//! use poem::{EndpointExt, Route, handler, middleware::Tracing};
 //!
 //! #[handler]
 //! fn index() {}
@@ -303,8 +303,8 @@ pub use poem_derive::handler;
 pub use request::{OnUpgrade, Request, RequestBuilder, RequestParts, Upgraded};
 pub use response::{Response, ResponseBuilder, ResponseParts};
 pub use route::{
-    connect, delete, get, head, options, patch, post, put, trace, PathPattern, Route, RouteDomain,
-    RouteMethod, RouteScheme,
+    PathPattern, Route, RouteDomain, RouteMethod, RouteScheme, connect, delete, get, head, options,
+    patch, post, put, trace,
 };
 #[cfg(feature = "server")]
 pub use server::Server;

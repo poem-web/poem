@@ -11,7 +11,7 @@ mod utils;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, FnArg, GenericParam, ItemFn, Member, Result};
+use syn::{FnArg, GenericParam, ItemFn, Member, Result, parse_macro_input};
 
 /// Wrap an asynchronous function as an `Endpoint`.
 ///

@@ -7,9 +7,9 @@ use std::{
 use tokio::io::{AsyncRead, BufReader};
 
 use crate::{
-    http::{header, HeaderValue},
-    web::CompressionLevel,
     Body, IntoResponse, Response,
+    http::{HeaderValue, header},
+    web::CompressionLevel,
 };
 
 /// The compression algorithms.
@@ -178,7 +178,7 @@ mod tests {
     use tokio::io::AsyncReadExt;
 
     use super::*;
-    use crate::{handler, test::TestClient, EndpointExt};
+    use crate::{EndpointExt, handler, test::TestClient};
 
     async fn decompress_data(algo: CompressionAlgo, data: &[u8]) -> String {
         let mut output = Vec::new();
