@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [3.1.7] 2024-02-21
+# [3.1.8] 2025-03-24
+
+- chore: bump rand to `0.9` [#984](https://github.com/poem-web/poem/pull/984)
+- feat(static-files): allow setting `no-cache` header on index file [#980](https://github.com/poem-web/poem/pull/980)
+- chore: bump `rustls`, use `aws_lc_rs` instead of `ring` [#985](https://github.com/poem-web/poem/pull/985)
+- feat: add Partitioned option for CookieConfig [#975](https://github.com/poem-web/poem/pull/975)
+- chore: bump `csrf` [#994](https://github.com/poem-web/poem/pull/994)
+- feat: support zstd compression [#998](https://github.com/poem-web/poem/pull/998)
+- chore: add track_caller to test asserts [#1002](https://github.com/poem-web/poem/pull/1002)
+- chore(poem): fix ring security issue warning, bump tokio-metrics [#1006](https://github.com/poem-web/poem/pull/998)
+
+# [3.1.7] 2025-02-21
 
 - fix(poem): Handle richer libcsrf error [#953](https://github.com/poem-web/poem/pull/953)
 - chore: bump redis to 0.28 [#981](https://github.com/poem-web/poem/pull/981/files)
