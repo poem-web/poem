@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
 use libopentelemetry::{
-    global,
+    Context, Key, KeyValue, global,
     trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
-    Context, Key, KeyValue,
 };
 use opentelemetry_http::HeaderExtractor;
 use opentelemetry_semantic_conventions::{attribute, resource};
 
 use crate::{
-    route::PathPattern,
-    web::{headers::HeaderMapExt, RealIp},
     Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
+    route::PathPattern,
+    web::{RealIp, headers::HeaderMapExt},
 };
 
 /// Middleware for tracing with OpenTelemetry.

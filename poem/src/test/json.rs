@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Map, Value};
 
 /// A JSON object for testing.
@@ -115,11 +115,12 @@ impl<'a> TestJsonValue<'a> {
     /// Asserts that value is `float` array and it equals to `values`.
     #[track_caller]
     pub fn assert_f64_array(&self, values: &[f64]) {
-        assert!(self
-            .f64_array()
-            .iter()
-            .zip(values)
-            .all(|(a, b)| (*a - *b).abs() < f64::EPSILON));
+        assert!(
+            self.f64_array()
+                .iter()
+                .zip(values)
+                .all(|(a, b)| (*a - *b).abs() < f64::EPSILON)
+        );
     }
 
     /// Returns the `string` value.

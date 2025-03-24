@@ -3,9 +3,9 @@ use std::{collections::BTreeMap, sync::Arc};
 use serde_json::Value;
 
 use crate::{
+    Endpoint, Middleware, Request, Result,
     middleware::{CookieJarManager, CookieJarManagerEndpoint},
     session::{CookieConfig, Session, SessionStatus},
-    Endpoint, Middleware, Request, Result,
 };
 
 /// Middleware for client-side(cookie) session.
@@ -68,16 +68,17 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
 
         match session.status() {
             SessionStatus::Changed | SessionStatus::Renewed => {
-                self.config.set_cookie_value(&cookie_jar, {
+                let value = {
                     #[cfg(not(feature = "sonic-rs"))]
                     {
-                        &serde_json::to_string(&session.entries()).unwrap_or_default()
+                        serde_json::to_string(&session.entries()).unwrap_or_default()
                     }
                     #[cfg(feature = "sonic-rs")]
                     {
-                        &sonic_rs::to_string(&session.entries()).unwrap_or_default()
+                        sonic_rs::to_string(&session.entries()).unwrap_or_default()
                     }
-                });
+                };
+                self.config.set_cookie_value(&cookie_jar, &value);
             }
             SessionStatus::Purged => {
                 self.config.remove_cookie(&cookie_jar);
@@ -93,8 +94,8 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
 mod tests {
     use super::*;
     use crate::{
-        session::test_harness::{index, TestClient},
         EndpointExt, Route,
+        session::test_harness::{TestClient, index},
     };
 
     #[tokio::test]

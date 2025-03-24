@@ -1,6 +1,6 @@
 use std::{fmt::Write, io::Cursor};
 
-use http::{header, header::HeaderName, HeaderMap, HeaderValue};
+use http::{HeaderMap, HeaderValue, header, header::HeaderName};
 use mime::Mime;
 use tokio::io::{AsyncRead, AsyncReadExt};
 

@@ -6,8 +6,8 @@ use std::{
     panic::AssertUnwindSafe,
     pin::Pin,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
     task::{Context, Poll},
 };
@@ -19,16 +19,16 @@ use hyper_util::server::conn::auto;
 use pin_project_lite::pin_project;
 use tokio::{
     io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult},
-    sync::{oneshot, Notify},
+    sync::{Notify, oneshot},
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
 
 use crate::{
+    Endpoint, EndpointExt, IntoEndpoint, Response,
     endpoint::{DynEndpoint, ToDynEndpoint},
     listener::{Acceptor, AcceptorExt, Listener},
     web::{LocalAddr, RemoteAddr},
-    Endpoint, EndpointExt, IntoEndpoint, Response,
 };
 
 enum Either<L, A> {

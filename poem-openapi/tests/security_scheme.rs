@@ -1,13 +1,13 @@
-use poem::{error::ResponseError, http::StatusCode, test::TestClient, web::headers, Request};
+use poem::{Request, error::ResponseError, http::StatusCode, test::TestClient, web::headers};
 #[cfg(feature = "cookie")]
 use poem::{http::header, web::cookie::Cookie};
 use poem_openapi::{
+    ApiExtractor, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
     auth::{ApiKey, Basic, Bearer},
     payload::PlainText,
     registry::{MetaOAuthFlow, MetaOAuthFlows, MetaOAuthScope, MetaSecurityScheme, Registry},
-    ApiExtractor, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::headers::Authorization;
 

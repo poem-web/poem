@@ -5,7 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{FutureExt, future::BoxFuture};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result};
 
 enum State<S> {

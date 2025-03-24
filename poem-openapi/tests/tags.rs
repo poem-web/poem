@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use poem_openapi::{
-    registry::{MetaExternalDocument, MetaTag, Registry},
     Tags,
+    registry::{MetaExternalDocument, MetaTag, Registry},
 };
 
 #[tokio::test]

@@ -41,7 +41,7 @@ where
 ///
 /// ```rust
 /// use http::StatusCode;
-/// use poem::{handler, middleware::CatchPanic, test::TestClient, EndpointExt, Route};
+/// use poem::{EndpointExt, Route, handler, middleware::CatchPanic, test::TestClient};
 ///
 /// #[handler]
 /// async fn index() {
@@ -84,7 +84,7 @@ impl<H> CatchPanic<H> {
     /// ```rust
     /// use http::StatusCode;
     /// use poem::{
-    ///     handler, middleware::CatchPanic, test::TestClient, EndpointExt, IntoResponse, Route,
+    ///     EndpointExt, IntoResponse, Route, handler, middleware::CatchPanic, test::TestClient,
     /// };
     ///
     /// #[handler]

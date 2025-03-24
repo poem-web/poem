@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
 use futures_util::{Stream, StreamExt};
-use http::{header, header::HeaderName, HeaderValue, StatusCode};
-use serde::{de::DeserializeOwned, Serialize};
+use http::{HeaderValue, StatusCode, header, header::HeaderName};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
-use crate::{test::json::TestJson, web::sse::Event, Response};
+use crate::{Response, test::json::TestJson, web::sse::Event};
 
 /// A response object for testing.
 pub struct TestResponse(pub Response);

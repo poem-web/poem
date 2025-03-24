@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures_util::StreamExt;
-use poem::{endpoint::BoxEndpoint, IntoEndpoint};
+use poem::{IntoEndpoint, endpoint::BoxEndpoint};
 use prost::Message;
 use prost_types::{DescriptorProto, EnumDescriptorProto, FileDescriptorProto, FileDescriptorSet};
 use proto::{
@@ -26,6 +26,7 @@ struct State {
 }
 
 impl State {
+    #[allow(clippy::result_large_err)]
     fn file_by_filename(&self, filename: &str) -> Result<MessageResponse, Status> {
         match self.files.get(filename) {
             None => {
@@ -47,6 +48,7 @@ impl State {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn symbol_by_name(&self, symbol: &str) -> Result<MessageResponse, Status> {
         match self.symbols.get(symbol) {
             None => {

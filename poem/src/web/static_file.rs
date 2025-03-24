@@ -12,13 +12,13 @@ use headers::{
     ContentRange, ETag, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfUnmodifiedSince,
     Range,
 };
-use http::{header, StatusCode};
+use http::{StatusCode, header};
 use httpdate::HttpDate;
 use mime::Mime;
 use tokio::{fs::File, io::AsyncReadExt};
 
 use crate::{
-    error::StaticFileError, Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result,
+    Body, FromRequest, IntoResponse, Request, RequestBody, Response, Result, error::StaticFileError,
 };
 
 /// A response for static file extractor.

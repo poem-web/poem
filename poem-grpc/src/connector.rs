@@ -5,8 +5,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures_util::{future::BoxFuture, FutureExt};
-use http::{uri::Scheme, Uri};
+use futures_util::{FutureExt, future::BoxFuture};
+use http::{Uri, uri::Scheme};
 use hyper::rt::{Read, ReadBufCursor, Write};
 use hyper_util::{
     client::legacy::connect::{Connected, Connection},
@@ -14,7 +14,7 @@ use hyper_util::{
 };
 use rustls::{ClientConfig, RootCertStore};
 use tokio::net::TcpStream;
-use tokio_rustls::{client::TlsStream, TlsConnector};
+use tokio_rustls::{TlsConnector, client::TlsStream};
 use tower_service::Service;
 
 pub(crate) enum MaybeHttpsStream {

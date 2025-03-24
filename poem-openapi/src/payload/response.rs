@@ -1,11 +1,11 @@
 use poem::{
-    http::{header::HeaderName, HeaderMap, HeaderValue, StatusCode},
     Error, IntoResponse,
+    http::{HeaderMap, HeaderValue, StatusCode, header::HeaderName},
 };
 
 use crate::{
-    registry::{MetaResponses, Registry},
     ApiResponse,
+    registry::{MetaResponses, Registry},
 };
 
 /// A response type wrapper.
@@ -16,14 +16,14 @@ use crate::{
 ///
 /// ```
 /// use poem::{
+///     Body, IntoEndpoint, Request, Result,
 ///     error::BadRequest,
 ///     http::{Method, StatusCode, Uri},
 ///     test::TestClient,
-///     Body, IntoEndpoint, Request, Result,
 /// };
 /// use poem_openapi::{
-///     payload::{Json, Response},
 ///     OpenApi, OpenApiService,
+///     payload::{Json, Response},
 /// };
 /// use tokio::io::AsyncReadExt;
 ///

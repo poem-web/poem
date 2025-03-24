@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use http::{header::HeaderName, HeaderMap};
+use http::{HeaderMap, header::HeaderName};
 
 use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
@@ -68,7 +68,7 @@ impl<E: Endpoint> Endpoint for PropagateHeaderEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, test::TestClient, EndpointExt};
+    use crate::{EndpointExt, handler, test::TestClient};
 
     #[tokio::test]
     async fn test_propagate_header() {

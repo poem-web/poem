@@ -3,14 +3,14 @@ use http::HeaderValue;
 use poem::{Body, Request, Response};
 
 use crate::{
+    Code, CompressionEncoding, Metadata, Request as GrpcRequest, Response as GrpcResponse, Status,
+    Streaming,
     codec::Codec,
     compression::get_incoming_encodings,
     encoding::{create_decode_request_body, create_encode_response_body},
     service::{
         BidirectionalStreamingService, ClientStreamingService, ServerStreamingService, UnaryService,
     },
-    Code, CompressionEncoding, Metadata, Request as GrpcRequest, Response as GrpcResponse, Status,
-    Streaming,
 };
 
 #[doc(hidden)]

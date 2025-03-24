@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use poem_openapi::{
+    Enum, NewType, Object, OpenApi,
     registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
     types::{Example, ParseFromJSON, ToJSON, Type},
-    Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
 

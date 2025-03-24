@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::Arc};
 
-use base64::engine::{general_purpose::STANDARD, Engine};
+use base64::engine::{Engine, general_purpose::STANDARD};
 use libcsrf::{AesGcmCsrfProtection, CsrfProtection, UnencryptedCsrfCookie};
 
 use crate::{FromRequest, Request, RequestBody, Result};

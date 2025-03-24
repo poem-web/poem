@@ -1,17 +1,17 @@
 use std::{borrow::Cow, future::Future};
 
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{FutureExt, future::BoxFuture};
 use headers::HeaderMapExt;
 use tokio_tungstenite::tungstenite::protocol::{Role, WebSocketConfig};
 
-use super::{utils::sign, WebSocketStream};
+use super::{WebSocketStream, utils::sign};
 use crate::{
+    Body, FromRequest, IntoResponse, OnUpgrade, Request, RequestBody, Response, Result,
     error::WebSocketError,
     http::{
-        header::{self, HeaderValue},
         Method, StatusCode,
+        header::{self, HeaderValue},
     },
-    Body, FromRequest, IntoResponse, OnUpgrade, Request, RequestBody, Response, Result,
 };
 
 /// An extractor that can accept websocket connections.
@@ -83,7 +83,7 @@ impl WebSocket {
     ///
     /// ```
     /// use futures_util::{SinkExt, StreamExt};
-    /// use poem::{get, handler, web::websocket::WebSocket, IntoResponse, Route};
+    /// use poem::{IntoResponse, Route, get, handler, web::websocket::WebSocket};
     ///
     /// #[handler]
     /// async fn index(ws: WebSocket) -> impl IntoResponse {

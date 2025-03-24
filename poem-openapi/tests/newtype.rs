@@ -1,6 +1,6 @@
 use poem_openapi::{
-    types::{Example, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ToJSON, Type},
     NewType,
+    types::{Example, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ToJSON, Type},
 };
 
 #[tokio::test]

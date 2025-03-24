@@ -1,9 +1,9 @@
 use std::io::{Error as IoError, ErrorKind, Result as IoResult};
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use reqwest::{Client, Response};
-use ring::digest::{digest, Digest, SHA256};
-use serde::{de::DeserializeOwned, Serialize};
+use ring::digest::{Digest, SHA256, digest};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::listener::acme::keypair::KeyPair;
 

@@ -1,12 +1,12 @@
 use std::fmt::Write;
 
-use poem::{http::header::CONTENT_DISPOSITION, Body, IntoResponse, Response};
+use poem::{Body, IntoResponse, Response, http::header::CONTENT_DISPOSITION};
 
 use crate::{
+    ApiResponse,
     payload::{Binary, Payload},
     registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
-    ApiResponse,
 };
 
 const CONTENT_DISPOSITION_DESC: &str = "Indicate if the content is expected to be displayed inline in the browser, that is, as a Web page or as part of a Web page, or as an attachment, that is downloaded and saved locally.";

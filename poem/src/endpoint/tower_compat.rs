@@ -4,7 +4,7 @@ use bytes::Bytes;
 use http_body_util::BodyExt;
 use tower::{Service, ServiceExt};
 
-use crate::{body::BoxBody, Endpoint, Error, Request, Response, Result};
+use crate::{Endpoint, Error, Request, Response, Result, body::BoxBody};
 
 /// Extension trait for tower service compat.
 #[cfg_attr(docsrs, doc(cfg(feature = "tower-compat")))]

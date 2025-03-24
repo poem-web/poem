@@ -9,26 +9,26 @@ use rcgen::{
     Certificate, CertificateParams, CustomExtension, DistinguishedName, PKCS_ECDSA_P256_SHA256,
 };
 use tokio_rustls::{
+    TlsAcceptor,
     rustls::{
+        ServerConfig,
         crypto::aws_lc_rs::sign::any_ecdsa_type,
         pki_types::{CertificateDer, PrivateKeyDer},
         sign::CertifiedKey,
-        ServerConfig,
     },
     server::TlsStream,
-    TlsAcceptor,
 };
 use x509_parser::prelude::{FromDer, X509Certificate};
 
 use crate::{
     listener::{
+        Acceptor, HandshakeStream, Listener,
         acme::{
+            AutoCert, ChallengeType, Http01TokensMap,
             client::AcmeClient,
             jose,
-            resolver::{ResolveServerCert, ACME_TLS_ALPN_NAME},
-            AutoCert, ChallengeType, Http01TokensMap,
+            resolver::{ACME_TLS_ALPN_NAME, ResolveServerCert},
         },
-        Acceptor, HandshakeStream, Listener,
     },
     web::{LocalAddr, RemoteAddr},
 };

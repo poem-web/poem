@@ -1,5 +1,5 @@
 use crate::{
-    error::SizedLimitError, web::headers::HeaderMapExt, Endpoint, Middleware, Request, Result,
+    Endpoint, Middleware, Request, Result, error::SizedLimitError, web::headers::HeaderMapExt,
 };
 
 /// Middleware to limit the request payload size.
@@ -61,7 +61,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        endpoint::{make_sync, EndpointExt},
+        endpoint::{EndpointExt, make_sync},
         test::TestClient,
     };
 

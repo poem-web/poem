@@ -1,6 +1,6 @@
 use poem::{
-    web::headers::{Authorization, HeaderMapExt},
     Request, Result,
+    web::headers::{Authorization, HeaderMapExt},
 };
 
 use crate::{auth::BearerAuthorization, error::AuthorizationError};

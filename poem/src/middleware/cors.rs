@@ -6,17 +6,16 @@ use headers::{
 use wildmatch::WildMatch;
 
 use crate::{
+    IntoResponse, Result,
     endpoint::Endpoint,
     error::CorsError,
     http::{
-        header,
+        Method, header,
         header::{HeaderName, HeaderValue},
-        Method,
     },
     middleware::Middleware,
     request::Request,
     response::Response,
-    IntoResponse, Result,
 };
 
 /// Middleware for CORS
@@ -424,9 +423,9 @@ mod tests {
 
     use super::*;
     use crate::{
+        EndpointExt, Error,
         endpoint::make_sync,
         test::{TestClient, TestRequestBuilder},
-        EndpointExt, Error,
     };
 
     const ALLOW_ORIGIN: &str = "https://example.com";

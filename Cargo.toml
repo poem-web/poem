@@ -14,19 +14,19 @@ members = [
 
 [workspace.package]
 authors = ["sunli <scott_s829@163.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/poem/"
 homepage = "https://github.com/poem-web/poem"
 repository = "https://github.com/poem-web/poem"
-rust-version = "1.83"
+rust-version = "1.85"
 
 [workspace.dependencies]
-poem = { path = "poem", version = "3.1.7", default-features = false }
-poem-derive = { path = "poem-derive", version = "3.1.4" }
-poem-openapi-derive = { path = "poem-openapi-derive", version = "5.1.8" }
-poem-grpc-build = { path = "poem-grpc-build", version = "0.5.2" }
-poem-mcpserver-macros = { path = "poem-mcpserver-macros", version = "0.1.6" }
+poem = { path = "poem", version = "3.1.8", default-features = false }
+poem-derive = { path = "poem-derive", version = "3.1.8" }
+poem-openapi-derive = { path = "poem-openapi-derive", version = "5.1.9" }
+poem-grpc-build = { path = "poem-grpc-build", version = "0.5.4" }
+poem-mcpserver-macros = { path = "poem-mcpserver-macros", version = "0.1.7" }
 
 proc-macro-crate = "3.0.0"
 proc-macro2 = "1.0.29"

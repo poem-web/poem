@@ -5,13 +5,13 @@ use headers::HeaderMapExt;
 use http_body_util::BodyExt;
 
 use crate::{
+    Body,
     body::BoxBody,
     http::{
-        header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, StatusCode, Version,
+        header::{self, HeaderMap, HeaderName, HeaderValue},
     },
     web::headers::Header,
-    Body,
 };
 
 /// Component parts of an HTTP Response.

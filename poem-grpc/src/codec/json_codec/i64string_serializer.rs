@@ -1,11 +1,11 @@
 use std::{fmt::Display, str};
 
 use serde::{
+    Serialize,
     ser::{
         SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
         SerializeTupleStruct, SerializeTupleVariant, Serializer,
     },
-    Serialize,
 };
 
 pub(crate) struct I64ToStringSerializer<S>(pub(crate) S);

@@ -1,15 +1,15 @@
 use std::ops::{Deref, DerefMut};
 
-use base64::engine::{general_purpose::STANDARD, Engine};
+use base64::engine::{Engine, general_purpose::STANDARD};
 use bytes::Bytes;
 use futures_util::TryFutureExt;
 use poem::{IntoResponse, Request, RequestBody, Response, Result};
 
 use crate::{
+    ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
-    ApiResponse,
 };
 
 /// A binary payload encoded with `base64`.
@@ -18,14 +18,14 @@ use crate::{
 ///
 /// ```rust
 /// use poem::{
+///     Body, IntoEndpoint, Request, Result,
 ///     error::BadRequest,
 ///     http::{Method, StatusCode, Uri},
 ///     test::TestClient,
-///     Body, IntoEndpoint, Request, Result,
 /// };
 /// use poem_openapi::{
-///     payload::{Base64, Json},
 ///     OpenApi, OpenApiService,
+///     payload::{Base64, Json},
 /// };
 /// use tokio::{io::AsyncReadExt, sync::Mutex};
 ///

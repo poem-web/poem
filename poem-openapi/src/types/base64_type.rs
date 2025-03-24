@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use base64::engine::{general_purpose::STANDARD, Engine};
+use base64::engine::{Engine, general_purpose::STANDARD};
 use bytes::Bytes;
 use serde_json::Value;
 

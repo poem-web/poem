@@ -96,8 +96,8 @@ pub struct InitializeResponse {
 }
 
 mod protocol_version_serde {
-    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
-    use time::{format_description::BorrowedFormatItem, Date};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
+    use time::{Date, format_description::BorrowedFormatItem};
 
     const DESC: &[BorrowedFormatItem] = time::macros::format_description!("[year]-[month]-[day]");
 

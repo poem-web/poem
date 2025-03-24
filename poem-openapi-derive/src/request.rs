@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use darling::{
+    FromDeriveInput, FromVariant,
     ast::{Data, Fields},
     util::{Ignored, SpannedValue},
-    FromDeriveInput, FromVariant,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
@@ -44,7 +44,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let e = match &args.data {
         Data::Enum(e) => e,
         _ => {
-            return Err(Error::new_spanned(ident, "Request can only be applied to an enum.").into())
+            return Err(
+                Error::new_spanned(ident, "Request can only be applied to an enum.").into(),
+            );
         }
     };
     let description = get_description(&args.attrs)?;
@@ -108,7 +110,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             _ => {
                 return Err(
                     Error::new_spanned(&variant.ident, "Incorrect request definition.").into(),
-                )
+                );
             }
         }
     }

@@ -44,15 +44,13 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
 
             if method.sig.inputs.is_empty() {
                 return Err(Error::custom("at least one `&self` receiver is required.")
-                    .with_span(&method.sig.ident)
-                    .into());
+                    .with_span(&method.sig.ident));
             }
 
             if !matches!(&method.sig.inputs[0], FnArg::Receiver(_)) {
                 return Err(
                     Error::custom("the first parameter must be a `&self` receiver.")
-                        .with_span(&method.sig.inputs[0])
-                        .into(),
+                        .with_span(&method.sig.inputs[0]),
                 );
             }
 
@@ -65,7 +63,7 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                     unreachable!()
                 };
                 let Pat::Ident(ident) = &mut *pat.pat else {
-                    return Err(Error::custom("expected ident").with_span(&pat.pat).into());
+                    return Err(Error::custom("expected ident").with_span(&pat.pat));
                 };
 
                 let param_args = parse_mcp_attrs::<ParamArgs>(&pat.attrs)?;
