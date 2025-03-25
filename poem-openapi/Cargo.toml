@@ -35,6 +35,7 @@ poem = { workspace = true, default-features = true, features = [
   "sse",
   "xml",
   "yaml",
+  "cookie"
 ] }
 
 tokio = { workspace = true, features = ["fs"] }
