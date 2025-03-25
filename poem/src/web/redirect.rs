@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use crate::{
-    http::{header, StatusCode},
     IntoResponse, Response,
+    http::{StatusCode, header},
 };
 
 /// A redirect response.
@@ -11,11 +11,10 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     get, handler,
-///     http::{header, HeaderValue, StatusCode, Uri},
+///     Endpoint, Request, Route, get, handler,
+///     http::{HeaderValue, StatusCode, Uri, header},
 ///     test::TestClient,
 ///     web::Redirect,
-///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]

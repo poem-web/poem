@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use redis::{aio::ConnectionLike, Cmd};
+use redis::{Cmd, aio::ConnectionLike};
 use serde_json::Value;
 
-use crate::{error::RedisSessionError, session::session_storage::SessionStorage, Result};
+use crate::{Result, error::RedisSessionError, session::session_storage::SessionStorage};
 
 /// A session storage using redis.
 ///
@@ -78,15 +78,15 @@ impl<T: ConnectionLike + Clone + Sync + Send> SessionStorage for RedisStorage<T>
 
 #[cfg(test)]
 mod tests {
-    use redis::{aio::ConnectionManager, Client, ConnectionLike};
+    use redis::{Client, ConnectionLike, aio::ConnectionManager};
 
     use super::*;
     use crate::{
-        session::{
-            test_harness::{index, TestClient},
-            CookieConfig, ServerSession,
-        },
         EndpointExt, Route,
+        session::{
+            CookieConfig, ServerSession,
+            test_harness::{TestClient, index},
+        },
     };
 
     #[tokio::test]

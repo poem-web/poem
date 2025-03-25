@@ -6,7 +6,7 @@ use std::{
 };
 
 use futures_util::FutureExt;
-use poem::{endpoint::BoxEndpoint, http::Method, Error, FromRequest, Request, RequestBody, Result};
+use poem::{Error, FromRequest, Request, RequestBody, Result, endpoint::BoxEndpoint, http::Method};
 use serde::Serialize;
 
 use crate::{

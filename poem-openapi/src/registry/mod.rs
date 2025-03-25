@@ -9,10 +9,10 @@ use std::{
 
 use poem::http::Method;
 pub(crate) use ser::Document;
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 
-use crate::{types::Type, ParameterStyle};
+use crate::{ParameterStyle, types::Type};
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 #[inline]
@@ -372,6 +372,7 @@ pub struct MetaOperationParam {
     pub required: bool,
     pub deprecated: bool,
     pub explode: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<ParameterStyle>,
 }
 

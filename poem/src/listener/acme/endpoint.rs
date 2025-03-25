@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use parking_lot::RwLock;
 
-use crate::{error::NotFoundError, Endpoint, IntoResponse, Request, Response, Result};
+use crate::{Endpoint, IntoResponse, Request, Response, Result, error::NotFoundError};
 
 /// A tokens storage for http01 challenge
 #[derive(Debug, Clone, Default)]

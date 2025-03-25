@@ -6,7 +6,7 @@ use std::{
 
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
 
-use super::{utils::tungstenite_error_to_io_error, Message, WebSocketConfig};
+use super::{Message, WebSocketConfig, utils::tungstenite_error_to_io_error};
 use crate::Upgraded;
 
 /// A `WebSocket` stream, which implements [`Stream<Message>`] and

@@ -1,10 +1,10 @@
 use std::future::Future;
 
-use futures_util::{future::Either, FutureExt};
+use futures_util::{FutureExt, future::Either};
 
 use crate::{
-    endpoint::BoxEndpoint, error::MethodNotAllowedError, http::Method, Endpoint, EndpointExt,
-    IntoEndpoint, Request, Response, Result,
+    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, endpoint::BoxEndpoint,
+    error::MethodNotAllowedError, http::Method,
 };
 
 /// Routing object for HTTP methods
@@ -17,9 +17,8 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     Endpoint, Request, RouteMethod, handler,
 ///     http::{Method, StatusCode},
-///     Endpoint, Request, RouteMethod,
 /// };
 ///
 /// #[handler]

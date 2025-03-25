@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use serde::de::DeserializeOwned;
 
-use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
+use crate::{FromRequest, Request, RequestBody, Result, error::ParseQueryError};
 
 /// An extractor that can deserialize some type from query string.
 ///
@@ -14,11 +14,10 @@ use crate::{error::ParseQueryError, FromRequest, Request, RequestBody, Result};
 ///
 /// ```
 /// use poem::{
-///     get, handler,
+///     Endpoint, Request, Route, get, handler,
 ///     http::{Method, StatusCode, Uri},
 ///     test::TestClient,
 ///     web::Query,
-///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///

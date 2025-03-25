@@ -23,8 +23,14 @@ jobs:
             path: poem-openapi
           - name: poem-lambda
             path: poem-lambda
+          - name: poem-grpc-build
+            path: poem-grpc-build
           - name: poem-grpc
             path: poem-grpc
+          - name: poem-mcpserver-macros
+            path: poem-mcpserver-macros
+          - name: poem-mcpserver
+            path: poem-mcpserver
     services:
       redis:
         image: redis:5.0.7

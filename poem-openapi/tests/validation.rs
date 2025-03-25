@@ -4,15 +4,15 @@ use std::{
     ops::Range,
 };
 
-use poem::{http::StatusCode, test::TestClient, Result};
+use poem::{Result, http::StatusCode, test::TestClient};
 use poem_openapi::{
+    Multipart, Object, OpenApi, OpenApiService, Validator,
     param::Query,
     payload::Payload,
     registry::{MetaApi, MetaSchema, Registry},
-    types::{multipart::JsonField, ParseFromJSON, Type},
+    types::{ParseFromJSON, Type, multipart::JsonField},
     validation,
     validation::ValidatorMeta,
-    Multipart, Object, OpenApi, OpenApiService, Validator,
 };
 use serde_json::json;
 

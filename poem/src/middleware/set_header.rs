@@ -1,6 +1,6 @@
 use crate::{
-    http::{header::HeaderName, HeaderValue},
     Endpoint, IntoResponse, Middleware, Request, Response, Result,
+    http::{HeaderValue, header::HeaderName},
 };
 
 #[derive(Debug, Clone)]
@@ -15,11 +15,10 @@ enum Action {
 ///
 /// ```
 /// use poem::{
-///     get, handler,
+///     Endpoint, EndpointExt, Request, Route, get, handler,
 ///     http::{HeaderValue, StatusCode},
 ///     middleware::SetHeader,
 ///     test::TestClient,
-///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -132,7 +131,7 @@ impl<E: Endpoint> Endpoint for SetHeaderEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, test::TestClient, EndpointExt};
+    use crate::{EndpointExt, handler, test::TestClient};
 
     #[tokio::test]
     async fn test_set_header() {

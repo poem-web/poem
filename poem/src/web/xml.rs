@@ -1,11 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
 use http::StatusCode;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
-    error::ParseXmlError, http::header, web::RequestBody, FromRequest, IntoResponse, Request,
-    Response, Result,
+    FromRequest, IntoResponse, Request, Response, Result, error::ParseXmlError, http::header,
+    web::RequestBody,
 };
 
 /// XML extractor and response.
@@ -20,12 +20,11 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     handler,
-///     http::{header, Method, StatusCode},
+///     Endpoint, Request, Route, handler,
+///     http::{Method, StatusCode, header},
 ///     post,
 ///     test::TestClient,
 ///     web::Xml,
-///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -62,7 +61,7 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     get, handler, http::StatusCode, test::TestClient, web::Xml, Endpoint, Request, Route,
+///     Endpoint, Request, Route, get, handler, http::StatusCode, test::TestClient, web::Xml,
 /// };
 /// use serde::Serialize;
 ///

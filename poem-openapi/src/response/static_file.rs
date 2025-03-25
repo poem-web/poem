@@ -1,10 +1,10 @@
-use poem::{web::StaticFileResponse, Body};
+use poem::{Body, web::StaticFileResponse};
 
 use crate::{
+    ApiResponse,
     payload::{Binary, Payload},
     registry::{MetaHeader, MetaMediaType, MetaResponse, MetaResponses, Registry},
     types::Type,
-    ApiResponse,
 };
 
 const ETAG_DESCRIPTION: &str = r#"The ETag (or entity tag) HTTP response header is an identifier for a specific version of a resource. It lets caches be more efficient and save bandwidth, as a web server does not need to resend a full response if the content was not changed. Additionally, etags help to prevent simultaneous updates of a resource from overwriting each other ("mid-air collisions")."#;
@@ -23,25 +23,29 @@ impl ApiResponse for StaticFileResponse {
                         content_type: Binary::<Body>::CONTENT_TYPE,
                         schema: Binary::<Body>::schema_ref(),
                     }],
-                    headers: vec![MetaHeader {
-                        name: "etag".to_string(),
-                        description: Some(ETAG_DESCRIPTION.to_string()),
-                        required: false,
-                        deprecated: false,
-                        schema: String::schema_ref(),
-                    }, MetaHeader {
-                        name: "last-modified".to_string(),
-                        description: Some(LAST_MODIFIED_DESCRIPTION.to_string()),
-                        required: false,
-                        deprecated: false,
-                        schema: String::schema_ref(),
-                    }, MetaHeader {
-                        name: "content-type".to_string(),
-                        description: Some(CONTENT_TYPE_DESCRIPTION.to_string()),
-                        required: false,
-                        deprecated: false,
-                        schema: String::schema_ref(),
-                    }],
+                    headers: vec![
+                        MetaHeader {
+                            name: "etag".to_string(),
+                            description: Some(ETAG_DESCRIPTION.to_string()),
+                            required: false,
+                            deprecated: false,
+                            schema: String::schema_ref(),
+                        },
+                        MetaHeader {
+                            name: "last-modified".to_string(),
+                            description: Some(LAST_MODIFIED_DESCRIPTION.to_string()),
+                            required: false,
+                            deprecated: false,
+                            schema: String::schema_ref(),
+                        },
+                        MetaHeader {
+                            name: "content-type".to_string(),
+                            description: Some(CONTENT_TYPE_DESCRIPTION.to_string()),
+                            required: false,
+                            deprecated: false,
+                            schema: String::schema_ref(),
+                        },
+                    ],
                 },
                 MetaResponse {
                     description: "Not modified",
@@ -77,7 +81,8 @@ impl ApiResponse for StaticFileResponse {
                     status_range: None,
                     content: vec![],
                     headers: vec![],
-                }, MetaResponse {
+                },
+                MetaResponse {
                     description: "Internal server error",
                     status: Some(500),
                     status_range: None,

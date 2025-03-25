@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use headers::{Header, HeaderMapExt};
 
-use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Result};
+use crate::{FromRequest, Request, RequestBody, Result, error::ParseTypedHeaderError};
 
 /// An extractor that extracts a typed header value.
 ///
@@ -14,11 +14,10 @@ use crate::{error::ParseTypedHeaderError, FromRequest, Request, RequestBody, Res
 ///
 /// ```
 /// use poem::{
-///     get, handler,
-///     http::{header, StatusCode},
+///     Endpoint, Request, Route, get, handler,
+///     http::{StatusCode, header},
 ///     test::TestClient,
-///     web::{headers::Host, TypedHeader},
-///     Endpoint, Request, Route,
+///     web::{TypedHeader, headers::Host},
 /// };
 ///
 /// #[handler]
@@ -84,7 +83,7 @@ mod tests {
     async fn test_typed_header_extractor() {
         #[handler(internal)]
         async fn index(content_length: TypedHeader<ContentLength>) {
-            assert_eq!(content_length.0 .0, 3);
+            assert_eq!(content_length.0.0, 3);
         }
 
         let cli = TestClient::new(index);

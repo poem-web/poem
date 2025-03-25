@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine};
+use base64::engine::{Engine, general_purpose::STANDARD_NO_PAD};
 use http::HeaderName;
 use poem::http::{HeaderMap, HeaderValue};
 

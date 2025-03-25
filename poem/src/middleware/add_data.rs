@@ -49,7 +49,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, test::TestClient, EndpointExt};
+    use crate::{EndpointExt, handler, test::TestClient};
 
     #[tokio::test]
     async fn test_add_data() {

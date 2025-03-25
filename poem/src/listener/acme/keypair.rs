@@ -2,7 +2,7 @@ use std::io::{Error as IoError, ErrorKind, Result as IoResult};
 
 use ring::{
     rand::SystemRandom,
-    signature::{EcdsaKeyPair, KeyPair as _, Signature, ECDSA_P256_SHA256_FIXED_SIGNING},
+    signature::{ECDSA_P256_SHA256_FIXED_SIGNING, EcdsaKeyPair, KeyPair as _, Signature},
 };
 
 pub(crate) struct KeyPair(EcdsaKeyPair);

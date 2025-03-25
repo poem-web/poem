@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    web::cookie::{CookieJar, CookieKey},
     Endpoint, IntoResponse, Middleware, Request, Response, Result,
+    web::cookie::{CookieJar, CookieKey},
 };
 
 /// Middleware for CookieJar support.
@@ -69,7 +69,7 @@ impl<E: Endpoint> Endpoint for CookieJarManagerEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{handler, test::TestClient, web::cookie::Cookie, EndpointExt};
+    use crate::{EndpointExt, handler, test::TestClient, web::cookie::Cookie};
 
     #[tokio::test]
     async fn test_cookie_jar_manager() {

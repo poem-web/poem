@@ -1,4 +1,4 @@
-use http::{header, HeaderMap};
+use http::{HeaderMap, header};
 use mime::Mime;
 
 use crate::{FromRequest, Request, RequestBody, Result};

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::listener::acme::{
-    builder::AutoCertBuilder, endpoint::Http01Endpoint, ChallengeType, Http01TokensMap,
+    ChallengeType, Http01TokensMap, builder::AutoCertBuilder, endpoint::Http01Endpoint,
 };
 
 /// ACME configuration

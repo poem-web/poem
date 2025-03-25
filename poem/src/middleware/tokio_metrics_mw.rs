@@ -5,7 +5,7 @@ use serde::Serialize;
 use tokio_metrics::{TaskMetrics, TaskMonitor};
 
 use crate::{
-    endpoint::make_sync, Endpoint, IntoResponse, Middleware, Request, Response, Result, RouteMethod,
+    Endpoint, IntoResponse, Middleware, Request, Response, Result, RouteMethod, endpoint::make_sync,
 };
 
 /// Middleware for metrics with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate.
@@ -36,7 +36,7 @@ impl TokioMetrics {
     }
 
     /// Create an endpoint for exporting metrics.
-    pub fn exporter(&self) -> impl Endpoint {
+    pub fn exporter(&self) -> impl Endpoint + 'static {
         let metrics = self.metrics.clone();
         RouteMethod::new().get(make_sync(move |_| {
             #[cfg(not(feature = "sonic-rs"))]

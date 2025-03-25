@@ -36,6 +36,12 @@ jobs:
           - name: poem-grpc
             registryName: poem-grpc
             path: poem-grpc
+          - name: poem-mcpserver-macros
+            registryName: poem-mcpserver-macros
+            path: poem-mcpserver-macros
+          - name: poem-mcpserver
+            registryName: poem-mcpserver
+            path: poem-mcpserver
     steps:
       - uses: dtolnay/rust-toolchain@stable
         with:

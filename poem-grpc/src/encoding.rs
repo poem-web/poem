@@ -3,14 +3,14 @@ use std::io::Result as IoResult;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures_util::StreamExt;
 use http_body_util::{BodyExt, StreamBody};
-use hyper::{body::Frame, HeaderMap};
+use hyper::{HeaderMap, body::Frame};
 use poem::Body;
 use sync_wrapper::SyncStream;
 
 use crate::{
+    Code, CompressionEncoding, Status, Streaming,
     client::BoxBody,
     codec::{Decoder, Encoder},
-    Code, CompressionEncoding, Status, Streaming,
 };
 
 async fn encode_data_frame<T: Encoder>(
@@ -55,6 +55,7 @@ impl DataFrameDecoder {
     }
 
     #[inline]
+    #[allow(clippy::result_large_err)]
     fn check_incomplete(&self) -> Result<(), Status> {
         if !self.buf.is_empty() {
             return Err(Status::new(Code::Internal).with_message("incomplete request"));
@@ -173,6 +174,7 @@ pub(crate) fn create_encode_request_body<T: Encoder>(
     BodyExt::boxed(StreamBody::new(SyncStream::new(stream))).into()
 }
 
+#[allow(clippy::result_large_err)]
 pub(crate) fn create_decode_response_body<T: Decoder>(
     mut decoder: T,
     headers: &HeaderMap,

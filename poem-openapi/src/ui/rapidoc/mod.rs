@@ -1,4 +1,4 @@
-use poem::{endpoint::make_sync, web::Html, Endpoint};
+use poem::{Endpoint, endpoint::make_sync, web::Html};
 
 const RAPIDOC_JS: &str = include_str!("rapidoc-min.js");
 const OAUTH_RECEIVER_HTML: &str = include_str!("oauth-receiver.html");
@@ -45,8 +45,8 @@ pub(crate) fn create_html(document: &str) -> String {
         .replace("{:spec}", document)
 }
 
-pub(crate) fn create_endpoint(document: &str) -> impl Endpoint {
-    let ui_html = create_html(document);
+pub(crate) fn create_endpoint(document: String) -> impl Endpoint {
+    let ui_html = create_html(&document);
     let oauth_receiver_html = OAUTH_RECEIVER_HTML.replace("{:script}", RAPIDOC_JS);
 
     poem::Route::new()
