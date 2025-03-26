@@ -9,7 +9,7 @@ use std::{
 
 use pin_project_lite::pin_project;
 use poem::{
-    EndpointExt, IntoEndpoint, IntoResponse, get, handler,
+    EndpointExt, IntoEndpoint, IntoResponse, Request, get, handler,
     http::StatusCode,
     web::{
         Data, Json, Query,
@@ -23,7 +23,7 @@ use tokio_stream::Stream;
 use crate::{McpServer, protocol::rpc::Request as McpRequest, tool::Tools};
 
 struct State<ToolsType> {
-    server_factory: Box<dyn Fn() -> McpServer<ToolsType> + Send + Sync>,
+    server_factory: Box<dyn Fn(&Request) -> McpServer<ToolsType> + Send + Sync>,
     connections: Mutex<HashMap<String, Sender<McpRequest>>>,
 }
 
@@ -83,12 +83,15 @@ where
 }
 
 #[handler]
-async fn events_handler<ToolsType>(data: Data<&Arc<State<ToolsType>>>) -> impl IntoResponse
+async fn events_handler<ToolsType>(
+    request: &Request,
+    data: Data<&Arc<State<ToolsType>>>,
+) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
 {
     let session_id = session_id();
-    let mut server = (data.server_factory)();
+    let mut server = (data.server_factory)(request);
     let state = data.0.clone();
     let mut connections = data.connections.lock().unwrap();
     let (tx, mut rx) = tokio::sync::mpsc::channel(32);
@@ -118,7 +121,7 @@ where
 /// A server-sent events endpoint that can be used to handle MCP requests.
 pub fn sse_endpoint<F, ToolsType>(server_factory: F) -> impl IntoEndpoint
 where
-    F: Fn() -> McpServer<ToolsType> + Send + Sync + 'static,
+    F: Fn(&Request) -> McpServer<ToolsType> + Send + Sync + 'static,
     ToolsType: Tools + Send + Sync + 'static,
 {
     get(events_handler::<ToolsType>::default())

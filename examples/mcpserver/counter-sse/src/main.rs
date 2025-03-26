@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()> {
     let app = Route::new()
         .at(
             "/sse",
-            sse_endpoint(|| McpServer::new().tools(Counter { count: 0 })),
+            sse_endpoint(|_| McpServer::new().tools(Counter { count: 0 })),
         )
         .with(Cors::new());
     Server::new(listener).run(app).await
