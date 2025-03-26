@@ -160,6 +160,16 @@ impl<T: IntoResponse> IntoResponse for Compress<T> {
         let mut resp = self.inner.into_response();
         let body = resp.take_body();
 
+        // if the response is an event stream, do not compress it
+        if resp
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .map_or(false, |v| v.as_bytes().starts_with(b"text/event-stream"))
+        {
+            resp.set_body(body);
+            return resp;
+        }
+
         resp.headers_mut().append(
             header::CONTENT_ENCODING,
             HeaderValue::from_static(self.algo.as_str()),

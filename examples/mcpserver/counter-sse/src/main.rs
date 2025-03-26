@@ -1,4 +1,9 @@
-use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route, Server};
+use poem::{
+    http::header::AUTHORIZATION,
+    listener::TcpListener,
+    middleware::{Cors, Tracing},
+    EndpointExt, Route, Server,
+};
 use poem_mcpserver::{sse::sse_endpoint, tool::Text, McpServer, Tools};
 
 struct Counter {
@@ -31,12 +36,27 @@ impl Counter {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug");
+    }
+    tracing_subscriber::fmt::init();
+
     let listener = TcpListener::bind("127.0.0.1:8000");
     let app = Route::new()
         .at(
             "/sse",
-            sse_endpoint(|_| McpServer::new().tools(Counter { count: 0 })),
+            sse_endpoint(|r| {
+                let headers = r.headers();
+                let token = headers
+                    .get(AUTHORIZATION)
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|v| v.strip_prefix("Bearer "))
+                    .map(|v| v.to_string())
+                    .unwrap_or_default();
+                McpServer::new().tools(Counter { count: 0 })
+            }),
         )
-        .with(Cors::new());
+        .with(Cors::new())
+        .with(Tracing::default());
     Server::new(listener).run(app).await
 }
