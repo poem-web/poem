@@ -22,8 +22,10 @@ use tokio_stream::Stream;
 
 use crate::{McpServer, protocol::rpc::Request as McpRequest, tool::Tools};
 
+type ServerFactoryFn<ToolsType> = Box<dyn Fn(&Request) -> McpServer<ToolsType> + Send + Sync>;
+
 struct State<ToolsType> {
-    server_factory: Box<dyn Fn(&Request) -> McpServer<ToolsType> + Send + Sync>,
+    server_factory: ServerFactoryFn<ToolsType>,
     connections: Mutex<HashMap<String, Sender<McpRequest>>>,
 }
 

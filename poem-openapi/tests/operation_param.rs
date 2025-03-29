@@ -9,6 +9,7 @@ use poem_openapi::param::{Cookie as ParamCookie, CookiePrivate, CookieSigned};
 use poem_openapi::{
     OpenApi, OpenApiService,
     param::{Header, Path, Query},
+    payload::Json,
     registry::{MetaApi, MetaParamIn, MetaSchema, MetaSchemaRef},
     types::Type,
 };
@@ -181,6 +182,54 @@ async fn query_default() {
 }
 
 #[tokio::test]
+async fn query_ignore_case_on_param() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "post")]
+        async fn test(&self, #[oai(ignore_case)] value: Query<i32>) -> Json<i32> {
+            Json(value.0)
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    let resp = cli.post("/abc").query("value", &123).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_json(123).await;
+
+    let resp = cli.post("/abc").query("vaLUe", &123).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_json(123).await;
+}
+
+#[tokio::test]
+async fn query_ignore_case_on_api() {
+    struct Api;
+
+    #[OpenApi(ignore_case = true)]
+    impl Api {
+        #[oai(path = "/abc", method = "post")]
+        async fn test(&self, value: Query<i32>) -> Json<i32> {
+            Json(value.0)
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    let resp = cli.post("/abc").query("value", &123).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_json(123).await;
+
+    let resp = cli.post("/abc").query("vaLUe", &123).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_json(123).await;
+}
+
+#[tokio::test]
 async fn header() {
     struct Api;
 
@@ -239,6 +288,35 @@ async fn header_default() {
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
         .get("/")
+        .send()
+        .await
+        .assert_status_is_ok();
+}
+
+#[tokio::test]
+async fn header_ignore_case() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, #[oai(ignore_case, name = "Value")] value: Header<i32>) {
+            assert_eq!(value.0, 10);
+        }
+    }
+
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .header("value", 10)
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    let api = OpenApiService::new(Api, "test", "1.0");
+    TestClient::new(api)
+        .get("/")
+        .header("vaLUe", 10)
         .send()
         .await
         .assert_status_is_ok();
@@ -321,6 +399,68 @@ async fn cookie_default() {
     let api = OpenApiService::new(Api, "test", "1.0");
     TestClient::new(api)
         .get("/")
+        .send()
+        .await
+        .assert_status_is_ok();
+}
+
+#[cfg(feature = "cookie")]
+#[tokio::test]
+async fn cookie_ignore_ascii_case() {
+    struct Api;
+
+    #[OpenApi(ignore_case)]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, v1: ParamCookie<i32>, v2: CookiePrivate<i32>, v3: CookieSigned<i32>) {
+            assert_eq!(v1.0, 10);
+            assert_eq!(v2.0, 100);
+            assert_eq!(v3.0, 1000);
+        }
+    }
+
+    let cookie_key = CookieKey::generate();
+    let api = OpenApiService::new(Api, "test", "1.0").cookie_key(cookie_key.clone());
+    let cli = TestClient::new(api);
+
+    let cookie_jar = CookieJar::default();
+    cookie_jar.add(Cookie::new_with_str("v1", "10"));
+    cookie_jar
+        .private_with_key(&cookie_key)
+        .add(Cookie::new_with_str("v2", "100"));
+    cookie_jar
+        .signed_with_key(&cookie_key)
+        .add(Cookie::new_with_str("v3", "1000"));
+    let cookie = format!(
+        "{}; {}; {}",
+        cookie_jar.get("v1").unwrap(),
+        cookie_jar.get("v2").unwrap(),
+        cookie_jar.get("v3").unwrap()
+    );
+
+    cli.get("/")
+        .header(header::COOKIE, cookie)
+        .send()
+        .await
+        .assert_status_is_ok();
+
+    let cookie_jar = CookieJar::default();
+    cookie_jar.add(Cookie::new_with_str("V1", "10"));
+    cookie_jar
+        .private_with_key(&cookie_key)
+        .add(Cookie::new_with_str("V2", "100"));
+    cookie_jar
+        .signed_with_key(&cookie_key)
+        .add(Cookie::new_with_str("V3", "1000"));
+    let cookie = format!(
+        "{}; {}; {}",
+        cookie_jar.get("V1").unwrap(),
+        cookie_jar.get("V2").unwrap(),
+        cookie_jar.get("V3").unwrap()
+    );
+
+    cli.get("/")
+        .header(header::COOKIE, cookie)
         .send()
         .await
         .assert_status_is_ok();
