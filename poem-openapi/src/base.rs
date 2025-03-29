@@ -76,6 +76,17 @@ impl UrlQuery {
             .map(|(_, value)| value)
     }
 
+    /// Returns all values uses a closure to filter the name.
+    pub fn get_all_by<'a, 'b: 'a>(
+        &'b self,
+        mut f: impl FnMut(&str) -> bool + 'a,
+    ) -> impl Iterator<Item = &'b String> + 'a {
+        self.0
+            .iter()
+            .filter(move |(n, _)| f(n))
+            .map(|(_, value)| value)
+    }
+
     /// Returns the first value with the specified name.
     pub fn get(&self, name: &str) -> Option<&String> {
         self.get_all(name).next()
@@ -83,10 +94,13 @@ impl UrlQuery {
 }
 
 /// Options for the parameter extractor.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ExtractParamOptions<T> {
     /// The name of this parameter.
     pub name: &'static str,
+
+    /// Ignore the case of the parameter name when matching.
+    pub ignore_case: bool,
 
     /// The default value of this parameter.
     pub default_value: Option<fn() -> T>,
@@ -107,6 +121,7 @@ impl<T> Default for ExtractParamOptions<T> {
     fn default() -> Self {
         Self {
             name: "",
+            ignore_case: false,
             default_value: None,
             example_value: None,
             explode: true,

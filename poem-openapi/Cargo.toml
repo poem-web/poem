@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "5.1.9"
+version = "5.1.10"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -52,6 +52,7 @@ thiserror.workspace = true
 bytes.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
+itertools = "0.14.0"
 
 # Non-feature optional dependencies
 email_address = { version = "0.2.1", optional = true }

@@ -1,6 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use poem::{Request, RequestBody, Result};
+use poem::{
+    Request, RequestBody, Result,
+    web::cookie::{CookieJar, PrivateCookieJar, SignedCookieJar},
+};
 
 use crate::{
     ApiExtractor, ApiExtractorType, ExtractParamOptions,
@@ -56,9 +59,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Cookie<T> {
     ) -> Result<Self> {
         let value = request
             .cookie()
-            .get(param_opts.name)
-            .as_ref()
-            .map(|cookie| cookie.value_str().to_string());
+            .get_value(param_opts.name, param_opts.ignore_case);
         let value = match (value, &param_opts.default_value) {
             (Some(value), _) => Some(value),
             (None, Some(default_value)) => return Ok(Self(default_value())),
@@ -125,9 +126,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookiePrivate<T> {
         let value = request
             .cookie()
             .private()
-            .get(param_opts.name)
-            .as_ref()
-            .map(|cookie| cookie.value_str().to_string());
+            .get_value(param_opts.name, param_opts.ignore_case);
         let value = match (value, &param_opts.default_value) {
             (Some(value), _) => Some(value),
             (None, Some(default_value)) => return Ok(Self(default_value())),
@@ -137,10 +136,10 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookiePrivate<T> {
         ParseFromParameter::parse_from_parameters(value.as_deref())
             .map(Self)
             .map_err(|err| {
-                ParseParamError {
+                dbg!(ParseParamError {
                     name: param_opts.name,
                     reason: err.into_message(),
-                }
+                })
                 .into()
             })
     }
@@ -194,9 +193,7 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookieSigned<T> {
         let value = request
             .cookie()
             .signed()
-            .get(param_opts.name)
-            .as_ref()
-            .map(|cookie| cookie.value_str().to_string());
+            .get_value(param_opts.name, param_opts.ignore_case);
         let value = match (value, &param_opts.default_value) {
             (Some(value), _) => Some(value),
             (None, Some(default_value)) => return Ok(Self(default_value())),
@@ -212,5 +209,45 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for CookieSigned<T> {
                 }
                 .into()
             })
+    }
+}
+
+trait GetValueFromCookie {
+    fn get_value(&self, name: &str, ignore_case: bool) -> Option<String>;
+}
+
+impl GetValueFromCookie for CookieJar {
+    fn get_value(&self, name: &str, ignore_case: bool) -> Option<String> {
+        if !ignore_case {
+            self.get(name)
+        } else {
+            self.get_ignore_ascii_case(name)
+        }
+        .as_ref()
+        .map(|cookie| cookie.value_str().to_string())
+    }
+}
+
+impl GetValueFromCookie for PrivateCookieJar<'_> {
+    fn get_value(&self, name: &str, ignore_case: bool) -> Option<String> {
+        if !ignore_case {
+            self.get(name)
+        } else {
+            self.get_ignore_ascii_case(name)
+        }
+        .as_ref()
+        .map(|cookie| cookie.value_str().to_string())
+    }
+}
+
+impl GetValueFromCookie for SignedCookieJar<'_> {
+    fn get_value(&self, name: &str, ignore_case: bool) -> Option<String> {
+        if !ignore_case {
+            self.get(name)
+        } else {
+            self.get_ignore_ascii_case(name)
+        }
+        .as_ref()
+        .map(|cookie| cookie.value_str().to_string())
     }
 }
