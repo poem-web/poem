@@ -61,6 +61,8 @@ struct APIOperation {
     code_samples: Vec<CodeSample>,
     #[darling(default)]
     hidden: bool,
+    #[darling(default)]
+    ignore_case: Option<bool>,
 }
 
 #[derive(FromMeta, Default)]
@@ -187,6 +189,7 @@ fn generate_operation(
         actual_type,
         code_samples,
         hidden,
+        ignore_case,
     } = args;
     if methods.is_empty() {
         return Err(Error::new_spanned(
@@ -296,6 +299,7 @@ fn generate_operation(
             .unwrap_or_else(|| arg_ident.unraw().to_string());
         let ignore_case = operation_param
             .ignore_case
+            .or(ignore_case)
             .or(api_args.ignore_case)
             .unwrap_or(false);
         let extract_param_name = is_path

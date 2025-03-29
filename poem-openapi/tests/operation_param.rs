@@ -206,10 +206,34 @@ async fn query_ignore_case_on_param() {
 }
 
 #[tokio::test]
+async fn query_ignore_case_on_operation() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/abc", method = "post", ignore_case)]
+        async fn test(&self, value: Query<i32>) -> Json<i32> {
+            Json(value.0)
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    let resp = cli.post("/abc").query("value", &123).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_json(123).await;
+
+    let resp = cli.post("/abc").query("vaLUe", &123).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_json(123).await;
+}
+
+#[tokio::test]
 async fn query_ignore_case_on_api() {
     struct Api;
 
-    #[OpenApi(ignore_case = true)]
+    #[OpenApi(ignore_case)]
     impl Api {
         #[oai(path = "/abc", method = "post")]
         async fn test(&self, value: Query<i32>) -> Json<i32> {

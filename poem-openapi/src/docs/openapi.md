@@ -58,6 +58,7 @@ Parameters that can be passed into the `#[oai()]` attribute above each operation
 | actual_type     | Specifies the actual response type                                                                                   | string                                                     | Y        |
 | code_samples    | Code samples for the operation                                                                                       | object                                                     | Y        |
 | hidden          | Hide this operation in the document                                                                                  | bool                                                       | Y        |
+| ignore_case     | Ignore case when matching the parameter name. (All parameters)                                                       | bool                                                       | Y        |
 
 ## Example
 
