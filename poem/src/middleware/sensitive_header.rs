@@ -75,7 +75,7 @@ impl SensitiveHeader {
 impl<E: Endpoint> Middleware<E> for SensitiveHeader {
     type Output = SensitiveHeaderEndpoint<E>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         SensitiveHeaderEndpoint {
             inner: ep,
             headers: self.headers.clone(),

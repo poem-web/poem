@@ -164,7 +164,7 @@ pub fn generate_implement_middlewares(_: TokenStream) -> TokenStream {
             {
                 type Output = #output_type::Output;
 
-                fn transform(&self, ep: E) -> Self::Output {
+                fn transform(self, ep: E) -> Self::Output {
                     #(#transforms)*
                     ep
                 }

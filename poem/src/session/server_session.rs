@@ -28,7 +28,7 @@ impl<T> ServerSession<T> {
 impl<T: SessionStorage, E: Endpoint> Middleware<E> for ServerSession<T> {
     type Output = CookieJarManagerEndpoint<ServerSessionEndpoint<T, E>>;
 
-    fn transform(&self, ep: E) -> Self::Output {
+    fn transform(self, ep: E) -> Self::Output {
         CookieJarManager::new().transform(ServerSessionEndpoint {
             inner: ep,
             config: self.config.clone(),
