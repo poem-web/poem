@@ -4,11 +4,11 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
 use crate::{
+    ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromYAML, ToYAML, Type},
-    ApiResponse,
 };
 
 /// A YAML payload.

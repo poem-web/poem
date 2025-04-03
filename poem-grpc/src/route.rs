@@ -1,4 +1,4 @@
-use poem::{endpoint::BoxEndpoint, IntoEndpoint, Response};
+use poem::{IntoEndpoint, Response, endpoint::BoxEndpoint};
 
 use crate::Service;
 

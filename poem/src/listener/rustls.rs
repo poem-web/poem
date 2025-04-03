@@ -1,18 +1,18 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures_util::{
-    stream::{BoxStream, Chain, Pending},
     Stream, StreamExt,
+    stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
 use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
+        RootCertStore, ServerConfig,
         crypto::aws_lc_rs::sign::any_supported_type,
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
-        RootCertStore, ServerConfig,
     },
     server::TlsStream,
 };
@@ -82,7 +82,7 @@ impl RustlsCertificate {
                     return Err(IoError::new(
                         ErrorKind::Other,
                         "failed to parse tls private keys",
-                    ))
+                    ));
                 }
                 _ => continue,
             }
@@ -420,7 +420,7 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
-    use tokio_rustls::rustls::{pki_types::ServerName, ClientConfig};
+    use tokio_rustls::rustls::{ClientConfig, pki_types::ServerName};
 
     use super::*;
     use crate::listener::TcpListener;

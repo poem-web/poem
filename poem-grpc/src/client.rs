@@ -5,23 +5,23 @@ use futures_util::TryStreamExt;
 use http_body_util::BodyExt;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use poem::{
-    endpoint::{DynEndpoint, ToDynEndpoint},
-    http::{
-        header::{self, InvalidHeaderValue},
-        uri::InvalidUri,
-        Extensions, HeaderValue, Method, StatusCode, Uri, Version,
-    },
     Endpoint, EndpointExt, IntoEndpoint, Middleware, Request as HttpRequest,
     Response as HttpResponse,
+    endpoint::{DynEndpoint, ToDynEndpoint},
+    http::{
+        Extensions, HeaderValue, Method, StatusCode, Uri, Version,
+        header::{self, InvalidHeaderValue},
+        uri::InvalidUri,
+    },
 };
 use rustls::ClientConfig as TlsClientConfig;
 
 use crate::{
+    Code, CompressionEncoding, Metadata, Request, Response, Status, Streaming,
     codec::Codec,
     compression::get_incoming_encodings,
     connector::HttpsConnector,
     encoding::{create_decode_response_body, create_encode_request_body},
-    Code, CompressionEncoding, Metadata, Request, Response, Status, Streaming,
 };
 
 pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;

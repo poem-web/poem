@@ -1,11 +1,11 @@
 use std::{
-    fs::{set_permissions, Permissions},
+    fs::{Permissions, set_permissions},
     io::Result,
     path::Path,
 };
 
 use http::uri::Scheme;
-use nix::unistd::{chown, Gid, Uid};
+use nix::unistd::{Gid, Uid, chown};
 use tokio::{
     io::Result as IoResult,
     net::{UnixListener as TokioUnixListener, UnixStream},

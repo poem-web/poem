@@ -8,7 +8,7 @@ use tokio::{
     io::{AsyncRead, AsyncSeekExt, ReadBuf, SeekFrom},
 };
 
-use crate::{error::ReadBodyError, FromRequest, Request, RequestBody, Result};
+use crate::{FromRequest, Request, RequestBody, Result, error::ReadBodyError};
 
 /// An extractor that extracts the body and writes the contents to a temporary
 /// file.

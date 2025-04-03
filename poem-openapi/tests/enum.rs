@@ -1,9 +1,9 @@
 use poem_openapi::{
+    Enum,
     registry::{MetaExternalDocument, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
-    Enum,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[test]
 fn meta_enum_items() {

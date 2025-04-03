@@ -1,9 +1,9 @@
 use crate::{
+    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result,
     endpoint::BoxEndpoint,
     error::{NotFoundError, RouteError},
     http::header,
     route::{check_result, internal::trie::Trie},
-    Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result,
 };
 
 /// Routing object for `HOST` header
@@ -16,11 +16,11 @@ use crate::{
 ///
 /// ```
 /// use poem::{
+///     Endpoint, Request, RouteDomain,
 ///     endpoint::make_sync,
 ///     handler,
 ///     http::header,
 ///     test::{TestClient, TestRequestBuilder},
-///     Endpoint, Request, RouteDomain,
 /// };
 ///
 /// let app = RouteDomain::new()

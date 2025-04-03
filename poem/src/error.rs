@@ -10,7 +10,7 @@ use std::{
 use headers::{ContentRange, HeaderMapExt};
 use http::{Extensions, Method};
 
-use crate::{http::StatusCode, IntoResponse, Response};
+use crate::{IntoResponse, Response, http::StatusCode};
 
 macro_rules! define_http_error {
     ($($(#[$docs:meta])* ($name:ident, $status:ident);)*) => {
@@ -95,7 +95,7 @@ impl AsResponse {
 /// # Create from any error types
 ///
 /// ```
-/// use poem::{error::InternalServerError, handler, Result};
+/// use poem::{Result, error::InternalServerError, handler};
 ///
 /// #[handler]
 /// async fn index() -> Result<String> {
@@ -106,7 +106,7 @@ impl AsResponse {
 /// # Create you own error type
 ///
 /// ```
-/// use poem::{error::ResponseError, handler, http::StatusCode, Endpoint, Request, Result};
+/// use poem::{Endpoint, Request, Result, error::ResponseError, handler, http::StatusCode};
 ///
 /// #[derive(Debug, thiserror::Error)]
 /// #[error("my error")]
@@ -179,7 +179,7 @@ impl AsResponse {
 ///
 /// # Downcast the error to concrete error type
 /// ```
-/// use poem::{error::NotFoundError, Error};
+/// use poem::{Error, error::NotFoundError};
 ///
 /// let err: Error = NotFoundError.into();
 ///
@@ -1155,10 +1155,12 @@ mod tests {
             Ok::<_, NotFoundError>("hello").into_result(),
             Ok("hello")
         ));
-        assert!(Err::<String, _>(NotFoundError)
-            .into_result()
-            .unwrap_err()
-            .is::<NotFoundError>());
+        assert!(
+            Err::<String, _>(NotFoundError)
+                .into_result()
+                .unwrap_err()
+                .is::<NotFoundError>()
+        );
     }
 
     #[test]

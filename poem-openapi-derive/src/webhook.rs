@@ -1,21 +1,21 @@
 use std::collections::HashSet;
 
-use darling::{util::SpannedValue, FromMeta};
+use darling::{FromMeta, util::SpannedValue};
 use indexmap::IndexMap;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    ext::IdentExt, visit_mut::VisitMut, Error, FnArg, ItemTrait, Pat, Path, ReturnType, TraitItem,
-    TraitItemFn,
+    Error, FnArg, ItemTrait, Pat, Path, ReturnType, TraitItem, TraitItemFn, ext::IdentExt,
+    visit_mut::VisitMut,
 };
 
 use crate::{
     common_args::{APIMethod, DefaultValue, ExternalDocument},
     error::GeneratorResult,
     utils::{
-        get_crate_name, get_description, get_summary_and_description, optional_literal,
-        optional_literal_string, parse_oai_attrs, remove_description, remove_oai_attrs,
-        RemoveLifetime,
+        RemoveLifetime, get_crate_name, get_description, get_summary_and_description,
+        optional_literal, optional_literal_string, parse_oai_attrs, remove_description,
+        remove_oai_attrs,
     },
     validators::Validators,
 };

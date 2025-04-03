@@ -3,10 +3,10 @@ use std::ops::{Deref, DerefMut};
 use poem::{Request, RequestBody, Result};
 
 use crate::{
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
     error::ParsePathError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the URI path.

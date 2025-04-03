@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 use rust_embed::RustEmbed;
 
 use crate::{
-    http::{header, Method, StatusCode},
     Endpoint, Error, Request, Response,
+    http::{Method, StatusCode, header},
 };
 
 /// An endpoint that wraps a single file from a `rust-embed` bundle.

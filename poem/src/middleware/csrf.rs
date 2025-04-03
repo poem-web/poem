@@ -1,18 +1,18 @@
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use libcsrf::{
     AesGcmCsrfProtection, CsrfCookie as RawCsrfCookie, CsrfProtection, CsrfToken as RawCsrfToken,
     UnencryptedCsrfCookie,
 };
 
 use crate::{
+    Endpoint, Middleware, Request, Result,
     middleware::{CookieJarManager, CookieJarManagerEndpoint},
     web::{
-        cookie::{Cookie, SameSite},
         CsrfToken, CsrfVerifier,
+        cookie::{Cookie, SameSite},
     },
-    Endpoint, Middleware, Request, Result,
 };
 
 /// Middleware for Cross-Site Request Forgery (CSRF) protection.
@@ -21,13 +21,12 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     get, handler,
-///     http::{header, Method, StatusCode},
+///     Endpoint, EndpointExt, Error, Request, Result, Route, get, handler,
+///     http::{Method, StatusCode, header},
 ///     middleware::Csrf,
 ///     post,
 ///     test::TestClient,
-///     web::{cookie::Cookie, CsrfToken, CsrfVerifier},
-///     Endpoint, EndpointExt, Error, Request, Result, Route,
+///     web::{CsrfToken, CsrfVerifier, cookie::Cookie},
 /// };
 /// use serde::Deserialize;
 ///
@@ -260,10 +259,10 @@ impl<E: Endpoint> Endpoint for CsrfEndpoint<E> {
 
 #[cfg(test)]
 mod tests {
-    use http::{header, Method, StatusCode};
+    use http::{Method, StatusCode, header};
 
     use super::*;
-    use crate::{get, handler, EndpointExt, Error, IntoResponse, Result};
+    use crate::{EndpointExt, Error, IntoResponse, Result, get, handler};
 
     const CSRF_TOKEN_NAME: &str = "X-CSRF-Token";
 

@@ -10,6 +10,7 @@ These are attributes that can be added to the `#[OpenApi]` attribute.
 | tag             | Define a tag for all operations. This must be the name of an in-scope variant of an enum which implements `Tags` | Tags                                                       | Y        |
 | response_header | Add an extra response header to all operations.                                                                  | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 | request_header  | Add an extra request header to all operations.                                                                   | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
+| ignore_case     | Ignore case when matching the parameter name. (All operations)                                                   | bool                                                       | Y        |
 
 ## Example
 
@@ -57,6 +58,7 @@ Parameters that can be passed into the `#[oai()]` attribute above each operation
 | actual_type     | Specifies the actual response type                                                                                   | string                                                     | Y        |
 | code_samples    | Code samples for the operation                                                                                       | object                                                     | Y        |
 | hidden          | Hide this operation in the document                                                                                  | bool                                                       | Y        |
+| ignore_case     | Ignore case when matching the parameter name. (All parameters)                                                       | bool                                                       | Y        |
 
 ## Example
 
@@ -91,6 +93,7 @@ impl Api {
 | Attribute                | Description                                                                                                                                                                                                                                           | Type                                      | Optional          |
 |--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|-------------------|
 | name                     | Parameter name                                                                                                                                                                                                                                        | string                                    | Y                 |
+| ignore_case              | Ignore case when matching the parameter name.                                                                                                                                                                                                         | bool                                      | Y                 |
 | deprecated               | Argument deprecated                                                                                                                                                                                                                                   | bool                                      | Y                 |
 | default                  | Default value                                                                                                                                                                                                                                         | bool,string                               | Y                 |
 | explode                  | When this is `true`, parameter values of type array or object generate separate parameters for each value of the array or key-value pair of the map.                                                                                                  | bool                                      | Y (default: true) |

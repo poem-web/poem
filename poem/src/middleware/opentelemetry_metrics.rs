@@ -1,13 +1,12 @@
 use std::time::Instant;
 
 use libopentelemetry::{
-    global,
+    Key, KeyValue, global,
     metrics::{Counter, Histogram},
-    Key, KeyValue,
 };
 use opentelemetry_semantic_conventions::trace;
 
-use crate::{route::PathPattern, Endpoint, IntoResponse, Middleware, Request, Response, Result};
+use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result, route::PathPattern};
 
 /// Middleware for metrics with OpenTelemetry.
 #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry")))]

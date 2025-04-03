@@ -3,21 +3,21 @@ mod request;
 use std::fmt::{self, Display};
 
 use poem::{
+    Error, IntoResponse,
     http::{HeaderValue, StatusCode},
     test::TestClient,
-    Error, IntoResponse,
 };
 use poem_openapi::{
+    ApiResponse, Object, OpenApi, OpenApiService,
     param::Query,
     payload::{Binary, Json, Payload, PlainText, Yaml},
     registry::{
         MetaApi, MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry,
     },
     types::{ToJSON, Type},
-    ApiResponse, Object, OpenApi, OpenApiService,
 };
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(PartialEq, Deserialize, Clone, Debug, Object)]
 struct BadRequestResult {

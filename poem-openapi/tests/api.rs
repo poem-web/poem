@@ -1,15 +1,15 @@
 use poem::{
+    Endpoint, EndpointExt, Error,
     http::{Method, StatusCode},
     test::TestClient,
     web::Data,
-    Endpoint, EndpointExt, Error,
 };
 use poem_openapi::{
+    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ParameterStyle, Tags,
     param::{Path, Query},
     payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaExternalDocument, MetaOperation, MetaParamIn, MetaSchema, Registry},
     types::Type,
-    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ParameterStyle, Tags,
 };
 
 #[tokio::test]

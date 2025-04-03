@@ -54,7 +54,7 @@ impl From<tokio_tungstenite::tungstenite::Message> for Message {
 #[doc(hidden)]
 impl From<Message> for tokio_tungstenite::tungstenite::Message {
     fn from(msg: Message) -> Self {
-        use tokio_tungstenite::tungstenite::{protocol::frame::Payload, Message::*};
+        use tokio_tungstenite::tungstenite::{Message::*, protocol::frame::Payload};
 
         match msg {
             Message::Text(data) => Text(data.into()),

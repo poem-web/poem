@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["poem/*", "openapi/*", "grpc/*"]
+members = ["poem/*", "openapi/*", "grpc/*", "mcpserver/*"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,7 @@ poem-grpc = { path = "../poem-grpc" }
 poem-openapi = { path = "../poem-openapi", features = ["swagger-ui"] }
 poem-lambda = { path = "../poem-lambda" }
 poem-grpc-build = { path = "../poem-grpc-build" }
+poem-mcpserver = { path = "../poem-mcpserver" }
 
 tokio = "1.17.0"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }

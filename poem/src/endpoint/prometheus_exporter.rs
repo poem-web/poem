@@ -1,8 +1,8 @@
 use libprometheus::{Encoder, Registry, TextEncoder};
 
 use crate::{
-    http::{Method, StatusCode},
     Endpoint, IntoEndpoint, Request, Response, Result,
+    http::{Method, StatusCode},
 };
 
 /// An endpoint that exports metrics for Prometheus.
@@ -11,7 +11,7 @@ use crate::{
 ///
 /// ```
 /// use libprometheus::Registry;
-/// use poem::{endpoint::PrometheusExporter, Route};
+/// use poem::{Route, endpoint::PrometheusExporter};
 ///
 /// let registry = Registry::new();
 /// let app = Route::new().nest("/metrics", PrometheusExporter::new(registry));

@@ -2,15 +2,15 @@ use std::time::Duration;
 
 use futures_util::{Stream, StreamExt};
 use poem::{
-    web::sse::{Event, SSE},
     IntoResponse, Response,
+    web::sse::{Event, SSE},
 };
 
 use crate::{
+    ApiResponse,
     payload::Payload,
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
     types::{ToJSON, Type},
-    ApiResponse,
 };
 
 type ToEventFn<T> = Box<dyn (FnMut(T) -> Event) + Send + 'static>;
@@ -49,7 +49,7 @@ impl<T: Stream + Send + 'static> EventStream<T> {
     ///
     /// ```rust
     /// use poem::web::sse::Event;
-    /// use poem_openapi::{payload::EventStream, types::ToJSON, Object};
+    /// use poem_openapi::{Object, payload::EventStream, types::ToJSON};
     ///
     /// #[derive(Debug, Object)]
     /// struct MyEvent {

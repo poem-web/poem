@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
-use darling::{util::SpannedValue, FromMeta};
+use darling::{FromMeta, util::SpannedValue};
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Ident, Span, TokenStream};
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::{
-    visit_mut, visit_mut::VisitMut, Attribute, Error, Expr, ExprLit, GenericParam, Generics,
-    Lifetime, Lit, Meta, Result,
+    Attribute, Error, Expr, ExprLit, GenericParam, Generics, Lifetime, Lit, Meta, Result,
+    visit_mut, visit_mut::VisitMut,
 };
 
 use crate::error::GeneratorResult;

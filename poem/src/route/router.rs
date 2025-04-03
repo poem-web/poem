@@ -3,11 +3,11 @@ use std::{str::FromStr, sync::Arc};
 use regex::Regex;
 
 use crate::{
+    Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
     endpoint::BoxEndpoint,
     error::{NotFoundError, ParsePathError, RouteError},
-    http::{uri::PathAndQuery, Uri},
+    http::{Uri, uri::PathAndQuery},
     route::{check_result, internal::radix_tree::RadixTree},
-    Endpoint, EndpointExt, IntoEndpoint, IntoResponse, Request, Response, Result,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -26,11 +26,10 @@ struct PathPrefix(usize);
 ///
 /// ```
 /// use poem::{
-///     get, handler,
+///     Endpoint, Request, Route, get, handler,
 ///     http::{StatusCode, Uri},
 ///     test::TestClient,
 ///     web::Path,
-///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -83,10 +82,9 @@ struct PathPrefix(usize);
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     Endpoint, Request, Route, handler,
 ///     http::{StatusCode, Uri},
 ///     test::TestClient,
-///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -108,10 +106,9 @@ struct PathPrefix(usize);
 ///
 /// ```
 /// use poem::{
-///     handler,
+///     Endpoint, Request, Route, handler,
 ///     http::{StatusCode, Uri},
 ///     test::TestClient,
-///     Endpoint, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -390,7 +387,7 @@ mod tests {
     use http::StatusCode;
 
     use super::*;
-    use crate::{endpoint::make_sync, handler, test::TestClient, Error};
+    use crate::{Error, endpoint::make_sync, handler, test::TestClient};
 
     #[test]
     fn test_normalize_path() {

@@ -4,7 +4,7 @@ use std::{
 };
 
 use bytes::{BufMut, BytesMut};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::codec::{Codec, Decoder, Encoder};
 
