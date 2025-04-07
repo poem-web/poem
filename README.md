@@ -62,6 +62,9 @@ The following are cases of community use:
 
 - [Examples](https://github.com/poem-web/poem/tree/master/examples)
 
+### Deployment
+
+As an option for deploying your Poem apps, you can use [shuttle](https://github.com/shuttle-hq/shuttle), which lets you deploy your Poem app for free. An example to get started can be found here: [hello-world Poem](https://docs.shuttle.rs/guide/poem-examples.html#hello-world)
 
 ## Contributing
 
