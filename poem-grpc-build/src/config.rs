@@ -300,6 +300,16 @@ impl Config {
         self
     }
 
+    /// Declare an externally provided Protobuf package or type.
+    pub fn extern_path<P1, P2>(mut self, proto_path: P1, rust_path: P2) -> Self
+    where
+        P1: Into<String>,
+        P2: Into<String>,
+    {
+        self.prost_config.extern_path(proto_path, rust_path);
+        self
+    }
+
     /// Enable or disable gRPC client code generation.
     pub fn build_client(mut self, enable: bool) -> Self {
         self.grpc_config.build_client = enable;
