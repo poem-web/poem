@@ -475,6 +475,28 @@ impl<T, W> OpenApiService<T, W> {
         crate::ui::redoc::create_html(&self.spec())
     }
 
+    /// Create the Scalar endpoint.
+    #[must_use]
+    #[cfg(feature = "scalar")]
+    pub fn scalar(&self) -> impl Endpoint + 'static
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::scalar::create_endpoint(self.spec())
+    }
+
+    /// Create the Scalar HTML
+    #[must_use]
+    #[cfg(feature = "scalar")]
+    pub fn scalar_html(&self) -> String
+    where
+        T: OpenApi,
+        W: Webhook,
+    {
+        crate::ui::scalar::create_html(&self.spec())
+    }
+
     /// Create the Stoplight Elements endpoint.
     #[must_use]
     #[cfg(feature = "stoplight-elements")]
