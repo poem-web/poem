@@ -2,61 +2,16 @@
 
 use std::{fmt::Display, future::Future};
 
-use serde::Serialize;
 use serde_json::Value;
 
-use crate::protocol::{
-    rpc::RpcError,
-    tool::{Content, Tool as PTool, ToolsCallResponse},
+use crate::{
+    content::{IntoContent, IntoContents},
+    protocol::{
+        content::Content,
+        rpc::RpcError,
+        tool::{Tool as PTool, ToolsCallResponse},
+    },
 };
-
-/// Represents a type that can be converted into a content.
-pub trait IntoContent {
-    /// Consumes the object and converts it into a content.
-    fn into_content(self) -> Vec<Content>;
-}
-
-/// A Text response.
-#[derive(Debug, Clone, Copy)]
-pub struct Text<T>(pub T);
-
-impl<T> IntoContent for Text<T>
-where
-    T: Display,
-{
-    fn into_content(self) -> Vec<Content> {
-        vec![Content::Text {
-            text: self.0.to_string(),
-        }]
-    }
-}
-
-/// A Json response.
-#[derive(Debug, Clone, Copy)]
-pub struct Json<T>(pub T);
-
-impl<T> IntoContent for Json<T>
-where
-    T: Serialize,
-{
-    fn into_content(self) -> Vec<Content> {
-        serde_json::to_string(&self.0)
-            .into_iter()
-            .map(|text| Content::Text { text })
-            .collect()
-    }
-}
-
-impl<T> IntoContent for Vec<T>
-where
-    T: IntoContent,
-{
-    fn into_content(self) -> Vec<Content> {
-        self.into_iter()
-            .flat_map(IntoContent::into_content)
-            .collect()
-    }
-}
 
 /// Represents the result of a tool call.
 pub trait IntoToolResponse {
@@ -66,11 +21,11 @@ pub trait IntoToolResponse {
 
 impl<T> IntoToolResponse for T
 where
-    T: IntoContent,
+    T: IntoContents,
 {
     fn into_tool_response(self) -> ToolsCallResponse {
         ToolsCallResponse {
-            content: self.into_content(),
+            content: self.into_contents(),
             is_error: false,
         }
     }
@@ -84,7 +39,7 @@ where
     fn into_tool_response(self) -> ToolsCallResponse {
         match self {
             Ok(value) => ToolsCallResponse {
-                content: value.into_content(),
+                content: value.into_contents(),
                 is_error: false,
             },
             Err(error) => ToolsCallResponse {

@@ -20,6 +20,7 @@ categories = [
 
 [features]
 sse = ["poem"]
+streamable-http = ["poem"]
 
 [dependencies]
 poem-mcpserver-macros.workspace = true
@@ -35,6 +36,9 @@ tokio-stream.workspace = true
 async-stream.workspace = true
 tracing.workspace = true
 pin-project-lite = "0.2.16"
+itertools = "0.14.0"
+mime.workspace = true
+base64.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true

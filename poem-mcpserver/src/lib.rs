@@ -6,12 +6,13 @@
 #![warn(rustdoc::broken_intra_doc_links)]
 #![warn(missing_docs)]
 
+pub mod content;
 pub mod protocol;
 mod server;
-#[cfg(feature = "sse")]
-#[cfg_attr(docsrs, doc(cfg(feature = "sse")))]
-pub mod sse;
 pub mod stdio;
+#[cfg(feature = "streamable-http")]
+#[cfg_attr(docsrs, doc(cfg(feature = "streamable-http")))]
+pub mod streamable_http;
 pub mod tool;
 pub use poem_mcpserver_macros::Tools;
 pub use server::McpServer;

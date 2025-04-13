@@ -2,11 +2,13 @@ use serde_json::Value;
 
 use crate::{
     protocol::{
-        JSON_RPC_VERSION, MCP_PROTOCOL_VERSION,
+        JSON_RPC_VERSION,
         initialize::{
             InitializeRequest, InitializeResponse, PromptsCapability, ResourcesCapability,
             ServerCapabilities, ServerInfo, ToolsCapability,
         },
+        prompts::PromptsListResponse,
+        resources::ResourcesListResponse,
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
     },
@@ -50,21 +52,21 @@ where
         Response {
             jsonrpc: JSON_RPC_VERSION.to_string(),
             id,
-            result: None,
+            result: Some(Value::Object(Default::default())),
             error: None,
         }
     }
 
     fn handle_initialize(
         &self,
-        _request: InitializeRequest,
+        request: InitializeRequest,
         id: Option<RequestId>,
     ) -> Response<Value> {
         Response {
             jsonrpc: JSON_RPC_VERSION.to_string(),
             id,
             result: Some(InitializeResponse {
-                protocol_version: MCP_PROTOCOL_VERSION,
+                protocol_version: request.protocol_version,
                 capabilities: ServerCapabilities {
                     prompts: PromptsCapability {
                         list_changed: false,
@@ -142,10 +144,29 @@ where
             Requests::Ping => Some(self.handle_ping(request.id)),
             Requests::Initialize { params } => Some(self.handle_initialize(params, request.id)),
             Requests::Initialized => None,
+            Requests::Cancelled { .. } => None,
             Requests::ToolsList { .. } => Some(self.handle_tools_list(request.id)),
             Requests::ToolsCall { params } => {
                 Some(self.handle_tools_call(params, request.id).await)
             }
+            Requests::PromptsList { .. } => Some(
+                Response {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id: request.id,
+                    result: Some(PromptsListResponse { prompts: vec![] }),
+                    error: None,
+                }
+                .map_result_to_value(),
+            ),
+            Requests::ResourcesList { .. } => Some(
+                Response {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id: request.id,
+                    result: Some(ResourcesListResponse { resources: vec![] }),
+                    error: None,
+                }
+                .map_result_to_value(),
+            ),
         }
     }
 }
