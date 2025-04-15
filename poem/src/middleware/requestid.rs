@@ -63,7 +63,7 @@ impl Default for RequestId {
 
 impl<E: Endpoint> Middleware<E> for RequestId {
     type Output = RequestIdEndpoint<E>;
-    fn transform(&self, next: E) -> Self::Output {
+    fn transform(self, next: E) -> Self::Output {
         RequestIdEndpoint {
             next,
             header_name: self.header_name.clone(),
