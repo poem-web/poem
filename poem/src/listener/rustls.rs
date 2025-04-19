@@ -450,7 +450,12 @@ mod tests {
         let local_addr = acceptor.local_addr().pop().unwrap();
 
         tokio::spawn(async move {
-            let config = ClientConfig::builder()
+            let provider = load_default_crypto_provider();
+            // SAFETY: the same as .unwrap inside `ServerConfig::builder`
+            let builder = ClientConfig::builder_with_provider(provider)
+                .with_protocol_versions(DEFAULT_VERSIONS)
+                .unwrap();
+            let config = builder
                 .with_root_certificates(
                     read_trust_anchor(include_bytes!("certs/chain1.pem")).unwrap(),
                 )
