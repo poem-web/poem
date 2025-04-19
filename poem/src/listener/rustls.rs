@@ -1,9 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    listener::{Acceptor, HandshakeStream, IntoTlsConfigStream, Listener},
-    web::{LocalAddr, RemoteAddr},
-};
 use futures_util::{
     Stream, StreamExt,
     stream::{BoxStream, Chain, Pending},
@@ -11,15 +7,19 @@ use futures_util::{
 use http::uri::Scheme;
 use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
-use tokio_rustls::rustls::{ConfigBuilder, WantsVerifier};
 use tokio_rustls::{
     rustls::{
-        DEFAULT_VERSIONS, RootCertStore, ServerConfig,
+        ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, WantsVerifier,
         crypto::{CryptoProvider, aws_lc_rs, aws_lc_rs::sign::any_supported_type},
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
     },
     server::TlsStream,
+};
+
+use crate::{
+    listener::{Acceptor, HandshakeStream, IntoTlsConfigStream, Listener},
+    web::{LocalAddr, RemoteAddr},
 };
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rustls")))]
@@ -261,18 +261,18 @@ impl RustlsConfig {
     }
 }
 
-// A port of CryptoProvider::get_default_or_install_from_crate_features while always
-// use aws_lc_rs as the default provider.
+// A port of CryptoProvider::get_default_or_install_from_crate_features while
+// always use aws_lc_rs as the default provider.
 fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
     if CryptoProvider::get_default().is_none() {
         let provider = aws_lc_rs::default_provider();
         let _ = provider.install_default();
     }
 
-    // SAFETY: `CryptoProvider::get_default()` is guaranteed to be non-null at this point
+    // SAFETY: `CryptoProvider::get_default()` must be non-null at this point
     let provider = CryptoProvider::get_default().unwrap();
 
-    // SAFETY: process-level default provider is usable with the supplied protocol versions
+    // SAFETY: process-level default provider is usable with the supplied versions
     ServerConfig::builder_with_provider(provider.clone())
         .with_protocol_versions(DEFAULT_VERSIONS)
         .unwrap()
