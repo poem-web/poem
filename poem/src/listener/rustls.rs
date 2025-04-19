@@ -1,5 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
+use crate::{
+    listener::{Acceptor, HandshakeStream, IntoTlsConfigStream, Listener},
+    web::{LocalAddr, RemoteAddr},
+};
 use futures_util::{
     Stream, StreamExt,
     stream::{BoxStream, Chain, Pending},
@@ -7,6 +11,7 @@ use futures_util::{
 use http::uri::Scheme;
 use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
+use tokio_rustls::rustls::{ConfigBuilder, WantsVerifier};
 use tokio_rustls::{
     rustls::{
         DEFAULT_VERSIONS, RootCertStore, ServerConfig,
@@ -15,11 +20,6 @@ use tokio_rustls::{
         sign::CertifiedKey,
     },
     server::TlsStream,
-};
-
-use crate::{
-    listener::{Acceptor, HandshakeStream, IntoTlsConfigStream, Listener},
-    web::{LocalAddr, RemoteAddr},
 };
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rustls")))]
@@ -231,11 +231,7 @@ impl RustlsConfig {
             );
         }
 
-        let provider = load_default_crypto_provider();
-        // SAFETY: the same as .unwrap inside `ServerConfig::builder`
-        let builder = ServerConfig::builder_with_provider(provider)
-            .with_protocol_versions(DEFAULT_VERSIONS)
-            .unwrap();
+        let builder = make_server_config_builder();
         let builder = match &self.client_auth {
             TlsClientAuth::Off => builder.with_no_client_auth(),
             TlsClientAuth::Optional(trust_anchor) => {
@@ -265,12 +261,21 @@ impl RustlsConfig {
     }
 }
 
-fn load_default_crypto_provider() -> Arc<CryptoProvider> {
-    if let Some(provider) = CryptoProvider::get_default() {
-        return provider.clone();
+// A port of CryptoProvider::get_default_or_install_from_crate_features while always
+// use aws_lc_rs as the default provider.
+fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
+    if CryptoProvider::get_default().is_none() {
+        let provider = aws_lc_rs::default_provider();
+        let _ = provider.install_default();
     }
 
-    Arc::new(aws_lc_rs::default_provider())
+    // SAFETY: `CryptoProvider::get_default()` is guaranteed to be non-null at this point
+    let provider = CryptoProvider::get_default().unwrap();
+
+    // SAFETY: process-level default provider is usable with the supplied protocol versions
+    ServerConfig::builder_with_provider(provider.clone())
+        .with_protocol_versions(DEFAULT_VERSIONS)
+        .unwrap()
 }
 
 fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
@@ -450,12 +455,7 @@ mod tests {
         let local_addr = acceptor.local_addr().pop().unwrap();
 
         tokio::spawn(async move {
-            let provider = load_default_crypto_provider();
-            // SAFETY: the same as .unwrap inside `ServerConfig::builder`
-            let builder = ClientConfig::builder_with_provider(provider)
-                .with_protocol_versions(DEFAULT_VERSIONS)
-                .unwrap();
-            let config = builder
+            let config = ClientConfig::builder()
                 .with_root_certificates(
                     read_trust_anchor(include_bytes!("certs/chain1.pem")).unwrap(),
                 )
