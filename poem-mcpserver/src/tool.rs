@@ -5,7 +5,7 @@ use std::{fmt::Display, future::Future};
 use serde_json::Value;
 
 use crate::{
-    content::{IntoContent, IntoContents},
+    content::IntoContents,
     protocol::{
         content::Content,
         rpc::RpcError,
@@ -33,7 +33,7 @@ where
 
 impl<T, E> IntoToolResponse for Result<T, E>
 where
-    T: IntoContent,
+    T: IntoContents,
     E: Display,
 {
     fn into_tool_response(self) -> ToolsCallResponse {
