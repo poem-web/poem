@@ -81,15 +81,19 @@ pub enum BatchRequest {
     Batch(Vec<Request>),
 }
 
-impl BatchRequest {
-    /// Convert the batch requests into an iterator of requests.
-    pub fn into_iter(self) -> impl Iterator<Item = Request> {
+impl IntoIterator for BatchRequest {
+    type Item = Request;
+    type IntoIter = Either<std::iter::Once<Self::Item>, std::vec::IntoIter<Self::Item>>;
+
+    fn into_iter(self) -> Self::IntoIter {
         match self {
             BatchRequest::Single(request) => Either::Left(std::iter::once(request)),
             BatchRequest::Batch(requests) => Either::Right(requests.into_iter()),
         }
     }
+}
 
+impl BatchRequest {
     /// Return the number of requests in the batch.
     pub fn len(&self) -> usize {
         match self {
@@ -98,11 +102,16 @@ impl BatchRequest {
         }
     }
 
+    /// Return `true` if the batch is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Return the requests in the batch.
     pub fn requests(&self) -> &[Request] {
         match self {
             BatchRequest::Single(request) => std::slice::from_ref(request),
-            BatchRequest::Batch(requests) => &requests,
+            BatchRequest::Batch(requests) => requests,
         }
     }
 }
@@ -171,12 +180,11 @@ pub enum BatchResponse<T = ()> {
     Batch(Vec<Response<T>>),
 }
 
-impl<T> BatchResponse<T>
-where
-    T: Serialize,
-{
-    /// Convert the batch responses into an iterator of responses.
-    pub fn into_iter(self) -> impl Iterator<Item = Response<T>> {
+impl<T> IntoIterator for BatchResponse<T> {
+    type Item = Response<T>;
+    type IntoIter = Either<std::iter::Once<Self::Item>, std::vec::IntoIter<Self::Item>>;
+
+    fn into_iter(self) -> Self::IntoIter {
         match self {
             BatchResponse::Single(response) => Either::Left(std::iter::once(response)),
             BatchResponse::Batch(responses) => Either::Right(responses.into_iter()),

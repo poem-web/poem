@@ -139,7 +139,7 @@ where
         session.server.clone()
     };
 
-    handle_request(server, session_id, &accept, batch_request.0.into_iter())
+    handle_request(server, session_id, accept, batch_request.0.into_iter())
         .await
         .into_response()
 }
