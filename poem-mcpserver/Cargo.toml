@@ -19,7 +19,6 @@ categories = [
 ]
 
 [features]
-sse = ["poem"]
 streamable-http = ["poem"]
 
 [dependencies]
@@ -30,7 +29,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 time = { workspace = true, features = ["macros", "formatting", "parsing"] }
 tokio = { workspace = true, features = ["io-std", "io-util", "rt"] }
-poem = { workspace = true, features = ["sse"], optional = true }
+poem = { workspace = true, optional = true }
 rand.workspace = true
 tokio-stream.workspace = true
 async-stream.workspace = true
