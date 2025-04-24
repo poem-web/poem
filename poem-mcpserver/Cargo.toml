@@ -19,8 +19,7 @@ categories = [
 ]
 
 [features]
-sse = ["poem"]
-streamable-http = ["poem"]
+streamable-http = ["dep:poem"]
 
 [dependencies]
 poem-mcpserver-macros.workspace = true
