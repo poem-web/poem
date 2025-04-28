@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.1.9] 2025-04-13
+
+- add `CookieJar::get_ignore_ascii_case` method.
+
 # [3.1.8] 2025-03-24
 
 - chore: bump rand to `0.9` [#984](https://github.com/poem-web/poem/pull/984)

@@ -1,10 +1,12 @@
 //! JSON-RPC protocol types.
 
+use itertools::Either;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::protocol::{
     initialize::InitializeRequest,
+    prompts::PromptsListRequest,
     tool::{ToolsCallRequest, ToolsListRequest},
 };
 
@@ -32,6 +34,14 @@ pub enum Requests {
     /// Initialized notification.
     #[serde(rename = "notifications/initialized")]
     Initialized,
+    /// Cancelled notification.
+    #[serde(rename = "notifications/cancelled ")]
+    Cancelled {
+        /// The ID of the request to cancel
+        request_id: RequestId,
+        /// An optional reason string that can be logged or displayed
+        reason: Option<String>,
+    },
     /// Tools list.
     #[serde(rename = "tools/list")]
     ToolsList {
@@ -45,6 +55,65 @@ pub enum Requests {
         /// Tool call request parameters.
         params: ToolsCallRequest,
     },
+    /// Prompts list.
+    #[serde(rename = "prompts/list")]
+    PromptsList {
+        /// Prompts list request parameters.
+        #[serde(default)]
+        params: PromptsListRequest,
+    },
+    /// Resources list.
+    #[serde(rename = "resources/list")]
+    ResourcesList {
+        /// Prompts list request parameters.
+        #[serde(default)]
+        params: PromptsListRequest,
+    },
+}
+
+/// A JSON-RPC batch request.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum BatchRequest {
+    /// A single request.
+    Single(Request),
+    /// A batch of requests.
+    Batch(Vec<Request>),
+}
+
+impl IntoIterator for BatchRequest {
+    type Item = Request;
+    type IntoIter = Either<std::iter::Once<Self::Item>, std::vec::IntoIter<Self::Item>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            BatchRequest::Single(request) => Either::Left(std::iter::once(request)),
+            BatchRequest::Batch(requests) => Either::Right(requests.into_iter()),
+        }
+    }
+}
+
+impl BatchRequest {
+    /// Return the number of requests in the batch.
+    pub fn len(&self) -> usize {
+        match self {
+            BatchRequest::Single(_) => 1,
+            BatchRequest::Batch(requests) => requests.len(),
+        }
+    }
+
+    /// Return `true` if the batch is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Return the requests in the batch.
+    pub fn requests(&self) -> &[Request] {
+        match self {
+            BatchRequest::Single(request) => std::slice::from_ref(request),
+            BatchRequest::Batch(requests) => requests,
+        }
+    }
 }
 
 /// A JSON-RPC request.
@@ -58,6 +127,13 @@ pub struct Request {
     /// The request body.
     #[serde(flatten)]
     pub body: Requests,
+}
+
+impl Request {
+    #[inline]
+    pub(crate) fn is_initialize(&self) -> bool {
+        matches!(self.body, Requests::Initialize { .. })
+    }
 }
 
 /// A JSON-RPC response.
@@ -90,6 +166,28 @@ where
                 .result
                 .map(|v| serde_json::to_value(v).expect("serialize result")),
             error: self.error,
+        }
+    }
+}
+
+/// A JSON-RPC batch response
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum BatchResponse<T = ()> {
+    /// A single response.
+    Single(Response<T>),
+    /// A batch of responses.
+    Batch(Vec<Response<T>>),
+}
+
+impl<T> IntoIterator for BatchResponse<T> {
+    type Item = Response<T>;
+    type IntoIter = Either<std::iter::Once<Self::Item>, std::vec::IntoIter<Self::Item>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            BatchResponse::Single(response) => Either::Left(std::iter::once(response)),
+            BatchResponse::Batch(responses) => Either::Right(responses.into_iter()),
         }
     }
 }

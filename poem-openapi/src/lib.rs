@@ -101,6 +101,7 @@
 //! | swagger-ui         | Add swagger UI support                                                                 |
 //! | rapidoc            | Add RapiDoc UI support                                                                 |
 //! | redoc              | Add Redoc UI support                                                                   |
+//! | scalar             | Add Scalar UI support                                                                  |
 //! | stoplight-elements | Add Stoplight Elements UI support                                                      |
 //! | email              | Support for email address string                                                       |
 //! | hostname           | Support for hostname string                                                            |
@@ -145,6 +146,7 @@ mod path_util;
     feature = "openapi-explorer",
     feature = "rapidoc",
     feature = "redoc",
+    feature = "scalar",
     feature = "stoplight-elements",
     feature = "swagger-ui",
 ))]

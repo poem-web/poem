@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::protocol::content::Content;
+
 /// A request to list tools.
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -40,17 +42,6 @@ pub struct ToolsCallRequest {
     #[serde(default)]
     /// The arguments passed to the tool.
     pub arguments: Value,
-}
-
-/// A content that can be sent to the client.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase", tag = "type")]
-pub enum Content {
-    /// A text content.
-    Text {
-        /// The text content.
-        text: String,
-    },
 }
 
 /// A response to a tools/call request.
