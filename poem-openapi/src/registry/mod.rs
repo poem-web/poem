@@ -192,6 +192,7 @@ impl MetaSchema {
             default,
             read_only,
             write_only,
+            deprecated,
             nullable,
             title,
             description,
@@ -218,6 +219,7 @@ impl MetaSchema {
         self.read_only |= read_only;
         self.write_only |= write_only;
         self.nullable |= nullable;
+        self.deprecated |= deprecated;
 
         macro_rules! merge_optional {
             ($($name:ident),*) => {

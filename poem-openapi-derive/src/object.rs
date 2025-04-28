@@ -31,6 +31,8 @@ struct ObjectField {
     #[darling(default)]
     write_only: bool,
     #[darling(default)]
+    deprecated: bool,
+    #[darling(default)]
     nullable: bool,
     #[darling(default)]
     read_only: bool,
@@ -126,6 +128,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let skip_serializing_if_is_empty =
             field.skip_serializing_if_is_empty || args.skip_serializing_if_is_empty;
         let skip_serializing_if = &field.skip_serializing_if;
+        let deprecated = field.deprecated;
 
         if field.skip {
             deserialize_fields.push(quote! {
@@ -294,6 +297,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     schema.nullable = #nullable;
                     schema.read_only = #read_only;
                     schema.write_only = #write_only;
+                    schema.deprecated = #deprecated;
 
                     if let ::std::option::Option::Some(field_description) = #field_description {
                         schema.description = ::std::option::Option::Some(field_description);
