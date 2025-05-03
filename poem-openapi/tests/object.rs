@@ -191,6 +191,18 @@ fn field_rename() {
 }
 
 #[test]
+fn field_deprecated() {
+    #[derive(Object)]
+    struct Obj {
+        #[oai(deprecated)]
+        a: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.properties[0].1.unwrap_inline().deprecated, true);
+}
+
+#[test]
 fn recursive_register() {
     #[derive(Object)]
     struct A {
