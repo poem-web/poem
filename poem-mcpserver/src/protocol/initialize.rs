@@ -72,7 +72,7 @@ pub struct ServerCapabilities {
 }
 
 /// The server information.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ServerInfo {
     /// The server name.
     pub name: String,

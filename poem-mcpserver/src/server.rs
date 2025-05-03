@@ -18,6 +18,7 @@ use crate::{
 /// A server that can be used to handle MCP requests.
 pub struct McpServer<ToolsType = NoTools> {
     tools: ToolsType,
+    server_info: ServerInfo,
 }
 
 impl Default for McpServer<NoTools> {
@@ -31,7 +32,13 @@ impl McpServer<NoTools> {
     /// Creates a new MCP server.
     #[inline]
     pub fn new() -> Self {
-        Self { tools: NoTools }
+        Self {
+            tools: NoTools,
+            server_info: ServerInfo {
+                name: "poem-mcpserver".to_string(),
+                version: "0.1.0".to_string(),
+            },
+        }
     }
 }
 
@@ -45,7 +52,19 @@ where
     where
         T: Tools,
     {
-        McpServer { tools }
+        McpServer {
+            tools,
+            server_info: self.server_info,
+        }
+    }
+
+    /// Sets the server info (name and version).
+    pub fn with_server_info(mut self, name: &str, version: &str) -> Self {
+        self.server_info = ServerInfo {
+            name: name.to_string(),
+            version: version.to_string(),
+        };
+        self
     }
 
     fn handle_ping(&self, id: Option<RequestId>) -> Response<Value> {
@@ -79,10 +98,7 @@ where
                         list_changed: false,
                     },
                 },
-                server_info: ServerInfo {
-                    name: "poem-mcpserver".to_string(),
-                    version: "0.1.0".to_string(),
-                },
+                server_info: self.server_info.clone(),
                 instructions: Some(ToolsType::instructions().to_string()),
             }),
             error: None,
