@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "5.1.13"
+version = "5.1.14"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,6 +17,7 @@ categories = ["network-programming", "asynchronous"]
 swagger-ui = []
 rapidoc = []
 redoc = []
+scalar = []
 stoplight-elements = []
 openapi-explorer = []
 email = ["email_address"]

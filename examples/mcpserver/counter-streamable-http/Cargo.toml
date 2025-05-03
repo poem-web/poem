@@ -1,11 +1,12 @@
 [package]
-name = "counter-sse"
+name = "counter-streamable-http"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-poem-mcpserver = { workspace = true, features = ["sse"] }
+poem-mcpserver = { workspace = true, features = ["streamable-http"] }
 serde = { version = "1.0.219", features = ["derive"] }
 schemars = "0.8.22"
 poem = { workspace = true, features = ["sse"] }
 tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread", "sync"] }
+tracing-subscriber.workspace = true

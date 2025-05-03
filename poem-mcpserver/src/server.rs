@@ -2,11 +2,13 @@ use serde_json::Value;
 
 use crate::{
     protocol::{
-        JSON_RPC_VERSION, MCP_PROTOCOL_VERSION,
+        JSON_RPC_VERSION,
         initialize::{
             InitializeRequest, InitializeResponse, PromptsCapability, ResourcesCapability,
             ServerCapabilities, ServerInfo, ToolsCapability,
         },
+        prompts::PromptsListResponse,
+        resources::ResourcesListResponse,
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
     },
@@ -16,6 +18,7 @@ use crate::{
 /// A server that can be used to handle MCP requests.
 pub struct McpServer<ToolsType = NoTools> {
     tools: ToolsType,
+    server_info: ServerInfo,
 }
 
 impl Default for McpServer<NoTools> {
@@ -29,7 +32,13 @@ impl McpServer<NoTools> {
     /// Creates a new MCP server.
     #[inline]
     pub fn new() -> Self {
-        Self { tools: NoTools }
+        Self {
+            tools: NoTools,
+            server_info: ServerInfo {
+                name: "poem-mcpserver".to_string(),
+                version: "0.1.0".to_string(),
+            },
+        }
     }
 }
 
@@ -43,28 +52,40 @@ where
     where
         T: Tools,
     {
-        McpServer { tools }
+        McpServer {
+            tools,
+            server_info: self.server_info,
+        }
+    }
+
+    /// Sets the server info (name and version).
+    pub fn with_server_info(mut self, name: &str, version: &str) -> Self {
+        self.server_info = ServerInfo {
+            name: name.to_string(),
+            version: version.to_string(),
+        };
+        self
     }
 
     fn handle_ping(&self, id: Option<RequestId>) -> Response<Value> {
         Response {
             jsonrpc: JSON_RPC_VERSION.to_string(),
             id,
-            result: None,
+            result: Some(Value::Object(Default::default())),
             error: None,
         }
     }
 
     fn handle_initialize(
         &self,
-        _request: InitializeRequest,
+        request: InitializeRequest,
         id: Option<RequestId>,
     ) -> Response<Value> {
         Response {
             jsonrpc: JSON_RPC_VERSION.to_string(),
             id,
             result: Some(InitializeResponse {
-                protocol_version: MCP_PROTOCOL_VERSION,
+                protocol_version: request.protocol_version,
                 capabilities: ServerCapabilities {
                     prompts: PromptsCapability {
                         list_changed: false,
@@ -77,10 +98,7 @@ where
                         list_changed: false,
                     },
                 },
-                server_info: ServerInfo {
-                    name: "poem-mcpserver".to_string(),
-                    version: "0.1.0".to_string(),
-                },
+                server_info: self.server_info.clone(),
                 instructions: Some(ToolsType::instructions().to_string()),
             }),
             error: None,
@@ -142,10 +160,29 @@ where
             Requests::Ping => Some(self.handle_ping(request.id)),
             Requests::Initialize { params } => Some(self.handle_initialize(params, request.id)),
             Requests::Initialized => None,
+            Requests::Cancelled { .. } => None,
             Requests::ToolsList { .. } => Some(self.handle_tools_list(request.id)),
             Requests::ToolsCall { params } => {
                 Some(self.handle_tools_call(params, request.id).await)
             }
+            Requests::PromptsList { .. } => Some(
+                Response {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id: request.id,
+                    result: Some(PromptsListResponse { prompts: vec![] }),
+                    error: None,
+                }
+                .map_result_to_value(),
+            ),
+            Requests::ResourcesList { .. } => Some(
+                Response {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id: request.id,
+                    result: Some(ResourcesListResponse { resources: vec![] }),
+                    error: None,
+                }
+                .map_result_to_value(),
+            ),
         }
     }
 }

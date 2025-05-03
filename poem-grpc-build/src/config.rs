@@ -300,6 +300,42 @@ impl Config {
         self
     }
 
+    /// Configures the code generator to not use the `prost_types` crate for
+    /// Protobuf well-known types, and instead generate Protobuf well-known
+    /// types from their `.proto` definitions.
+    pub fn compile_well_known_types(mut self) -> Self {
+        self.prost_config.compile_well_known_types();
+        self
+    }
+
+    /// Declare an externally provided Protobuf package or type.
+    ///
+    /// `extern_path` allows `prost` types in external crates to be referenced
+    /// in generated code.
+    ///
+    /// When `prost` compiles a `.proto` which includes an import of another
+    /// `.proto`, it will automatically recursively compile the imported
+    /// file as well. `extern_path` can be used to instead substitute types
+    /// from an external crate.
+    ///
+    /// See [`prost_build::Config::extern_path`](https://docs.rs/prost-build/0.13.5/prost_build/struct.Config.html#method.extern_path).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let config = poem_grpc_build::Config::new()
+    ///     .compile_well_known_types()
+    ///     .extern_path(".google.protobuf", "::pbjson_types");
+    /// ```
+    pub fn extern_path<P1, P2>(mut self, proto_path: P1, rust_path: P2) -> Self
+    where
+        P1: Into<String>,
+        P2: Into<String>,
+    {
+        self.prost_config.extern_path(proto_path, rust_path);
+        self
+    }
+
     /// Enable or disable gRPC client code generation.
     pub fn build_client(mut self, enable: bool) -> Self {
         self.grpc_config.build_client = enable;
