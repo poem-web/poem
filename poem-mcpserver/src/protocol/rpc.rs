@@ -35,7 +35,7 @@ pub enum Requests {
     #[serde(rename = "notifications/initialized")]
     Initialized,
     /// Cancelled notification.
-    #[serde(rename = "notifications/cancelled ")]
+    #[serde(rename = "notifications/cancelled")]
     Cancelled {
         /// The ID of the request to cancel
         request_id: RequestId,
