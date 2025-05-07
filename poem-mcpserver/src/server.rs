@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde_json::Value;
 
 use crate::{
@@ -18,6 +20,7 @@ use crate::{
 /// A server that can be used to handle MCP requests.
 pub struct McpServer<ToolsType = NoTools> {
     tools: ToolsType,
+    disabled_tools: HashSet<String>,
     server_info: ServerInfo,
 }
 
@@ -34,6 +37,7 @@ impl McpServer<NoTools> {
     pub fn new() -> Self {
         Self {
             tools: NoTools,
+            disabled_tools: HashSet::new(),
             server_info: ServerInfo {
                 name: "poem-mcpserver".to_string(),
                 version: "0.1.0".to_string(),
@@ -54,8 +58,20 @@ where
     {
         McpServer {
             tools,
+            disabled_tools: self.disabled_tools,
             server_info: self.server_info,
         }
+    }
+
+    /// Disables tools by their names.
+    pub fn disable_tools<I, T>(mut self, names: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<String>,
+    {
+        self.disabled_tools
+            .extend(names.into_iter().map(Into::into));
+        self
     }
 
     /// Sets the server info (name and version).
@@ -113,6 +129,8 @@ where
             result: Some(ToolsListResponse {
                 tools: {
                     let mut tools = ToolsType::list();
+                    tools.retain(|tool| !self.disabled_tools.contains(tool.name));
+
                     for tool in &mut tools {
                         if let Some(object) = tool.input_schema.as_object_mut() {
                             if !object.contains_key("properties") {
