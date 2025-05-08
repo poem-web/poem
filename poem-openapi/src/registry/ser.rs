@@ -73,7 +73,12 @@ impl Serialize for WebhookMap<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut s = serializer.serialize_map(Some(self.0.len()))?;
         for webhook in self.0 {
-            s.serialize_entry(&webhook.name, &webhook.operation)?;
+            let mut inner_map = BTreeMap::new();
+            inner_map.insert(
+                webhook.operation.method.to_string().to_lowercase(),
+                &webhook.operation,
+            );
+            s.serialize_entry(&webhook.name, &inner_map)?;
         }
         s.end()
     }
