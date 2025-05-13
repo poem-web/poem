@@ -59,6 +59,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | swagger-ui         | Add swagger UI support                                                                                                                                             |
 | rapidoc            | Add RapiDoc UI support                                                                                                                                             |
 | redoc              | Add Redoc UI support                                                                                                                                               |
+| scalar             | Add Scalar UI support                                                                                                                                              |
 | stoplight-elements | Add Stoplight Elements UI support                                                                                                                                  |
 | email              | Support for email address string                                                                                                                                   |
 | hostname           | Support for hostname string                                                                                                                                        |

@@ -76,10 +76,7 @@ impl ToJSON for String {
 
 impl ToHeader for String {
     fn to_header(&self) -> Option<HeaderValue> {
-        match HeaderValue::from_str(self) {
-            Ok(value) => Some(value),
-            Err(_) => None,
-        }
+        HeaderValue::from_str(self).ok()
     }
 }
 

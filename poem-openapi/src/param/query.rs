@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use itertools::Either;
 use poem::{Request, RequestBody, Result};
 
 use crate::{
@@ -55,12 +56,13 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
-        let mut values = request
-            .extensions()
-            .get::<UrlQuery>()
-            .unwrap()
-            .get_all(param_opts.name)
-            .peekable();
+        let url_query = request.extensions().get::<UrlQuery>().unwrap();
+        let mut values = if !param_opts.ignore_case {
+            Either::Left(url_query.get_all(param_opts.name))
+        } else {
+            Either::Right(url_query.get_all_by(|n| param_opts.name.eq_ignore_ascii_case(n)))
+        }
+        .peekable();
 
         match &param_opts.default_value {
             Some(default_value) if values.peek().is_none() => {

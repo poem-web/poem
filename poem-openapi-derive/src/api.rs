@@ -24,7 +24,7 @@ use crate::{
 pub(crate) struct APIArgs {
     #[darling(default)]
     internal: bool,
-    #[darling(default, with = "crate::utils::preserve_str_literal")]
+    #[darling(default, with = crate::utils::preserve_str_literal)]
     prefix_path: Option<Expr>,
     #[darling(default, multiple, rename = "tag")]
     common_tags: Vec<Path>,
@@ -32,6 +32,8 @@ pub(crate) struct APIArgs {
     response_headers: Vec<ExtraHeader>,
     #[darling(default, multiple, rename = "request_header")]
     request_headers: Vec<ExtraHeader>,
+    #[darling(default)]
+    ignore_case: Option<bool>,
 }
 
 #[derive(FromMeta)]
@@ -59,6 +61,8 @@ struct APIOperation {
     code_samples: Vec<CodeSample>,
     #[darling(default)]
     hidden: bool,
+    #[darling(default)]
+    ignore_case: Option<bool>,
 }
 
 #[derive(FromMeta, Default)]
@@ -66,6 +70,8 @@ struct APIOperationParam {
     // for parameter
     #[darling(default)]
     name: Option<String>,
+    #[darling(default)]
+    ignore_case: Option<bool>,
     #[darling(default)]
     deprecated: bool,
     #[darling(default)]
@@ -183,6 +189,7 @@ fn generate_operation(
         actual_type,
         code_samples,
         hidden,
+        ignore_case,
     } = args;
     if methods.is_empty() {
         return Err(Error::new_spanned(
@@ -290,6 +297,11 @@ fn generate_operation(
             .name
             .clone()
             .unwrap_or_else(|| arg_ident.unraw().to_string());
+        let ignore_case = operation_param
+            .ignore_case
+            .or(ignore_case)
+            .or(api_args.ignore_case)
+            .unwrap_or(false);
         let extract_param_name = is_path
             .then(|| {
                 let n = format!("param{path_param_count}");
@@ -374,6 +386,7 @@ fn generate_operation(
         parse_args.push(quote! {
             let mut param_opts = #crate_name::ExtractParamOptions {
                 name: #extract_param_name,
+                ignore_case: #ignore_case,
                 default_value: #default_value,
                 example_value: #example_value,
                 explode: #explode,
