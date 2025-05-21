@@ -64,14 +64,15 @@ impl<T> DerefMut for Query<T> {
 }
 
 impl<T: DeserializeOwned> Query<T> {
-    async fn internal_from_request(req: &Request) -> Result<Self, ParseQueryError> {
+    /// Extract from request.
+    pub fn from_request(req: &Request) -> Result<Self, ParseQueryError> {
         Ok(serde_urlencoded::from_str(req.uri().query().unwrap_or_default()).map(Self)?)
     }
 }
 
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Query<T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
-        Self::internal_from_request(req).await.map_err(Into::into)
+        Self::from_request(req).map_err(Into::into)
     }
 }
 

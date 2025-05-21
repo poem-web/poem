@@ -114,7 +114,8 @@ impl<T> DerefMut for Path<T> {
 }
 
 impl<T: DeserializeOwned> Path<T> {
-    async fn internal_from_request(req: &Request) -> Result<Self, ParsePathError> {
+    /// Extract from request.
+    pub fn from_request(req: &Request) -> Result<Self, ParsePathError> {
         Ok(Path(
             T::deserialize(de::PathDeserializer::new(&req.state().match_params))
                 .map_err(|_| ParsePathError)?,
@@ -124,6 +125,6 @@ impl<T: DeserializeOwned> Path<T> {
 
 impl<'a, T: DeserializeOwned> FromRequest<'a> for Path<T> {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self> {
-        Self::internal_from_request(req).await.map_err(Into::into)
+        Self::from_request(req).map_err(Into::into)
     }
 }
