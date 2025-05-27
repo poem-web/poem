@@ -114,7 +114,13 @@ macro_rules! impl_type_for_non_zero_unsigneds {
             }
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("non_zero_integer", $format)))
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
+                    ty: "non_zero_integer",
+                    format: Some($format),
+                    minimum: Some(0.0),
+                    exclusive_minimum: Some(true),
+                    ..MetaSchema::ANY
+                }))
             }
 
             fn as_raw_value(&self) -> Option<&Self::RawValueType> {
