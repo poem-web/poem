@@ -130,6 +130,7 @@ pub struct Request {
 }
 
 impl Request {
+    #[allow(dead_code)]
     #[inline]
     pub(crate) fn is_initialize(&self) -> bool {
         matches!(self.body, Requests::Initialize { .. })
