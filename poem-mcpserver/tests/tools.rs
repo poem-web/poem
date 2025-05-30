@@ -139,7 +139,7 @@ async fn tool_list() {
                         "name": "add_value",
                         "description": "Add a value to the current value.",
                         "inputSchema": {
-                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
                             "type": "object",
                             "properties": {
                                 "value": {
@@ -155,7 +155,7 @@ async fn tool_list() {
                         "name": "get_value",
                         "description": "Get the current value.",
                         "inputSchema": {
-                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
                             "type": "object",
                             "properties": {},
                             "title": "get_value_Request",
@@ -192,7 +192,7 @@ async fn disable_tools() {
                         "name": "add_value",
                         "description": "Add a value to the current value.",
                         "inputSchema": {
-                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
                             "type": "object",
                             "properties": {
                                 "value": {
