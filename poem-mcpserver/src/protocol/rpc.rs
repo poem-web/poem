@@ -35,7 +35,7 @@ pub enum Requests {
     #[serde(rename = "notifications/initialized")]
     Initialized,
     /// Cancelled notification.
-    #[serde(rename = "notifications/cancelled ")]
+    #[serde(rename = "notifications/cancelled")]
     Cancelled {
         /// The ID of the request to cancel
         request_id: RequestId,
@@ -130,6 +130,7 @@ pub struct Request {
 }
 
 impl Request {
+    #[allow(dead_code)]
     #[inline]
     pub(crate) fn is_initialize(&self) -> bool {
         matches!(self.body, Requests::Initialize { .. })

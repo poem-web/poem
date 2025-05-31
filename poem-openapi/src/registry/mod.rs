@@ -192,6 +192,7 @@ impl MetaSchema {
             default,
             read_only,
             write_only,
+            deprecated,
             nullable,
             title,
             description,
@@ -218,6 +219,7 @@ impl MetaSchema {
         self.read_only |= read_only;
         self.write_only |= write_only;
         self.nullable |= nullable;
+        self.deprecated |= deprecated;
 
         macro_rules! merge_optional {
             ($($name:ident),*) => {
@@ -545,6 +547,20 @@ pub struct MetaServer {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub variables: BTreeMap<String, MetaServerVariable>,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
+pub struct MetaServerVariable {
+    pub default: String,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub description: String,
+
+    #[serde(rename = "enum", skip_serializing_if = "Vec::is_empty")]
+    pub enum_values: Vec<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]

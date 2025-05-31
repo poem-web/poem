@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#[5.1.14] 2025-05-03
+
+- add scalar ui support [#1019](https://github.com/poem-web/poem/pull/1019)
+- support `Duration` and `Timestamp` from `prost_wkt_types` [#1016](https://github.com/poem-web/poem/pull/1016)
+- Object fields deprecation [#1026](https://github.com/poem-web/poem/pull/1026)
+- add support for server variables [#962](https://github.com/poem-web/poem/pull/962)
+
 #[5.1.12] 2025-03-30
 
 - the `Binary` type no longer requires `content-type` to be `application/octet-stream`.

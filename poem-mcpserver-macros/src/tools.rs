@@ -88,7 +88,7 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                     name: #tool_name,
                     description: #tool_description,
                     input_schema: {
-                        let schema = schemars::r#gen::SchemaGenerator::default().into_root_schema_for::<#request_type>();
+                        let schema = schemars::SchemaGenerator::default().into_root_schema_for::<#request_type>();
                         #crate_name::private::serde_json::to_value(schema).expect("serialize schema")
                     },
                 },
