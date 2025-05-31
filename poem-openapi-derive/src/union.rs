@@ -61,6 +61,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         return Err(Error::new_spanned(ident, "AnyOf can only be applied to an enum.").into());
     };
 
+    if discriminator_name.is_some() && args.externally_tagged {
+        return Err(Error::new_spanned(
+            ident,
+            "Discriminator name cannot be used with externally tagged unions.",
+        )
+        .into());
+    }
+
     let mut types = Vec::new();
     let mut from_json = Vec::new();
     let mut to_json = Vec::new();
@@ -78,9 +86,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let item_ident = &variant.ident;
 
         if variant.fields.len() != 1 {
-            return Err(
-                Error::new_spanned(&variant.ident, "Incorrect oneof definition.").into(),
-            );
+            return Err(Error::new_spanned(&variant.ident, "Incorrect oneof definition.").into());
         }
 
         let object_ty = &variant.fields.fields[0];
@@ -89,12 +95,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         };
         let mapping_name = match &variant.mapping {
             Some(mapping) => mapping.clone(),
-            None => {
-                apply_rename_rule_variant(
-                    args.rename_all,
-                    item_ident.unraw().to_string(),
-                )
-            }
+            None => apply_rename_rule_variant(args.rename_all, item_ident.unraw().to_string()),
         };
         types.push(object_ty);
 
@@ -141,7 +142,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     let value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
                     let mut wrapped = #crate_name::__private::serde_json::Map::new();
                     wrapped.insert(::std::convert::Into::into(#mapping_name), ::std::option::Option::unwrap_or_default(value));
-                    ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(wrapped)) 
+                    ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(wrapped))
                 }
             });
         } else if let Some(discriminator_name) = &discriminator_name {

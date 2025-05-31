@@ -615,7 +615,6 @@ fn rename_all() {
     );
 }
 
-
 #[test]
 fn with_externally_tagged() {
     #[derive(Object, Debug, PartialEq)]
@@ -655,16 +654,11 @@ fn with_externally_tagged() {
     assert_eq!(
         schema_myobj_a,
         MetaSchema {
-            all_of: vec![
-                MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    required: vec!["A"],
-                    properties: vec![(
-                        "A",
-                        MetaSchemaRef::Reference("A".to_string()),
-                    )],
-                    ..MetaSchema::new("object")
-                })),
-            ],
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["A"],
+                properties: vec![("A", MetaSchemaRef::Reference("A".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
             ..MetaSchema::ANY
         }
     );
@@ -673,16 +667,11 @@ fn with_externally_tagged() {
     assert_eq!(
         schema_myobj_b,
         MetaSchema {
-            all_of: vec![
-                MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    required: vec!["B"],
-                    properties: vec![(
-                        "B",
-                        MetaSchemaRef::Reference("B".to_string()),
-                    )],
-                    ..MetaSchema::new("object")
-                })),
-            ],
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["B"],
+                properties: vec![("B", MetaSchemaRef::Reference("B".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
             ..MetaSchema::ANY
         }
     );
@@ -781,16 +770,11 @@ fn with_externally_tagged_mapping() {
     assert_eq!(
         schema_myobj_a,
         MetaSchema {
-            all_of: vec![
-                MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    required: vec!["c"],
-                    properties: vec![(
-                        "c",
-                        MetaSchemaRef::Reference("A".to_string()),
-                    )],
-                    ..MetaSchema::new("object")
-                })),
-            ],
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["c"],
+                properties: vec![("c", MetaSchemaRef::Reference("A".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
             ..MetaSchema::ANY
         }
     );
@@ -799,16 +783,11 @@ fn with_externally_tagged_mapping() {
     assert_eq!(
         schema_myobj_b,
         MetaSchema {
-            all_of: vec![
-                MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    required: vec!["d"],
-                    properties: vec![(
-                        "d",
-                        MetaSchemaRef::Reference("B".to_string()),
-                    )],
-                    ..MetaSchema::new("object")
-                })),
-            ],
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["d"],
+                properties: vec![("d", MetaSchemaRef::Reference("B".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
             ..MetaSchema::ANY
         }
     );
