@@ -101,8 +101,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         if args.externally_tagged {
             from_json.push(quote! {
-                if let ::std::option::Option::Some(value) = value.as_object().and_then(|obj| obj.get(#mapping_name)).cloned() {
-                    return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
+                if let value @ ::std::option::Option::Some(_) = value.as_object().and_then(|obj| obj.get(#mapping_name)).cloned() {
+                    return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value)
                         .map(Self::#item_ident)
                         .map_err(#crate_name::types::ParseError::propagate);
                 }
