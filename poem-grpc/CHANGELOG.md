@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [Unreleased]
+
+- Bump `webpki-roots` to 1.0
+
 # [0.5.5] 2025-05-03
 
 - poem-grpc-build: add more methods to config [#1025](https://github.com/poem-web/poem/pull/1025)
@@ -37,4 +41,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [0.4.1] 2024-05-18
 
 - message can span multiple frame [#817](https://github.com/poem-web/poem/pull/817)
-- 
