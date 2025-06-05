@@ -42,9 +42,9 @@ impl From<tokio_tungstenite::tungstenite::Message> for Message {
 
         match msg {
             Text(data) => Message::Text(data.to_string()),
-            Binary(data) => Message::Binary(data.as_slice().into()),
-            Ping(data) => Message::Ping(data.as_slice().into()),
-            Pong(data) => Message::Pong(data.as_slice().into()),
+            Binary(data) => Message::Binary(data.into()),
+            Ping(data) => Message::Ping(data.into()),
+            Pong(data) => Message::Pong(data.into()),
             Close(cf) => Message::Close(cf.map(|cf| (cf.code.into(), cf.reason.to_string()))),
             Frame(_) => unreachable!(),
         }
@@ -54,13 +54,13 @@ impl From<tokio_tungstenite::tungstenite::Message> for Message {
 #[doc(hidden)]
 impl From<Message> for tokio_tungstenite::tungstenite::Message {
     fn from(msg: Message) -> Self {
-        use tokio_tungstenite::tungstenite::{Message::*, protocol::frame::Payload};
+        use tokio_tungstenite::tungstenite::{Bytes, Message::*};
 
         match msg {
             Message::Text(data) => Text(data.into()),
-            Message::Binary(data) => Binary(Payload::Vec(data)),
-            Message::Ping(data) => Ping(Payload::Vec(data)),
-            Message::Pong(data) => Pong(Payload::Vec(data)),
+            Message::Binary(data) => Binary(Bytes::from_owner(data)),
+            Message::Ping(data) => Ping(Bytes::from_owner(data)),
+            Message::Pong(data) => Pong(Bytes::from_owner(data)),
             Message::Close(cf) => Close(cf.map(|(code, reason)| CloseFrame {
                 code: code.into(),
                 reason: reason.into(),
