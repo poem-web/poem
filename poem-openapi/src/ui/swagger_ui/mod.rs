@@ -36,6 +36,7 @@ const SWAGGER_UI_TEMPLATE: &str = r#"
         spec: spec,
         filter: false,
         oauth2RedirectUrl: oauth2RedirectUrl,
+        deepLinking: true,
     })
 </script>
 
