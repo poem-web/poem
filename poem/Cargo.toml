@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "3.1.10"
+version = "3.1.11"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true

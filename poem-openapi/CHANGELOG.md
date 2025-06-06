@@ -4,30 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [Unreleased]
+# [5.1.15] 2025-06-06
 
 - Bump `derive_more` to `2.0`
+- Fix webhook nesting [#1031](https://github.com/poem-web/poem/pull/1031)
+- add support for num::NonZero [#1041](https://github.com/poem-web/poem/pull/1041)
+- Support deep linking in Swagger UI [#1049](https://github.com/poem-web/poem/pull/1049)
+- Add support to externally tagged unions [#1043](https://github.com/poem-web/poem/pull/1043)
 
-#[5.1.14] 2025-05-03
+# [5.1.14] 2025-05-03
 
 - add scalar ui support [#1019](https://github.com/poem-web/poem/pull/1019)
 - support `Duration` and `Timestamp` from `prost_wkt_types` [#1016](https://github.com/poem-web/poem/pull/1016)
 - Object fields deprecation [#1026](https://github.com/poem-web/poem/pull/1026)
 - add support for server variables [#962](https://github.com/poem-web/poem/pull/962)
 
-#[5.1.12] 2025-03-30
+# [5.1.12] 2025-03-30
 
 - the `Binary` type no longer requires `content-type` to be `application/octet-stream`.
 
-#[5.1.11] 2025-03-29
+# [5.1.11] 2025-03-29
 
 - feat: `ignore_case` parameter in `OpenApi` macro can be used to operation.
 
-#[5.1.10] 2025-03-29
+# [5.1.10] 2025-03-29
 
 - feat: add `ignore_case` parameter for `OpenApi` macro.
 
-#[5.1.9] 2025-03-24
+# [5.1.9] 2025-03-24
 
 - fix(openapi): do not use `cookie` feature by default [#986](https://github.com/poem-web/poem/pull/986)
 - fix: guard cookie features behind feature toggle [#997](https://github.com/poem-web/poem/pull/997)
@@ -37,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(poem-openapi-derive): Allow different path param names on same route [#952](https://github.com/poem-web/poem/pull/952)
 - Update MSRV to `1.85.0`
 
-#[5.1.6] 2025-02-21
+# [5.1.6] 2025-02-21
 
 - Allows passing the style of a parameter in the openapi spec. [#940](https://github.com/poem-web/poem/pull/940)
 - Add support for Stoplight Elements [#954](https://github.com/poem-web/poem/pull/954)
@@ -46,20 +50,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix missing condition for Stoplight Elements UI [#972](https://github.com/poem-web/poem/pull/972)
 - Update MSRV to `1.83.0`
 
-#[5.1.5] 2025-01-04
+# [5.1.5] 2025-01-04
 
 - Add description to Union descriminator object schema [#921](https://github.com/poem-web/poem/pull/921)
 - make Json from poem-openapi derive Default because Json from poem does [#938](https://github.com/poem-web/poem/pull/938)
 - Pass `ParsePayload<T>::IS_REQUIRED` to `T` instead of defaulting to `true` [#932](https://github.com/poem-web/poem/pull/932)
 - allow path in status for ApiResponse [#937](https://github.com/poem-web/poem/pull/937)
 
-#[5.1.4] 2024-11-25
+# [5.1.4] 2024-11-25
 
 - Assign the description to the request object in OpenAPI [#886](https://github.com/poem-web/poem/pull/886)
 - Implemented nullable fields for openapi spec generation [#865](https://github.com/poem-web/poem/pull/865)
 - refactor: change type name delimiters from `<>` `()` `[]` to `_` [#904](https://github.com/poem-web/poem/pull/904)
 
-#[5.1.3] 2024-11-20
+# [5.1.3] 2024-11-20
 
 - Update MSRV to `1.81.0`
 

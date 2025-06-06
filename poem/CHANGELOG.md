@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [Unreleased]
+# [3.1.11] 2025-06-06
 
 - bump `tokio-tungstenite` to `0.26`
+- chore: bump prometheus for RUSTSEC [#1012](https://github.com/poem-web/poem/pull/1012)
+- chore: upgrade nix version [#1034](https://github.com/poem-web/poem/pull/1034)
+- chore(deps): update redis requirement from 0.28 to 0.31 [#1040](https://github.com/poem-web/poem/pull/1040)
+- chore(poem): make Error small [#1050](https://github.com/poem-web/poem/pull/1050)
+- chore(deps): update opentelemetry-semantic-conventions requirement from 0.29.0 to 0.30.0 [#1044](https://github.com/poem-web/poem/pull/1044)
 
 # [3.1.10] 2025-05-03
 
