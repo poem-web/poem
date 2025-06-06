@@ -1,6 +1,6 @@
 [package]
 name = "poem"
-version = "3.1.10"
+version = "3.1.11"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -99,7 +99,7 @@ sync_wrapper = { version = "1.0.0", features = ["futures"] }
 
 # Non-feature optional dependencies
 multer = { version = "3.0.0", features = ["tokio"], optional = true }
-tokio-tungstenite = { version = "0.25", optional = true }
+tokio-tungstenite = { version = "0.26.2", optional = true }
 tokio-rustls = { workspace = true, optional = true }
 rustls-pemfile = { version = "2.0.0", optional = true }
 async-compression = { version = "0.4.0", optional = true, features = [
@@ -119,7 +119,7 @@ chrono = { workspace = true, optional = true, default-features = false, features
 time = { version = "0.3", optional = true }
 mime_guess = { version = "2.0.3", optional = true }
 rand = { version = "0.9.0", optional = true }
-redis = { version = "0.28", optional = true, features = [
+redis = { version = "0.31", optional = true, features = [
     "aio",
     "tokio-comp",
     "connection-manager",
@@ -132,11 +132,11 @@ libcookie = { package = "cookie", version = "0.18", features = [
     "secure",
 ], optional = true }
 opentelemetry-http = { version = "0.29.0", optional = true }
-opentelemetry-semantic-conventions = { version = "0.29.0", optional = true, features = [
+opentelemetry-semantic-conventions = { version = "0.30.0", optional = true, features = [
     "semconv_experimental",
 ] }
 opentelemetry-prometheus = { version = "0.29.0", optional = true }
-libprometheus = { package = "prometheus", version = "0.13.0", optional = true }
+libprometheus = { package = "prometheus", version = "0.14.0", optional = true }
 libopentelemetry = { package = "opentelemetry", version = "0.29.0", features = [
     "metrics",
 ], optional = true }
@@ -173,7 +173,7 @@ uuid = { version = "1.8.0", optional = true, default-features = false, features 
 ] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.29.0", features = ["fs", "user"] }
+nix = { version = "0.30.1", features = ["fs", "user"] }
 
 [dev-dependencies]
 async-stream = "0.3.2"

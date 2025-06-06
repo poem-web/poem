@@ -614,3 +614,233 @@ fn rename_all() {
         }))
     );
 }
+
+#[test]
+fn with_externally_tagged() {
+    #[derive(Object, Debug, PartialEq)]
+    struct A {
+        v1: i32,
+        v2: String,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct B {
+        v3: bool,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(externally_tagged)]
+    enum MyObj {
+        A(A),
+        B(B),
+    }
+
+    let schema = get_meta::<MyObj>();
+
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::with_externally_tagged::MyObj"),
+            ty: "object",
+            any_of: vec![
+                MetaSchemaRef::Reference("MyObj_A".to_string()),
+                MetaSchemaRef::Reference("MyObj_B".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj_A");
+    assert_eq!(
+        schema_myobj_a,
+        MetaSchema {
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["A"],
+                properties: vec![("A", MetaSchemaRef::Reference("A".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj_B");
+    assert_eq!(
+        schema_myobj_b,
+        MetaSchema {
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["B"],
+                properties: vec![("B", MetaSchemaRef::Reference("B".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let mut registry = Registry::new();
+    MyObj::register(&mut registry);
+    assert!(registry.schemas.contains_key("A"));
+    assert!(registry.schemas.contains_key("B"));
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "A":{
+                "v1": 100,
+                "v2": "hello",
+            }
+        })))
+        .unwrap(),
+        MyObj::A(A {
+            v1: 100,
+            v2: "hello".to_string()
+        })
+    );
+
+    assert_eq!(
+        MyObj::A(A {
+            v1: 100,
+            v2: "hello".to_string()
+        })
+        .to_json(),
+        Some(json!({
+            "A":{
+                "v1": 100,
+                "v2": "hello",
+            }
+        }))
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "B": {
+                "v3": true,
+            }
+        })))
+        .unwrap(),
+        MyObj::B(B { v3: true })
+    );
+
+    assert_eq!(
+        MyObj::B(B { v3: true }).to_json(),
+        Some(json!({
+            "B": {
+                "v3": true,
+            }
+        }))
+    );
+}
+
+#[test]
+fn with_externally_tagged_mapping() {
+    #[derive(Object, Debug, PartialEq)]
+    struct A {
+        v1: i32,
+        v2: String,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct B {
+        v3: bool,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(externally_tagged)]
+    enum MyObj {
+        #[oai(mapping = "c")]
+        A(A),
+        #[oai(mapping = "d")]
+        B(B),
+    }
+
+    let schema = get_meta::<MyObj>();
+
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::with_externally_tagged_mapping::MyObj"),
+            ty: "object",
+            any_of: vec![
+                MetaSchemaRef::Reference("MyObj_A".to_string()),
+                MetaSchemaRef::Reference("MyObj_B".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj_A");
+    assert_eq!(
+        schema_myobj_a,
+        MetaSchema {
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["c"],
+                properties: vec![("c", MetaSchemaRef::Reference("A".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj_B");
+    assert_eq!(
+        schema_myobj_b,
+        MetaSchema {
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["d"],
+                properties: vec![("d", MetaSchemaRef::Reference("B".to_string()),)],
+                ..MetaSchema::new("object")
+            })),],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let mut registry = Registry::new();
+    MyObj::register(&mut registry);
+    assert!(registry.schemas.contains_key("A"));
+    assert!(registry.schemas.contains_key("B"));
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "c":{
+                "v1": 100,
+                "v2": "hello",
+            }
+        })))
+        .unwrap(),
+        MyObj::A(A {
+            v1: 100,
+            v2: "hello".to_string()
+        })
+    );
+
+    assert_eq!(
+        MyObj::A(A {
+            v1: 100,
+            v2: "hello".to_string()
+        })
+        .to_json(),
+        Some(json!({
+            "c":{
+                "v1": 100,
+                "v2": "hello",
+            }
+        }))
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "d": {
+                "v3": true,
+            }
+        })))
+        .unwrap(),
+        MyObj::B(B { v3: true })
+    );
+
+    assert_eq!(
+        MyObj::B(B { v3: true }).to_json(),
+        Some(json!({
+            "d": {
+                "v3": true,
+            }
+        }))
+    );
+}
