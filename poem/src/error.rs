@@ -67,7 +67,7 @@ type GetStatusFn = fn(&Error) -> StatusCode;
 enum AsResponse {
     Status(StatusCode),
     Fn(AsResponseFn, GetStatusFn),
-    Response(Response),
+    Response(Box<Response>),
 }
 
 impl AsResponse {
@@ -334,7 +334,7 @@ impl Error {
     /// Create a new error object from response.
     pub fn from_response(resp: Response) -> Self {
         Self {
-            as_response: AsResponse::Response(resp),
+            as_response: AsResponse::Response(Box::new(resp)),
             source: None,
             extensions: Extensions::default(),
             msg: None,
@@ -449,7 +449,7 @@ impl Error {
         let mut resp = match self.as_response {
             AsResponse::Status(status) => Response::builder().status(status).body(self.to_string()),
             AsResponse::Fn(ref f, _) => f(&self),
-            AsResponse::Response(resp) => resp,
+            AsResponse::Response(resp) => *resp,
         };
         *resp.extensions_mut() = self.extensions;
         resp
