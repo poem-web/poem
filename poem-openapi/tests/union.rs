@@ -22,7 +22,7 @@ fn get_meta_by_name<T: Type>(name: &str) -> MetaSchema {
 #[test]
 fn with_discriminator() {
     #[derive(Object, Debug, PartialEq)]
-    struct A {
+    struct AContents {
         v1: i32,
         v2: String,
     }
@@ -35,7 +35,7 @@ fn with_discriminator() {
     #[derive(Union, Debug, PartialEq)]
     #[oai(discriminator_name = "type")]
     enum MyObj {
-        A(A),
+        A(AContents),
         B(B),
     }
 
@@ -79,7 +79,7 @@ fn with_discriminator() {
                     )],
                     ..MetaSchema::new("object")
                 })),
-                MetaSchemaRef::Reference("A".to_string()),
+                MetaSchemaRef::Reference("AContents".to_string()),
             ],
             ..MetaSchema::ANY
         }
@@ -116,14 +116,14 @@ fn with_discriminator() {
             "v2": "hello",
         })))
         .unwrap(),
-        MyObj::A(A {
+        MyObj::A(AContents {
             v1: 100,
             v2: "hello".to_string()
         })
     );
 
     assert_eq!(
-        MyObj::A(A {
+        MyObj::A(AContents {
             v1: 100,
             v2: "hello".to_string()
         })
@@ -559,17 +559,17 @@ fn rename_all() {
                 mapping: vec![
                     (
                         "putInt".to_string(),
-                        "#/components/schemas/MyObj_A".to_string()
+                        "#/components/schemas/MyObj_PutInt".to_string()
                     ),
                     (
                         "putString".to_string(),
-                        "#/components/schemas/MyObj_B".to_string()
+                        "#/components/schemas/MyObj_PutString".to_string()
                     ),
                 ]
             }),
             any_of: vec![
-                MetaSchemaRef::Reference("MyObj_A".to_string()),
-                MetaSchemaRef::Reference("MyObj_B".to_string()),
+                MetaSchemaRef::Reference("MyObj_PutInt".to_string()),
+                MetaSchemaRef::Reference("MyObj_PutString".to_string()),
             ],
             ..MetaSchema::ANY
         }
