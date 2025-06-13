@@ -48,7 +48,7 @@ jobs:
           - 5432:5432
         options: -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=test_poem_sessions
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Use nightly Rust to check the format
       - uses: actions-rs/toolchain@v1
