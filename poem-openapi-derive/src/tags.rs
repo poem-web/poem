@@ -1,14 +1,14 @@
 use darling::{
+    FromDeriveInput, FromVariant,
     ast::{Data, Fields},
     util::Ignored,
-    FromDeriveInput, FromVariant,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error};
+use syn::{Attribute, DeriveInput, Error, ext::IdentExt};
 
 use crate::{
-    common_args::{apply_rename_rule_variant, ExternalDocument, RenameRule},
+    common_args::{ExternalDocument, RenameRule, apply_rename_rule_variant},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };

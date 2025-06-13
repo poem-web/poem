@@ -1,13 +1,14 @@
 use std::ops::{Deref, DerefMut};
 
+use itertools::Either;
 use poem::{Request, RequestBody, Result};
 
 use crate::{
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
     base::UrlQuery,
     error::ParseParamError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the query string.
@@ -56,7 +57,11 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
         let mut values = match request.extensions().get::<UrlQuery>() {
-            Some(query) => query.get_all(param_opts.name),
+            Some(query) =>  if !param_opts.ignore_case {
+                Either::Left(url_query.get_all(param_opts.name))
+            } else {
+                Either::Right(url_query.get_all_by(|n| param_opts.name.eq_ignore_ascii_case(n)))
+            }
             None => {
                 return Err(ParseParamError {
                     name: param_opts.name,

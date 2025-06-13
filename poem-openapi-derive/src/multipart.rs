@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use darling::{ast::Data, util::Ignored, FromDeriveInput, FromField};
+use darling::{FromDeriveInput, FromField, ast::Data, util::Ignored};
 use mime as _;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Type};
+use syn::{Attribute, DeriveInput, Error, Generics, Type, ext::IdentExt};
 
 use crate::{
-    common_args::{apply_rename_rule_field, DefaultValue, RenameRule},
+    common_args::{DefaultValue, RenameRule, apply_rename_rule_field},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
     validators::Validators,
@@ -56,7 +56,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         _ => {
             return Err(
                 Error::new_spanned(ident, "Multipart can only be applied to an struct.").into(),
-            )
+            );
         }
     };
 

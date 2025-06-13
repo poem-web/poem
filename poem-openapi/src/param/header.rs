@@ -1,12 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
+use itertools::Either;
 use poem::{Request, RequestBody, Result};
 
 use crate::{
+    ApiExtractor, ApiExtractorType, ExtractParamOptions,
     error::ParseParamError,
     registry::{MetaParamIn, MetaSchemaRef, Registry},
     types::ParseFromParameter,
-    ApiExtractor, ApiExtractorType, ExtractParamOptions,
 };
 
 /// Represents the parameters passed by the request header.
@@ -54,12 +55,24 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Header<T> {
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
-        let mut values = request
-            .headers()
-            .get_all(param_opts.name)
-            .iter()
-            .filter_map(|value| value.to_str().ok())
-            .peekable();
+        let mut values = if !param_opts.ignore_case {
+            Either::Left(
+                request
+                    .headers()
+                    .get_all(param_opts.name)
+                    .iter()
+                    .filter_map(|value| value.to_str().ok()),
+            )
+        } else {
+            Either::Right(
+                request
+                    .headers()
+                    .iter()
+                    .filter(|(n, _)| n.as_str().eq_ignore_ascii_case(param_opts.name))
+                    .filter_map(|(_, value)| value.to_str().ok()),
+            )
+        }
+        .peekable();
 
         match &param_opts.default_value {
             Some(default_value) if values.peek().is_none() => {

@@ -14,9 +14,9 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::ParseCookieError,
-    http::{header, HeaderMap},
     FromRequest, Request, RequestBody, Result,
+    error::ParseCookieError,
+    http::{HeaderMap, header},
 };
 
 /// The `SameSite` cookie attribute.
@@ -359,12 +359,11 @@ impl From<libcookie::Cookie<'static>> for Cookie {
 ///
 /// ```
 /// use poem::{
-///     get, handler,
-///     http::{header, StatusCode},
+///     Endpoint, EndpointExt, Request, Route, get, handler,
+///     http::{StatusCode, header},
 ///     middleware::CookieJarManager,
 ///     test::TestClient,
 ///     web::cookie::{Cookie, CookieJar},
-///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -414,9 +413,23 @@ impl CookieJar {
     }
 
     /// Returns a reference to the [`Cookie`] inside this jar with the `name`.
+    ///
     /// If no such cookie exists, returns `None`.
     pub fn get(&self, name: &str) -> Option<Cookie> {
         self.jar.lock().get(name).cloned().map(Cookie)
+    }
+
+    /// Returns a reference to the [`Cookie`] inside this jar with the `name`
+    /// ignore the case.
+    ///
+    /// If no such cookie exists, returns `None`.
+    pub fn get_ignore_ascii_case(&self, name: &str) -> Option<Cookie> {
+        self.jar
+            .lock()
+            .iter()
+            .find(|cookie| cookie.name().eq_ignore_ascii_case(name))
+            .cloned()
+            .map(Cookie)
     }
 
     /// Removes all delta cookies.
@@ -629,6 +642,19 @@ impl PrivateCookieJar<'_> {
         let private_cookie_jar = cookie_jar.private(self.key);
         private_cookie_jar.get(name).map(Cookie)
     }
+
+    /// Returns cookie inside this jar with the name ignore the case and
+    /// authenticates and decrypts the cookie’s value, returning a Cookie
+    /// with the decrypted value. If the cookie cannot be found, or the
+    /// cookie fails to authenticate or decrypt, None is returned.
+    pub fn get_ignore_ascii_case(&self, name: &str) -> Option<Cookie> {
+        let cookie_jar = self.cookie_jar.jar.lock();
+        cookie_jar
+            .iter()
+            .find(|cookie| cookie.name().eq_ignore_ascii_case(name))
+            .and_then(|cookie| cookie_jar.private(self.key).decrypt(cookie.clone()))
+            .map(Cookie)
+    }
 }
 
 /// A child cookie jar that authenticates its cookies.
@@ -661,6 +687,19 @@ impl SignedCookieJar<'_> {
         let cookie_jar = self.cookie_jar.jar.lock();
         let signed_cookie_jar = cookie_jar.signed(self.key);
         signed_cookie_jar.get(name).map(Cookie)
+    }
+
+    /// Returns cookie inside this jar with the name ignore the case and
+    /// authenticates and decrypts the cookie’s value, returning a Cookie
+    /// with the decrypted value. If the cookie cannot be found, or the
+    /// cookie fails to authenticate or decrypt, None is returned.
+    pub fn get_ignore_ascii_case(&self, name: &str) -> Option<Cookie> {
+        let cookie_jar = self.cookie_jar.jar.lock();
+        cookie_jar
+            .iter()
+            .find(|cookie| cookie.name().eq_ignore_ascii_case(name))
+            .and_then(|cookie| cookie_jar.signed(self.key).verify(cookie.clone()))
+            .map(Cookie)
     }
 }
 

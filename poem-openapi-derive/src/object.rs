@@ -1,14 +1,14 @@
 use darling::{
+    FromDeriveInput, FromField,
     ast::Data,
     util::{Ignored, SpannedValue},
-    FromDeriveInput, FromField,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error, Generics, Path, Type};
+use syn::{Attribute, DeriveInput, Error, Generics, Path, Type, ext::IdentExt};
 
 use crate::{
-    common_args::{apply_rename_rule_field, DefaultValue, ExternalDocument, RenameRule},
+    common_args::{DefaultValue, ExternalDocument, RenameRule, apply_rename_rule_field},
     error::GeneratorResult,
     utils::{create_object_name, get_crate_name, get_description, optional_literal},
     validators::Validators,
@@ -30,6 +30,8 @@ struct ObjectField {
     default: Option<DefaultValue>,
     #[darling(default)]
     write_only: bool,
+    #[darling(default)]
+    deprecated: bool,
     #[darling(default)]
     nullable: bool,
     #[darling(default)]
@@ -126,6 +128,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let skip_serializing_if_is_empty =
             field.skip_serializing_if_is_empty || args.skip_serializing_if_is_empty;
         let skip_serializing_if = &field.skip_serializing_if;
+        let deprecated = field.deprecated;
 
         if field.skip {
             deserialize_fields.push(quote! {
@@ -294,6 +297,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     schema.nullable = #nullable;
                     schema.read_only = #read_only;
                     schema.write_only = #write_only;
+                    schema.deprecated = #deprecated;
 
                     if let ::std::option::Option::Some(field_description) = #field_description {
                         schema.description = ::std::option::Option::Some(field_description);

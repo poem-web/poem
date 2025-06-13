@@ -1,18 +1,19 @@
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
+    num::NonZero,
     ops::Range,
 };
 
-use poem::{http::StatusCode, test::TestClient, Result};
+use poem::{Result, http::StatusCode, test::TestClient};
 use poem_openapi::{
+    Multipart, Object, OpenApi, OpenApiService, Validator,
     param::Query,
     payload::Payload,
     registry::{MetaApi, MetaSchema, Registry},
-    types::{multipart::JsonField, ParseFromJSON, Type},
+    types::{ParseFromJSON, Type, multipart::JsonField},
     validation,
     validation::ValidatorMeta,
-    Multipart, Object, OpenApi, OpenApiService, Validator,
 };
 use serde_json::json;
 
@@ -26,6 +27,28 @@ fn test_u64() {
     assert_eq!(
         A::parse_from_json(Some(json!({ "n": 1 }))).unwrap(),
         A { n: 1 }
+    );
+}
+
+#[test]
+fn test_non_zero_u64() {
+    #[derive(Object, Debug, Eq, PartialEq)]
+    struct A {
+        n: NonZero<u64>,
+    }
+
+    assert_eq!(
+        A::parse_from_json(Some(json!({ "n": 1 }))).unwrap(),
+        A {
+            n: NonZero::new(1).unwrap()
+        }
+    );
+
+    assert_eq!(
+        A::parse_from_json(Some(json!({ "n": 0 })))
+            .unwrap_err()
+            .into_message(),
+        "failed to parse \"non_zero_integer(uint64)\": Integer should not be 0. (occurred while parsing \"A\")"
     );
 }
 

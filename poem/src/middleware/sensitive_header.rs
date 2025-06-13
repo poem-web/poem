@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use http::{header::HeaderName, HeaderMap};
+use http::{HeaderMap, header::HeaderName};
 
 use crate::{Endpoint, IntoResponse, Middleware, Request, Response, Result};
 
@@ -122,9 +122,8 @@ fn set_sensitive(headers: &mut HeaderMap, names: &HashSet<HeaderName>) {
 mod tests {
     use super::*;
     use crate::{
-        handler,
+        EndpointExt, handler,
         test::{TestClient, TestRequestBuilder},
-        EndpointExt,
     };
 
     fn create_middleware() -> SensitiveHeader {

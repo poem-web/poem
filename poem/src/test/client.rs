@@ -1,6 +1,6 @@
-use http::{header, header::HeaderName, HeaderMap, HeaderValue, Method};
+use http::{HeaderMap, HeaderValue, Method, header, header::HeaderName};
 
-use crate::{test::TestRequestBuilder, Endpoint, IntoEndpoint};
+use crate::{Endpoint, IntoEndpoint, test::TestRequestBuilder};
 
 macro_rules! impl_methods {
     ($($(#[$docs:meta])* ($name:ident, $method:ident)),*) => {
@@ -36,7 +36,7 @@ impl<E: Endpoint> TestClient<E> {
     /// # Examples
     ///
     /// ```
-    /// use poem::{handler, http::HeaderMap, test::TestClient, Route};
+    /// use poem::{Route, handler, http::HeaderMap, test::TestClient};
     ///
     /// #[handler]
     /// fn index(headers: &HeaderMap) -> String {
@@ -76,7 +76,7 @@ impl<E: Endpoint> TestClient<E> {
     /// # Examples
     ///
     /// ```
-    /// use poem::{handler, http::HeaderMap, test::TestClient, Route};
+    /// use poem::{Route, handler, http::HeaderMap, test::TestClient};
     ///
     /// #[handler]
     /// fn index(headers: &HeaderMap) -> String {

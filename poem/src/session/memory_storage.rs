@@ -9,7 +9,7 @@ use parking_lot::Mutex;
 use priority_queue::PriorityQueue;
 use serde_json::Value;
 
-use crate::{session::SessionStorage, Result};
+use crate::{Result, session::SessionStorage};
 
 struct InnerStorage {
     sessions: HashMap<String, BTreeMap<String, Value>>,
@@ -108,11 +108,11 @@ impl SessionStorage for MemoryStorage {
 mod tests {
     use super::*;
     use crate::{
-        session::{
-            test_harness::{index, TestClient},
-            CookieConfig, ServerSession,
-        },
         EndpointExt, Route,
+        session::{
+            CookieConfig, ServerSession,
+            test_harness::{TestClient, index},
+        },
     };
 
     #[tokio::test]

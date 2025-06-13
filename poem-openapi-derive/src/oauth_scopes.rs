@@ -1,14 +1,14 @@
 use darling::{
+    FromDeriveInput, FromVariant,
     ast::{Data, Fields},
     util::Ignored,
-    FromDeriveInput, FromVariant,
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{ext::IdentExt, Attribute, DeriveInput, Error};
+use syn::{Attribute, DeriveInput, Error, ext::IdentExt};
 
 use crate::{
-    common_args::{apply_rename_rule_variant, RenameRule},
+    common_args::{RenameRule, apply_rename_rule_variant},
     error::GeneratorResult,
     utils::{get_crate_name, get_description, optional_literal},
 };
@@ -46,7 +46,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         _ => {
             return Err(
                 Error::new_spanned(ident, "OAuthScopes can only be applied to an enum.").into(),
-            )
+            );
         }
     };
 

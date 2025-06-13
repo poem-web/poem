@@ -7,10 +7,10 @@ use std::{
 use http::header::LOCATION;
 
 use crate::{
-    error::StaticFileError,
-    http::{header, Method, StatusCode},
-    web::StaticFileRequest,
     Body, Endpoint, FromRequest, IntoResponse, Request, Response, Result,
+    error::StaticFileError,
+    http::{Method, StatusCode, header},
+    web::StaticFileRequest,
 };
 
 struct DirectoryTemplate<'a> {
@@ -86,7 +86,7 @@ impl StaticFilesEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{endpoint::StaticFilesEndpoint, Route};
+    /// use poem::{Route, endpoint::StaticFilesEndpoint};
     ///
     /// let app = Route::new().nest(
     ///     "/files",
@@ -303,7 +303,7 @@ impl StaticFileEndpoint {
     /// # Example
     ///
     /// ```
-    /// use poem::{endpoint::StaticFileEndpoint, Route};
+    /// use poem::{Route, endpoint::StaticFileEndpoint};
     ///
     /// let app = Route::new().at("/logo.png", StaticFileEndpoint::new("/etc/logo.png"));
     /// ```

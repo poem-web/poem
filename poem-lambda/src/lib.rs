@@ -11,7 +11,7 @@ use std::{io::ErrorKind, ops::Deref, sync::Arc};
 
 pub use lambda_http::lambda_runtime::Error;
 use lambda_http::{
-    lambda_runtime, service_fn, Body as LambdaBody, Request as LambdaRequest, RequestExt,
+    Body as LambdaBody, Request as LambdaRequest, RequestExt, lambda_runtime, service_fn,
 };
 use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, RequestBody, Result};
 
@@ -22,7 +22,7 @@ use poem::{Body, Endpoint, EndpointExt, FromRequest, IntoEndpoint, Request, Requ
 /// # Example
 ///
 /// ```
-/// use poem::{handler, Request};
+/// use poem::{Request, handler};
 /// use poem_lambda::Context;
 ///
 /// #[handler]

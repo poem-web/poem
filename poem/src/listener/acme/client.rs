@@ -3,17 +3,16 @@ use std::{
     sync::Arc,
 };
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use reqwest::Client;
 
 use crate::listener::acme::{
-    jose,
+    ChallengeType, jose,
     keypair::KeyPair,
     protocol::{
         CsrRequest, Directory, FetchAuthorizationResponse, Identifier, NewAccountRequest,
         NewOrderRequest, NewOrderResponse,
     },
-    ChallengeType,
 };
 
 /// A client for ACME-supporting TLS certificate services.

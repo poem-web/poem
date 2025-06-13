@@ -1,5 +1,6 @@
 use poem::http::Method;
 use poem_openapi::{
+    OpenApiService, Tags, Webhook,
     param::{Path, Query},
     payload::Json,
     registry::{
@@ -7,7 +8,6 @@ use poem_openapi::{
         MetaResponse, MetaResponses,
     },
     types::Type,
-    OpenApiService, Tags, Webhook,
 };
 
 #[tokio::test]

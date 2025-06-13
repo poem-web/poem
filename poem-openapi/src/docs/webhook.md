@@ -17,6 +17,16 @@ Define an OpenAPI webhooks.
 | tag           | Operation tag                                                                                                        | Tags   | Y        |
 | operation_id  | Unique string used to identify the operation.                                                                        | string | Y        |
 
+# Doc Parameters
+
+The following attributes are parsed from the Rust documentation of the method.
+
+| Attribute | Description                      | Type   | Optional |
+|-----------|----------------------------------|--------|----------|
+| summary       | Define the summary of the operation. | string | Y        |
+| description       | Define the description of the operation. | string | Y        |
+
+
 # Operation argument parameters
 
 | Attribute                | Description                                                                                                                                                                                                                                           | Type                                      | Optional          |
@@ -50,6 +60,9 @@ struct Pet {
 
 #[Webhook]
 trait MyWebhooks {
+    /// This is the summary of the operation
+    ///
+    /// This is the description of the operation
     #[oai(method = "post")]
     fn new_pet(&self, pet: Json<Pet>);
 }

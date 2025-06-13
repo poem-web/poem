@@ -1,6 +1,6 @@
 [package]
 name = "poem-openapi"
-version = "5.1.8"
+version = "5.1.15"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,6 +17,7 @@ categories = ["network-programming", "asynchronous"]
 swagger-ui = []
 rapidoc = []
 redoc = []
+scalar = []
 stoplight-elements = []
 openapi-explorer = []
 email = ["email_address"]
@@ -44,7 +45,7 @@ quick-xml.workspace = true
 serde_urlencoded.workspace = true
 base64.workspace = true
 serde.workspace = true
-derive_more = { version = "1.0", features = ["display"] }
+derive_more = { version = "2.0", features = ["display"] }
 num-traits = "0.2.14"
 regex.workspace = true
 mime.workspace = true
@@ -52,6 +53,7 @@ thiserror.workspace = true
 bytes.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
+itertools = "0.14.0"
 
 # Non-feature optional dependencies
 email_address = { version = "0.2.1", optional = true }
@@ -61,7 +63,7 @@ hostname-validator = { version = "1.1.0", optional = true }
 chrono = { workspace = true, optional = true, default-features = false, features = [
   "clock",
 ] }
-time = { version = "0.3.36", optional = true, features = [
+time = { workspace = true, optional = true, features = [
   "parsing",
   "formatting",
 ] }

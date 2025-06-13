@@ -29,7 +29,7 @@ mod parameter_style;
 
 use darling::FromMeta;
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput, ItemImpl, ItemTrait};
+use syn::{DeriveInput, ItemImpl, ItemTrait, parse_macro_input};
 
 macro_rules! parse_nested_meta {
     ($ty:ty, $args:expr) => {{

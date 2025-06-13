@@ -1,8 +1,8 @@
-use poem::{http::StatusCode, test::TestClient, IntoResponse};
+use poem::{IntoResponse, http::StatusCode, test::TestClient};
 use poem_openapi::{
+    ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
     payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaMediaType, MetaResponse, MetaResponses, Registry},
-    ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
 };
 
 #[derive(ResponseContent)]

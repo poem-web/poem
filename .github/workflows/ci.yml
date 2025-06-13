@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -23,8 +23,14 @@ jobs:
             path: poem-openapi
           - name: poem-lambda
             path: poem-lambda
+          - name: poem-grpc-build
+            path: poem-grpc-build
           - name: poem-grpc
             path: poem-grpc
+          - name: poem-mcpserver-macros
+            path: poem-mcpserver-macros
+          - name: poem-mcpserver
+            path: poem-mcpserver
     services:
       redis:
         image: redis:5.0.7
@@ -42,7 +48,7 @@ jobs:
           - 5432:5432
         options: -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=test_poem_sessions
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Use nightly Rust to check the format
       - uses: actions-rs/toolchain@v1
@@ -74,9 +80,9 @@ jobs:
         working-directory: ${{ matrix.package.path }}
 
   check-examples:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 

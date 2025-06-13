@@ -75,8 +75,8 @@ use crate::{
     body::Body,
     error::{ReadBodyError, Result},
     http::{
-        header::{HeaderMap, HeaderName},
         HeaderValue, Method, StatusCode, Uri, Version,
+        header::{HeaderMap, HeaderName},
     },
     request::Request,
     response::Response,
@@ -274,8 +274,8 @@ impl RequestBody {
 /// use std::fmt::{self, Display, Formatter};
 ///
 /// use poem::{
-///     get, handler, http::StatusCode, test::TestClient, Endpoint, Error, FromRequest, Request,
-///     RequestBody, Result, Route,
+///     Endpoint, Error, FromRequest, Request, RequestBody, Result, Route, get, handler,
+///     http::StatusCode, test::TestClient,
 /// };
 ///
 /// struct Token(String);
@@ -424,7 +424,7 @@ pub trait FromRequest<'a>: Sized {
 ///
 /// ```
 /// use poem::{
-///     handler, http::Uri, test::TestClient, web::Query, Endpoint, IntoResponse, Request, Response,
+///     Endpoint, IntoResponse, Request, Response, handler, http::Uri, test::TestClient, web::Query,
 /// };
 /// use serde::Deserialize;
 ///
@@ -471,7 +471,7 @@ pub trait IntoResponse: Send {
     /// # Example
     ///
     /// ```
-    /// use poem::{http::HeaderValue, IntoResponse};
+    /// use poem::{IntoResponse, http::HeaderValue};
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = "hello".with_header("foo", "bar").into_response();
@@ -502,7 +502,7 @@ pub trait IntoResponse: Send {
     /// # Example
     ///
     /// ```
-    /// use poem::{http::HeaderValue, IntoResponse};
+    /// use poem::{IntoResponse, http::HeaderValue};
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = "hello".with_content_type("text/abc").into_response();
@@ -525,7 +525,7 @@ pub trait IntoResponse: Send {
     /// # Example
     ///
     /// ```
-    /// use poem::{http::StatusCode, IntoResponse};
+    /// use poem::{IntoResponse, http::StatusCode};
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = "hello".with_status(StatusCode::CONFLICT).into_response();
@@ -549,7 +549,7 @@ pub trait IntoResponse: Send {
     /// # Example
     ///
     /// ```
-    /// use poem::{http::StatusCode, IntoResponse};
+    /// use poem::{IntoResponse, http::StatusCode};
     ///
     /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
     /// let resp = StatusCode::CONFLICT.with_body("hello").into_response();

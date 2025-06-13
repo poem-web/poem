@@ -32,6 +32,7 @@ impl ApiKeyAuthorization for ApiKey {
                     key: value.to_string(),
                 })
                 .ok_or_else(|| AuthorizationError.into()),
+            #[cfg(feature = "cookie")]
             MetaParamIn::Cookie => req
                 .cookie()
                 .get(name)

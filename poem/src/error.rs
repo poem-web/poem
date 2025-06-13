@@ -10,7 +10,7 @@ use std::{
 use headers::{ContentRange, HeaderMapExt};
 use http::{Extensions, Method};
 
-use crate::{http::StatusCode, IntoResponse, Response};
+use crate::{IntoResponse, Response, http::StatusCode};
 
 macro_rules! define_http_error {
     ($($(#[$docs:meta])* ($name:ident, $status:ident);)*) => {
@@ -67,7 +67,7 @@ type GetStatusFn = fn(&Error) -> StatusCode;
 enum AsResponse {
     Status(StatusCode),
     Fn(AsResponseFn, GetStatusFn),
-    Response(Response),
+    Response(Box<Response>),
 }
 
 impl AsResponse {
@@ -95,7 +95,7 @@ impl AsResponse {
 /// # Create from any error types
 ///
 /// ```
-/// use poem::{error::InternalServerError, handler, Result};
+/// use poem::{Result, error::InternalServerError, handler};
 ///
 /// #[handler]
 /// async fn index() -> Result<String> {
@@ -106,7 +106,7 @@ impl AsResponse {
 /// # Create you own error type
 ///
 /// ```
-/// use poem::{error::ResponseError, handler, http::StatusCode, Endpoint, Request, Result};
+/// use poem::{Endpoint, Request, Result, error::ResponseError, handler, http::StatusCode};
 ///
 /// #[derive(Debug, thiserror::Error)]
 /// #[error("my error")]
@@ -179,7 +179,7 @@ impl AsResponse {
 ///
 /// # Downcast the error to concrete error type
 /// ```
-/// use poem::{error::NotFoundError, Error};
+/// use poem::{Error, error::NotFoundError};
 ///
 /// let err: Error = NotFoundError.into();
 ///
@@ -334,7 +334,7 @@ impl Error {
     /// Create a new error object from response.
     pub fn from_response(resp: Response) -> Self {
         Self {
-            as_response: AsResponse::Response(resp),
+            as_response: AsResponse::Response(Box::new(resp)),
             source: None,
             extensions: Extensions::default(),
             msg: None,
@@ -449,7 +449,7 @@ impl Error {
         let mut resp = match self.as_response {
             AsResponse::Status(status) => Response::builder().status(status).body(self.to_string()),
             AsResponse::Fn(ref f, _) => f(&self),
-            AsResponse::Response(resp) => resp,
+            AsResponse::Response(resp) => *resp,
         };
         *resp.extensions_mut() = self.extensions;
         resp
@@ -1155,10 +1155,12 @@ mod tests {
             Ok::<_, NotFoundError>("hello").into_result(),
             Ok("hello")
         ));
-        assert!(Err::<String, _>(NotFoundError)
-            .into_result()
-            .unwrap_err()
-            .is::<NotFoundError>());
+        assert!(
+            Err::<String, _>(NotFoundError)
+                .into_result()
+                .unwrap_err()
+                .is::<NotFoundError>()
+        );
     }
 
     #[test]

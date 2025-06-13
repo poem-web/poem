@@ -12,7 +12,7 @@ pub use router::{PathPattern, Route};
 pub use router_domain::RouteDomain;
 #[allow(unreachable_pub)]
 pub use router_method::{
-    connect, delete, get, head, options, patch, post, put, trace, RouteMethod,
+    RouteMethod, connect, delete, get, head, options, patch, post, put, trace,
 };
 #[allow(unreachable_pub)]
 pub use router_scheme::RouteScheme;

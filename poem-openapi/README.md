@@ -21,9 +21,9 @@
     <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square"
       alt="Unsafe Rust forbidden" />
   </a>
-  <a href="https://blog.rust-lang.org/2023/11/16/Rust-1.83.0.html">
-    <img src="https://img.shields.io/badge/rustc-1.83.0+-ab6000.svg"
-      alt="rustc 1.83.0+" />
+  <a>
+    <img src="https://img.shields.io/badge/rustc-1.85.0+-ab6000.svg"
+      alt="rustc 1.85.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -59,6 +59,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | swagger-ui         | Add swagger UI support                                                                                                                                             |
 | rapidoc            | Add RapiDoc UI support                                                                                                                                             |
 | redoc              | Add Redoc UI support                                                                                                                                               |
+| scalar             | Add Scalar UI support                                                                                                                                              |
 | stoplight-elements | Add Stoplight Elements UI support                                                                                                                                  |
 | email              | Support for email address string                                                                                                                                   |
 | hostname           | Support for hostname string                                                                                                                                        |

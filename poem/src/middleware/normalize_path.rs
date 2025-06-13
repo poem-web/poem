@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use http::{uri::PathAndQuery, Uri};
+use http::{Uri, uri::PathAndQuery};
 use regex::Regex;
 
 use crate::{Endpoint, Middleware, Request, Result};
@@ -26,11 +26,10 @@ pub enum TrailingSlash {
 ///
 /// ```
 /// use poem::{
-///     get, handler,
+///     Endpoint, EndpointExt, Request, Route, get, handler,
 ///     http::{StatusCode, Uri},
 ///     middleware::{NormalizePath, TrailingSlash},
 ///     test::TestClient,
-///     Endpoint, EndpointExt, Request, Route,
 /// };
 ///
 /// #[handler]
@@ -122,7 +121,7 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{endpoint::make_sync, http::StatusCode, test::TestClient, EndpointExt, Route};
+    use crate::{EndpointExt, Route, endpoint::make_sync, http::StatusCode, test::TestClient};
 
     #[tokio::test]
     async fn trim_trailing_slashes() {

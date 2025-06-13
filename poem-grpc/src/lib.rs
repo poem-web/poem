@@ -37,7 +37,7 @@ mod test_harness;
 
 pub use client::{ClientBuilderError, ClientConfig, ClientConfigBuilder};
 pub use compression::CompressionEncoding;
-pub use health::{health_service, HealthReporter, ServingStatus};
+pub use health::{HealthReporter, ServingStatus, health_service};
 pub use metadata::Metadata;
 pub use reflection::Reflection;
 pub use request::Request;

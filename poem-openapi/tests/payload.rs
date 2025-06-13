@@ -1,8 +1,8 @@
-use poem::{http::StatusCode, test::TestClient, Error};
+use poem::{Error, http::StatusCode, test::TestClient};
 use poem_openapi::{
+    ApiResponse, OpenApi, OpenApiService,
     param::Query,
     payload::{Json, Response},
-    ApiResponse, OpenApi, OpenApiService,
 };
 
 #[tokio::test]

@@ -1,8 +1,9 @@
 use std::fmt::{self, Display};
 
 use serde::{
+    Deserializer,
     de::{self, DeserializeSeed, EnumAccess, Error, MapAccess, SeqAccess, VariantAccess, Visitor},
-    forward_to_deserialize_any, Deserializer,
+    forward_to_deserialize_any,
 };
 
 /// This type represents errors that can occur when deserializing.

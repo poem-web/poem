@@ -1,7 +1,7 @@
 use darling::{
+    FromDeriveInput, FromField, FromVariant,
     ast::{Data, Fields},
     util::Ignored,
-    FromDeriveInput, FromField, FromVariant,
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -71,7 +71,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         _ => {
             return Err(
                 Error::new_spanned(ident, "Response can only be applied to an enum.").into(),
-            )
+            );
         }
     };
 
@@ -365,7 +365,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             _ => {
                 return Err(
                     Error::new_spanned(&variant.ident, "Incorrect response definition.").into(),
-                )
+                );
             }
         }
     }

@@ -17,18 +17,18 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 #[cfg(feature = "cookie")]
 use crate::web::cookie::CookieJar;
 use crate::{
+    RequestBody,
     body::{Body, BoxBody},
     error::{ParsePathError, ParseQueryError, UpgradeError},
     http::{
-        header::{self, HeaderMap, HeaderName, HeaderValue},
         Extensions, Method, Uri, Version,
+        header::{self, HeaderMap, HeaderName, HeaderValue},
     },
     route::PathParams,
     web::{
-        headers::{Header, HeaderMapExt},
         LocalAddr, PathDeserializer, RemoteAddr,
+        headers::{Header, HeaderMapExt},
     },
-    RequestBody,
 };
 
 pub(crate) struct RequestState {
@@ -272,10 +272,9 @@ impl Request {
     ///
     /// ```rust
     /// use poem::{
-    ///     handler,
+    ///     Endpoint, Request, Result, Route, handler,
     ///     http::{StatusCode, Uri},
     ///     test::TestClient,
-    ///     Endpoint, Request, Result, Route,
     /// };
     ///
     /// #[handler]
@@ -306,10 +305,9 @@ impl Request {
     ///
     /// ```rust
     /// use poem::{
-    ///     handler,
+    ///     Endpoint, Request, Result, Route, handler,
     ///     http::{StatusCode, Uri},
     ///     test::TestClient,
-    ///     Endpoint, Request, Result, Route,
     /// };
     /// use serde::Deserialize;
     ///

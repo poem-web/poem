@@ -25,7 +25,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures_util::{future::BoxFuture, Future, FutureExt, TryFutureExt};
+use futures_util::{Future, FutureExt, TryFutureExt, future::BoxFuture};
 use http::uri::Scheme;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult};
 
@@ -296,8 +296,8 @@ pub trait Listener: Send {
     ///
     /// ```
     /// use poem::listener::{
-    ///     acme::{AutoCert, LETS_ENCRYPT_PRODUCTION},
     ///     Listener, TcpListener,
+    ///     acme::{AutoCert, LETS_ENCRYPT_PRODUCTION},
     /// };
     ///
     /// let listener = TcpListener::bind("0.0.0.0:443").acme(

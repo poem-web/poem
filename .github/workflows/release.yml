@@ -9,7 +9,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -36,12 +36,18 @@ jobs:
           - name: poem-grpc
             registryName: poem-grpc
             path: poem-grpc
+          - name: poem-mcpserver-macros
+            registryName: poem-mcpserver-macros
+            path: poem-mcpserver-macros
+          - name: poem-mcpserver
+            registryName: poem-mcpserver
+            path: poem-mcpserver
     steps:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Protoc
         if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
         uses: arduino/setup-protoc@v1

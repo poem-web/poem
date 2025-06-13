@@ -1,11 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
 use http::StatusCode;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
-    error::ParseJsonError, http::header, web::RequestBody, FromRequest, IntoResponse, Request,
-    Response, Result,
+    FromRequest, IntoResponse, Request, Response, Result, error::ParseJsonError, http::header,
+    web::RequestBody,
 };
 
 /// JSON extractor and response.
@@ -20,12 +20,11 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     handler,
-///     http::{header, Method, StatusCode},
+///     Endpoint, Request, Route, handler,
+///     http::{Method, StatusCode, header},
 ///     post,
 ///     test::TestClient,
 ///     web::Json,
-///     Endpoint, Request, Route,
 /// };
 /// use serde::Deserialize;
 ///
@@ -61,7 +60,7 @@ use crate::{
 ///
 /// ```
 /// use poem::{
-///     get, handler, http::StatusCode, test::TestClient, web::Json, Endpoint, Request, Route,
+///     Endpoint, Request, Route, get, handler, http::StatusCode, test::TestClient, web::Json,
 /// };
 /// use serde::Serialize;
 ///
@@ -152,7 +151,7 @@ impl<T: Serialize + Send> IntoResponse for Json<T> {
             Err(err) => {
                 return Response::builder()
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(err.to_string())
+                    .body(err.to_string());
             }
         };
         Response::builder()

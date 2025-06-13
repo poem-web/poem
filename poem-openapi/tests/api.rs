@@ -1,15 +1,15 @@
 use poem::{
+    Endpoint, EndpointExt, Error,
     http::{Method, StatusCode},
     test::TestClient,
     web::Data,
-    Endpoint, EndpointExt, Error,
 };
 use poem_openapi::{
+    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ParameterStyle, Tags,
     param::{Path, Query},
     payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaExternalDocument, MetaOperation, MetaParamIn, MetaSchema, Registry},
     types::Type,
-    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ParameterStyle, Tags,
 };
 
 #[tokio::test]
@@ -548,6 +548,43 @@ async fn poem_extract() {
 }
 
 #[tokio::test]
+async fn issue_948() {
+    struct Api;
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello/:another_param", method = "post")]
+        async fn another_param_handler(
+            &self,
+            Path(another_param): Path<String>,
+        ) -> PlainText<String> {
+            PlainText(format!("POST /hello/{another_param}"))
+        }
+
+        #[oai(path = "/hello/:param", method = "get")]
+        async fn param_handler(&self, Path(param): Path<String>) -> PlainText<String> {
+            PlainText(format!("GET /hello/{param}"))
+        }
+    }
+
+    let meta = Api::meta().remove(0);
+    assert_eq!(meta.paths[0].path, "/hello/{another_param}");
+    assert_eq!(meta.paths[0].operations[0].method, Method::POST);
+
+    assert_eq!(meta.paths[1].path, "/hello/{param}");
+    assert_eq!(meta.paths[1].operations[0].method, Method::GET);
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let client = TestClient::new(ep);
+    let res = client.get("/hello/something").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("GET /hello/something").await;
+
+    let res = client.post("/hello/another_something").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("POST /hello/another_something").await;
+}
+
+#[tokio::test]
 async fn returning_borrowed_value() {
     struct Api {
         value1: i32,
@@ -1003,7 +1040,7 @@ async fn issue_489() {
 }
 
 #[tokio::test]
-async fn parameter_style() {
+async fn parameter_style_some() {
     #[allow(dead_code)]
     struct Api;
 
@@ -1022,5 +1059,28 @@ async fn parameter_style() {
     assert_eq!(
         Api::meta()[0].paths[0].operations[0].params[0].style,
         Some(ParameterStyle::DeepObject)
-    )
+    );
+
+    let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
+    assert!(spec.contains("\"style\": \"deepObject\""));
+}
+
+#[tokio::test]
+async fn parameter_style_none() {
+    #[allow(dead_code)]
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        #[allow(dead_code)]
+        async fn index(&self, #[oai()] Query(input): Query<String>) -> PlainText<String> {
+            PlainText(format!("hello, world! {input}"))
+        }
+    }
+
+    assert_eq!(Api::meta()[0].paths[0].operations[0].params[0].style, None);
+
+    let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
+    assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }

@@ -1,18 +1,18 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures_util::{
-    stream::{BoxStream, Chain, Pending},
     Stream, StreamExt,
+    stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
 use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        crypto::aws_lc_rs::sign::any_supported_type,
+        ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, WantsVerifier,
+        crypto::{CryptoProvider, aws_lc_rs, aws_lc_rs::sign::any_supported_type},
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
-        RootCertStore, ServerConfig,
     },
     server::TlsStream,
 };
@@ -82,7 +82,7 @@ impl RustlsCertificate {
                     return Err(IoError::new(
                         ErrorKind::Other,
                         "failed to parse tls private keys",
-                    ))
+                    ));
                 }
                 _ => continue,
             }
@@ -231,7 +231,7 @@ impl RustlsConfig {
             );
         }
 
-        let builder = ServerConfig::builder();
+        let builder = make_server_config_builder();
         let builder = match &self.client_auth {
             TlsClientAuth::Off => builder.with_no_client_auth(),
             TlsClientAuth::Optional(trust_anchor) => {
@@ -259,6 +259,23 @@ impl RustlsConfig {
 
         Ok(server_config)
     }
+}
+
+// A port of CryptoProvider::get_default_or_install_from_crate_features while
+// always use aws_lc_rs as the default provider.
+fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
+    if CryptoProvider::get_default().is_none() {
+        let provider = aws_lc_rs::default_provider();
+        let _ = provider.install_default();
+    }
+
+    // SAFETY: `CryptoProvider::get_default()` must be non-null at this point
+    let provider = CryptoProvider::get_default().unwrap();
+
+    // SAFETY: process-level default provider is usable with the supplied versions
+    ServerConfig::builder_with_provider(provider.clone())
+        .with_protocol_versions(DEFAULT_VERSIONS)
+        .unwrap()
 }
 
 fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
@@ -299,8 +316,8 @@ impl IntoTlsConfigStream<RustlsConfig> for RustlsConfig {
 /// protocol with [`rustls`](https://crates.io/crates/rustls).
 ///
 /// NOTE: You cannot create it directly and should use the
-/// [`rustls`](crate::listener::Listener::rustls) method to create it, because
-/// it needs to wrap a underlying listener.
+/// [`rustls`](Listener::rustls) method to create it, because
+/// it needs to wrap an underlying listener.
 #[cfg_attr(docsrs, doc(cfg(feature = "rustls")))]
 pub struct RustlsListener<T, S> {
     inner: T,
@@ -420,17 +437,13 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
-    use tokio_rustls::rustls::{pki_types::ServerName, ClientConfig};
+    use tokio_rustls::rustls::{ClientConfig, pki_types::ServerName};
 
     use super::*;
     use crate::listener::TcpListener;
 
     #[tokio::test]
     async fn tls_listener() {
-        tokio_rustls::rustls::crypto::aws_lc_rs::default_provider()
-            .install_default()
-            .expect("Failed to install rustls crypto provider");
-
         let listener = TcpListener::bind("127.0.0.1:0").rustls(
             RustlsConfig::new().fallback(
                 RustlsCertificate::new()

@@ -65,7 +65,7 @@ use crate::endpoint::{EitherEndpoint, Endpoint};
 ///
 /// ```
 /// use poem::{
-///     handler, test::TestClient, web::Data, Endpoint, EndpointExt, Middleware, Request, Result,
+///     Endpoint, EndpointExt, Middleware, Request, Result, handler, test::TestClient, web::Data,
 /// };
 ///
 /// /// A middleware that extracts token from HTTP headers.
@@ -134,7 +134,7 @@ use crate::endpoint::{EitherEndpoint, Endpoint};
 /// use std::sync::Arc;
 ///
 /// use poem::{
-///     handler, test::TestClient, web::Data, Endpoint, EndpointExt, IntoResponse, Request, Result,
+///     Endpoint, EndpointExt, IntoResponse, Request, Result, handler, test::TestClient, web::Data,
 /// };
 /// const TOKEN_HEADER: &str = "X-Token";
 ///
@@ -188,7 +188,7 @@ pub trait Middleware<E: Endpoint> {
     ///
     /// ```
     /// use poem::{
-    ///     handler, middleware::SetHeader, Endpoint, EndpointExt, Middleware, Request, Result,
+    ///     Endpoint, EndpointExt, Middleware, Request, Result, handler, middleware::SetHeader,
     /// };
     ///
     /// #[handler]
@@ -233,7 +233,7 @@ pub trait Middleware<E: Endpoint> {
     ///
     /// ```
     /// use poem::{
-    ///     handler, middleware::SetHeader, Endpoint, EndpointExt, Middleware, Request, Result,
+    ///     Endpoint, EndpointExt, Middleware, Request, Result, handler, middleware::SetHeader,
     /// };
     ///
     /// #[handler]
@@ -397,11 +397,10 @@ pub fn make<T>(f: T) -> FnMiddleware<T> {
 mod tests {
     use super::*;
     use crate::{
-        handler,
-        http::{header::HeaderName, HeaderValue},
+        EndpointExt, IntoResponse, Request, Response, Result, handler,
+        http::{HeaderValue, header::HeaderName},
         test::TestClient,
         web::Data,
-        EndpointExt, IntoResponse, Request, Response, Result,
     };
 
     #[tokio::test]

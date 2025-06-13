@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use poem_openapi::{
+    Enum, NewType, Object, OpenApi,
     registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
     types::{Example, ParseFromJSON, ToJSON, Type},
-    Enum, NewType, Object, OpenApi,
 };
 use serde_json::json;
 
@@ -188,6 +188,18 @@ fn field_rename() {
 
     let meta = get_meta::<Obj>();
     assert_eq!(meta.properties[0].0, "b");
+}
+
+#[test]
+fn field_deprecated() {
+    #[derive(Object)]
+    struct Obj {
+        #[oai(deprecated)]
+        a: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert_eq!(meta.properties[0].1.unwrap_inline().deprecated, true);
 }
 
 #[test]

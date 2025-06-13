@@ -165,6 +165,7 @@ fn unimplemented(accept_compressed: &[CompressionEncoding]) -> Status {
         .with_message("unsupported encoding")
 }
 
+#[allow(clippy::result_large_err)]
 pub(crate) fn get_incoming_encodings(
     headers: &HeaderMap,
     accept_compressed: &[CompressionEncoding],

@@ -1,0 +1,47 @@
+[package]
+name = "poem-mcpserver"
+version = "0.2.4"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+description = "MCP Server implementation for Poem"
+keywords = ["framework", "async", "mcp", "ai"]
+categories = [
+    "network-programming",
+    "asynchronous",
+    "web-programming::http-server",
+    "web-programming::websocket",
+]
+
+[features]
+streamable-http = ["dep:poem"]
+
+[dependencies]
+poem-mcpserver-macros.workspace = true
+
+schemars.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+time = { workspace = true, features = ["macros", "formatting", "parsing"] }
+tokio = { workspace = true, features = ["io-std", "io-util", "rt"] }
+poem = { workspace = true, features = ["sse"], optional = true }
+rand.workspace = true
+tokio-stream.workspace = true
+async-stream.workspace = true
+tracing.workspace = true
+pin-project-lite = "0.2.16"
+itertools = "0.14.0"
+mime.workspace = true
+base64.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

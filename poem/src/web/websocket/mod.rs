@@ -5,9 +5,8 @@
 //! ```
 //! use futures_util::{SinkExt, StreamExt};
 //! use poem::{
-//!     get, handler,
+//!     IntoResponse, Route, get, handler,
 //!     web::websocket::{Message, WebSocket},
-//!     IntoResponse, Route,
 //! };
 //!
 //! #[handler]
@@ -37,13 +36,12 @@ mod tests {
     use std::net::SocketAddr;
 
     use futures_util::{SinkExt, StreamExt};
-    use http::{header, HeaderValue};
+    use http::{HeaderValue, header};
 
     use super::*;
     use crate::{
-        handler,
+        IntoResponse, Server, handler,
         listener::{Acceptor, Listener, TcpListener},
-        IntoResponse, Server,
     };
 
     #[tokio::test]

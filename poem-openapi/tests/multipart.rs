@@ -2,13 +2,13 @@ use std::io::Write;
 
 use poem::{Request, RequestBody};
 use poem_openapi::{
+    Enum, Multipart, Object,
     payload::{ParsePayload, Payload},
     registry::{MetaSchema, MetaSchemaRef},
     types::{
-        multipart::{JsonField, Upload},
         Binary,
+        multipart::{JsonField, Upload},
     },
-    Enum, Multipart, Object,
 };
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
