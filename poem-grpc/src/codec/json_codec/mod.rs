@@ -128,6 +128,6 @@ impl<U: DeserializeOwned + Send + 'static> Decoder for JsonI64ToStringDecoder<U>
     fn decode(&mut self, buf: &[u8]) -> Result<Self::Item> {
         let mut de = serde_json::Deserializer::from_slice(buf);
         U::deserialize(i64string_deserializer::I64ToStringDeserializer(&mut de))
-            .map_err(|err| Error::new(ErrorKind::Other, err))
+            .map_err(Error::other)
     }
 }

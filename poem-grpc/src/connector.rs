@@ -20,7 +20,7 @@ use tower_service::Service;
 pub(crate) enum MaybeHttpsStream {
     TcpStream(TokioIo<TcpStream>),
     TlsStream {
-        stream: TokioIo<TlsStream<TcpStream>>,
+        stream: Box<TokioIo<TlsStream<TcpStream>>>,
         is_http2: bool,
     },
 }
@@ -146,7 +146,7 @@ async fn do_connect(
             })
             .await?;
         Ok(MaybeHttpsStream::TlsStream {
-            stream: TokioIo::new(stream),
+            stream: Box::new(TokioIo::new(stream)),
             is_http2,
         })
     } else {
