@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    io::{Error as IoError, ErrorKind, Result as IoResult},
+    io::{Error as IoError, Result as IoResult},
     path::PathBuf,
 };
 
@@ -77,14 +77,12 @@ impl AutoCertBuilder {
 
     /// Consumes this builder and returns a [`AutoCert`] object.
     pub fn build(self) -> IoResult<AutoCert> {
-        let directory_url = self.directory_url.parse().map_err(|err| {
-            IoError::new(ErrorKind::Other, format!("invalid directory url: {err}"))
-        })?;
+        let directory_url = self
+            .directory_url
+            .parse()
+            .map_err(|err| IoError::other(format!("invalid directory url: {err}")))?;
         if self.domains.is_empty() {
-            return Err(IoError::new(
-                ErrorKind::Other,
-                "at least one domain name is expected",
-            ));
+            return Err(IoError::other("at least one domain name is expected"));
         }
 
         let mut cache_key = None;

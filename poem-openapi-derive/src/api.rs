@@ -302,13 +302,13 @@ fn generate_operation(
             .or(ignore_case)
             .or(api_args.ignore_case)
             .unwrap_or(false);
-        let extract_param_name = is_path
-            .then(|| {
-                let n = format!("param{path_param_count}");
-                path_param_count += 1;
-                n
-            })
-            .unwrap_or_else(|| param_name.clone());
+        let extract_param_name = if is_path {
+            let n = format!("param{path_param_count}");
+            path_param_count += 1;
+            n
+        } else {
+            param_name.clone()
+        };
         use_args.push(pname.clone());
 
         if !hidden {

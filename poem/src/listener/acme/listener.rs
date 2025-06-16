@@ -1,5 +1,5 @@
 use std::{
-    io::{Error as IoError, ErrorKind, Result as IoResult},
+    io::{Error as IoError, Result as IoResult},
     sync::{Arc, Weak},
     time::{Duration, UNIX_EPOCH},
 };
@@ -113,11 +113,11 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             if let Some(cache_cert) = &self.auto_cert.cache_cert {
                 match rustls_pemfile::certs(&mut cache_cert.as_slice())
                     .collect::<Result<_, _>>()
-                    .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))
+                    .map_err(|err| IoError::other(format!("invalid pem: {err}")))
                 {
                     Ok(c) => certs = Some(c),
                     Err(err) => {
-                        tracing::warn!("failed to parse cached tls certificates: {}", err)
+                        tracing::warn!("failed to parse cached tls certificates: {err}")
                     }
                 };
             }
@@ -128,7 +128,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
                 {
                     Ok(k) => key = k.into_iter().next(),
                     Err(err) => {
-                        tracing::warn!("failed to parse cached private key: {}", err)
+                        tracing::warn!("failed to parse cached private key: {err}")
                     }
                 };
             }
@@ -230,14 +230,14 @@ fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
     params.alg = &PKCS_ECDSA_P256_SHA256;
     params.custom_extensions = vec![CustomExtension::new_acme_identifier(acme_hash)];
     let cert = Certificate::from_params(params)
-        .map_err(|_| IoError::new(ErrorKind::Other, "failed to generate acme certificate"))?;
+        .map_err(|_| IoError::other("failed to generate acme certificate"))?;
     let key = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
         cert.serialize_private_key_der().into(),
     ))
     .unwrap();
     Ok(CertifiedKey::new(
         vec![CertificateDer::from(cert.serialize_der().map_err(
-            |_| IoError::new(ErrorKind::Other, "failed to serialize acme certificate"),
+            |_| IoError::other("failed to serialize acme certificate"),
         )?)],
         key,
     ))
@@ -310,17 +310,14 @@ pub async fn issue_cert<T: AsRef<str>>(
                     .trigger_challenge(&resp.identifier.value, challenge_type, &challenge.url)
                     .await?;
             } else if resp.status == "invalid" {
-                return Err(IoError::new(
-                    ErrorKind::Other,
-                    format!(
-                        "unable to authorize `{}`: {}",
-                        resp.identifier.value,
-                        resp.error
-                            .as_ref()
-                            .map(|problem| &*problem.detail)
-                            .unwrap_or("unknown")
-                    ),
-                ));
+                return Err(IoError::other(format!(
+                    "unable to authorize `{}`: {}",
+                    resp.identifier.value,
+                    resp.error
+                        .as_ref()
+                        .map(|problem| &*problem.detail)
+                        .unwrap_or("unknown")
+                )));
             }
         }
 
@@ -333,10 +330,7 @@ pub async fn issue_cert<T: AsRef<str>>(
     }
 
     if !valid {
-        return Err(IoError::new(
-            ErrorKind::Other,
-            "authorization failed too many times",
-        ));
+        return Err(IoError::other("authorization failed too many times"));
     }
 
     // send csr
@@ -348,62 +342,49 @@ pub async fn issue_cert<T: AsRef<str>>(
     );
     params.distinguished_name = DistinguishedName::new();
     params.alg = &PKCS_ECDSA_P256_SHA256;
-    let cert = Certificate::from_params(params).map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed create certificate request: {err}"),
-        )
-    })?;
+    let cert = Certificate::from_params(params)
+        .map_err(|err| IoError::other(format!("failed create certificate request: {err}")))?;
     let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
         cert.serialize_private_key_der().into(),
     ))
     .unwrap();
-    let csr = cert.serialize_request_der().map_err(|err| {
-        IoError::new(
-            ErrorKind::Other,
-            format!("failed to serialize request der {err}"),
-        )
-    })?;
+    let csr = cert
+        .serialize_request_der()
+        .map_err(|err| IoError::other(format!("failed to serialize request der {err}")))?;
 
     let order_resp = client.send_csr(&order_resp.finalize, &csr).await?;
 
     if order_resp.status == "invalid" {
-        return Err(IoError::new(
-            ErrorKind::Other,
-            format!(
-                "failed to request certificate: {}",
-                order_resp
-                    .error
-                    .as_ref()
-                    .map(|problem| &*problem.detail)
-                    .unwrap_or("unknown")
-            ),
-        ));
+        return Err(IoError::other(format!(
+            "failed to request certificate: {}",
+            order_resp
+                .error
+                .as_ref()
+                .map(|problem| &*problem.detail)
+                .unwrap_or("unknown")
+        )));
     }
 
     if order_resp.status != "valid" {
-        return Err(IoError::new(
-            ErrorKind::Other,
-            format!(
-                "failed to request certificate: unexpected status `{}`",
-                order_resp.status
-            ),
-        ));
+        return Err(IoError::other(format!(
+            "failed to request certificate: unexpected status `{}`",
+            order_resp.status
+        )));
     }
 
     // download certificate
     let acme_cert_pem = client
-        .obtain_certificate(order_resp.certificate.as_ref().ok_or_else(|| {
-            IoError::new(
-                ErrorKind::Other,
-                "invalid response: missing `certificate` url",
-            )
-        })?)
+        .obtain_certificate(
+            order_resp
+                .certificate
+                .as_ref()
+                .ok_or_else(|| IoError::other("invalid response: missing `certificate` url"))?,
+        )
         .await?;
     let pkey_pem = cert.serialize_private_key_pem();
     let cert_chain = rustls_pemfile::certs(&mut acme_cert_pem.as_slice())
         .collect::<Result<_, _>>()
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("invalid pem: {err}")))?;
+        .map_err(|err| IoError::other(format!("invalid pem: {err}")))?;
     let cert_key = CertifiedKey::new(cert_chain, pk);
 
     tracing::debug!("certificate obtained");

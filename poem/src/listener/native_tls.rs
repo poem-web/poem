@@ -3,7 +3,7 @@ use futures_util::{
     stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
-use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
+use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_native_tls::{TlsStream, native_tls::Identity};
 
 use crate::{
@@ -49,9 +49,9 @@ impl NativeTlsConfig {
 
     fn create_acceptor(&self) -> IoResult<tokio_native_tls::native_tls::TlsAcceptor> {
         let identity = Identity::from_pkcs12(&self.pkcs12, &self.password)
-            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+            .map_err(|err| IoError::other(err.to_string()))?;
         tokio_native_tls::native_tls::TlsAcceptor::new(identity)
-            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))
+            .map_err(|err| IoError::other(err.to_string()))
     }
 }
 
@@ -71,7 +71,7 @@ impl IntoTlsConfigStream<NativeTlsConfig> for NativeTlsConfig {
 
     fn into_stream(self) -> IoResult<Self::Stream> {
         let _ = Identity::from_pkcs12(&self.pkcs12, &self.password)
-            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+            .map_err(|err| IoError::other(err.to_string()))?;
         Ok(futures_util::stream::once(futures_util::future::ready(
             self,
         )))
@@ -170,9 +170,9 @@ where
                     let (stream, local_addr, remote_addr, _) = res?;
                     let tls_acceptor = match &self.current_tls_acceptor {
                         Some(tls_acceptor) => tls_acceptor.clone(),
-                        None => return Err(IoError::new(ErrorKind::Other, "no valid tls config.")),
+                        None => return Err(IoError::other("no valid tls config.")),
                     };
-                    let fut = async move { tls_acceptor.accept(stream).map_err(|err| IoError::new(ErrorKind::Other, err.to_string())).await };
+                    let fut = async move { tls_acceptor.accept(stream).map_err(|err| IoError::other(err.to_string())).await };
                     let stream = HandshakeStream::new(fut);
                     return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
                 }

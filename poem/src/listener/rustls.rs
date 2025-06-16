@@ -6,7 +6,7 @@ use futures_util::{
 };
 use http::uri::Scheme;
 use rustls_pemfile::Item;
-use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
+use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_rustls::{
     rustls::{
         ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, WantsVerifier,
@@ -71,7 +71,7 @@ impl RustlsCertificate {
     fn create_certificate_key(&self) -> IoResult<CertifiedKey> {
         let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
             .collect::<Result<_, _>>()
-            .map_err(|_| IoError::new(ErrorKind::Other, "failed to parse tls certificates"))?;
+            .map_err(|_| IoError::other("failed to parse tls certificates"))?;
         let mut key_reader = self.key.as_slice();
         let priv_key = loop {
             match rustls_pemfile::read_one(&mut key_reader)? {
@@ -79,17 +79,14 @@ impl RustlsCertificate {
                 Some(Item::Pkcs8Key(key)) => break key.into(),
                 Some(Item::Sec1Key(key)) => break key.into(),
                 None => {
-                    return Err(IoError::new(
-                        ErrorKind::Other,
-                        "failed to parse tls private keys",
-                    ));
+                    return Err(IoError::other("failed to parse tls private keys"));
                 }
                 _ => continue,
             }
         };
 
-        let key = any_supported_type(&priv_key)
-            .map_err(|_| IoError::new(ErrorKind::Other, "invalid private key"))?;
+        let key =
+            any_supported_type(&priv_key).map_err(|_| IoError::other("invalid private key"))?;
 
         Ok(CertifiedKey {
             cert,
@@ -282,10 +279,10 @@ fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
     let mut store = RootCertStore::empty();
     let ders = rustls_pemfile::certs(&mut trust_anchor);
     for der in ders {
-        let der = der.map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+        let der = der.map_err(|err| IoError::other(err.to_string()))?;
         store
             .add(der)
-            .map_err(|err| IoError::new(ErrorKind::Other, err.to_string()))?;
+            .map_err(|err| IoError::other(err.to_string()))?;
     }
     Ok(store)
 }
@@ -405,7 +402,7 @@ where
                     let (stream, local_addr, remote_addr, _) = res?;
                     let tls_acceptor = match &self.current_tls_acceptor {
                         Some(tls_acceptor) => tls_acceptor,
-                        None => return Err(IoError::new(ErrorKind::Other, "no valid tls config.")),
+                        None => return Err(IoError::other("no valid tls config.")),
                     };
 
                     let stream = HandshakeStream::new(tls_acceptor.accept(stream));

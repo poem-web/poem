@@ -107,7 +107,7 @@ pub trait DynAcceptor: Send {
     /// This function will yield once a new TCP connection is established. When
     /// established, the corresponding IO stream and the remote peer’s
     /// address will be returned.
-    fn accept(&mut self) -> BoxFuture<IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)>>;
+    fn accept(&mut self) -> BoxFuture<'_, IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)>>;
 }
 
 /// A [`Acceptor`] wrapper used to implement [`DynAcceptor`].
@@ -120,7 +120,7 @@ impl<A: Acceptor> DynAcceptor for ToDynAcceptor<A> {
     }
 
     #[inline]
-    fn accept(&mut self) -> BoxFuture<IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)>> {
+    fn accept(&mut self) -> BoxFuture<'_, IoResult<(BoxIo, LocalAddr, RemoteAddr, Scheme)>> {
         async move {
             let (io, local_addr, remote_addr, scheme) = self.0.accept().await?;
             let io = BoxIo::new(io);

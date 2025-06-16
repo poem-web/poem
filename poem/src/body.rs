@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Formatter},
-    io::{Error as IoError, ErrorKind},
+    io::Error as IoError,
     pin::Pin,
     task::Poll,
 };
@@ -175,7 +175,7 @@ impl Body {
             .0
             .collect()
             .await
-            .map_err(|err| ReadBodyError::Io(IoError::new(ErrorKind::Other, err)))?
+            .map_err(|err| ReadBodyError::Io(IoError::other(err)))?
             .to_bytes())
     }
 

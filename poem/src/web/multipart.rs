@@ -93,8 +93,7 @@ impl Field {
     /// Consume this field to return a reader.
     pub fn into_async_read(self) -> impl AsyncRead + Send {
         tokio_util::io::StreamReader::new(
-            self.0
-                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string())),
+            self.0.map_err(|err| std::io::Error::other(err.to_string())),
         )
     }
 }

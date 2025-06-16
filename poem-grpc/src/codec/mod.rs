@@ -46,7 +46,7 @@ pub trait Codec: Default {
     /// Returns whether the specified content type is supported
     #[inline]
     fn check_content_type(&self, ct: &str) -> bool {
-        Self::CONTENT_TYPES.iter().any(|value| *value == ct)
+        Self::CONTENT_TYPES.contains(&ct)
     }
 
     /// Create the encoder

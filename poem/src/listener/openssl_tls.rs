@@ -13,7 +13,7 @@ use openssl::{
     ssl::{Ssl, SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod, SslRef},
     x509::X509,
 };
-use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
+use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_openssl::SslStream;
 use tokio_util::either::Either;
 
@@ -76,7 +76,7 @@ impl OpensslTlsConfig {
                 builder.set_certificate(
                     certs
                         .next()
-                        .ok_or_else(|| IoError::new(ErrorKind::Other, "no leaf certificate"))?
+                        .ok_or_else(|| IoError::other("no leaf certificate"))?
                         .as_ref(),
                 )?;
                 certs.try_for_each(|cert| builder.add_extra_chain_cert(cert))?;
@@ -215,16 +215,16 @@ where
                     let (stream, local_addr, remote_addr, _) = res?;
                     let tls_acceptor = match &self.current_tls_acceptor {
                         Some(tls_acceptor) => tls_acceptor.clone(),
-                        None => return Err(IoError::new(ErrorKind::Other, "no valid tls config.")),
+                        None => return Err(IoError::other("no valid tls config.")),
                     };
                     let fut = async move {
                         let ssl = Ssl::new(tls_acceptor.context()).map_err(|err|
-                            IoError::new(ErrorKind::Other, err.to_string()))?;
+                            IoError::other(err.to_string()))?;
                         let mut tls_stream = SslStream::new(ssl, stream).map_err(|err|
-                            IoError::new(ErrorKind::Other, err.to_string()))?;
+                            IoError::other(err.to_string()))?;
                         use std::pin::Pin;
                         Pin::new(&mut tls_stream).accept().await.map_err(|err|
-                            IoError::new(ErrorKind::Other, err.to_string()))?;
+                            IoError::other(err.to_string()))?;
                         Ok(tls_stream) };
                     let stream = HandshakeStream::new(fut);
                     return Ok((stream, local_addr, remote_addr, Scheme::HTTPS));
