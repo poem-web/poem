@@ -1,6 +1,6 @@
 use std::{
     fmt::{self, Display, Formatter},
-    io::{Error as IoError, ErrorKind, Result as IoResult},
+    io::{Error as IoError, Result as IoResult},
 };
 
 use serde::{Deserialize, Serialize};
@@ -101,9 +101,7 @@ impl FetchAuthorizationResponse {
         self.challenges
             .iter()
             .find(|c| c.ty == ty.to_string())
-            .ok_or_else(|| {
-                IoError::new(ErrorKind::Other, format!("unable to find `{ty}` challenge"))
-            })
+            .ok_or_else(|| IoError::other(format!("unable to find `{ty}` challenge")))
     }
 }
 

@@ -1,4 +1,4 @@
-use std::io::{Error as IoError, ErrorKind};
+use std::io::Error as IoError;
 
 use tokio_tungstenite::tungstenite::{handshake::derive_accept_key, protocol::CloseFrame};
 
@@ -15,7 +15,7 @@ pub(crate) fn tungstenite_error_to_io_error(
     use tokio_tungstenite::tungstenite::Error::*;
     match error {
         Io(err) => err,
-        _ => IoError::new(ErrorKind::Other, error.to_string()),
+        _ => IoError::other(error.to_string()),
     }
 }
 
