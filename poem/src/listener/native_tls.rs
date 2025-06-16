@@ -3,7 +3,7 @@ use futures_util::{
     stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
-use tokio::io::{Error as IoError, ErrorKind, Result as IoResult};
+use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_native_tls::{TlsStream, native_tls::Identity};
 
 use crate::{
