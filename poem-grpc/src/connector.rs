@@ -131,13 +131,13 @@ async fn do_connect(
         .unwrap_or_else(|| if scheme == Scheme::HTTPS { 443 } else { 80 });
 
     if scheme == Scheme::HTTP {
-        let stream = TcpStream::connect(format!("{}:{}", host, port)).await?;
+        let stream = TcpStream::connect(format!("{host}:{port}")).await?;
         Ok(MaybeHttpsStream::TcpStream(TokioIo::new(stream)))
     } else if scheme == Scheme::HTTPS {
         let mut tls_config = tls_config.unwrap_or_else(default_tls_config);
         tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
         let connector = TlsConnector::from(Arc::new(tls_config));
-        let stream = TcpStream::connect(format!("{}:{}", host, port)).await?;
+        let stream = TcpStream::connect(format!("{host}:{port}")).await?;
         let domain = host.try_into().map_err(IoError::other)?;
         let mut is_http2 = false;
         let stream = connector

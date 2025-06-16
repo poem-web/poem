@@ -208,7 +208,7 @@ pub trait DynEndpoint: Send + Sync {
     type Output: IntoResponse;
 
     /// Get the response to the request.
-    fn call(&self, req: Request) -> BoxFuture<Result<Self::Output>>;
+    fn call(&self, req: Request) -> BoxFuture<'_, Result<Self::Output>>;
 }
 
 /// A [`Endpoint`] wrapper used to implement [`DynEndpoint`].
@@ -221,7 +221,7 @@ where
     type Output = E::Output;
 
     #[inline]
-    fn call(&self, req: Request) -> BoxFuture<Result<Self::Output>> {
+    fn call(&self, req: Request) -> BoxFuture<'_, Result<Self::Output>> {
         self.0.call(req).boxed()
     }
 }

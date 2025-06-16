@@ -485,7 +485,7 @@ impl CookieJar {
 
     /// Similar to the `private_with_key` function, but using the key specified
     /// by the `CookieJarManager::with_key`.
-    pub fn private(&self) -> PrivateCookieJar {
+    pub fn private(&self) -> PrivateCookieJar<'_> {
         self.private_with_key(
             self.key
                 .as_ref()
@@ -532,7 +532,7 @@ impl CookieJar {
 
     /// Similar to the `signed_with_key` function, but using the key specified
     /// by the `CookieJarManager::with_key`.
-    pub fn signed(&self) -> SignedCookieJar {
+    pub fn signed(&self) -> SignedCookieJar<'_> {
         self.signed_with_key(
             self.key
                 .as_ref()
