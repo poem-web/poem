@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bump `tokio-tungstenite` to `0.27`
 - Bump `opentelemetry`
+- Bump `x509-parser` to `0.17`
 
 # [3.1.11] 2025-06-06
 
