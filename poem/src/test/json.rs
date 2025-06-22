@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 pub struct TestJson(Value);
 
 impl TestJson {
-    /// Returns a reference the value.
+    /// Returns a reference to the value.
     #[inline]
     pub fn value(&self) -> TestJsonValue<'_> {
         TestJsonValue(&self.0)
@@ -133,17 +133,17 @@ impl<'a> TestJsonValue<'a> {
         self.array().iter().map(|value| value.string()).collect()
     }
 
-    /// Asserts that the value is an array and return `TestJsonArray`.
+    /// Asserts that the value is an array and returns `TestJsonArray`.
     pub fn array(&self) -> TestJsonArray<'a> {
         TestJsonArray(self.0.as_array().expect("array"))
     }
 
-    /// Asserts that the value is an object and return `TestJsonArray`.
+    /// Asserts that the value is an object and returns `TestJsonArray`.
     pub fn object(&self) -> TestJsonObject<'a> {
         TestJsonObject(self.0.as_object().expect("object"))
     }
 
-    /// Asserts that the value is an object array and return
+    /// Asserts that the value is an object array and returns
     /// `Vec<TestJsonObject>`.
     pub fn object_array(&self) -> Vec<TestJsonObject<'a>> {
         self.array().iter().map(|value| value.object()).collect()
@@ -198,7 +198,7 @@ impl<'a> TestJsonArray<'a> {
     }
 
     /// Returns the element at index `idx`, or `None` if the element does not
-    /// exists exists.
+    /// exist.
     pub fn get_opt(&self, idx: usize) -> Option<TestJsonValue<'a>> {
         self.0.get(idx).map(TestJsonValue)
     }
@@ -208,7 +208,7 @@ impl<'a> TestJsonArray<'a> {
         self.0.iter().map(TestJsonValue)
     }
 
-    /// Asserts the array length is equals to `len`.
+    /// Asserts the array length is equal to `len`.
     #[track_caller]
     pub fn assert_len(&self, len: usize) {
         assert_eq!(self.len(), len);
@@ -264,7 +264,7 @@ impl<'a> TestJsonObject<'a> {
     }
 
     /// Returns the element corresponding to the `name`, or `None` if the
-    /// element does not exists exists.
+    /// element does not exist.
     pub fn get_opt(&self, name: impl AsRef<str>) -> Option<TestJsonValue<'a>> {
         self.0.get(name.as_ref()).map(TestJsonValue)
     }
@@ -274,7 +274,7 @@ impl<'a> TestJsonObject<'a> {
         self.0.iter().map(|(k, v)| (k, TestJsonValue(v)))
     }
 
-    /// Asserts the object length is equals to `len`.
+    /// Asserts the object length is equal to `len`.
     #[track_caller]
     pub fn assert_len(&self, len: usize) {
         assert_eq!(self.len(), len);

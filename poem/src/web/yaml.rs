@@ -8,7 +8,7 @@ use crate::{
     web::RequestBody,
 };
 
-/// JSON extractor and response.
+/// YAML extractor and response.
 ///
 /// To extract the specified type of YAML from the body, `T` must implement
 /// [`serde::Deserialize`].
