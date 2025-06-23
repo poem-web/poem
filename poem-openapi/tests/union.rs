@@ -22,7 +22,7 @@ fn get_meta_by_name<T: Type>(name: &str) -> MetaSchema {
 #[test]
 fn with_discriminator() {
     #[derive(Object, Debug, PartialEq)]
-    struct A {
+    struct AContents {
         v1: i32,
         v2: String,
     }
@@ -35,7 +35,7 @@ fn with_discriminator() {
     #[derive(Union, Debug, PartialEq)]
     #[oai(discriminator_name = "type")]
     enum MyObj {
-        A(A),
+        A(AContents),
         B(B),
     }
 
@@ -79,7 +79,7 @@ fn with_discriminator() {
                     )],
                     ..MetaSchema::new("object")
                 })),
-                MetaSchemaRef::Reference("A".to_string()),
+                MetaSchemaRef::Reference("AContents".to_string()),
             ],
             ..MetaSchema::ANY
         }
@@ -116,14 +116,14 @@ fn with_discriminator() {
             "v2": "hello",
         })))
         .unwrap(),
-        MyObj::A(A {
+        MyObj::A(AContents {
             v1: 100,
             v2: "hello".to_string()
         })
     );
 
     assert_eq!(
-        MyObj::A(A {
+        MyObj::A(AContents {
             v1: 100,
             v2: "hello".to_string()
         })
@@ -559,17 +559,17 @@ fn rename_all() {
                 mapping: vec![
                     (
                         "putInt".to_string(),
-                        "#/components/schemas/MyObj_A".to_string()
+                        "#/components/schemas/MyObj_PutInt".to_string()
                     ),
                     (
                         "putString".to_string(),
-                        "#/components/schemas/MyObj_B".to_string()
+                        "#/components/schemas/MyObj_PutString".to_string()
                     ),
                 ]
             }),
             any_of: vec![
-                MetaSchemaRef::Reference("MyObj_A".to_string()),
-                MetaSchemaRef::Reference("MyObj_B".to_string()),
+                MetaSchemaRef::Reference("MyObj_PutInt".to_string()),
+                MetaSchemaRef::Reference("MyObj_PutString".to_string()),
             ],
             ..MetaSchema::ANY
         }
@@ -841,6 +841,93 @@ fn with_externally_tagged_mapping() {
             "d": {
                 "v3": true,
             }
+        }))
+    );
+}
+
+#[test]
+fn with_externally_tagged_primitives() {
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(externally_tagged)]
+    enum MyObj {
+        A(String),
+        B(bool),
+    }
+
+    let schema = get_meta::<MyObj>();
+
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::with_externally_tagged_primitives::MyObj"),
+            ty: "object",
+            any_of: vec![
+                MetaSchemaRef::Reference("MyObj_A".to_string()),
+                MetaSchemaRef::Reference("MyObj_B".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_a = get_meta_by_name::<MyObj>("MyObj_A");
+    assert_eq!(
+        schema_myobj_a,
+        MetaSchema {
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["A"],
+                properties: vec![(
+                    "A",
+                    MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
+                )],
+                ..MetaSchema::new("object")
+            })),],
+            ..MetaSchema::ANY
+        }
+    );
+
+    let schema_myobj_b = get_meta_by_name::<MyObj>("MyObj_B");
+    assert_eq!(
+        schema_myobj_b,
+        MetaSchema {
+            all_of: vec![MetaSchemaRef::Inline(Box::new(MetaSchema {
+                required: vec!["B"],
+                properties: vec![(
+                    "B",
+                    MetaSchemaRef::Inline(Box::new(MetaSchema::new("boolean")))
+                )],
+                ..MetaSchema::new("object")
+            })),],
+            ..MetaSchema::ANY
+        }
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "A":"hello",
+        })))
+        .unwrap(),
+        MyObj::A("hello".to_string())
+    );
+
+    assert_eq!(
+        MyObj::B(true).to_json(),
+        Some(json!({
+            "B": true,
+        }))
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "A": "hello",
+        })))
+        .unwrap(),
+        MyObj::A("hello".to_string())
+    );
+
+    assert_eq!(
+        MyObj::B(true).to_json(),
+        Some(json!({
+            "B": true,
         }))
     );
 }
