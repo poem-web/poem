@@ -32,7 +32,7 @@
 [dependencies]
 poem-mcpserver.workspace = "*"
 serde = { version = "1.0", features = ["derive"] }
-schemars = "0.8.22"
+schemars = "1.0"
 ```
 
 ```rust
