@@ -56,7 +56,7 @@ async-stream = "0.3.6"
 tokio-util = "0.7.14"
 rand = "0.9.0"
 time = "0.3.39"
-schemars = "0.9"
+schemars = "1.0"
 
 # rustls, update together
 rustls = "0.23"
