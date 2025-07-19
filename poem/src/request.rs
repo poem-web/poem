@@ -489,7 +489,7 @@ impl AsyncRead for Upgraded {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut hyper_util::rt::TokioIo::new(self.project().stream)).poll_read(cx, buf)
+        Pin::new(&mut hyper_tokio_io::TokioIo::new(self.project().stream)).poll_read(cx, buf)
     }
 }
 

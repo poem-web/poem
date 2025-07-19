@@ -457,7 +457,7 @@ where
         .max_header_list_size(http2_max_header_list_size);
 
     let conn =
-        builder.serve_connection_with_upgrades(hyper_util::rt::TokioIo::new(socket), service);
+        builder.serve_connection_with_upgrades(hyper_tokio_io::TokioIo::new(socket), service);
     futures_util::pin_mut!(conn);
 
     tokio::select! {
