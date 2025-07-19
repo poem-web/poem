@@ -75,6 +75,42 @@ pub struct RequestParts {
     pub(crate) state: RequestState,
 }
 
+impl From<(http::request::Parts, LocalAddr, RemoteAddr, Scheme)> for RequestParts {
+    fn from(
+        (parts, local_addr, remote_addr, scheme): (
+            http::request::Parts,
+            LocalAddr,
+            RemoteAddr,
+            Scheme,
+        ),
+    ) -> Self {
+        let mut parts = parts;
+        let on_upgrade = Mutex::new(
+            parts
+                .extensions
+                .remove::<hyper::upgrade::OnUpgrade>()
+                .map(|fut| OnUpgrade { fut }),
+        );
+
+        Self {
+            method: parts.method,
+            uri: parts.uri.clone(),
+            version: parts.version,
+            headers: parts.headers,
+            extensions: parts.extensions,
+            state: RequestState {
+                local_addr,
+                remote_addr,
+                scheme,
+                original_uri: parts.uri,
+                match_params: Default::default(),
+                #[cfg(feature = "cookie")]
+                cookie_jar: None,
+                on_upgrade,
+            },
+        }
+    }
+}
 impl Debug for RequestParts {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("RequestParts")
