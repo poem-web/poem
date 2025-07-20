@@ -3,9 +3,9 @@ use poem::{FromRequest, Request, RequestBody};
 use serde::de::DeserializeOwned;
 use worker::{Cf, TlsClientAuth};
 
-pub struct Cloudflareroperties(Cf);
+pub struct CloudflareProperties(Cf);
 
-impl Cloudflareroperties {
+impl CloudflareProperties {
     pub fn colo(&self) -> String {
         self.0.colo()
     }
@@ -79,7 +79,7 @@ impl Cloudflareroperties {
     }
 }
 
-impl<'a> FromRequest<'a> for Cloudflareroperties {
+impl<'a> FromRequest<'a> for CloudflareProperties {
     async fn from_request(req: &'a Request, _body: &mut RequestBody) -> Result<Self, poem::Error> {
         let cf = req.data::<Cf>().ok_or_else(|| {
             poem::Error::from_string(
@@ -88,6 +88,6 @@ impl<'a> FromRequest<'a> for Cloudflareroperties {
             )
         })?;
 
-        Ok(Cloudflareroperties(cf.clone()))
+        Ok(CloudflareProperties(cf.clone()))
     }
 }
