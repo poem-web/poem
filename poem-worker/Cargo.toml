@@ -21,3 +21,7 @@ async-trait = "0.1.88"
 poem = { workspace = true, default-features = false }
 
 tokio = { workspace = true }
+
+[features]
+queue = ["worker/queue"]
+d1 = ["worker/d1"]

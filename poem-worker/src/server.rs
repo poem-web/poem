@@ -17,6 +17,8 @@ pub async fn fetch(
         poem_req.set_data(cf);
     }
 
+    poem_req.set_data(crate::Env::new(_env));
+
     // TODO: handle error
     let app = SERVER_INSTANCE.get().unwrap();
 

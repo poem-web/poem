@@ -1,9 +1,9 @@
 use poem::{get, handler, web::Path, Route};
-use poem_worker::Server;
+use poem_worker::{Cloudflareroperties, Server};
 use worker::event;
 
 #[handler]
-fn hello(Path(name): Path<String>) -> String {
+fn hello(Path(name): Path<String>, _cf: Cloudflareroperties) -> String {
     format!("hello: {}", name)
 }
 
