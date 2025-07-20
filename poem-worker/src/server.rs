@@ -3,7 +3,7 @@ use poem::endpoint::Endpoint;
 use tokio::sync::OnceCell;
 
 #[worker::event(fetch)]
-async fn fetch(
+pub async fn fetch(
     request: worker::Request,
     _env: worker::Env,
     _ctx: worker::Context,

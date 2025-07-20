@@ -6,4 +6,3 @@ pub use cloudflare::*;
 
 mod server;
 pub use server::*;
-pub use worker;
