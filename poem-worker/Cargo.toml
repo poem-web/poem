@@ -20,4 +20,4 @@ async-trait = "0.1.88"
 
 poem = { workspace = true, default-features = true }
 
-tokio = { workspace = true, features = ["io-util", "rt", "sync", "net"] }
+tokio = { workspace = true }
