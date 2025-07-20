@@ -1,0 +1,6 @@
+name = "worker-hello-world"
+main = "build/worker/shim.mjs"
+compatibility_date = "2025-07-20"
+
+[build]
+command = "worker-build --release"
