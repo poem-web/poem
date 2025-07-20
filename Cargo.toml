@@ -9,7 +9,8 @@ members = [
     "poem-grpc-build",
     "poem-grpc",
     "poem-mcpserver",
-    "poem-mcpserver-macros", "poem-worker",
+    "poem-mcpserver-macros",
+    "poem-worker",
 ]
 
 [workspace.package]

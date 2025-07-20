@@ -16,7 +16,7 @@ bytes = { workspace = true }
 http = { workspace = true }
 http-body = "1.0.1"
 http-body-util = "0.1.0"
-async-trait = "0.1"
+async-trait = "0.1.88"
 
 poem = { workspace = true, default-features = true }
 
