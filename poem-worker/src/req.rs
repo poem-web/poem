@@ -3,8 +3,8 @@ use std::net::{IpAddr, SocketAddr};
 use http::uri::Scheme;
 use http_body_util::combinators::BoxBody;
 use poem::{
-    web::{LocalAddr, RemoteAddr},
     Request,
+    web::{LocalAddr, RemoteAddr},
 };
 use worker::{HttpRequest, Result};
 
