@@ -29,7 +29,7 @@ impl Body for WorkerBody {
             Poll::Ready(Some(Ok(r))) => Poll::Ready(Some(Ok(r))),
             Poll::Ready(Some(Err(e))) => match e {
                 worker::Error::Io(e) => {
-                    Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, e))))
+                    Poll::Ready(Some(Err(io::Error::other(e))))
                 }
                 _ => Poll::Ready(Some(Err(io::Error::other(e)))),
             },
@@ -48,7 +48,7 @@ impl Body for WorkerBody {
 pub fn build_worker_body(body: poem::Body) -> Result<worker::Body, worker::Error> {
     let stream = body.into_bytes_stream();
 
-    let res = worker::Body::from_stream(stream);
+    
 
-    res
+    worker::Body::from_stream(stream)
 }

@@ -47,6 +47,12 @@ type BoxedGetResponseInner = Box<dyn GetResponseInner>;
 
 static SERVER_INSTANCE: OnceCell<BoxedGetResponseInner> = OnceCell::const_new();
 
+impl Default for Server {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Server {
     pub fn new() -> Self {
         Self {}
@@ -55,7 +61,7 @@ impl Server {
     pub fn run(&self, app: impl Endpoint + 'static) {
         SERVER_INSTANCE
             .set(Box::new(app))
-            .map_err(|_| format!("Server instance can only be set once"))
+            .map_err(|_| "Server instance can only be set once".to_string())
             .unwrap();
     }
 }
