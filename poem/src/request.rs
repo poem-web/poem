@@ -10,6 +10,7 @@ use std::{
 use http::uri::Scheme;
 use http_body_util::BodyExt;
 use hyper::{body::Incoming, rt::Write as _};
+use hyper_util::rt::TokioIo;
 use parking_lot::Mutex;
 use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -525,7 +526,7 @@ impl AsyncRead for Upgraded {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut hyper_tokio_io::TokioIo::new(self.project().stream)).poll_read(cx, buf)
+        Pin::new(&mut TokioIo::new(self.project().stream)).poll_read(cx, buf)
     }
 }
 

@@ -82,8 +82,7 @@ bytes.workspace = true
 futures-util = { workspace = true, features = ["sink"] }
 http.workspace = true
 hyper = { version = "1.0.0", features = ["http1", "http2"] }
-hyper-util = { version = "0.1.6" }
-hyper-tokio-io = "0.1"
+hyper-util = { version = "0.1.16", features = ["tokio"] }
 http-body-util = "0.1.0"
 tokio = { workspace = true, features = ["sync", "time", "macros"] }
 tokio-util = { workspace = true, features = ["io"] }
