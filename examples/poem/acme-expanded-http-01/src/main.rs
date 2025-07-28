@@ -21,7 +21,7 @@ use tokio::{spawn, time::sleep};
 
 #[handler]
 fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
+    format!("hello: {name}")
 }
 
 #[tokio::main]
@@ -55,7 +55,7 @@ async fn main() -> Result<(), std::io::Error> {
                     {
                         Ok(result) => result.rustls_key,
                         Err(err) => {
-                            eprintln!("failed to issue certificate: {}", err);
+                            eprintln!("failed to issue certificate: {err}");
                             sleep(Duration::from_secs(60 * 5)).await;
                             continue;
                         }

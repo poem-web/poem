@@ -14,11 +14,11 @@ pub fn build_poem_req(req: HttpRequest) -> Result<poem::Request> {
     let local_addr = if let Some(client_ip) = headers.get("cf-connecting-ip") {
         let client_ip = client_ip
             .to_str()
-            .map_err(|e| worker::Error::RustError(format!("{}", e)))?;
+            .map_err(|e| worker::Error::RustError(format!("{e}")))?;
 
         let ip_addr = client_ip
             .parse::<IpAddr>()
-            .map_err(|e| worker::Error::RustError(format!("{}", e)))?;
+            .map_err(|e| worker::Error::RustError(format!("{e}")))?;
 
         let addr = SocketAddr::new(ip_addr, 0);
 
