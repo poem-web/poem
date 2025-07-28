@@ -92,17 +92,17 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
         if path.is_empty() && !original_end_with_slash {
             Ok(Response::builder()
                 .status(StatusCode::FOUND)
-                .header(LOCATION, format!("{}/", original_path))
+                .header(LOCATION, format!("{original_path}/"))
                 .finish())
         } else if original_end_with_slash {
-            let path = format!("{}index.html", path);
+            let path = format!("{path}index.html");
             EmbeddedFileEndpoint::<E>::new(&path).call(req).await
         } else if E::get(path).is_some() {
             EmbeddedFileEndpoint::<E>::new(path).call(req).await
-        } else if E::get(&format!("{}/index.html", path)).is_some() {
+        } else if E::get(&format!("{path}/index.html")).is_some() {
             Ok(Response::builder()
                 .status(StatusCode::FOUND)
-                .header(LOCATION, format!("{}/", original_path))
+                .header(LOCATION, format!("{original_path}/"))
                 .finish())
         } else {
             EmbeddedFileEndpoint::<E>::new(path).call(req).await

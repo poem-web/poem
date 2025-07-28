@@ -95,7 +95,7 @@ impl proto::Health for HealthService {
         Ok(Response::new(Streaming::new(async_stream::try_stream! {
             while let Some(service_status) = stream.next().await {
                 let res = service_status.get(&service_name);
-                let status = res.ok_or_else(|| Status::new(Code::NotFound).with_message(format!("service `{}` not found", service_name)))?
+                let status = res.ok_or_else(|| Status::new(Code::NotFound).with_message(format!("service `{service_name}` not found")))?
                     .to_proto()
                     .into();
                 yield proto::HealthCheckResponse { status };

@@ -2,7 +2,7 @@ fn normalize_path(path: &str) -> String {
     if path.is_empty() {
         "/".to_string()
     } else if !path.starts_with('/') {
-        format!("/{}", path)
+        format!("/{path}")
     } else {
         path.to_string()
     }

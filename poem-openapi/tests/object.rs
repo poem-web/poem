@@ -199,7 +199,7 @@ fn field_deprecated() {
     }
 
     let meta = get_meta::<Obj>();
-    assert_eq!(meta.properties[0].1.unwrap_inline().deprecated, true);
+    assert!(meta.properties[0].1.unwrap_inline().deprecated);
 }
 
 #[test]

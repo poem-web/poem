@@ -6,6 +6,7 @@ use poem::{
 use crate::{auth::BearerAuthorization, error::AuthorizationError};
 
 /// Used to extract the token68 from the request.
+#[derive(Debug)]
 pub struct Bearer {
     /// token
     pub token: String,

@@ -1,0 +1,17 @@
+[package]
+name = "examples-worker-hello-world"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { version = "0.6.0" }
+poem = { path = "../../../poem", default-features = false }
+poem-worker = { path = "../../../poem-worker" }

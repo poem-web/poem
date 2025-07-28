@@ -86,8 +86,7 @@ impl Tools for NoTools {
     #[inline]
     async fn call(&mut self, name: &str, _arguments: Value) -> Result<ToolsCallResponse, RpcError> {
         Err(RpcError::method_not_found(format!(
-            "tool '{}' not found",
-            name
+            "tool '{name}' not found"
         )))
     }
 }

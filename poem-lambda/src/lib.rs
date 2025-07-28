@@ -7,7 +7,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
 
-use std::{io::ErrorKind, ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc};
 
 pub use lambda_http::lambda_runtime::Error;
 use lambda_http::{
@@ -73,7 +73,7 @@ pub async fn run(ep: impl IntoEndpoint) -> Result<(), Error> {
             let data = body
                 .into_vec()
                 .await
-                .map_err(|_| std::io::Error::new(ErrorKind::Other, "invalid request"))?;
+                .map_err(|_| std::io::Error::other("invalid request"))?;
             let mut lambda_resp = poem::http::Response::new(if data.is_empty() {
                 LambdaBody::Empty
             } else {

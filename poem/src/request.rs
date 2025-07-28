@@ -10,6 +10,7 @@ use std::{
 use http::uri::Scheme;
 use http_body_util::BodyExt;
 use hyper::{body::Incoming, rt::Write as _};
+use hyper_util::rt::TokioIo;
 use parking_lot::Mutex;
 use serde::de::DeserializeOwned;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -75,6 +76,42 @@ pub struct RequestParts {
     pub(crate) state: RequestState,
 }
 
+impl From<(http::request::Parts, LocalAddr, RemoteAddr, Scheme)> for RequestParts {
+    fn from(
+        (parts, local_addr, remote_addr, scheme): (
+            http::request::Parts,
+            LocalAddr,
+            RemoteAddr,
+            Scheme,
+        ),
+    ) -> Self {
+        let mut parts = parts;
+        let on_upgrade = Mutex::new(
+            parts
+                .extensions
+                .remove::<hyper::upgrade::OnUpgrade>()
+                .map(|fut| OnUpgrade { fut }),
+        );
+
+        Self {
+            method: parts.method,
+            uri: parts.uri.clone(),
+            version: parts.version,
+            headers: parts.headers,
+            extensions: parts.extensions,
+            state: RequestState {
+                local_addr,
+                remote_addr,
+                scheme,
+                original_uri: parts.uri,
+                match_params: Default::default(),
+                #[cfg(feature = "cookie")]
+                cookie_jar: None,
+                on_upgrade,
+            },
+        }
+    }
+}
 impl Debug for RequestParts {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("RequestParts")
@@ -489,7 +526,7 @@ impl AsyncRead for Upgraded {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut hyper_util::rt::TokioIo::new(self.project().stream)).poll_read(cx, buf)
+        Pin::new(&mut TokioIo::new(self.project().stream)).poll_read(cx, buf)
     }
 }
 

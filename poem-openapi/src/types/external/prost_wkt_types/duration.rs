@@ -104,7 +104,7 @@ mod tests {
         for case in invalid_cases {
             let result = Duration::parse_from_json(Some(Value::String(case.to_string())));
             dbg!(&result);
-            assert!(result.is_err(), "Should have failed for: {}", case);
+            assert!(result.is_err(), "Should have failed for: {case}");
         }
     }
 

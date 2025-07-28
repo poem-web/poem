@@ -1,5 +1,5 @@
 use std::{
-    io::{Error as IoError, ErrorKind, Result as IoResult},
+    io::{Error as IoError, Result as IoResult},
     sync::Arc,
 };
 
@@ -172,12 +172,7 @@ impl AcmeClient {
         Ok(resp
             .bytes()
             .await
-            .map_err(|err| {
-                IoError::new(
-                    ErrorKind::Other,
-                    format!("failed to download certificate: {err}"),
-                )
-            })?
+            .map_err(|err| IoError::other(format!("failed to download certificate: {err}")))?
             .to_vec())
     }
 }
@@ -185,20 +180,23 @@ impl AcmeClient {
 async fn get_directory(client: &Client, directory_url: &str) -> IoResult<Directory> {
     tracing::debug!("loading directory");
 
-    let resp = client.get(directory_url).send().await.map_err(|err| {
-        IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
-    })?;
+    let resp = client
+        .get(directory_url)
+        .send()
+        .await
+        .map_err(|err| IoError::other(format!("failed to load directory: {err}")))?;
 
     if !resp.status().is_success() {
-        return Err(IoError::new(
-            ErrorKind::Other,
-            format!("failed to load directory: status = {}", resp.status()),
-        ));
+        return Err(IoError::other(format!(
+            "failed to load directory: status = {}",
+            resp.status()
+        )));
     }
 
-    let directory = resp.json::<Directory>().await.map_err(|err| {
-        IoError::new(ErrorKind::Other, format!("failed to load directory: {err}"))
-    })?;
+    let directory = resp
+        .json::<Directory>()
+        .await
+        .map_err(|err| IoError::other(format!("failed to load directory: {err}")))?;
 
     tracing::debug!(
         new_nonce = ?directory.new_nonce,
@@ -216,13 +214,13 @@ async fn get_nonce(client: &Client, directory: &Directory) -> IoResult<String> {
         .get(&directory.new_nonce)
         .send()
         .await
-        .map_err(|err| IoError::new(ErrorKind::Other, format!("failed to get nonce: {err}")))?;
+        .map_err(|err| IoError::other(format!("failed to get nonce: {err}")))?;
 
     if !resp.status().is_success() {
-        return Err(IoError::new(
-            ErrorKind::Other,
-            format!("failed to load directory: status = {}", resp.status()),
-        ));
+        return Err(IoError::other(format!(
+            "failed to load directory: status = {}",
+            resp.status()
+        )));
     }
 
     let nonce = resp
@@ -263,7 +261,7 @@ async fn create_acme_account(
         .get("location")
         .and_then(|value| value.to_str().ok())
         .map(ToString::to_string)
-        .ok_or_else(|| IoError::new(ErrorKind::Other, "unable to get account id"))?;
+        .ok_or_else(|| IoError::other("unable to get account id"))?;
 
     tracing::debug!(kid = kid.as_str(), "account created");
     Ok(kid)

@@ -1,0 +1,27 @@
+[package]
+name = "poem-worker"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+worker = { version = "0.6.0", features = ["http"] }
+bytes = { workspace = true }
+http = { workspace = true }
+http-body = "1.0.1"
+http-body-util = "0.1.0"
+async-trait = "0.1.88"
+
+poem = { workspace = true, default-features = false }
+
+tokio = { workspace = true }
+
+[features]
+queue = ["worker/queue"]
+d1 = ["worker/d1"]

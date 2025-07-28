@@ -1,5 +1,5 @@
 use std::{
-    io::{Error, ErrorKind, Result},
+    io::{Error, Result},
     marker::PhantomData,
 };
 
@@ -49,9 +49,7 @@ where
     type Item = T;
 
     fn encode(&mut self, message: Self::Item, buf: &mut BytesMut) -> Result<()> {
-        message
-            .encode(buf)
-            .map_err(|err| Error::new(ErrorKind::Other, err))
+        message.encode(buf).map_err(Error::other)
     }
 }
 
@@ -65,6 +63,6 @@ where
     type Item = U;
 
     fn decode(&mut self, buf: &[u8]) -> Result<Self::Item> {
-        U::decode(buf).map_err(|err| Error::new(ErrorKind::Other, err))
+        U::decode(buf).map_err(Error::other)
     }
 }

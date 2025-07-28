@@ -1,5 +1,5 @@
 use std::{
-    io::{Error, ErrorKind, Result},
+    io::{Error, Result},
     marker::PhantomData,
 };
 
@@ -54,8 +54,7 @@ where
 
     fn encode(&mut self, item: Self::Item, buf: &mut BytesMut) -> Result<()> {
         let mut ser = serde_json::Serializer::new(buf.writer());
-        item.serialize(&mut ser)
-            .map_err(|err| Error::new(ErrorKind::Other, err))
+        item.serialize(&mut ser).map_err(Error::other)
     }
 }
 
@@ -67,7 +66,7 @@ impl<U: DeserializeOwned + Send + 'static> Decoder for JsonDecoder<U> {
 
     fn decode(&mut self, buf: &[u8]) -> Result<Self::Item> {
         let mut de = serde_json::Deserializer::from_slice(buf);
-        U::deserialize(&mut de).map_err(|err| Error::new(ErrorKind::Other, err))
+        U::deserialize(&mut de).map_err(Error::other)
     }
 }
 
@@ -116,7 +115,7 @@ where
     fn encode(&mut self, item: Self::Item, buf: &mut BytesMut) -> Result<()> {
         let mut ser = serde_json::Serializer::new(buf.writer());
         item.serialize(i64string_serializer::I64ToStringSerializer(&mut ser))
-            .map_err(|err| Error::new(ErrorKind::Other, err))
+            .map_err(Error::other)
     }
 }
 
@@ -129,6 +128,6 @@ impl<U: DeserializeOwned + Send + 'static> Decoder for JsonI64ToStringDecoder<U>
     fn decode(&mut self, buf: &[u8]) -> Result<Self::Item> {
         let mut de = serde_json::Deserializer::from_slice(buf);
         U::deserialize(i64string_deserializer::I64ToStringDeserializer(&mut de))
-            .map_err(|err| Error::new(ErrorKind::Other, err))
+            .map_err(Error::other)
     }
 }

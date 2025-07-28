@@ -505,7 +505,7 @@ impl<T> RadixTree<T> {
         }
     }
 
-    pub(crate) fn matches(&self, path: &str) -> Option<Matches<T>> {
+    pub(crate) fn matches(&self, path: &str) -> Option<Matches<'_, T>> {
         if path.is_empty() {
             return None;
         }

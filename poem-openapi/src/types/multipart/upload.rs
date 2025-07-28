@@ -6,7 +6,7 @@ use std::{
 use poem::web::Field as PoemField;
 use tokio::{
     fs::File,
-    io::{AsyncRead, AsyncReadExt, AsyncSeek, Error as IoError, ErrorKind},
+    io::{AsyncRead, AsyncReadExt, AsyncSeek, Error as IoError},
 };
 
 use crate::{
@@ -64,13 +64,8 @@ impl Upload {
 
     /// Consumes this body object to return a [`String`] that contains all data.
     pub async fn into_string(self) -> Result<String, IoError> {
-        String::from_utf8(
-            self.into_vec()
-                .await
-                .map_err(|err| IoError::new(ErrorKind::Other, err))?
-                .to_vec(),
-        )
-        .map_err(|err| IoError::new(ErrorKind::Other, err))
+        String::from_utf8(self.into_vec().await.map_err(IoError::other)?.to_vec())
+            .map_err(IoError::other)
     }
 
     /// Consumes this body object to return a reader.
