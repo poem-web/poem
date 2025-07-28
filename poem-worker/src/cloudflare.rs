@@ -10,11 +10,11 @@ impl CloudflareProperties {
         self.0.colo()
     }
 
-    pub fn asn(&self) -> u32 {
+    pub fn asn(&self) -> Option<u32> {
         self.0.asn()
     }
 
-    pub fn as_organization(&self) -> String {
+    pub fn as_organization(&self) -> Option<String> {
         self.0.as_organization()
     }
 
