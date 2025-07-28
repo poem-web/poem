@@ -21,7 +21,13 @@ categories = [
 [features]
 default = ["server"]
 
-server = ["tokio/rt", "tokio/net", "hyper/server"]
+server = [
+    "tokio/rt",
+    "tokio/net",
+    "hyper/server",
+    "hyper-util/server-auto",
+    "hyper-util/tokio",
+]
 websocket = ["tokio/rt", "tokio-tungstenite", "base64"]
 multipart = ["multer"]
 rustls = ["server", "tokio-rustls", "rustls-pemfile"]
@@ -76,9 +82,9 @@ bytes.workspace = true
 futures-util = { workspace = true, features = ["sink"] }
 http.workspace = true
 hyper = { version = "1.0.0", features = ["http1", "http2"] }
-hyper-util = { version = "0.1.6", features = ["server-auto", "tokio"] }
+hyper-util = { version = "0.1.16", features = ["tokio"] }
 http-body-util = "0.1.0"
-tokio = { workspace = true, features = ["sync", "time", "macros", "net"] }
+tokio = { workspace = true, features = ["sync", "time", "macros"] }
 tokio-util = { workspace = true, features = ["io"] }
 serde.workspace = true
 sonic-rs = { workspace = true, optional = true }
