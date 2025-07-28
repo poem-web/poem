@@ -222,7 +222,10 @@ impl I18NResources {
 pub struct I18NBundle(SmallVec<[Arc<FluentBundle>; 8]>);
 
 impl I18NBundle {
-    fn message(&self, id: impl AsRef<str>) -> Result<(&FluentBundle, FluentMessage), I18NError> {
+    fn message(
+        &self,
+        id: impl AsRef<str>,
+    ) -> Result<(&'_ FluentBundle, FluentMessage<'_>), I18NError> {
         let id = id.as_ref();
         for bundle in &self.0 {
             if let Some(message) = bundle.get_message(id) {
