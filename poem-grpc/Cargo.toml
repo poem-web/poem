@@ -31,9 +31,9 @@ tokio = { workspace = true, features = ["io-util", "rt", "sync", "net"] }
 itoa = "1.0.2"
 percent-encoding = "2.1.0"
 bytes.workspace = true
-prost = "0.13.1"
+prost = "0.14"
 base64.workspace = true
-prost-types = "0.13.1"
+prost-types = "0.14"
 tokio-stream = { workspace = true, features = ["sync"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
