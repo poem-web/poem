@@ -7,13 +7,13 @@ publish.workspace = true
 [dependencies]
 poem = { workspace = true, features = ["tower-compat"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-prost = "0.13.1"
-tonic = "0.12.1"
+prost = "0.14"
+tonic = "0.14"
 tracing-subscriber.workspace = true
 tower = { version = "0.4.8", features = ["buffer"] }
 
 [build-dependencies]
-tonic-build = "0.12.1"
+tonic-build = "0.14"
 
 [[bin]]
 name = "example-tonic-client"
