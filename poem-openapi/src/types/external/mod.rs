@@ -31,6 +31,7 @@ mod sqlx;
 mod string;
 #[cfg(feature = "time")]
 mod time;
+mod unit;
 mod uri;
 #[cfg(feature = "url")]
 mod url;
