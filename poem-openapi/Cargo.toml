@@ -66,6 +66,7 @@ chrono = { workspace = true, optional = true, default-features = false, features
 time = { workspace = true, optional = true, features = [
   "parsing",
   "formatting",
+  "macros",
 ] }
 uuid = { version = "1.1.0", optional = true }
 url = { version = "2.2.2", optional = true }
