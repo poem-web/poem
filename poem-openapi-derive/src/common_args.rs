@@ -124,18 +124,6 @@ impl APIMethod {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromMeta, Eq, PartialEq)]
-pub(crate) enum ParamIn {
-    #[darling(rename = "path")]
-    Path,
-    #[darling(rename = "query")]
-    Query,
-    #[darling(rename = "header")]
-    Header,
-    #[darling(rename = "cookie")]
-    Cookie,
-}
-
 #[derive(Debug)]
 pub(crate) enum DefaultValue {
     Default,
