@@ -94,7 +94,7 @@ where
             .with_attributes(attributes)
             .start_with_context(&*self.tracer, &parent_cx);
 
-        span.add_event("request.started".to_string(), vec![]);
+        span.add_event("request.started", vec![]);
 
         async move {
             let res = self.inner.call(req).await;
@@ -114,7 +114,7 @@ where
                         ));
                     }
 
-                    span.add_event("request.completed".to_string(), vec![]);
+                    span.add_event("request.completed", vec![]);
                     span.set_attribute(KeyValue::new(
                         attribute::HTTP_RESPONSE_STATUS_CODE,
                         resp.status().as_u16() as i64,
@@ -144,7 +144,7 @@ where
                         err.status().as_u16() as i64,
                     ));
                     span.add_event(
-                        "request.error".to_string(),
+                        "request.error",
                         vec![KeyValue::new(attribute::EXCEPTION_MESSAGE, err.to_string())],
                     );
                     Err(err)
