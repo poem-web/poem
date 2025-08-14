@@ -73,15 +73,6 @@ where
 
         let mut attributes = Vec::new();
         attributes.push(KeyValue::new(
-            resource::TELEMETRY_SDK_NAME,
-            env!("CARGO_CRATE_NAME"),
-        ));
-        attributes.push(KeyValue::new(
-            resource::TELEMETRY_SDK_VERSION,
-            env!("CARGO_PKG_VERSION"),
-        ));
-        attributes.push(KeyValue::new(resource::TELEMETRY_SDK_LANGUAGE, "rust"));
-        attributes.push(KeyValue::new(
             attribute::HTTP_REQUEST_METHOD,
             req.method().to_string(),
         ));
