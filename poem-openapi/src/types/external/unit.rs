@@ -66,3 +66,57 @@ impl ToHeader for () {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn type_name() {
+        assert_eq!(<()>::name(), "unit");
+    }
+
+    #[test]
+    fn parse_from_json_none() {
+        assert_eq!(
+            <()>::parse_from_json(None).expect("failed to parse 'None'"),
+            ()
+        );
+    }
+
+    #[test]
+    fn parse_from_json_value_null() {
+        assert_eq!(
+            <()>::parse_from_json(Some(Value::Null)).expect("failed to parse 'Value::Null'"),
+            ()
+        );
+    }
+
+    #[test]
+    fn parse_from_parameter() {
+        assert_eq!(
+            <()>::parse_from_parameter("").expect("failed to parse ''"),
+            ()
+        );
+    }
+
+    #[tokio::test]
+    async fn parse_from_multipart_none() {
+        assert_eq!(
+            <()>::parse_from_multipart(None)
+                .await
+                .expect("failed to parse 'None'"),
+            ()
+        );
+    }
+
+    #[test]
+    fn to_json() {
+        assert_eq!(().to_json(), Some(Value::Null));
+    }
+
+    #[test]
+    fn to_header() {
+        assert_eq!(().to_header(), None);
+    }
+}
