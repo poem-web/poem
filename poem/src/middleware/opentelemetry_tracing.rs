@@ -1,11 +1,11 @@
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use libopentelemetry::{
     Context, Key, KeyValue, global,
-    trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
+    trace::{FutureExt, Span, SpanKind, Status, TraceContextExt, Tracer},
 };
 use opentelemetry_http::HeaderExtractor;
-use opentelemetry_semantic_conventions::{attribute, resource};
+use opentelemetry_semantic_conventions::attribute;
 
 use crate::{
     Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
