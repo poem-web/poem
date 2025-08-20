@@ -90,8 +90,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         let object_ty = &variant.fields.fields[0];
+        let format_string = format!("{{}}_{}", item_ident);
         let schema_name = quote! {
-            ::std::format!("{}_{}", <Self as #crate_name::types::Type>::name(), <#object_ty as #crate_name::types::Type>::name())
+            ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
         };
         let mapping_name = match &variant.mapping {
             Some(mapping) => mapping.clone(),
