@@ -168,11 +168,6 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
         if args.externally_tagged {
             create_schemas.push(quote! {
-                {
-                    fn __check_is_object_type<T: #crate_name::types::IsObjectType>() {}
-                    __check_is_object_type::<#object_ty>();
-                }
-
                 let schema = #crate_name::registry::MetaSchema {
                     description: #description,
                     all_of: ::std::vec![
