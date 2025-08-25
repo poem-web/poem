@@ -48,7 +48,7 @@ jobs:
           - 5432:5432
         options: -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=test_poem_sessions
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Use nightly Rust to check the format
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -82,7 +82,7 @@ jobs:
   check-examples:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
