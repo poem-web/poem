@@ -15,7 +15,7 @@ use std::{
 use futures_util::FutureExt;
 use http::uri::Scheme;
 use hyper::body::Incoming;
-use hyper_util::server::conn::auto;
+use hyper_util::server::conn::auto::{self, Http2Builder};
 use pin_project_lite::pin_project;
 use tokio::{
     io::{AsyncRead, AsyncWrite, ReadBuf, Result as IoResult},
@@ -45,6 +45,7 @@ pub struct Server<L, A> {
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
     http2_max_header_list_size: u32,
+    http2_customize: Option<Arc<dyn Http2ConfigCustomize>>,
 }
 
 impl<L: Listener> Server<L, Infallible> {
@@ -57,6 +58,7 @@ impl<L: Listener> Server<L, Infallible> {
             http2_max_concurrent_streams: None,
             http2_max_pending_accept_reset_streams: Some(20),
             http2_max_header_list_size: 16384,
+            http2_customize: None,
         }
     }
 }
@@ -71,6 +73,7 @@ impl<A: Acceptor> Server<Infallible, A> {
             http2_max_concurrent_streams: None,
             http2_max_pending_accept_reset_streams: Some(20),
             http2_max_header_list_size: 16384,
+            http2_customize: None,
         }
     }
 }
@@ -135,6 +138,20 @@ where
         }
     }
 
+    /// Customize the HTTP2 configuration with the provided closure.
+    pub fn http2_customize(
+        self,
+        customizer: impl Fn(&mut Http2Builder<'_, hyper_util::rt::TokioExecutor>)
+        + Send
+        + Sync
+        + 'static,
+    ) -> Self {
+        Self {
+            http2_customize: Some(Arc::new(customizer)),
+            ..self
+        }
+    }
+
     /// Run this server.
     pub async fn run<E>(self, ep: E) -> IoResult<()>
     where
@@ -164,6 +181,7 @@ where
             http2_max_concurrent_streams,
             http2_max_pending_accept_reset_streams,
             http2_max_header_list_size,
+            http2_customize,
         } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
@@ -214,6 +232,7 @@ where
                         let timeout_token = timeout_token.clone();
                         let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
                         let server_graceful_shutdown_token_clone = server_graceful_shutdown_token.clone();
+                        let http2_customize = http2_customize.clone();
 
                         let spawn_fut = AssertUnwindSafe(async move {
                             let serve_connection = serve_connection(ConnectionOptions{
@@ -227,6 +246,7 @@ where
                                 http2_max_concurrent_streams,
                                 http2_max_pending_accept_reset_streams,
                                 http2_max_header_list_size,
+                                http2_customize,
                             });
 
                             if timeout.is_some() {
@@ -267,6 +287,19 @@ where
 
         tracing::info!(name = name, "server stopped");
         Ok(())
+    }
+}
+
+trait Http2ConfigCustomize: Send + Sync {
+    fn customize(&self, builder: &mut Http2Builder<'_, hyper_util::rt::TokioExecutor>);
+}
+
+impl<F> Http2ConfigCustomize for F
+where
+    F: Fn(&mut Http2Builder<'_, hyper_util::rt::TokioExecutor>) + Send + Sync,
+{
+    fn customize(&self, builder: &mut Http2Builder<'_, hyper_util::rt::TokioExecutor>) {
+        (self)(builder)
     }
 }
 
@@ -392,6 +425,7 @@ struct ConnectionOptions<Io> {
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
     http2_max_header_list_size: u32,
+    http2_customize: Option<Arc<dyn Http2ConfigCustomize>>,
 }
 
 async fn serve_connection<Io>(opts: ConnectionOptions<Io>)
@@ -409,6 +443,7 @@ where
         http2_max_concurrent_streams,
         http2_max_pending_accept_reset_streams,
         http2_max_header_list_size,
+        http2_customize,
     } = opts;
 
     let connection_shutdown_token = CancellationToken::new();
@@ -455,6 +490,9 @@ where
             http2_max_pending_accept_reset_streams.map(|x| x as usize),
         )
         .max_header_list_size(http2_max_header_list_size);
+    if let Some(customizer) = http2_customize {
+        customizer.customize(builder);
+    }
 
     let conn =
         builder.serve_connection_with_upgrades(hyper_util::rt::TokioIo::new(socket), service);
