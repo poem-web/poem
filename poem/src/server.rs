@@ -45,7 +45,7 @@ pub struct Server<L, A> {
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
     http2_max_header_list_size: u32,
-    http2_customize: Option<Arc<dyn Http2ConfigCustomize>>,
+    http2_builder_customize: Option<Arc<dyn Http2BuilderCustomize>>,
 }
 
 impl<L: Listener> Server<L, Infallible> {
@@ -58,7 +58,7 @@ impl<L: Listener> Server<L, Infallible> {
             http2_max_concurrent_streams: None,
             http2_max_pending_accept_reset_streams: Some(20),
             http2_max_header_list_size: 16384,
-            http2_customize: None,
+            http2_builder_customize: None,
         }
     }
 }
@@ -73,7 +73,7 @@ impl<A: Acceptor> Server<Infallible, A> {
             http2_max_concurrent_streams: None,
             http2_max_pending_accept_reset_streams: Some(20),
             http2_max_header_list_size: 16384,
-            http2_customize: None,
+            http2_builder_customize: None,
         }
     }
 }
@@ -139,7 +139,7 @@ where
     }
 
     /// Customize the HTTP2 configuration with the provided closure.
-    pub fn http2_customize(
+    pub fn http2_builder_customize(
         self,
         customizer: impl Fn(&mut Http2Builder<'_, hyper_util::rt::TokioExecutor>)
         + Send
@@ -147,7 +147,7 @@ where
         + 'static,
     ) -> Self {
         Self {
-            http2_customize: Some(Arc::new(customizer)),
+            http2_builder_customize: Some(Arc::new(customizer)),
             ..self
         }
     }
@@ -181,7 +181,7 @@ where
             http2_max_concurrent_streams,
             http2_max_pending_accept_reset_streams,
             http2_max_header_list_size,
-            http2_customize,
+            http2_builder_customize,
         } = self;
         let name = name.as_deref();
         let alive_connections = Arc::new(AtomicUsize::new(0));
@@ -232,7 +232,7 @@ where
                         let timeout_token = timeout_token.clone();
                         let server_graceful_shutdown_token = server_graceful_shutdown_token.clone();
                         let server_graceful_shutdown_token_clone = server_graceful_shutdown_token.clone();
-                        let http2_customize = http2_customize.clone();
+                        let http2_builder_customize = http2_builder_customize.clone();
 
                         let spawn_fut = AssertUnwindSafe(async move {
                             let serve_connection = serve_connection(ConnectionOptions{
@@ -246,7 +246,7 @@ where
                                 http2_max_concurrent_streams,
                                 http2_max_pending_accept_reset_streams,
                                 http2_max_header_list_size,
-                                http2_customize,
+                                http2_builder_customize,
                             });
 
                             if timeout.is_some() {
@@ -290,11 +290,11 @@ where
     }
 }
 
-trait Http2ConfigCustomize: Send + Sync {
+trait Http2BuilderCustomize: Send + Sync {
     fn customize(&self, builder: &mut Http2Builder<'_, hyper_util::rt::TokioExecutor>);
 }
 
-impl<F> Http2ConfigCustomize for F
+impl<F> Http2BuilderCustomize for F
 where
     F: Fn(&mut Http2Builder<'_, hyper_util::rt::TokioExecutor>) + Send + Sync,
 {
@@ -425,7 +425,7 @@ struct ConnectionOptions<Io> {
     http2_max_concurrent_streams: Option<u32>,
     http2_max_pending_accept_reset_streams: Option<u32>,
     http2_max_header_list_size: u32,
-    http2_customize: Option<Arc<dyn Http2ConfigCustomize>>,
+    http2_builder_customize: Option<Arc<dyn Http2BuilderCustomize>>,
 }
 
 async fn serve_connection<Io>(opts: ConnectionOptions<Io>)
@@ -443,7 +443,7 @@ where
         http2_max_concurrent_streams,
         http2_max_pending_accept_reset_streams,
         http2_max_header_list_size,
-        http2_customize,
+        http2_builder_customize,
     } = opts;
 
     let connection_shutdown_token = CancellationToken::new();
@@ -490,7 +490,8 @@ where
             http2_max_pending_accept_reset_streams.map(|x| x as usize),
         )
         .max_header_list_size(http2_max_header_list_size);
-    if let Some(customizer) = http2_customize {
+
+    if let Some(customizer) = http2_builder_customize {
         customizer.customize(builder);
     }
 
