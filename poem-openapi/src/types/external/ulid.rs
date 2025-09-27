@@ -75,3 +75,82 @@ impl ToHeader for Ulid {
         HeaderValue::from_str(&self.to_string()).ok()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn type_name() {
+        assert_eq!(Ulid::name(), "ulid");
+    }
+
+    #[test]
+    fn parse_from_json_none() {
+        assert_eq!(
+            Ulid::parse_from_json(None)
+                .expect_err("unexpectedly succeeded in parsing `None`")
+                .message(),
+            ParseError::<Ulid>::expected_type(Value::Null).message()
+        );
+    }
+
+    #[test]
+    fn parse_from_json_value_null() {
+        assert_eq!(
+            Ulid::parse_from_json(Some(Value::Null))
+                .expect_err("unexpectedly succeeded in parsing `Value::Null`")
+                .message(),
+            ParseError::<Ulid>::expected_type(Value::Null).message()
+        );
+    }
+
+    #[test]
+    fn parse_from_json_value_string() {
+        let ulid = Ulid::new();
+
+        assert_eq!(
+            Ulid::parse_from_json(Some(Value::String(ulid.to_string())))
+                .expect("failed to parse ulid"),
+            ulid
+        );
+    }
+
+    #[test]
+    fn parse_from_parameter() {
+        let ulid = Ulid::new();
+
+        assert_eq!(
+            Ulid::parse_from_parameter(ulid.to_string().as_str()).expect("failed to parse ulid"),
+            ulid
+        );
+    }
+
+    #[tokio::test]
+    async fn parse_from_multipart_none() {
+        assert_eq!(
+            Ulid::parse_from_multipart(None)
+                .await
+                .expect_err("unexpectedly succeeded in parsing `None`")
+                .message(),
+            ParseError::<Ulid>::expected_input().message(),
+        );
+    }
+
+    #[test]
+    fn to_json() {
+        let ulid = Ulid::new();
+
+        assert_eq!(ulid.to_json(), Some(Value::String(ulid.to_string())));
+    }
+
+    #[test]
+    fn to_header() {
+        let ulid = Ulid::new();
+
+        assert_eq!(
+            ulid.to_header(),
+            HeaderValue::from_str(ulid.to_string().as_str()).ok()
+        );
+    }
+}
