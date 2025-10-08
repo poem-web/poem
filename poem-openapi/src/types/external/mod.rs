@@ -22,6 +22,7 @@ mod integers;
 mod ip;
 mod non_zero;
 mod optional;
+mod path_buf;
 #[cfg(feature = "prost-wkt-types")]
 mod prost_wkt_types;
 mod regex;
