@@ -13,6 +13,13 @@ pub trait IntoContent {
     fn into_content(self) -> Content;
 }
 
+impl IntoContent for Content {
+    #[inline]
+    fn into_content(self) -> Content {
+        self
+    }
+}
+
 /// Represents a type that can be converted into multiple contents.
 pub trait IntoContents {
     /// Consumes the object and converts it into multiple contents.
