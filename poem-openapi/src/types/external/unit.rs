@@ -78,36 +78,24 @@ mod tests {
 
     #[test]
     fn parse_from_json_none() {
-        assert_eq!(
-            <()>::parse_from_json(None).expect("failed to parse 'None'"),
-            ()
-        );
+        <()>::parse_from_json(None).expect("failed to parse 'None'");
     }
 
     #[test]
     fn parse_from_json_value_null() {
-        assert_eq!(
-            <()>::parse_from_json(Some(Value::Null)).expect("failed to parse 'Value::Null'"),
-            ()
-        );
+        <()>::parse_from_json(Some(Value::Null)).expect("failed to parse 'Value::Null'");
     }
 
     #[test]
     fn parse_from_parameter() {
-        assert_eq!(
-            <()>::parse_from_parameter("").expect("failed to parse ''"),
-            ()
-        );
+        <()>::parse_from_parameter("").expect("failed to parse ''");
     }
 
     #[tokio::test]
     async fn parse_from_multipart_none() {
-        assert_eq!(
-            <()>::parse_from_multipart(None)
-                .await
-                .expect("failed to parse 'None'"),
-            ()
-        );
+        <()>::parse_from_multipart(None)
+            .await
+            .expect("failed to parse 'None'");
     }
 
     #[test]
