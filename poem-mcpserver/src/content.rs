@@ -44,6 +44,19 @@ where
     }
 }
 
+/// A wrapper type for multiple contents from an iterator.
+pub struct ContentsIter<T>(pub T);
+
+impl<T> IntoContents for ContentsIter<T>
+where
+    T: IntoIterator,
+    T::Item: IntoContent,
+{
+    fn into_contents(self) -> Vec<Content> {
+        self.0.into_iter().map(IntoContent::into_content).collect()
+    }
+}
+
 /// A text response.
 #[derive(Debug)]
 pub struct Text<T>(pub T);
