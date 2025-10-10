@@ -23,6 +23,9 @@ pub struct Tool {
     pub description: &'static str,
     /// The input schema of the tool.
     pub input_schema: Value,
+    /// The output schema of the tool, if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_schema: Option<Value>,
 }
 
 /// A response to a tools/list request.
@@ -50,6 +53,9 @@ pub struct ToolsCallRequest {
 pub struct ToolsCallResponse {
     /// Response content.
     pub content: Vec<Content>,
+    /// Structured content (if any).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structured_content: Option<Value>,
     /// Whether the response is an error.
     pub is_error: bool,
 }

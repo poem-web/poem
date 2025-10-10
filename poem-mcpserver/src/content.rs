@@ -3,7 +3,6 @@
 use std::fmt::Display;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
-use serde::Serialize;
 
 use crate::protocol::content::Content;
 
@@ -98,21 +97,6 @@ where
         Content::Image {
             data: STANDARD.encode(self.data),
             mime_type: self.mime_type,
-        }
-    }
-}
-
-/// A Json response.
-#[derive(Debug, Clone, Copy)]
-pub struct Json<T>(pub T);
-
-impl<T> IntoContent for Json<T>
-where
-    T: Serialize,
-{
-    fn into_content(self) -> Content {
-        Content::Text {
-            text: serde_json::to_string(&self.0).unwrap_or_default(),
         }
     }
 }

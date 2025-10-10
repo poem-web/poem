@@ -15,6 +15,7 @@ pub mod stdio;
 pub mod streamable_http;
 pub mod tool;
 pub use poem_mcpserver_macros::Tools;
+pub use schemars::JsonSchema;
 pub use server::McpServer;
 
 #[doc(hidden)]

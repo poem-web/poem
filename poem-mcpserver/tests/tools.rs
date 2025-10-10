@@ -6,7 +6,10 @@ use poem_mcpserver::{
         rpc::{Request, RequestId, Requests},
         tool::{ToolsCallRequest, ToolsListRequest},
     },
+    tool::StructuredContent,
 };
+use schemars::JsonSchema;
+use serde::Serialize;
 
 struct TestTools {
     value: i32,
@@ -16,6 +19,12 @@ impl TestTools {
     fn new() -> Self {
         Self { value: 0 }
     }
+}
+
+#[derive(Debug, JsonSchema, Serialize)]
+struct CustomResponse {
+    a: i32,
+    b: String,
 }
 
 #[Tools]
@@ -29,6 +38,14 @@ impl TestTools {
     /// Get the current value.
     async fn get_value(&self) -> Text<i32> {
         Text(self.value)
+    }
+
+    /// Get a structured response.
+    async fn structured_response(&self) -> StructuredContent<CustomResponse> {
+        StructuredContent(CustomResponse {
+            a: self.value,
+            b: format!("Value is {}", self.value),
+        })
     }
 }
 
@@ -112,6 +129,31 @@ async fn call_tool() {
             },
         })
     );
+
+    let resp = server
+        .handle_request(Request {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id: Some(RequestId::Int(9)),
+            body: Requests::ToolsCall {
+                params: ToolsCallRequest {
+                    name: "structured_response".to_string(),
+                    arguments: serde_json::json!({}),
+                },
+            },
+        })
+        .await;
+    assert_eq!(
+        serde_json::to_value(&resp).unwrap(),
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 9,
+            "result": {
+                "content": [{"type": "text", "text": "{\"a\":40,\"b\":\"Value is 40\"}"}],
+                "structuredContent": {"a": 40, "b": "Value is 40"},
+                "isError": false,
+            },
+        })
+    );
 }
 
 #[tokio::test]
@@ -161,6 +203,31 @@ async fn tool_list() {
                             "title": "get_value_Request",
                         },
                     },
+                    {
+                        "name": "structured_response",
+                        "description": "Get a structured response.",
+                        "inputSchema": {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "object",
+                            "properties": {},
+                            "title": "structured_response_Request",
+                        },
+                        "outputSchema": {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "object",
+                            "properties": {
+                                "a": {
+                                    "format": "int32",
+                                    "type": "integer",
+                                },
+                                "b": {
+                                    "type": "string",
+                                },
+                            },
+                            "required": ["a", "b"],
+                            "title": "CustomResponse",
+                        },
+                    },
                 ],
             },
         })
@@ -170,7 +237,9 @@ async fn tool_list() {
 #[tokio::test]
 async fn disable_tools() {
     let tools = TestTools::new();
-    let mut server = McpServer::new().tools(tools).disable_tools(["get_value"]);
+    let mut server = McpServer::new()
+        .tools(tools)
+        .disable_tools(["get_value", "structured_response"]);
 
     let resp = server
         .handle_request(Request {

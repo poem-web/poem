@@ -2,6 +2,8 @@
 
 use std::{fmt::Display, future::Future};
 
+use schemars::{JsonSchema, Schema};
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::{
@@ -15,6 +17,9 @@ use crate::{
 
 /// Represents the result of a tool call.
 pub trait IntoToolResponse {
+    /// Returns the output schema of the tool response, if any.
+    fn output_schema() -> Option<Schema>;
+
     /// Consumes the object and converts it into a tool response.
     fn into_tool_response(self) -> ToolsCallResponse;
 }
@@ -23,9 +28,14 @@ impl<T> IntoToolResponse for T
 where
     T: IntoContents,
 {
+    fn output_schema() -> Option<Schema> {
+        None
+    }
+
     fn into_tool_response(self) -> ToolsCallResponse {
         ToolsCallResponse {
             content: self.into_contents(),
+            structured_content: None,
             is_error: false,
         }
     }
@@ -36,21 +46,81 @@ where
     T: IntoContents,
     E: Display,
 {
+    fn output_schema() -> Option<Schema> {
+        None
+    }
+
     fn into_tool_response(self) -> ToolsCallResponse {
         match self {
             Ok(value) => ToolsCallResponse {
                 content: value.into_contents(),
+                structured_content: None,
                 is_error: false,
             },
             Err(error) => ToolsCallResponse {
                 content: vec![Content::Text {
                     text: error.to_string(),
                 }],
+                structured_content: None,
                 is_error: true,
             },
         }
     }
 }
+
+/// A Structured content.
+#[derive(Debug, Clone, Copy)]
+pub struct StructuredContent<T>(pub T);
+
+impl<T> IntoToolResponse for StructuredContent<T>
+where
+    T: Serialize + JsonSchema,
+{
+    fn output_schema() -> Option<Schema> {
+        Some(schemars::SchemaGenerator::default().into_root_schema_for::<T>())
+    }
+
+    fn into_tool_response(self) -> ToolsCallResponse {
+        ToolsCallResponse {
+            content: vec![Content::Text {
+                text: serde_json::to_string(&self.0).unwrap_or_default(),
+            }],
+            structured_content: Some(serde_json::to_value(&self.0).unwrap_or_default()),
+            is_error: false,
+        }
+    }
+}
+
+impl<T, E> IntoToolResponse for Result<StructuredContent<T>, E>
+where
+    T: Serialize + JsonSchema,
+    E: Display,
+{
+    fn output_schema() -> Option<Schema> {
+        Some(schemars::SchemaGenerator::default().into_root_schema_for::<T>())
+    }
+
+    fn into_tool_response(self) -> ToolsCallResponse {
+        match self {
+            Ok(value) => ToolsCallResponse {
+                content: vec![Content::Text {
+                    text: serde_json::to_string(&value.0).unwrap_or_default(),
+                }],
+                structured_content: Some(serde_json::to_value(&value.0).unwrap_or_default()),
+                is_error: false,
+            },
+            Err(error) => ToolsCallResponse {
+                content: vec![Content::Text {
+                    text: error.to_string(),
+                }],
+                structured_content: None,
+                is_error: true,
+            },
+        }
+    }
+}
+
+// impl IntoToolResponse for Json
 
 /// Represents a tools collection.
 pub trait Tools {
