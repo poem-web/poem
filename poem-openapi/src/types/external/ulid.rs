@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn type_name() {
-        assert_eq!(Ulid::name(), "ulid");
+        assert_eq!(Ulid::name(), "string_ulid");
     }
 
     #[test]
