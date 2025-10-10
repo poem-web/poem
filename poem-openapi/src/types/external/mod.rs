@@ -4,6 +4,8 @@ mod bool;
 mod bson;
 mod btreemap;
 mod btreeset;
+#[cfg(feature = "camino")]
+mod camino;
 mod char;
 #[cfg(feature = "chrono")]
 mod chrono;
