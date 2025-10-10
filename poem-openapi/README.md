@@ -52,6 +52,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 
 | Feature            | Description                                                                                                                                                        |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| camino             | Integrate with the [`camino` crate](https://crates.io/crates/camino).                                                                                              |
 | chrono             | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                                                                                              |
 | time               | Integrate with the [`time` crate](https://crates.io/crates/time).                                                                                                  |
 | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)                                                                                         |
