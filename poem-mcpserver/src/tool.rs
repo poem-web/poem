@@ -24,6 +24,46 @@ pub trait IntoToolResponse {
     fn into_tool_response(self) -> ToolsCallResponse;
 }
 
+impl IntoToolResponse for () {
+    fn output_schema() -> Option<Schema> {
+        None
+    }
+
+    fn into_tool_response(self) -> ToolsCallResponse {
+        ToolsCallResponse {
+            content: vec![],
+            structured_content: None,
+            is_error: false,
+        }
+    }
+}
+
+impl<E> IntoToolResponse for Result<(), E>
+where
+    E: Display,
+{
+    fn output_schema() -> Option<Schema> {
+        None
+    }
+
+    fn into_tool_response(self) -> ToolsCallResponse {
+        match self {
+            Ok(_) => ToolsCallResponse {
+                content: vec![],
+                structured_content: None,
+                is_error: false,
+            },
+            Err(error) => ToolsCallResponse {
+                content: vec![Content::Text {
+                    text: error.to_string(),
+                }],
+                structured_content: None,
+                is_error: true,
+            },
+        }
+    }
+}
+
 impl<T> IntoToolResponse for T
 where
     T: IntoContents,
