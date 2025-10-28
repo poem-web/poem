@@ -107,6 +107,7 @@
 //! | email              | Support for email address string                                                       |
 //! | hostname           | Support for hostname string                                                            |
 //! | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
+//! | ulid               | Integrate with the [`ulid` crate](https://crates.io/crates/ulid)                       |
 //! | uuid               | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                       |
 //! | url                | Integrate with the [`url` crate](https://crates.io/crates/url)                         |
 //! | geo                | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)             |

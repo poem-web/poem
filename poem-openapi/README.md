@@ -64,6 +64,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | stoplight-elements | Add Stoplight Elements UI support                                                                                                                                  |
 | email              | Support for email address string                                                                                                                                   |
 | hostname           | Support for hostname string                                                                                                                                        |
+| ulid               | Integrate with the [`ulid` crate](https://crates.io/crates/ulid)                                                                                                   |
 | uuid               | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                                                                                                   |
 | url                | Integrate with the [`url` crate](https://crates.io/crates/url)                                                                                                     |
 | geo                | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)                                                                                         |
