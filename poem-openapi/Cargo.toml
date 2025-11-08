@@ -27,6 +27,7 @@ websocket = ["poem/websocket"]
 geo = ["dep:geo-types", "dep:geojson"]
 sonic-rs = ["poem/sonic-rs"]
 cookie = ["poem/cookie"]
+camino = ["dep:camino"]
 ulid = ["dep:ulid"]
 
 [dependencies]
@@ -84,6 +85,7 @@ sqlx = { version = "0.8.3", features = [
   "sqlite",
   "mysql",
 ], optional = true }
+camino = { version = "1.2.1", optional = true }
 ulid = { version = "1.2.1", optional = true }
 
 [dev-dependencies]
