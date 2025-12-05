@@ -21,8 +21,8 @@ impl<T: Type, const LEN: usize> Type for [T; LEN] {
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
             items: Some(Box::new(T::schema_ref())),
-            max_length: Some(LEN),
-            min_length: Some(LEN),
+            max_items: Some(LEN),
+            min_items: Some(LEN),
             ..MetaSchema::new("array")
         }))
     }
