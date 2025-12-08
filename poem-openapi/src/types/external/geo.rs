@@ -35,18 +35,18 @@ macro_rules! impl_geojson_types {
                         crate::registry::MetaSchema {
                             enum_items: vec![::serde_json::Value::String($name.to_string())],
                             ..crate::registry::MetaSchema::new("string")
-                        }
+                        },
                     ));
 
                     // Create bbox schema (optional array of numbers with minItems: 4)
                     let bbox_schema = crate::registry::MetaSchemaRef::Inline(Box::new(
                         crate::registry::MetaSchema {
                             items: Some(Box::new(crate::registry::MetaSchemaRef::Inline(
-                                Box::new(crate::registry::MetaSchema::new("number"))
+                                Box::new(crate::registry::MetaSchema::new("number")),
                             ))),
                             min_items: Some(4),
                             ..crate::registry::MetaSchema::new("array")
-                        }
+                        },
                     ));
 
                     crate::registry::MetaSchema {
@@ -162,8 +162,9 @@ impl crate::types::ParseFromJSON for Geometry {
         let value = value.ok_or(crate::types::ParseError::expected_input())?;
 
         // Try to parse as a geojson::Geometry and convert to geo_types::Geometry
-        let geojson_geom = geojson::Geometry::try_from(value)
-            .map_err(|e| crate::types::ParseError::custom(format!("Invalid GeoJSON geometry: {}", e)))?;
+        let geojson_geom = geojson::Geometry::try_from(value).map_err(|e| {
+            crate::types::ParseError::custom(format!("Invalid GeoJSON geometry: {}", e))
+        })?;
 
         Self::try_from(&geojson_geom).map_err(Into::into)
     }
@@ -173,18 +174,16 @@ impl crate::types::ToJSON for Geometry {
     fn to_json(&self) -> Option<::serde_json::Value> {
         // Convert to geojson::Geometry and then to JSON
         let geojson_geom = geojson::Geometry::from(self);
-        Some(
-            ::serde_json::Map::<String, ::serde_json::Value>::from(&geojson_geom).into(),
-        )
+        Some(::serde_json::Map::<String, ::serde_json::Value>::from(&geojson_geom).into())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use geo_types::{Point, LineString, Geometry};
+    use geo_types::{Geometry, LineString, Point};
 
+    use crate::registry::{MetaSchemaRef, Registry};
     use crate::types::{ParseFromJSON, ToJSON, Type};
-    use crate::registry::{Registry, MetaSchemaRef};
 
     fn point_geo() -> Point {
         Point::new(1.0, 2.0)
@@ -289,11 +288,8 @@ mod tests {
 
     #[test]
     fn geometry_enum_serializes_linestring() {
-        let linestring: Geometry = Geometry::LineString(LineString::from(vec![
-            (0.0, 0.0),
-            (1.0, 1.0),
-            (2.0, 2.0),
-        ]));
+        let linestring: Geometry =
+            Geometry::LineString(LineString::from(vec![(0.0, 0.0), (1.0, 1.0), (2.0, 2.0)]));
         let json = linestring.to_json().unwrap();
 
         assert_eq!(
@@ -355,7 +351,9 @@ mod tests {
         assert_eq!(schema.one_of.len(), 6);
 
         // Verify that the oneOf includes references to each geometry type
-        let one_of_refs: Vec<String> = schema.one_of.iter()
+        let one_of_refs: Vec<String> = schema
+            .one_of
+            .iter()
             .filter_map(|ref_| match ref_ {
                 MetaSchemaRef::Reference(name) => Some(name.clone()),
                 _ => None,
