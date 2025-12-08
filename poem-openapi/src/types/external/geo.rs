@@ -182,8 +182,10 @@ impl crate::types::ToJSON for Geometry {
 mod tests {
     use geo_types::{Geometry, LineString, Point};
 
-    use crate::registry::{MetaSchemaRef, Registry};
-    use crate::types::{ParseFromJSON, ToJSON, Type};
+    use crate::{
+        registry::{MetaSchemaRef, Registry},
+        types::{ParseFromJSON, ToJSON, Type},
+    };
 
     fn point_geo() -> Point {
         Point::new(1.0, 2.0)
