@@ -83,20 +83,15 @@ use crate::{
 /// cli.get("/get").send().await.assert_json(json!({"attr1": null, "attr2": "abc"}));
 /// # });
 /// ```
-#[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Default)]
 pub enum MaybeUndefined<T> {
     /// Undefined
+    #[default]
     Undefined,
     /// Null
     Null,
     /// Value
     Value(T),
-}
-
-impl<T> Default for MaybeUndefined<T> {
-    fn default() -> Self {
-        Self::Undefined
-    }
 }
 
 impl<T> From<T> for MaybeUndefined<T> {
