@@ -239,6 +239,10 @@ impl RustlsConfig {
     /// ```
     #[must_use]
     pub fn versions(mut self, versions: Vec<&'static SupportedProtocolVersion>) -> Self {
+        assert!(
+            !versions.is_empty(),
+            "RustlsConfig::versions must not be called with an empty versions list"
+        );
         self.versions = versions;
         self
     }
