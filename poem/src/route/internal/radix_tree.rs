@@ -381,13 +381,17 @@ impl<T> Node<T> {
         params: &mut SmallVec<[(&'b [u8], &'b [u8]); 8]>,
     ) -> Option<&'a NodeData<T>> {
         if path.is_empty() {
-            return if let Some(catch_all_child) = &self.catch_all_child {
+            // Prefer exact match over catch-all when both exist
+            // See: https://github.com/poem-web/poem/issues/1098
+            return if let Some(data) = &self.data {
+                Some(data)
+            } else if let Some(catch_all_child) = &self.catch_all_child {
                 if !catch_all_child.name.is_empty() {
                     params.push((&catch_all_child.name, path));
                 }
                 catch_all_child.data.as_ref()
             } else {
-                self.data.as_ref()
+                None
             };
         }
 
@@ -1250,5 +1254,31 @@ mod tests {
         assert_eq!(matches.data.data, 1);
         assert_eq!(matches.params[0].0, "id");
         assert_eq!(matches.params[0].1, "你好");
+    }
+
+    // https://github.com/poem-web/poem/issues/1098
+    // When both "/" and "/*path" routes exist, "/" should match the exact route,
+    // not the catch-all.
+    #[test]
+    fn test_issue_1098() {
+        let mut tree = RadixTree::default();
+        tree.add("/", 1).unwrap();
+        tree.add("/*path", 2).unwrap();
+
+        // "/" should match the exact "/" route (data=1), not the catch-all "/*path"
+        // (data=2)
+        let matches = tree.matches("/").unwrap();
+        assert_eq!(matches.data.data, 1);
+
+        // Other paths should still match the catch-all
+        let matches = tree.matches("/foo").unwrap();
+        assert_eq!(matches.data.data, 2);
+        assert_eq!(matches.params[0].0, "path");
+        assert_eq!(matches.params[0].1, "foo");
+
+        let matches = tree.matches("/foo/bar").unwrap();
+        assert_eq!(matches.data.data, 2);
+        assert_eq!(matches.params[0].0, "path");
+        assert_eq!(matches.params[0].1, "foo/bar");
     }
 }

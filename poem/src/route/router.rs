@@ -535,6 +535,25 @@ mod tests {
         );
     }
 
+    // https://github.com/poem-web/poem/issues/1098
+    // A request to "/" should be handled by the "/" handler, not the "/*path"
+    // handler
+    #[tokio::test]
+    async fn issue_1098() {
+        let app = Route::new()
+            .at("/", make_sync(|_| "A"))
+            .at("/*path", make_sync(|_| "B"));
+
+        let cli = TestClient::new(app);
+
+        // "/" should match the exact "/" handler, returning "A"
+        cli.get("/").send().await.assert_text("A").await;
+
+        // Other paths should match the catch-all "/*path" handler, returning "B"
+        cli.get("/foo").send().await.assert_text("B").await;
+        cli.get("/foo/bar").send().await.assert_text("B").await;
+    }
+
     #[tokio::test]
     async fn issue_471() {
         let app = Route::new().nest("/", make_sync(|_| "hello"));
