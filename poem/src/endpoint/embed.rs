@@ -106,6 +106,7 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
                 .finish())
         };
         
+        let req2 = req.clone();
         let result = if original_end_with_slash {
             let path = format!("{path}index.html");
             EmbeddedFileEndpoint::<E>::new(&path).call(req).await
@@ -125,7 +126,7 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
             Err(error) => {
                 if let Some(index_file) = &self.index_file {
                     let index_path = format!("{path}/{index_file}");
-                    EmbeddedFileEndpoint::<E>::new(&index_path).call(req).await
+                    EmbeddedFileEndpoint::<E>::new(&index_path).call(req2).await
                 } else {
                     Err(error)
                 }
