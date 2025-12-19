@@ -9,10 +9,11 @@ use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, WantsVerifier,
+        ConfigBuilder, RootCertStore, ServerConfig, SupportedProtocolVersion, WantsVerifier,
         crypto::{CryptoProvider, aws_lc_rs, aws_lc_rs::sign::any_supported_type},
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
+        version::{TLS12, TLS13},
     },
     server::TlsStream,
 };
@@ -106,6 +107,7 @@ pub struct RustlsConfig {
     certificates: HashMap<String, RustlsCertificate>,
     fallback: Option<RustlsCertificate>,
     client_auth: TlsClientAuth,
+    versions: Vec<&'static SupportedProtocolVersion>,
 }
 
 impl Default for RustlsConfig {
@@ -116,11 +118,14 @@ impl Default for RustlsConfig {
 
 impl RustlsConfig {
     /// Create a new tls config object.
+    ///
+    /// By default, both TLS 1.2 and TLS 1.3 are enabled.
     pub fn new() -> Self {
         Self {
             certificates: HashMap::new(),
             fallback: Default::default(),
             client_auth: TlsClientAuth::Off,
+            versions: vec![&TLS12, &TLS13],
         }
     }
 
@@ -212,6 +217,32 @@ impl RustlsConfig {
         self
     }
 
+    /// Sets the supported TLS protocol versions.
+    ///
+    /// By default, TLS 1.2 and TLS 1.3 are both enabled. Use this method
+    /// to restrict to specific versions.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::listener::RustlsConfig;
+    /// use tokio_rustls::rustls::version::{TLS12, TLS13};
+    ///
+    /// // Enable only TLS 1.3
+    /// let config = RustlsConfig::new().versions(vec![&TLS13]);
+    ///
+    /// // Enable only TLS 1.2
+    /// let config = RustlsConfig::new().versions(vec![&TLS12]);
+    ///
+    /// // Enable both (default)
+    /// let config = RustlsConfig::new().versions(vec![&TLS12, &TLS13]);
+    /// ```
+    #[must_use]
+    pub fn versions(mut self, versions: Vec<&'static SupportedProtocolVersion>) -> Self {
+        self.versions = versions;
+        self
+    }
+
     fn create_server_config(&self) -> IoResult<ServerConfig> {
         let fallback = self
             .fallback
@@ -228,7 +259,7 @@ impl RustlsConfig {
             );
         }
 
-        let builder = make_server_config_builder();
+        let builder = make_server_config_builder(&self.versions)?;
         let builder = match &self.client_auth {
             TlsClientAuth::Off => builder.with_no_client_auth(),
             TlsClientAuth::Optional(trust_anchor) => {
@@ -260,7 +291,9 @@ impl RustlsConfig {
 
 // A port of CryptoProvider::get_default_or_install_from_crate_features while
 // always use aws_lc_rs as the default provider.
-fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
+fn make_server_config_builder(
+    versions: &[&'static SupportedProtocolVersion],
+) -> IoResult<ConfigBuilder<ServerConfig, WantsVerifier>> {
     if CryptoProvider::get_default().is_none() {
         let provider = aws_lc_rs::default_provider();
         let _ = provider.install_default();
@@ -269,10 +302,9 @@ fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
     // SAFETY: `CryptoProvider::get_default()` must be non-null at this point
     let provider = CryptoProvider::get_default().unwrap();
 
-    // SAFETY: process-level default provider is usable with the supplied versions
     ServerConfig::builder_with_provider(provider.clone())
-        .with_protocol_versions(DEFAULT_VERSIONS)
-        .unwrap()
+        .with_protocol_versions(versions)
+        .map_err(|err| IoError::other(format!("invalid TLS versions: {err}")))
 }
 
 fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
