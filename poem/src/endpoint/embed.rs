@@ -3,7 +3,9 @@ use std::marker::PhantomData;
 use rust_embed::RustEmbed;
 
 use crate::{
-    Endpoint, Error, Request, Response, Result, error::StaticFileError, http::{Method, StatusCode, header}
+    Endpoint, Error, Request, Response, Result,
+    error::StaticFileError,
+    http::{Method, StatusCode, header},
 };
 
 /// An endpoint that wraps a single file from a `rust-embed` bundle.
@@ -16,7 +18,7 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFileEndpoint<E> {
     /// Create a new `EmbeddedFileEndpoint` from a `rust-embed` bundle.
     ///
     /// `path` - relative path within the bundle.
-    /// 
+    ///
     pub fn new(path: &str) -> Self {
         EmbeddedFileEndpoint {
             _embed: PhantomData,
@@ -59,7 +61,7 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
 }
 
 /// An endpoint that wraps a `rust-embed` bundle.
-/// 
+///
 /// # Errors
 ///
 /// - [`StaticFileError`]
@@ -78,7 +80,7 @@ impl<E: RustEmbed + Sync + Send> Default for EmbeddedFilesEndpoint<E> {
 
 impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     /// Create a new `EmbeddedFilesEndpoint` from a `rust-embed` bundle.
-    /// 
+    ///
     /// # Example
     ///
     /// ```
@@ -87,7 +89,7 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     /// #[derive(RustEmbed)]
     /// #[folder = "/etc/www"]
     /// pub struct Files;
-    /// 
+    ///
     /// let app = Route::new().nest(
     ///     "/files",
     ///     EmbeddedFilesEndpoint::<Files>::new()
@@ -127,9 +129,9 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
             return Ok(Response::builder()
                 .status(StatusCode::FOUND)
                 .header(LOCATION, format!("{original_path}/"))
-                .finish())
+                .finish());
         };
-        
+
         if original_end_with_slash && E::get(&format!("{path}index.html")).is_some() {
             let path = format!("{path}index.html");
             EmbeddedFileEndpoint::<E>::new(&path).call(req).await
