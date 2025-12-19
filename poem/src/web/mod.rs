@@ -71,6 +71,7 @@ pub use self::{
     redirect::Redirect,
     typed_header::TypedHeader,
 };
+// Note: `Either` is defined in this module directly, not in a submodule
 use crate::{
     body::Body,
     error::{ReadBodyError, Result},
@@ -819,6 +820,98 @@ impl<'a, T: FromRequest<'a>> FromRequest<'a> for Result<T> {
     }
 }
 
+/// A response type that can be either of two types.
+///
+/// This is useful when a handler needs to return different response types
+/// depending on some condition (e.g., returning SSE or JSON based on
+/// the Accept header).
+///
+/// # Example
+///
+/// ```
+/// use poem::{
+///     IntoResponse, Response,
+///     handler,
+///     http::StatusCode,
+///     web::{Either, Json},
+/// };
+///
+/// #[handler]
+/// async fn index(accept_json: bool) -> Either<Json<String>, &'static str> {
+///     if accept_json {
+///         Either::Left(Json("hello".to_string()))
+///     } else {
+///         Either::Right("hello")
+///     }
+/// }
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Either<L, R> {
+    /// The left variant.
+    Left(L),
+    /// The right variant.
+    Right(R),
+}
+
+impl<L, R> Either<L, R> {
+    /// Returns `true` if this is the `Left` variant.
+    #[inline]
+    pub fn is_left(&self) -> bool {
+        matches!(self, Either::Left(_))
+    }
+
+    /// Returns `true` if this is the `Right` variant.
+    #[inline]
+    pub fn is_right(&self) -> bool {
+        matches!(self, Either::Right(_))
+    }
+
+    /// Returns a reference to the left value if this is the `Left` variant.
+    #[inline]
+    pub fn left(&self) -> Option<&L> {
+        match self {
+            Either::Left(l) => Some(l),
+            Either::Right(_) => None,
+        }
+    }
+
+    /// Returns a reference to the right value if this is the `Right` variant.
+    #[inline]
+    pub fn right(&self) -> Option<&R> {
+        match self {
+            Either::Left(_) => None,
+            Either::Right(r) => Some(r),
+        }
+    }
+
+    /// Converts this `Either` into the left value if it is the `Left` variant.
+    #[inline]
+    pub fn into_left(self) -> Option<L> {
+        match self {
+            Either::Left(l) => Some(l),
+            Either::Right(_) => None,
+        }
+    }
+
+    /// Converts this `Either` into the right value if it is the `Right` variant.
+    #[inline]
+    pub fn into_right(self) -> Option<R> {
+        match self {
+            Either::Left(_) => None,
+            Either::Right(r) => Some(r),
+        }
+    }
+}
+
+impl<L: IntoResponse, R: IntoResponse> IntoResponse for Either<L, R> {
+    fn into_response(self) -> Response {
+        match self {
+            Either::Left(l) => l.into_response(),
+            Either::Right(r) => r.into_response(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -963,6 +1056,24 @@ mod tests {
             .into_response();
         assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
         assert!(resp.into_body().into_string().await.unwrap().is_empty());
+
+        // Either - Left variant
+        let resp: Either<&str, StatusCode> = Either::Left("hello");
+        assert!(resp.is_left());
+        assert!(!resp.is_right());
+        assert_eq!(resp.left(), Some(&"hello"));
+        assert_eq!(resp.right(), None);
+        let resp = resp.into_response();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.into_body().into_string().await.unwrap(), "hello");
+
+        // Either - Right variant
+        let resp: Either<&str, StatusCode> = Either::Right(StatusCode::NOT_FOUND);
+        assert!(!resp.is_left());
+        assert!(resp.is_right());
+        assert_eq!(resp.left(), None);
+        let resp = resp.into_response();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
