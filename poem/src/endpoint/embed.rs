@@ -106,8 +106,7 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
                 .finish())
         };
         
-        let req2 = req.clone();
-        let result = if original_end_with_slash {
+        if original_end_with_slash && E::get(&format!("{path}index.html")).is_some() {
             let path = format!("{path}index.html");
             EmbeddedFileEndpoint::<E>::new(&path).call(req).await
         } else if E::get(path).is_some() {
@@ -117,20 +116,12 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
                 .status(StatusCode::FOUND)
                 .header(LOCATION, format!("{original_path}/"))
                 .finish())
+        } else if self.index_file.is_some() {
+            let index_file = self.index_file.as_ref().unwrap();
+            let index_path = format!("{path}/{index_file}");
+            EmbeddedFileEndpoint::<E>::new(&index_path).call(req).await
         } else {
             EmbeddedFileEndpoint::<E>::new(path).call(req).await
-        };
-
-        match result {
-            Ok(response) => Ok(response),
-            Err(error) => {
-                if let Some(index_file) = &self.index_file {
-                    let index_path = format!("{path}/{index_file}");
-                    EmbeddedFileEndpoint::<E>::new(&index_path).call(req2).await
-                } else {
-                    Err(error)
-                }
-            }
         }
     }
 }
