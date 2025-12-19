@@ -204,7 +204,7 @@ fn generate_operation(
     let description = optional_literal(&description);
     let tags = api_args.common_tags.iter().chain(&tags);
     let prefix_path = &api_args.prefix_path;
-    let (oai_path, new_path) = convert_oai_path(&path)?;
+    let (oai_path, new_path, path_params) = convert_oai_path(&path)?;
     let oai_path = prefix_path
         .as_ref()
         .map(|prefix| quote! { #crate_name::__private::join_path(#prefix, #oai_path) })
@@ -283,13 +283,6 @@ fn generate_operation(
                 return Err(Error::new_spanned(item_method, "Invalid method definition.").into());
             }
         };
-        let is_path = match &*arg_ty {
-            syn::Type::Path(syn::TypePath { qself: _, path }) => {
-                path.segments.iter().any(|v| v.ident == "Path")
-            }
-            _ => false,
-        };
-
         RemoveLifetime.visit_type_mut(&mut arg_ty);
 
         let pname = format_ident!("p{}", i);
@@ -302,7 +295,12 @@ fn generate_operation(
             .or(ignore_case)
             .or(api_args.ignore_case)
             .unwrap_or(false);
-        let extract_param_name = if is_path {
+
+        // Check if this parameter corresponds to a path parameter by matching against
+        // the path parameter names extracted from the route path. This correctly handles
+        // type aliases (e.g., `use Path as ApiPath`) unlike the previous approach which
+        // checked if the type name literally contained "Path".
+        let extract_param_name = if path_params.get(path_param_count) == Some(&param_name) {
             let n = format!("param{path_param_count}");
             path_param_count += 1;
             n

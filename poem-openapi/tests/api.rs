@@ -584,6 +584,66 @@ async fn issue_948() {
     res.assert_text("POST /hello/another_something").await;
 }
 
+/// Test that Path type aliases work correctly.
+/// This is a regression test for issue #1036 where using `Path as ApiPath`
+/// or other aliases would cause path parameter extraction to fail.
+#[tokio::test]
+async fn issue_1036_path_alias() {
+    use poem_openapi::param::Path as ApiPath;
+
+    struct Api;
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/users/:username", method = "get")]
+        async fn get_user(&self, ApiPath(username): ApiPath<String>) -> PlainText<String> {
+            PlainText(format!("User: {username}"))
+        }
+
+        #[oai(path = "/users/:id/posts/:post_id", method = "get")]
+        async fn get_user_post(
+            &self,
+            ApiPath(id): ApiPath<i64>,
+            ApiPath(post_id): ApiPath<i64>,
+        ) -> PlainText<String> {
+            PlainText(format!("User {id}, Post {post_id}"))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let client = TestClient::new(ep);
+
+    // Test single path parameter with alias
+    let res = client.get("/users/johndoe").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("User: johndoe").await;
+
+    // Test multiple path parameters with alias
+    let res = client.get("/users/42/posts/123").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("User 42, Post 123").await;
+}
+
+/// Test that path parameters work correctly with prefix_path.
+/// This is part of the regression test for issue #1036.
+#[tokio::test]
+async fn issue_1036_prefix_path_with_params() {
+    struct Api;
+    #[OpenApi(prefix_path = "/api/v1")]
+    impl Api {
+        #[oai(path = "/users/:id", method = "get")]
+        async fn get_user(&self, Path(id): Path<i64>) -> PlainText<String> {
+            PlainText(format!("User ID: {id}"))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let client = TestClient::new(ep);
+
+    let res = client.get("/api/v1/users/42").send().await;
+    res.assert_status_is_ok();
+    res.assert_text("User ID: 42").await;
+}
+
 #[tokio::test]
 async fn returning_borrowed_value() {
     struct Api {

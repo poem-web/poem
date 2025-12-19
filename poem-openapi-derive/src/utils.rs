@@ -109,7 +109,13 @@ pub(crate) fn parse_oai_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResu
     Ok(None)
 }
 
-pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, String)> {
+/// Converts an OpenAPI-style path to internal representation.
+///
+/// Returns a tuple of:
+/// - `oai_path`: The OpenAPI path format (e.g., "/users/{id}")
+/// - `new_path`: The internal path format with normalized param names (e.g., "/users/:param0")
+/// - `path_params`: A vector of the original path parameter names in order (e.g., ["id"])
+pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, String, Vec<String>)> {
     if !path.starts_with('/') {
         return Err(Error::new(path.span(), "The path must start with '/'."));
     }
@@ -117,6 +123,7 @@ pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, S
     let mut oai_path = String::new();
     let mut new_path = String::new();
     let mut vars = HashSet::new();
+    let mut path_params = Vec::new();
     let mut param_count = 0;
 
     for s in path.split('/') {
@@ -132,6 +139,9 @@ pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, S
             new_path.push_str("/:");
             new_path.push_str(&format!("param{param_count}"));
             param_count += 1;
+
+            // Store the original parameter name
+            path_params.push(var.to_string());
 
             if !vars.insert(var) {
                 return Err(Error::new(
@@ -156,7 +166,7 @@ pub(crate) fn convert_oai_path(path: &SpannedValue<String>) -> Result<(String, S
         new_path += "/";
     }
 
-    Ok((oai_path, new_path))
+    Ok((oai_path, new_path, path_params))
 }
 
 pub(crate) struct RemoveLifetime;
