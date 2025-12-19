@@ -61,6 +61,7 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
 /// An endpoint that wraps a `rust-embed` bundle.
 pub struct EmbeddedFilesEndpoint<E: RustEmbed + Send + Sync> {
     _embed: PhantomData<E>,
+    index_file: Option<String>,
 }
 
 impl<E: RustEmbed + Sync + Send> Default for EmbeddedFilesEndpoint<E> {
@@ -75,6 +76,15 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     pub fn new() -> Self {
         EmbeddedFilesEndpoint {
             _embed: PhantomData,
+            index_file: None,
+        }
+    }
+
+    /// Set index file
+    pub fn index_file(self, index: impl Into<String>) -> Self {
+        Self {
+            index_file: Some(index.into()),
+            ..self
         }
     }
 }
@@ -90,11 +100,13 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
         use header::LOCATION;
 
         if path.is_empty() && !original_end_with_slash {
-            Ok(Response::builder()
+            return Ok(Response::builder()
                 .status(StatusCode::FOUND)
                 .header(LOCATION, format!("{original_path}/"))
                 .finish())
-        } else if original_end_with_slash {
+        };
+        
+        let result = if original_end_with_slash {
             let path = format!("{path}index.html");
             EmbeddedFileEndpoint::<E>::new(&path).call(req).await
         } else if E::get(path).is_some() {
@@ -106,6 +118,18 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
                 .finish())
         } else {
             EmbeddedFileEndpoint::<E>::new(path).call(req).await
+        };
+
+        match result {
+            Ok(response) => Ok(response),
+            Err(error) => {
+                if let Some(index_file) = &self.index_file {
+                    let index_path = format!("{path}/{index_file}");
+                    EmbeddedFileEndpoint::<E>::new(&index_path).call(req).await
+                } else {
+                    Err(error)
+                }
+            }
         }
     }
 }
