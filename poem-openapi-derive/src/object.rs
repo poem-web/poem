@@ -294,7 +294,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 let patch_schema = {
                     let mut schema = #crate_name::registry::MetaSchema::ANY;
                     schema.default = #field_meta_default;
-                    schema.nullable = #nullable;
+                    // nullable is true if explicitly set via attribute OR if the type is inherently nullable (e.g., MaybeUndefined)
+                    schema.nullable = #nullable || <#field_ty as #crate_name::types::Type>::IS_NULLABLE;
                     schema.read_only = #read_only;
                     schema.write_only = #write_only;
                     schema.deprecated = #deprecated;

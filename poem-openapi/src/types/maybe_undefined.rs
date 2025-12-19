@@ -305,6 +305,7 @@ impl<T: Deref> MaybeUndefined<T> {
 
 impl<T: Type> Type for MaybeUndefined<T> {
     const IS_REQUIRED: bool = false;
+    const IS_NULLABLE: bool = true;
 
     type RawValueType = T::RawValueType;
 
@@ -765,5 +766,83 @@ mod tests {
             .to_json(),
             Some(json!({}))
         );
+    }
+
+    // https://github.com/poem-web/poem/issues/1122
+    // MaybeUndefined fields should automatically be marked as nullable in the
+    // OpenAPI schema
+    #[test]
+    fn test_maybe_undefined_is_nullable() {
+        use crate::registry::Registry;
+
+        // Test that IS_NULLABLE is true for MaybeUndefined
+        assert!(MaybeUndefined::<i32>::IS_NULLABLE);
+        assert!(!i32::IS_NULLABLE);
+        assert!(!Option::<i32>::IS_NULLABLE);
+
+        #[derive(Debug, Object)]
+        #[oai(internal)]
+        struct TestObj {
+            // This field should be automatically nullable because MaybeUndefined accepts null
+            maybe_field: MaybeUndefined<String>,
+            // This field should NOT be automatically nullable
+            optional_field: Option<String>,
+            // This field is explicitly nullable
+            #[oai(nullable)]
+            explicit_nullable: Option<String>,
+        }
+
+        let mut registry = Registry::new();
+        TestObj::register(&mut registry);
+
+        let schema = registry.create_fake_schema::<TestObj>();
+        let properties = &schema.properties;
+
+        // Find the maybe_field property and check it's nullable
+        let maybe_field_schema = properties
+            .iter()
+            .find(|(name, _)| *name == "maybe_field")
+            .map(|(_, schema)| schema)
+            .expect("maybe_field not found");
+
+        // The schema should have nullable: true
+        if let crate::registry::MetaSchemaRef::Inline(inline) = maybe_field_schema {
+            assert!(inline.nullable, "MaybeUndefined field should be nullable");
+        } else {
+            panic!("Expected inline schema for maybe_field");
+        }
+
+        // Find the optional_field property and check it's NOT nullable (unless
+        // explicitly set)
+        let optional_field_schema = properties
+            .iter()
+            .find(|(name, _)| *name == "optional_field")
+            .map(|(_, schema)| schema)
+            .expect("optional_field not found");
+
+        if let crate::registry::MetaSchemaRef::Inline(inline) = optional_field_schema {
+            assert!(
+                !inline.nullable,
+                "Option field should not be automatically nullable"
+            );
+        } else {
+            panic!("Expected inline schema for optional_field");
+        }
+
+        // Find the explicit_nullable property and check it IS nullable
+        let explicit_nullable_schema = properties
+            .iter()
+            .find(|(name, _)| *name == "explicit_nullable")
+            .map(|(_, schema)| schema)
+            .expect("explicit_nullable not found");
+
+        if let crate::registry::MetaSchemaRef::Inline(inline) = explicit_nullable_schema {
+            assert!(
+                inline.nullable,
+                "Explicitly nullable field should be nullable"
+            );
+        } else {
+            panic!("Expected inline schema for explicit_nullable");
+        }
     }
 }

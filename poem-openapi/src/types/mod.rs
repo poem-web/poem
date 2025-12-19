@@ -32,6 +32,12 @@ pub trait Type: Send + Sync {
     /// If it is `true`, it means that this type is required.
     const IS_REQUIRED: bool;
 
+    /// If it is `true`, it means that this type is nullable.
+    ///
+    /// This is used for types like `MaybeUndefined<T>` which can explicitly
+    /// accept `null` values.
+    const IS_NULLABLE: bool = false;
+
     /// The raw type used for validator.
     ///
     /// Usually it is `Self`, but the wrapper type is its internal type.
