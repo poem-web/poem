@@ -3,8 +3,7 @@ use std::marker::PhantomData;
 use rust_embed::RustEmbed;
 
 use crate::{
-    Endpoint, Error, Request, Response,
-    http::{Method, StatusCode, header},
+    Endpoint, Error, Request, Response, Result, error::StaticFileError, http::{Method, StatusCode, header}
 };
 
 /// An endpoint that wraps a single file from a `rust-embed` bundle.
@@ -17,6 +16,7 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFileEndpoint<E> {
     /// Create a new `EmbeddedFileEndpoint` from a `rust-embed` bundle.
     ///
     /// `path` - relative path within the bundle.
+    /// 
     pub fn new(path: &str) -> Self {
         EmbeddedFileEndpoint {
             _embed: PhantomData,
@@ -28,9 +28,9 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFileEndpoint<E> {
 impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Result<Self::Output, Error> {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         if req.method() != Method::GET {
-            return Err(StatusCode::METHOD_NOT_ALLOWED.into());
+            return Err(StaticFileError::MethodNotAllowed(req.method().clone()).into());
         }
 
         match E::get(&self.path) {
@@ -59,6 +59,11 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
 }
 
 /// An endpoint that wraps a `rust-embed` bundle.
+/// 
+/// # Errors
+///
+/// - [`StaticFileError`]
+#[cfg_attr(docsrs, doc(cfg(feature = "embed")))]
 pub struct EmbeddedFilesEndpoint<E: RustEmbed + Send + Sync> {
     _embed: PhantomData<E>,
     index_file: Option<String>,
@@ -73,6 +78,22 @@ impl<E: RustEmbed + Sync + Send> Default for EmbeddedFilesEndpoint<E> {
 
 impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     /// Create a new `EmbeddedFilesEndpoint` from a `rust-embed` bundle.
+    /// 
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{Route, endpoint::EmbeddedFilesEndpoint};
+    ///
+    /// #[derive(RustEmbed)]
+    /// #[folder = "/etc/www"]
+    /// pub struct Files;
+    /// 
+    /// let app = Route::new().nest(
+    ///     "/files",
+    ///     EmbeddedFilesEndpoint::<Files>::new()
+    ///         .index_file("index.html"),
+    /// );
+    /// ```
     pub fn new() -> Self {
         EmbeddedFilesEndpoint {
             _embed: PhantomData,
@@ -81,6 +102,9 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
     }
 
     /// Set index file
+    ///
+    /// Shows specific index file for directories instead of showing files
+    /// listing.
     pub fn index_file(self, index: impl Into<String>) -> Self {
         Self {
             index_file: Some(index.into()),
@@ -92,7 +116,7 @@ impl<E: RustEmbed + Send + Sync> EmbeddedFilesEndpoint<E> {
 impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
     type Output = Response;
 
-    async fn call(&self, req: Request) -> Result<Self::Output, Error> {
+    async fn call(&self, req: Request) -> Result<Self::Output> {
         let path = req.uri().path().trim_start_matches('/');
         let original_path = req.original_uri().path();
         let original_end_with_slash = original_path.ends_with('/');
