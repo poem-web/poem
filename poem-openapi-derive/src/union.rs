@@ -10,7 +10,10 @@ use syn::{Attribute, DeriveInput, Error, Generics, Type, ext::IdentExt};
 use crate::{
     common_args::{ExternalDocument, RenameRule, apply_rename_rule_variant},
     error::GeneratorResult,
-    utils::{create_object_name, get_crate_name, get_description, optional_literal},
+    utils::{
+        WrapperType, create_object_name, get_crate_name, get_description, optional_literal,
+        unwrap_box_arc,
+    },
 };
 
 #[derive(FromVariant)]
@@ -90,6 +93,25 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         let object_ty = &variant.fields.fields[0];
+
+        // Check if the type is wrapped in Box<T> or Arc<T>
+        let wrapped_info = unwrap_box_arc(object_ty);
+        let inner_ty = wrapped_info.inner_ty;
+        let wrapper = wrapped_info.wrapper;
+
+        // Generate the wrapper construction code for from_json
+        let wrap_value = match wrapper {
+            WrapperType::Box => quote! { ::std::boxed::Box::new(inner_value) },
+            WrapperType::Arc => quote! { ::std::sync::Arc::new(inner_value) },
+            WrapperType::None => quote! { inner_value },
+        };
+
+        // Generate the unwrap code for to_json (deref for Box/Arc)
+        let to_json_obj_ref = match wrapper {
+            WrapperType::Box | WrapperType::Arc => quote! { &**obj },
+            WrapperType::None => quote! { obj },
+        };
+
         let format_string = format!("{{}}_{}", item_ident);
         let schema_name = quote! {
             ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
@@ -98,37 +120,38 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             Some(mapping) => mapping.clone(),
             None => apply_rename_rule_variant(args.rename_all, item_ident.unraw().to_string()),
         };
-        types.push(object_ty);
+        // Use the inner type for type registration (schema generation)
+        types.push(inner_ty);
 
         if args.externally_tagged {
             from_json.push(quote! {
                 if let value @ ::std::option::Option::Some(_) = value.as_object().and_then(|obj| obj.get(#mapping_name)).cloned() {
-                    return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value)
-                        .map(Self::#item_ident)
+                    return <#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value)
+                        .map(|inner_value| Self::#item_ident(#wrap_value))
                         .map_err(#crate_name::types::ParseError::propagate);
                 }
             });
         } else if discriminator_name.is_some() {
             from_json.push(quote! {
                 if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
-                    return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
-                        .map(Self::#item_ident)
+                    return <#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
+                        .map(|inner_value| Self::#item_ident(#wrap_value))
                         .map_err(#crate_name::types::ParseError::propagate);
                 }
             });
         } else if !args.one_of {
             // any of
             from_json.push(quote! {
-                if let ::std::result::Result::Ok(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
-                    .map(Self::#item_ident) {
+                if let ::std::result::Result::Ok(obj) = <#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
+                    .map(|inner_value| Self::#item_ident(#wrap_value)) {
                     return ::std::result::Result::Ok(obj);
                 }
             });
         } else {
             // one of
             from_json.push(quote! {
-                if let ::std::result::Result::Ok(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
-                    .map(Self::#item_ident) {
+                if let ::std::result::Result::Ok(obj) = <#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
+                    .map(|inner_value| Self::#item_ident(#wrap_value)) {
                     if res_obj.is_some() {
                         return ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value));
                     }
@@ -140,7 +163,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         if args.externally_tagged {
             to_json.push(quote! {
                 Self::#item_ident(obj) => {
-                    let value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
+                    let value = <#inner_ty as #crate_name::types::ToJSON>::to_json(#to_json_obj_ref);
                     let mut wrapped = #crate_name::__private::serde_json::Map::new();
                     wrapped.insert(::std::convert::Into::into(#mapping_name), ::std::option::Option::unwrap_or_default(value));
                     ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(wrapped))
@@ -149,7 +172,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         } else if let Some(discriminator_name) = &discriminator_name {
             to_json.push(quote! {
                 Self::#item_ident(obj) => {
-                    let mut value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
+                    let mut value = <#inner_ty as #crate_name::types::ToJSON>::to_json(#to_json_obj_ref);
                     if let ::std::option::Option::Some(obj) = value.as_mut().and_then(|value| value.as_object_mut()) {
                         obj.insert(::std::convert::Into::into(#discriminator_name), ::std::convert::Into::into(#mapping_name));
                     }
@@ -158,7 +181,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             });
         } else {
             to_json.push(quote! {
-                Self::#item_ident(obj) => <#object_ty as #crate_name::types::ToJSON>::to_json(obj)
+                Self::#item_ident(obj) => <#inner_ty as #crate_name::types::ToJSON>::to_json(#to_json_obj_ref)
             });
         }
 
@@ -176,7 +199,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             properties: ::std::vec![
                                 (
                                     #mapping_name,
-                                    <#object_ty as #crate_name::types::Type>::schema_ref(),
+                                    <#inner_ty as #crate_name::types::Type>::schema_ref(),
                                 )
                             ],
                             ..#crate_name::registry::MetaSchema::new("object")
@@ -194,7 +217,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             create_schemas.push(quote! {
                 {
                     fn __check_is_object_type<T: #crate_name::types::IsObjectType>() {}
-                    __check_is_object_type::<#object_ty>();
+                    __check_is_object_type::<#inner_ty>();
                 }
 
                 let schema = #crate_name::registry::MetaSchema {
@@ -217,7 +240,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             ],
                             ..#crate_name::registry::MetaSchema::new("object")
                         })),
-                        <#object_ty as #crate_name::types::Type>::schema_ref(),
+                        <#inner_ty as #crate_name::types::Type>::schema_ref(),
                     ],
                     ..#crate_name::registry::MetaSchema::ANY
                 };
@@ -230,7 +253,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             });
         } else {
             schemas.push(quote! {
-                <#object_ty as #crate_name::types::Type>::schema_ref()
+                <#inner_ty as #crate_name::types::Type>::schema_ref()
             });
         }
     }

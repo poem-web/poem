@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use poem_openapi::{
     Object, Union,
     registry::{
@@ -928,6 +930,338 @@ fn with_externally_tagged_primitives() {
         MyObj::B(true).to_json(),
         Some(json!({
             "B": true,
+        }))
+    );
+}
+
+#[test]
+fn boxed_variant() {
+    /// A large struct that would benefit from boxing
+    #[derive(Object, Debug, PartialEq)]
+    struct LargeStruct {
+        field1: String,
+        field2: String,
+        field3: i64,
+        field4: i64,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct SmallStruct {
+        value: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyUnion {
+        Large(Box<LargeStruct>),
+        Small(SmallStruct),
+    }
+
+    let schema = get_meta::<MyUnion>();
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::boxed_variant::MyUnion"),
+            ty: "object",
+            discriminator: None,
+            one_of: vec![
+                MetaSchemaRef::Reference("LargeStruct".to_string()),
+                MetaSchemaRef::Reference("SmallStruct".to_string())
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    // Test parsing into boxed variant
+    let parsed = MyUnion::parse_from_json(Some(json!({
+        "field1": "hello",
+        "field2": "world",
+        "field3": 100,
+        "field4": 200,
+    })))
+    .unwrap();
+
+    assert_eq!(
+        parsed,
+        MyUnion::Large(Box::new(LargeStruct {
+            field1: "hello".to_string(),
+            field2: "world".to_string(),
+            field3: 100,
+            field4: 200,
+        }))
+    );
+
+    // Test serializing boxed variant
+    assert_eq!(
+        MyUnion::Large(Box::new(LargeStruct {
+            field1: "hello".to_string(),
+            field2: "world".to_string(),
+            field3: 100,
+            field4: 200,
+        }))
+        .to_json(),
+        Some(json!({
+            "field1": "hello",
+            "field2": "world",
+            "field3": 100,
+            "field4": 200,
+        }))
+    );
+
+    // Test non-boxed variant still works
+    assert_eq!(
+        MyUnion::parse_from_json(Some(json!({
+            "value": 42,
+        })))
+        .unwrap(),
+        MyUnion::Small(SmallStruct { value: 42 })
+    );
+
+    assert_eq!(
+        MyUnion::Small(SmallStruct { value: 42 }).to_json(),
+        Some(json!({
+            "value": 42,
+        }))
+    );
+}
+
+#[test]
+fn arc_variant() {
+    #[derive(Object, Debug, PartialEq)]
+    struct SharedData {
+        id: i64,
+        name: String,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct SimpleData {
+        flag: bool,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    enum MyUnion {
+        Shared(Arc<SharedData>),
+        Simple(SimpleData),
+    }
+
+    let schema = get_meta::<MyUnion>();
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::arc_variant::MyUnion"),
+            ty: "object",
+            discriminator: None,
+            any_of: vec![
+                MetaSchemaRef::Reference("SharedData".to_string()),
+                MetaSchemaRef::Reference("SimpleData".to_string())
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    // Test parsing into Arc variant
+    let parsed = MyUnion::parse_from_json(Some(json!({
+        "id": 123,
+        "name": "test",
+    })))
+    .unwrap();
+
+    assert_eq!(
+        parsed,
+        MyUnion::Shared(Arc::new(SharedData {
+            id: 123,
+            name: "test".to_string(),
+        }))
+    );
+
+    // Test serializing Arc variant
+    assert_eq!(
+        MyUnion::Shared(Arc::new(SharedData {
+            id: 123,
+            name: "test".to_string(),
+        }))
+        .to_json(),
+        Some(json!({
+            "id": 123,
+            "name": "test",
+        }))
+    );
+
+    // Test non-Arc variant still works
+    assert_eq!(
+        MyUnion::parse_from_json(Some(json!({
+            "flag": true,
+        })))
+        .unwrap(),
+        MyUnion::Simple(SimpleData { flag: true })
+    );
+}
+
+#[test]
+fn boxed_with_discriminator() {
+    #[derive(Object, Debug, PartialEq)]
+    struct TypeA {
+        value_a: String,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct TypeB {
+        value_b: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(discriminator_name = "type")]
+    enum MyUnion {
+        A(Box<TypeA>),
+        B(TypeB),
+    }
+
+    let schema = get_meta::<MyUnion>();
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::boxed_with_discriminator::MyUnion"),
+            ty: "object",
+            discriminator: Some(MetaDiscriminatorObject {
+                property_name: "type",
+                mapping: vec![
+                    (
+                        "A".to_string(),
+                        "#/components/schemas/MyUnion_A".to_string()
+                    ),
+                    (
+                        "B".to_string(),
+                        "#/components/schemas/MyUnion_B".to_string()
+                    ),
+                ]
+            }),
+            any_of: vec![
+                MetaSchemaRef::Reference("MyUnion_A".to_string()),
+                MetaSchemaRef::Reference("MyUnion_B".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    // Test parsing boxed variant with discriminator
+    assert_eq!(
+        MyUnion::parse_from_json(Some(json!({
+            "type": "A",
+            "value_a": "hello",
+        })))
+        .unwrap(),
+        MyUnion::A(Box::new(TypeA {
+            value_a: "hello".to_string()
+        }))
+    );
+
+    // Test serializing boxed variant with discriminator
+    assert_eq!(
+        MyUnion::A(Box::new(TypeA {
+            value_a: "hello".to_string()
+        }))
+        .to_json(),
+        Some(json!({
+            "type": "A",
+            "value_a": "hello",
+        }))
+    );
+
+    // Test non-boxed variant
+    assert_eq!(
+        MyUnion::parse_from_json(Some(json!({
+            "type": "B",
+            "value_b": 42,
+        })))
+        .unwrap(),
+        MyUnion::B(TypeB { value_b: 42 })
+    );
+
+    assert_eq!(
+        MyUnion::B(TypeB { value_b: 42 }).to_json(),
+        Some(json!({
+            "type": "B",
+            "value_b": 42,
+        }))
+    );
+}
+
+#[test]
+fn boxed_externally_tagged() {
+    #[derive(Object, Debug, PartialEq)]
+    struct DataA {
+        x: i32,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct DataB {
+        y: String,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(externally_tagged)]
+    enum MyUnion {
+        A(Box<DataA>),
+        B(DataB),
+    }
+
+    let schema = get_meta::<MyUnion>();
+    assert_eq!(
+        schema,
+        MetaSchema {
+            rust_typename: Some("union::boxed_externally_tagged::MyUnion"),
+            ty: "object",
+            any_of: vec![
+                MetaSchemaRef::Reference("MyUnion_A".to_string()),
+                MetaSchemaRef::Reference("MyUnion_B".to_string()),
+            ],
+            ..MetaSchema::ANY
+        }
+    );
+
+    // Test parsing boxed externally tagged variant
+    assert_eq!(
+        MyUnion::parse_from_json(Some(json!({
+            "A": {
+                "x": 100,
+            }
+        })))
+        .unwrap(),
+        MyUnion::A(Box::new(DataA { x: 100 }))
+    );
+
+    // Test serializing boxed externally tagged variant
+    assert_eq!(
+        MyUnion::A(Box::new(DataA { x: 100 })).to_json(),
+        Some(json!({
+            "A": {
+                "x": 100,
+            }
+        }))
+    );
+
+    // Test non-boxed variant
+    assert_eq!(
+        MyUnion::parse_from_json(Some(json!({
+            "B": {
+                "y": "test",
+            }
+        })))
+        .unwrap(),
+        MyUnion::B(DataB {
+            y: "test".to_string()
+        })
+    );
+
+    assert_eq!(
+        MyUnion::B(DataB {
+            y: "test".to_string()
+        })
+        .to_json(),
+        Some(json!({
+            "B": {
+                "y": "test",
+            }
         }))
     );
 }

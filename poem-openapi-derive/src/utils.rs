@@ -5,11 +5,72 @@ use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-    Attribute, Error, Expr, ExprLit, GenericParam, Generics, Lifetime, Lit, Meta, Result,
+    Attribute, Error, Expr, ExprLit, GenericParam, Generics, Lifetime, Lit, Meta, Result, Type,
     visit_mut, visit_mut::VisitMut,
 };
 
 use crate::error::GeneratorResult;
+
+/// Represents a type that may be wrapped in Box<T> or Arc<T>
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WrapperType {
+    /// The type is wrapped in Box<T>
+    Box,
+    /// The type is wrapped in Arc<T>
+    Arc,
+    /// The type is not wrapped
+    None,
+}
+
+/// Information about a potentially wrapped type
+pub(crate) struct WrappedTypeInfo<'a> {
+    /// The inner type (unwrapped)
+    pub inner_ty: &'a Type,
+    /// The wrapper type (Box, Arc, or None)
+    pub wrapper: WrapperType,
+}
+
+/// Checks if a type is Box<T> or Arc<T> and extracts the inner type.
+///
+/// Returns a `WrappedTypeInfo` containing the inner type and wrapper kind.
+/// If the type is not wrapped, returns the original type with
+/// `WrapperType::None`.
+pub(crate) fn unwrap_box_arc(ty: &Type) -> WrappedTypeInfo<'_> {
+    if let Type::Path(type_path) = ty {
+        if type_path.qself.is_none() {
+            let segments = &type_path.path.segments;
+            if let Some(last_segment) = segments.last() {
+                let ident_str = last_segment.ident.to_string();
+
+                // Check for Box or Arc (with or without path prefix)
+                let wrapper = if ident_str == "Box" {
+                    Some(WrapperType::Box)
+                } else if ident_str == "Arc" {
+                    Some(WrapperType::Arc)
+                } else {
+                    None
+                };
+
+                if let Some(wrapper) = wrapper {
+                    // Extract the inner type from the angle brackets
+                    if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                        if args.args.len() == 1 {
+                            if let syn::GenericArgument::Type(inner_ty) = &args.args[0] {
+                                return WrappedTypeInfo { inner_ty, wrapper };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Not a wrapped type
+    WrappedTypeInfo {
+        inner_ty: ty,
+        wrapper: WrapperType::None,
+    }
+}
 
 pub(crate) fn get_crate_name(internal: bool) -> TokenStream {
     if internal {
