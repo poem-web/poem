@@ -116,10 +116,8 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
                 .status(StatusCode::FOUND)
                 .header(LOCATION, format!("{original_path}/"))
                 .finish())
-        } else if self.index_file.is_some() {
-            let index_file = self.index_file.as_ref().unwrap();
-            let index_path = format!("{path}/{index_file}");
-            EmbeddedFileEndpoint::<E>::new(&index_path).call(req).await
+        } else if let Some(index_file) = &self.index_file {
+            EmbeddedFileEndpoint::<E>::new(index_file).call(req).await
         } else {
             EmbeddedFileEndpoint::<E>::new(path).call(req).await
         }
