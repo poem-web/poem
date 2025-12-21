@@ -147,7 +147,8 @@ impl<T: AsRef<[u8]> + Send> ApiResponse for Base64<T> {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
-                description: "",
+                summary: None,
+                description: None,
                 status: Some(200),
                 status_range: None,
                 content: vec![MetaMediaType {

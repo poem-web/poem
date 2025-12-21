@@ -49,14 +49,16 @@ fn meta() {
         MetaResponses {
             responses: vec![
                 MetaResponse {
-                    description: "Ok",
+                    summary: None,
+                    description: Some("Ok"),
                     status: Some(200),
                     status_range: None,
                     content: vec![],
                     headers: vec![]
                 },
                 MetaResponse {
-                    description: "A\nB\n\nC",
+                    summary: None,
+                    description: Some("A\nB\n\nC"),
                     status: Some(400),
                     status_range: None,
                     content: vec![MetaMediaType {
@@ -66,7 +68,8 @@ fn meta() {
                     headers: vec![]
                 },
                 MetaResponse {
-                    description: "yaml response",
+                    summary: None,
+                    description: Some("yaml response"),
                     status: Some(400),
                     status_range: None,
                     content: vec![MetaMediaType {
@@ -76,7 +79,8 @@ fn meta() {
                     headers: vec![]
                 },
                 MetaResponse {
-                    description: "",
+                    summary: None,
+                    description: None,
                     status: None,
                     status_range: None,
                     content: vec![MetaMediaType {
@@ -274,7 +278,8 @@ async fn generic() {
         CustomApiResponse::<String>::meta(),
         MetaResponses {
             responses: vec![MetaResponse {
-                description: "",
+                summary: None,
+                description: None,
                 status: Some(200),
                 status_range: None,
                 content: vec![MetaMediaType {
@@ -309,7 +314,8 @@ async fn item_content_type() {
         MetaResponses {
             responses: vec![
                 MetaResponse {
-                    description: "",
+                    summary: None,
+                    description: None,
                     status: Some(200),
                     status_range: None,
                     content: vec![MetaMediaType {
@@ -321,7 +327,8 @@ async fn item_content_type() {
                     headers: vec![]
                 },
                 MetaResponse {
-                    description: "",
+                    summary: None,
+                    description: None,
                     status: None,
                     status_range: None,
                     content: vec![MetaMediaType {
@@ -587,16 +594,13 @@ async fn status_range() {
         spec["paths"]["/"]["get"]["responses"],
         json!({
           "2XX": {
-            "description": "",
             "content": {
               "application/json; charset=utf-8": { "schema": { "type": "string" } }
             }
           },
           "4XX": {
-            "description": ""
           },
           "5XX": {
-            "description": ""
           }
         })
     );

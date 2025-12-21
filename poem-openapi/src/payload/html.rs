@@ -61,7 +61,8 @@ impl<T: Into<String> + Send> ApiResponse for Html<T> {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
-                description: "",
+                summary: None,
+                description: None,
                 status: Some(200),
                 status_range: None,
                 content: vec![MetaMediaType {

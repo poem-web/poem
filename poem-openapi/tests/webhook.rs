@@ -177,7 +177,8 @@ async fn response() {
         <&dyn MyWebhooks>::meta()[0].operation.responses,
         MetaResponses {
             responses: vec![MetaResponse {
-                description: "",
+                summary: None,
+                description: None,
                 status: Some(200),
                 status_range: None,
                 content: vec![MetaMediaType {

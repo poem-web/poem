@@ -24,6 +24,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ServerObject {
     url: String,
+    name: Option<String>,
     description: Option<String>,
     variables: BTreeMap<String, MetaServerVariable>,
 }
@@ -39,8 +40,18 @@ impl ServerObject {
     pub fn new(url: impl Into<String>) -> ServerObject {
         Self {
             url: url.into(),
+            name: None,
             description: None,
             variables: BTreeMap::new(),
+        }
+    }
+
+    /// Sets the server name for identification (OpenAPI 3.2+).
+    #[must_use]
+    pub fn name(self, name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..self
         }
     }
 
@@ -345,6 +356,7 @@ impl<T, W> OpenApiService<T, W> {
         let server = server.into();
         self.servers.push(MetaServer {
             url: server.url,
+            name: server.name,
             description: server.description,
             variables: server.variables,
         });

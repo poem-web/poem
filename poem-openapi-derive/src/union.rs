@@ -39,6 +39,9 @@ struct UnionArgs {
     one_of: bool,
     #[darling(default)]
     discriminator_name: Option<String>,
+    /// Default schema when discriminator value is missing or unrecognized (OpenAPI 3.2+)
+    #[darling(default)]
+    default_mapping: Option<String>,
     #[darling(default)]
     externally_tagged: bool,
     #[darling(default)]
@@ -235,11 +238,13 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     }
 
+    let default_mapping = optional_literal(&args.default_mapping);
     let discriminator = match &args.discriminator_name {
         Some(discriminator_name) => quote! {
             ::std::option::Option::Some(#crate_name::registry::MetaDiscriminatorObject {
                 property_name: #discriminator_name,
                 mapping: ::std::vec![#(#mapping),*],
+                default_mapping: #default_mapping,
             })
         },
         None => quote!(::std::option::Option::None),

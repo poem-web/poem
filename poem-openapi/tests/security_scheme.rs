@@ -94,7 +94,8 @@ async fn basic_auth() {
             scheme: Some("basic"),
             bearer_format: None,
             flows: None,
-            openid_connect_url: None
+            openid_connect_url: None,
+            oauth2_metadata_url: None,
         }
     );
     assert!(!MySecurityScheme::has_security_fallback());
@@ -137,7 +138,8 @@ async fn bearer_auth() {
             scheme: Some("bearer"),
             bearer_format: None,
             flows: None,
-            openid_connect_url: None
+            openid_connect_url: None,
+            oauth2_metadata_url: None,
         }
     );
     assert!(!MySecurityScheme::has_security_fallback());
@@ -194,7 +196,8 @@ async fn api_key_auth() {
             scheme: None,
             bearer_format: None,
             flows: None,
-            openid_connect_url: None
+            openid_connect_url: None,
+            oauth2_metadata_url: None,
         }
     );
 
@@ -211,7 +214,8 @@ async fn api_key_auth() {
             scheme: None,
             bearer_format: None,
             flows: None,
-            openid_connect_url: None
+            openid_connect_url: None,
+            oauth2_metadata_url: None,
         }
     );
 
@@ -228,7 +232,8 @@ async fn api_key_auth() {
             scheme: None,
             bearer_format: None,
             flows: None,
-            openid_connect_url: None
+            openid_connect_url: None,
+            oauth2_metadata_url: None,
         }
     );
 
@@ -413,6 +418,7 @@ async fn oauth2_auth() {
                     authorization_url: Some("https://test.com/authorize"),
                     token_url: None,
                     refresh_url: None,
+                    device_authorization_url: None,
                     scopes: vec![
                         MetaOAuthScope {
                             name: "read",
@@ -428,22 +434,27 @@ async fn oauth2_auth() {
                     authorization_url: None,
                     token_url: Some("https://test.com/token"),
                     refresh_url: None,
+                    device_authorization_url: None,
                     scopes: vec![]
                 }),
                 client_credentials: Some(MetaOAuthFlow {
                     authorization_url: None,
                     token_url: Some("https://test.com/token"),
                     refresh_url: None,
+                    device_authorization_url: None,
                     scopes: vec![]
                 }),
                 authorization_code: Some(MetaOAuthFlow {
                     authorization_url: Some("https://test.com/authorize"),
                     token_url: Some("https://test.com/token"),
                     refresh_url: None,
+                    device_authorization_url: None,
                     scopes: vec![]
-                })
+                }),
+                device_authorization: None,
             }),
-            openid_connect_url: None
+            openid_connect_url: None,
+            oauth2_metadata_url: None,
         }
     );
     assert!(!MySecurityScheme::has_security_fallback())

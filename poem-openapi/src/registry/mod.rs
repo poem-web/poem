@@ -20,6 +20,9 @@ const fn is_false(value: &bool) -> bool {
     !*value
 }
 
+/// OpenAPI 3.2 Discriminator Object
+///
+/// New in 3.2.0: `default_mapping` field for fallback schema.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaDiscriminatorObject {
@@ -29,6 +32,9 @@ pub struct MetaDiscriminatorObject {
         serialize_with = "serialize_mapping"
     )]
     pub mapping: Vec<(String, String)>,
+    /// Default schema reference when discriminator value is missing or unrecognized (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_mapping: Option<&'static str>,
 }
 
 fn serialize_mapping<S: Serializer>(
@@ -518,9 +524,17 @@ pub struct MetaHeader {
     pub schema: MetaSchemaRef,
 }
 
+/// OpenAPI 3.2 Response Object
+///
+/// New in 3.2.0: `summary` field and `description` is now optional.
 #[derive(Debug, PartialEq, Serialize)]
 pub struct MetaResponse {
-    pub description: &'static str,
+    /// Brief summary of the response (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<&'static str>,
+    /// Description is now optional in OpenAPI 3.2.0
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<&'static str>,
     #[serde(skip)]
     pub status: Option<u16>,
     #[serde(skip)]
@@ -634,9 +648,15 @@ pub struct MetaInfo {
     pub license: Option<MetaLicense>,
 }
 
+/// OpenAPI 3.2 Server Object
+///
+/// New in 3.2.0: `name` field for server identification.
 #[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct MetaServer {
     pub url: String,
+    /// Server name for identification (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
@@ -662,14 +682,26 @@ pub struct MetaExternalDocument {
     pub description: Option<String>,
 }
 
+/// OpenAPI 3.2 Tag Object
+///
+/// New in 3.2.0: `summary`, `parent`, and `kind` fields for multipurpose tags.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaTag {
     pub name: &'static str,
+    /// A brief summary of the tag (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub external_docs: Option<MetaExternalDocument>,
+    /// Parent tag name for hierarchical tag organization (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent: Option<&'static str>,
+    /// Tag kind for categorization (e.g., "nav", "audience") (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<&'static str>,
 }
 
 impl PartialEq for MetaTag {
@@ -704,6 +736,9 @@ pub struct MetaOAuthScope {
     pub description: Option<&'static str>,
 }
 
+/// OpenAPI 3.2 OAuth Flow Object
+///
+/// New in 3.2.0: `device_authorization_url` for Device Authorization Grant flow.
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaOAuthFlow {
@@ -713,6 +748,9 @@ pub struct MetaOAuthFlow {
     pub token_url: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub refresh_url: Option<&'static str>,
+    /// Device authorization URL for Device Authorization Grant (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_authorization_url: Option<&'static str>,
     #[serde(
         skip_serializing_if = "Vec::is_empty",
         serialize_with = "serialize_oauth_flow_scopes"
@@ -731,6 +769,9 @@ fn serialize_oauth_flow_scopes<S: Serializer>(
     s.end()
 }
 
+/// OpenAPI 3.2 OAuth Flows Object
+///
+/// New in 3.2.0: `device_authorization` for Device Authorization Grant flow.
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaOAuthFlows {
@@ -742,8 +783,14 @@ pub struct MetaOAuthFlows {
     pub client_credentials: Option<MetaOAuthFlow>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authorization_code: Option<MetaOAuthFlow>,
+    /// Device Authorization Grant flow (OpenAPI 3.2+)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_authorization: Option<MetaOAuthFlow>,
 }
 
+/// OpenAPI 3.2 Security Scheme Object
+///
+/// New in 3.2.0: `oauth2_metadata_url` for OAuth 2.0 Server Metadata.
 #[derive(Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaSecurityScheme {
@@ -763,6 +810,9 @@ pub struct MetaSecurityScheme {
     pub flows: Option<MetaOAuthFlows>,
     #[serde(rename = "openIdConnectUrl", skip_serializing_if = "Option::is_none")]
     pub openid_connect_url: Option<&'static str>,
+    /// OAuth 2.0 Server Metadata URL (OpenAPI 3.2+)
+    #[serde(rename = "oauth2MetadataUrl", skip_serializing_if = "Option::is_none")]
+    pub oauth2_metadata_url: Option<&'static str>,
 }
 
 #[derive(Debug, PartialEq)]

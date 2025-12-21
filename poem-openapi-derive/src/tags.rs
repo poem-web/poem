@@ -24,6 +24,15 @@ struct TagItem {
     rename: Option<String>,
     #[darling(default)]
     external_docs: Option<ExternalDocument>,
+    /// Brief summary of the tag (OpenAPI 3.2+)
+    #[darling(default)]
+    summary: Option<String>,
+    /// Parent tag name for hierarchical organization (OpenAPI 3.2+)
+    #[darling(default)]
+    parent: Option<String>,
+    /// Tag kind for categorization (OpenAPI 3.2+)
+    #[darling(default)]
+    kind: Option<String>,
 }
 
 #[derive(FromDeriveInput)]
@@ -76,11 +85,17 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             }
             None => quote!(::std::option::Option::None),
         };
+        let summary = optional_literal(&variant.summary);
+        let parent = optional_literal(&variant.parent);
+        let kind = optional_literal(&variant.kind);
 
         meta_items.push(quote!(#crate_name::registry::MetaTag {
             name: #oai_item_name,
+            summary: #summary,
             description: #description,
             external_docs: #external_docs,
+            parent: #parent,
+            kind: #kind,
         }));
         to_names.push(quote!(Self::#item_ident => #oai_item_name));
     }

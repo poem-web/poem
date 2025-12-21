@@ -62,12 +62,18 @@ async fn meta() {
             MetaTag {
                 name: "UserOperations",
                 description: Some("User operations"),
-                external_docs: None
+                external_docs: None,
+                summary: None,
+                parent: None,
+                kind: None,
             },
             MetaTag {
                 name: "PetOperations",
                 description: Some("Pet operations"),
-                external_docs: None
+                external_docs: None,
+                summary: None,
+                parent: None,
+                kind: None,
             }
         ]
         .into_iter()
@@ -97,7 +103,10 @@ async fn external_docs() {
                 url: "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md"
                     .to_string(),
                 description: None
-            })
+            }),
+            summary: None,
+            parent: None,
+            kind: None,
         }
     );
 }

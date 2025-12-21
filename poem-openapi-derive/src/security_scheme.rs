@@ -35,6 +35,9 @@ struct OAuthFlow {
     token_url: Option<String>,
     #[darling(default)]
     refresh_url: Option<String>,
+    /// Device authorization URL for Device Authorization Grant (OpenAPI 3.2+)
+    #[darling(default)]
+    device_authorization_url: Option<String>,
     #[darling(default)]
     scopes: Option<Path>,
 }
@@ -44,6 +47,7 @@ impl OAuthFlow {
         let authorization_url = optional_literal(&self.authorization_url);
         let token_url = optional_literal(&self.token_url);
         let refresh_url = optional_literal(&self.refresh_url);
+        let device_authorization_url = optional_literal(&self.device_authorization_url);
         let scopes = match &self.scopes {
             Some(scopes) => quote!(<#scopes as #crate_name::OAuthScopes>::meta()),
             None => quote!(::std::vec![]),
@@ -54,6 +58,7 @@ impl OAuthFlow {
                 authorization_url: #authorization_url,
                 token_url: #token_url,
                 refresh_url: #refresh_url,
+                device_authorization_url: #device_authorization_url,
                 scopes: #scopes,
             }
         })
@@ -70,6 +75,9 @@ struct OAuthFlows {
     client_credentials: Option<OAuthFlow>,
     #[darling(default)]
     authorization_code: Option<OAuthFlow>,
+    /// Device Authorization Grant flow (OpenAPI 3.2+)
+    #[darling(default)]
+    device_authorization: Option<OAuthFlow>,
 }
 
 impl OAuthFlows {
@@ -78,6 +86,7 @@ impl OAuthFlows {
             && self.password.is_none()
             && self.authorization_code.is_none()
             && self.client_credentials.is_none()
+            && self.device_authorization.is_none()
         {
             return Err(Error::new(
                 span,
@@ -128,6 +137,22 @@ impl OAuthFlows {
             }
         }
 
+        if let Some(device_authorization) = &self.device_authorization {
+            if device_authorization.device_authorization_url.is_none() {
+                return Err(Error::new(
+                    span,
+                    r#"Missing device authorization url. #[oai(device_authorization_url="...")]"#,
+                )
+                .into());
+            }
+
+            if device_authorization.token_url.is_none() {
+                return Err(
+                    Error::new(span, r#"Missing token url. #[oai(token_url="...")]"#).into(),
+                );
+            }
+        }
+
         Ok(())
     }
 
@@ -164,12 +189,21 @@ impl OAuthFlows {
             None => quote!(::std::option::Option::None),
         };
 
+        let device_authorization = match &self.device_authorization {
+            Some(device_authorization) => {
+                let meta = device_authorization.generate_meta(crate_name)?;
+                quote!(::std::option::Option::Some(#meta))
+            }
+            None => quote!(::std::option::Option::None),
+        };
+
         Ok(quote! {
             #crate_name::registry::MetaOAuthFlows {
                 implicit: #implicit,
                 password: #password,
                 client_credentials: #client_credentials,
                 authorization_code: #authorization_code,
+                device_authorization: #device_authorization,
             }
         })
     }
@@ -217,6 +251,9 @@ struct SecuritySchemeArgs {
     flows: Option<SpannedValue<OAuthFlows>>,
     #[darling(default)]
     openid_connect_url: Option<String>,
+    /// OAuth 2.0 Server Metadata URL (OpenAPI 3.2+)
+    #[darling(default)]
+    oauth2_metadata_url: Option<String>,
     #[darling(default)]
     checker: Option<Path>,
 }
@@ -325,6 +362,11 @@ impl SecuritySchemeArgs {
             None => quote!(::std::option::Option::None),
         };
 
+        let oauth2_metadata_url = match &self.oauth2_metadata_url {
+            Some(oauth2_metadata_url) => quote!(::std::option::Option::Some(#oauth2_metadata_url)),
+            None => quote!(::std::option::Option::None),
+        };
+
         let ts = match self.auth_type()? {
             AuthType::ApiKey => {
                 quote! {
@@ -337,6 +379,7 @@ impl SecuritySchemeArgs {
                         bearer_format: ::std::option::Option::None,
                         flows: ::std::option::Option::None,
                         openid_connect_url: ::std::option::Option::None,
+                        oauth2_metadata_url: ::std::option::Option::None,
                     });
                 }
             }
@@ -351,6 +394,7 @@ impl SecuritySchemeArgs {
                         bearer_format: #bearer_format,
                         flows: ::std::option::Option::None,
                         openid_connect_url: ::std::option::Option::None,
+                        oauth2_metadata_url: ::std::option::Option::None,
                     });
                 }
             }
@@ -365,6 +409,7 @@ impl SecuritySchemeArgs {
                         bearer_format: #bearer_format,
                         flows: ::std::option::Option::None,
                         openid_connect_url: ::std::option::Option::None,
+                        oauth2_metadata_url: ::std::option::Option::None,
                     });
                 }
             }
@@ -380,6 +425,7 @@ impl SecuritySchemeArgs {
                         bearer_format: ::std::option::Option::None,
                         flows: ::std::option::Option::Some(#flows),
                         openid_connect_url: ::std::option::Option::None,
+                        oauth2_metadata_url: #oauth2_metadata_url,
                     });
                 }
             }
@@ -394,6 +440,7 @@ impl SecuritySchemeArgs {
                         bearer_format: ::std::option::Option::None,
                         flows: ::std::option::Option::None,
                         openid_connect_url: #openid_connect_url,
+                        oauth2_metadata_url: ::std::option::Option::None,
                     });
                 }
             }
