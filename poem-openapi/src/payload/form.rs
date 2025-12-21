@@ -10,7 +10,77 @@ use crate::{
     types::Type,
 };
 
-/// A url encoded form payload.
+/// A URL-encoded form payload (`application/x-www-form-urlencoded`).
+///
+/// This type uses [`serde_html_form`](https://docs.rs/serde_html_form) to
+/// parse form data, which properly handles HTML form encoding including
+/// array fields with repeated keys.
+///
+/// # Array/Vec Fields
+///
+/// For fields that are arrays or `Vec<T>`, form data can use either a single
+/// value or repeated keys:
+///
+/// ```text
+/// // Single value (will be parsed as a Vec with one element):
+/// ids=123
+///
+/// // Multiple values with repeated keys:
+/// ids=123&ids=456
+/// ```
+///
+/// # Nested Objects
+///
+/// Note that `serde_html_form` does not support nested objects or bracket
+/// notation (like `ids[0]=123`). For complex form data with nested structures,
+/// consider using [`Json`](crate::payload::Json) or
+/// [`Multipart`](crate::payload::Multipart) instead.
+///
+/// # Example
+///
+/// ```rust
+/// use poem_openapi::{payload::Form, Object, OpenApi};
+///
+/// #[derive(Debug, serde::Deserialize, Object)]
+/// struct LoginForm {
+///     username: String,
+///     password: String,
+/// }
+///
+/// struct Api;
+///
+/// #[OpenApi]
+/// impl Api {
+///     #[oai(path = "/login", method = "post")]
+///     async fn login(&self, form: Form<LoginForm>) {
+///         // Access form fields
+///         let username = &form.username;
+///         let password = &form.password;
+///     }
+/// }
+/// ```
+///
+/// # Example with Arrays
+///
+/// ```rust
+/// use poem_openapi::{payload::{Form, Json}, Object, OpenApi};
+///
+/// #[derive(Debug, serde::Deserialize, Object)]
+/// struct BatchRequest {
+///     ids: Vec<u32>,
+/// }
+///
+/// struct Api;
+///
+/// #[OpenApi]
+/// impl Api {
+///     #[oai(path = "/batch", method = "post")]
+///     async fn batch(&self, form: Form<BatchRequest>) -> Json<Vec<u32>> {
+///         // form.ids will contain all values from repeated 'ids' keys
+///         Json(form.ids.clone())
+///     }
+/// }
+/// ```
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Form<T>(pub T);
 
@@ -54,7 +124,7 @@ impl<T: DeserializeOwned> ParsePayload for Form<T> {
 
     async fn from_request(req: &Request, body: &mut RequestBody) -> Result<Self> {
         let data = Vec::<u8>::from_request(req, body).await?;
-        Ok(Self(serde_urlencoded::from_bytes(&data).map_err(
+        Ok(Self(serde_html_form::from_bytes(&data).map_err(
             |err| ParseRequestPayloadError {
                 reason: err.to_string(),
             },

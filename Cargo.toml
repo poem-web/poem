@@ -49,6 +49,7 @@ serde_yaml = "0.9"
 quick-xml = { version = "0.36.1", features = ["serialize"] }
 base64 = "0.22.0"
 serde_urlencoded = "0.7.1"
+serde_html_form = "0.2"
 indexmap = "2.0.0"
 reqwest = { version = "0.12.2", default-features = false }
 darling = "0.20.10"
