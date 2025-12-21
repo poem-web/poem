@@ -260,9 +260,15 @@ where
         }
 
         drop(acceptor);
+
+        // Register the notified future BEFORE checking the counter to avoid a race
+        // condition. If we checked the counter first, the last connection could
+        // complete and call notify.notify_one() between our check and our
+        // await, causing us to hang forever.
+        let notified = notify.notified();
         if alive_connections.load(Ordering::Acquire) > 0 {
             tracing::info!(name = name, "wait for all connections to close.");
-            notify.notified().await;
+            notified.await;
         }
 
         tracing::info!(name = name, "server stopped");
