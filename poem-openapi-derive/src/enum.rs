@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, Path, ext::IdentExt};
 use crate::{
     common_args::{ExternalDocument, RenameRule, apply_rename_rule_variant},
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{get_crate_name, get_description_token, optional_literal_token},
 };
 
 #[derive(FromVariant)]
@@ -49,7 +49,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(args.internal);
     let ident = &args.ident;
     let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
-    let description = get_description(&args.attrs)?;
+    // Use get_description_token to support #[doc = include_str!(...)]
+    let description = get_description_token(&args.attrs)?;
     let e = match &args.data {
         Data::Enum(e) => e,
         _ => return Err(Error::new_spanned(ident, "Enum can only be applied to an enum.").into()),
@@ -116,7 +117,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     } else {
         None
     };
-    let description = optional_literal(&description);
+    let description = optional_literal_token(description);
     let deprecated = args.deprecated;
     let external_docs = match &args.external_docs {
         Some(external_docs) => {

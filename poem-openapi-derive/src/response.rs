@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, Generics, Path, Type};
 use crate::{
     common_args::{ExtraHeader, LitOrPath},
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal, optional_literal_string},
+    utils::{get_crate_name, get_description, get_description_token, optional_literal_string, optional_literal_token},
 };
 
 #[derive(FromField)]
@@ -90,8 +90,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
 
         let item_ident = &variant.ident;
-        let item_description = get_description(&variant.attrs)?;
-        let item_description = optional_literal(&item_description);
+        // Use get_description_token to support #[doc = include_str!(...)]
+        let item_description = get_description_token(&variant.attrs)?;
+        let item_description = optional_literal_token(item_description);
         let (values, headers) = parse_fields(&variant.fields)?;
 
         let mut match_headers = Vec::new();

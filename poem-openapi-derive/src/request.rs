@@ -11,7 +11,7 @@ use syn::{Attribute, DeriveInput, Error, Generics, Type};
 
 use crate::{
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{get_crate_name, get_description_token, optional_literal_token},
 };
 
 #[derive(FromVariant)]
@@ -49,8 +49,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             );
         }
     };
-    let description = get_description(&args.attrs)?;
-    let description = optional_literal(&description);
+    // Use get_description_token to support #[doc = include_str!(...)]
+    let description = get_description_token(&args.attrs)?;
+    let description = optional_literal_token(description);
 
     let mut from_requests = Vec::new();
     let mut content = Vec::new();

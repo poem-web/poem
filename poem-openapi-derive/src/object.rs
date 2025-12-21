@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, Generics, Path, Type, ext::IdentExt};
 use crate::{
     common_args::{DefaultValue, ExternalDocument, RenameRule, apply_rename_rule_field},
     error::GeneratorResult,
-    utils::{create_object_name, get_crate_name, get_description, optional_literal},
+    utils::{create_object_name, get_crate_name, get_description_token, optional_literal_token},
     validators::Validators,
 };
 
@@ -104,7 +104,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     };
     let oai_typename = args.rename.clone().unwrap_or_else(|| ident.to_string());
-    let description = get_description(&args.attrs)?;
+    // Use get_description_token to support #[doc = include_str!(...)]
+    let description = get_description_token(&args.attrs)?;
     let mut deserialize_fields = Vec::new();
     let mut serialize_fields = Vec::new();
     let mut register_types = Vec::new();
@@ -149,8 +150,12 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let field_name = field.rename.clone().unwrap_or_else(|| {
             apply_rename_rule_field(args.rename_all, field_ident.unraw().to_string())
         });
-        let field_description = get_description(&field.attrs)?;
-        let field_description = optional_literal(&field_description);
+        // Use get_description_token to support #[doc = include_str!(...)] on fields
+        let field_description = get_description_token(&field.attrs)?;
+        let field_description = match field_description {
+            Some(ts) => ts,
+            None => quote!(::std::option::Option::None),
+        };
         let validators = field.validator.clone().unwrap_or_default();
         let validators_checker = validators.create_obj_field_checker(&crate_name, &field_name)?;
         let validators_update_meta = validators.create_update_meta(&crate_name)?;
@@ -328,7 +333,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         }
     }
 
-    let description = optional_literal(&description);
+    // The description is now a TokenStream that evaluates to Option<&'static str>
+    let description = optional_literal_token(description);
     let deprecated = args.deprecated;
     let external_docs = match &args.external_docs {
         Some(external_docs) => {

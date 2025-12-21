@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, ext::IdentExt};
 use crate::{
     common_args::{RenameRule, apply_rename_rule_variant},
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{get_crate_name, get_description_token, optional_literal_token},
 };
 
 #[derive(FromVariant)]
@@ -69,8 +69,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let oai_item_name = variant.rename.clone().unwrap_or_else(|| {
             apply_rename_rule_variant(args.rename_all, item_ident.unraw().to_string())
         });
-        let description = get_description(&variant.attrs)?;
-        let description = optional_literal(&description);
+        // Use get_description_token to support #[doc = include_str!(...)]
+        let description = get_description_token(&variant.attrs)?;
+        let description = optional_literal_token(description);
 
         meta_items.push(quote!(#crate_name::registry::MetaOAuthScope {
             name: #oai_item_name,

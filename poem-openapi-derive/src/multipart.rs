@@ -9,7 +9,7 @@ use syn::{Attribute, DeriveInput, Error, Generics, Type, ext::IdentExt};
 use crate::{
     common_args::{DefaultValue, RenameRule, apply_rename_rule_field},
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{get_crate_name, get_description_token, optional_literal_token},
     validators::Validators,
 };
 
@@ -84,8 +84,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         let field_name = field.rename.clone().unwrap_or_else(|| {
             apply_rename_rule_field(args.rename_all, field_ident.unraw().to_string())
         });
-        let field_description = get_description(&field.attrs)?;
-        let field_description = optional_literal(&field_description);
+        // Use get_description_token to support #[doc = include_str!(...)]
+        let field_description = get_description_token(&field.attrs)?;
+        let field_description = optional_literal_token(field_description);
         let validators = field.validator.clone().unwrap_or_default();
         let validators_checker =
             validators.create_multipart_field_checker(&crate_name, &field_name)?;

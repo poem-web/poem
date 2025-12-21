@@ -10,7 +10,7 @@ use syn::{Attribute, DeriveInput, Error, Path};
 
 use crate::{
     error::GeneratorResult,
-    utils::{get_crate_name, get_description, optional_literal},
+    utils::{get_crate_name, get_description_token, optional_literal, optional_literal_token},
 };
 
 #[derive(FromMeta, Debug, Copy, Clone, Eq, PartialEq)]
@@ -300,8 +300,9 @@ impl SecuritySchemeArgs {
         crate_name: &TokenStream,
         name: &str,
     ) -> GeneratorResult<TokenStream> {
-        let description = get_description(&self.attrs)?;
-        let description = optional_literal(&description);
+        // Use get_description_token to support #[doc = include_str!(...)]
+        let description = get_description_token(&self.attrs)?;
+        let description = optional_literal_token(description);
 
         let key_name = match &self.key_name {
             Some(key_name) => {
