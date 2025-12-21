@@ -931,3 +931,71 @@ fn with_externally_tagged_primitives() {
         }))
     );
 }
+
+#[test]
+fn variant_doc_comments() {
+    #[derive(Object, Debug, PartialEq)]
+    struct A {
+        v1: i32,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct B {
+        v2: String,
+    }
+
+    /// The union type description
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(discriminator_name = "type")]
+    enum MyObj {
+        /// Variant A documentation
+        A(A),
+        /// Variant B documentation
+        B(B),
+    }
+
+    // Check the union-level schema has the union description
+    let schema = get_meta::<MyObj>();
+    assert_eq!(schema.description, Some("The union type description"));
+
+    // Check variant schemas have their individual descriptions
+    let schema_a = get_meta_by_name::<MyObj>("MyObj_A");
+    assert_eq!(schema_a.description, Some("Variant A documentation"));
+
+    let schema_b = get_meta_by_name::<MyObj>("MyObj_B");
+    assert_eq!(schema_b.description, Some("Variant B documentation"));
+}
+
+#[test]
+fn variant_doc_comments_externally_tagged() {
+    #[derive(Object, Debug, PartialEq)]
+    struct A {
+        v1: i32,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct B {
+        v2: String,
+    }
+
+    /// The union type description
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(externally_tagged)]
+    enum MyObj {
+        /// Variant A documentation
+        A(A),
+        /// Variant B documentation
+        B(B),
+    }
+
+    // Check the union-level schema has the union description
+    let schema = get_meta::<MyObj>();
+    assert_eq!(schema.description, Some("The union type description"));
+
+    // Check variant schemas have their individual descriptions
+    let schema_a = get_meta_by_name::<MyObj>("MyObj_A");
+    assert_eq!(schema_a.description, Some("Variant A documentation"));
+
+    let schema_b = get_meta_by_name::<MyObj>("MyObj_B");
+    assert_eq!(schema_b.description, Some("Variant B documentation"));
+}

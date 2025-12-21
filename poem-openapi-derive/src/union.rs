@@ -17,6 +17,7 @@ use crate::{
 #[darling(attributes(oai), forward_attrs(doc))]
 struct UnionItem {
     ident: Ident,
+    attrs: Vec<Attribute>,
     fields: Fields<Type>,
 
     #[darling(default)]
@@ -84,6 +85,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
 
     for variant in e {
         let item_ident = &variant.ident;
+        let variant_description = get_description(&variant.attrs)?;
+        let variant_description = optional_literal(&variant_description);
 
         if variant.fields.len() != 1 {
             return Err(Error::new_spanned(&variant.ident, "Incorrect oneof definition.").into());
@@ -169,7 +172,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         if args.externally_tagged {
             create_schemas.push(quote! {
                 let schema = #crate_name::registry::MetaSchema {
-                    description: #description,
+                    description: #variant_description,
                     all_of: ::std::vec![
                         #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
                             required: ::std::vec![#mapping_name],
@@ -198,7 +201,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
 
                 let schema = #crate_name::registry::MetaSchema {
-                    description: #description,
+                    description: #variant_description,
                     all_of: ::std::vec![
                         #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
                             required: #required,
