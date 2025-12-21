@@ -99,7 +99,7 @@ impl<T: ToJSON> ToJSON for Option<T> {
     fn to_json(&self) -> Option<Value> {
         match self {
             Some(value) => value.to_json(),
-            None => Some(Value::Null),
+            None => None,
         }
     }
 }

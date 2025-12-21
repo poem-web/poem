@@ -501,4 +501,30 @@ mod tests {
             Some(Value::Number(100.into()))
         );
     }
+
+    #[test]
+    fn option_type() {
+        // Option<T> where T is present should serialize to the inner value
+        let some_value: Option<i32> = Some(42);
+        assert_eq!(ToJSON::to_json(&some_value), Some(Value::Number(42.into())));
+
+        // Option<T> where T is None should serialize to None (field omitted)
+        // This matches the OpenAPI spec where the field is not required
+        // and should be absent rather than null when not present
+        let none_value: Option<i32> = None;
+        assert_eq!(ToJSON::to_json(&none_value), None);
+
+        // Test with nested Option
+        let nested_some: Option<Option<i32>> = Some(Some(42));
+        assert_eq!(
+            ToJSON::to_json(&nested_some),
+            Some(Value::Number(42.into()))
+        );
+
+        let nested_none: Option<Option<i32>> = Some(None);
+        assert_eq!(ToJSON::to_json(&nested_none), None);
+
+        let outer_none: Option<Option<i32>> = None;
+        assert_eq!(ToJSON::to_json(&outer_none), None);
+    }
 }
