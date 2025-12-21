@@ -526,7 +526,18 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 from_requests.push(quote! {
                     match <#item_type as #crate_name::ApiExtractor>::from_request(req, body, param_opts.clone()).await {
                         ::std::result::Result::Ok(item) => return Ok(#ident::#item_ident(item)),
-                        ::std::result::Result::Err(err) => last_err = ::std::option::Option::Some(err),
+                        ::std::result::Result::Err(err) => {
+                            // Preserve the first custom error (non-AuthorizationError) we encounter.
+                            // This ensures that if a scheme had valid credentials but failed validation,
+                            // that error is not overwritten by a subsequent "missing credential" error.
+                            let is_auth_error = err.is::<#crate_name::error::AuthorizationError>();
+                            if !has_custom_err {
+                                if !is_auth_error {
+                                    has_custom_err = true;
+                                }
+                                last_err = ::std::option::Option::Some(err);
+                            }
+                        }
                     }
                 })
             }
@@ -572,6 +583,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         param_opts: #crate_name::ExtractParamOptions<Self::ParamType>,
                     ) -> #crate_name::__private::poem::Result<Self> {
                         let mut last_err = ::std::option::Option::None;
+                        let mut has_custom_err = false;
                         #(#from_requests)*
                         #fallback
                     }

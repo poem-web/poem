@@ -681,3 +681,168 @@ async fn fallback() {
         ])
     )
 }
+
+#[tokio::test]
+async fn enum_security_scheme_error_priority() {
+    // Test that custom errors from the first scheme are not overwritten
+    // by "missing credential" errors from subsequent schemes.
+    // See: https://github.com/poem-web/poem/issues/870
+    // See: https://github.com/poem-web/poem/issues/726
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("Your account is disabled")]
+    struct AccountDisabledError;
+
+    impl ResponseError for AccountDisabledError {
+        fn status(&self) -> StatusCode {
+            StatusCode::FORBIDDEN
+        }
+    }
+
+    // First scheme: API Key with custom checker
+    #[derive(SecurityScheme)]
+    #[oai(
+        ty = "api_key",
+        key_name = "X-API-Key",
+        key_in = "header",
+        checker = "api_key_checker"
+    )]
+    struct ApiKeyScheme(ApiKey);
+
+    async fn api_key_checker(_req: &Request, api_key: ApiKey) -> poem::Result<ApiKey> {
+        if api_key.key == "disabled" {
+            Err(AccountDisabledError)?
+        } else {
+            Ok(api_key)
+        }
+    }
+
+    // Second scheme: Bearer (no custom checker)
+    #[derive(SecurityScheme)]
+    #[oai(ty = "bearer")]
+    struct BearerScheme(Bearer);
+
+    // Combined enum scheme
+    #[derive(SecurityScheme)]
+    enum CombinedScheme {
+        ApiKey(ApiKeyScheme),
+        Bearer(BearerScheme),
+    }
+
+    struct MyApi;
+
+    #[OpenApi]
+    impl MyApi {
+        #[oai(path = "/test", method = "get")]
+        async fn test(&self, auth: CombinedScheme) -> PlainText<String> {
+            match auth {
+                CombinedScheme::ApiKey(a) => PlainText(format!("api_key: {}", a.0.key)),
+                CombinedScheme::Bearer(b) => PlainText(format!("bearer: {}", b.0.token)),
+            }
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let client = TestClient::new(service);
+
+    // Test 1: Valid API key should work
+    let resp = client
+        .get("/test")
+        .header("X-API-Key", "valid")
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("api_key: valid").await;
+
+    // Test 2: Valid Bearer should work
+    let resp = client
+        .get("/test")
+        .typed_header(headers::Authorization::bearer("mytoken").unwrap())
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_text("bearer: mytoken").await;
+
+    // Test 3: No credentials should return 401 Unauthorized
+    let resp = client.get("/test").send().await;
+    resp.assert_status(StatusCode::UNAUTHORIZED);
+
+    // Test 4: THE KEY TEST - Invalid API key (triggers custom error) with no Bearer
+    // Should return the custom error (403 Forbidden), NOT the default auth error
+    // (401)
+    let resp = client
+        .get("/test")
+        .header("X-API-Key", "disabled")
+        .send()
+        .await;
+    resp.assert_status(StatusCode::FORBIDDEN);
+    resp.assert_text("Your account is disabled").await;
+}
+
+#[tokio::test]
+async fn enum_security_scheme_error_priority_reversed() {
+    // Test with reversed order - Bearer first, then API Key
+    // The custom error from API Key should still be preserved
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("Invalid token")]
+    struct InvalidTokenError;
+
+    impl ResponseError for InvalidTokenError {
+        fn status(&self) -> StatusCode {
+            StatusCode::FORBIDDEN
+        }
+    }
+
+    // First scheme: Bearer with custom checker
+    #[derive(SecurityScheme)]
+    #[oai(ty = "bearer", checker = "bearer_checker")]
+    struct BearerScheme2(Bearer);
+
+    async fn bearer_checker(_req: &Request, bearer: Bearer) -> poem::Result<Bearer> {
+        if bearer.token == "invalid" {
+            Err(InvalidTokenError)?
+        } else {
+            Ok(bearer)
+        }
+    }
+
+    // Second scheme: API Key (no custom checker)
+    #[derive(SecurityScheme)]
+    #[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
+    struct ApiKeyScheme2(ApiKey);
+
+    // Combined enum scheme with Bearer first
+    #[derive(SecurityScheme)]
+    enum CombinedScheme2 {
+        Bearer(BearerScheme2),
+        ApiKey(ApiKeyScheme2),
+    }
+
+    struct MyApi;
+
+    #[OpenApi]
+    impl MyApi {
+        #[oai(path = "/test", method = "get")]
+        async fn test(&self, auth: CombinedScheme2) -> PlainText<String> {
+            match auth {
+                CombinedScheme2::Bearer(b) => PlainText(format!("bearer: {}", b.0.token)),
+                CombinedScheme2::ApiKey(a) => PlainText(format!("api_key: {}", a.0.key)),
+            }
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let client = TestClient::new(service);
+
+    // Invalid Bearer token (triggers custom error) with no API key
+    // Should return the custom error (403 Forbidden), NOT the default auth error
+    // (401)
+    let resp = client
+        .get("/test")
+        .typed_header(headers::Authorization::bearer("invalid").unwrap())
+        .send()
+        .await;
+    resp.assert_status(StatusCode::FORBIDDEN);
+    resp.assert_text("Invalid token").await;
+}
