@@ -376,7 +376,9 @@ where
     T: ApiResponse,
     E: ApiResponse + Into<Error> + Send + Sync + 'static,
 {
-    const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER;
+    // Check both T and E for custom bad request handlers.
+    // E (error type) takes priority since bad requests are errors.
+    const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER || E::BAD_REQUEST_HANDLER;
 
     fn meta() -> MetaResponses {
         let mut meta = T::meta();
@@ -390,7 +392,13 @@ where
     }
 
     fn from_parse_request_error(err: Error) -> Self {
-        Ok(T::from_parse_request_error(err))
+        // If E has a custom bad request handler, use it and return Err.
+        // Otherwise, fall back to T's handler wrapped in Ok.
+        if E::BAD_REQUEST_HANDLER {
+            Err(E::from_parse_request_error(err))
+        } else {
+            Ok(T::from_parse_request_error(err))
+        }
     }
 }
 

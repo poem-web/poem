@@ -1084,3 +1084,55 @@ async fn parameter_style_none() {
     let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
     assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }
+
+#[tokio::test]
+async fn bad_request_handler_with_result() {
+    // Test that bad_request_handler on the error type E in Result<T, E> is called
+    // See: https://github.com/poem-web/poem/issues/967
+
+    #[derive(ApiResponse)]
+    enum OkResponse {
+        #[oai(status = 200)]
+        Ok(PlainText<String>),
+    }
+
+    #[derive(ApiResponse)]
+    #[oai(bad_request_handler = "bad_request_handler")]
+    enum ErrResponse {
+        #[oai(status = 400)]
+        BadRequest(PlainText<String>),
+        #[oai(status = 500)]
+        InternalError(PlainText<String>),
+    }
+
+    fn bad_request_handler(err: Error) -> ErrResponse {
+        ErrResponse::BadRequest(PlainText(format!("Custom error: {err}")))
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn test(&self, code: Query<u16>) -> Result<OkResponse, ErrResponse> {
+            Ok(OkResponse::Ok(PlainText(format!("code: {}", code.0))))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    // Valid request should work
+    let resp = cli.get("/").query("code", &200).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_text("code: 200").await;
+
+    // Invalid request should use the custom bad_request_handler from ErrResponse
+    let resp = cli.get("/").send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_content_type("text/plain; charset=utf-8");
+    resp.assert_text(
+        r#"Custom error: failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#,
+    )
+    .await;
+}
