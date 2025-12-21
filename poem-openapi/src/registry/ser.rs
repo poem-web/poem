@@ -7,7 +7,10 @@ use crate::registry::{
     MetaSecurityScheme, MetaServer, MetaWebhook, Registry,
 };
 
-const OPENAPI_VERSION: &str = "3.0.0";
+const OPENAPI_VERSION: &str = "3.2.0";
+
+/// The JSON Schema dialect URI for OpenAPI 3.2
+const JSON_SCHEMA_DIALECT: &str = "https://spec.openapis.org/oas/3.2/dialect/base";
 
 impl Serialize for MetaSchemaRef {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -107,6 +110,7 @@ impl Serialize for Document<'_> {
         let mut s = serializer.serialize_map(None)?;
 
         s.serialize_entry("openapi", OPENAPI_VERSION)?;
+        s.serialize_entry("jsonSchemaDialect", JSON_SCHEMA_DIALECT)?;
         s.serialize_entry("info", &self.info)?;
         s.serialize_entry("servers", self.servers)?;
         s.serialize_entry("tags", &self.registry.tags)?;

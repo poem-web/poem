@@ -1084,3 +1084,166 @@ async fn parameter_style_none() {
     let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
     assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }
+
+#[test]
+fn openapi_3_2_version_and_dialect() {
+    // Test that the spec output includes OpenAPI 3.2.0 version and jsonSchemaDialect
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/test", method = "get")]
+        async fn test(&self) -> PlainText<String> {
+            PlainText("ok".to_string())
+        }
+    }
+
+    let spec = OpenApiService::new(Api, "test", "1.0").spec();
+    let spec_json: serde_json::Value = serde_json::from_str(&spec).unwrap();
+
+    // Verify OpenAPI version is 3.2.0
+    assert_eq!(spec_json["openapi"], "3.2.0");
+
+    // Verify jsonSchemaDialect is present (required in 3.1+)
+    assert_eq!(
+        spec_json["jsonSchemaDialect"],
+        "https://spec.openapis.org/oas/3.2/dialect/base"
+    );
+}
+
+#[test]
+fn openapi_3_2_nullable_format() {
+    // Test that nullable fields use type array format ["type", "null"] instead of nullable: true
+    // This is the OpenAPI 3.1+ format (aligned with JSON Schema)
+    let mut schema = MetaSchema::new("string");
+    schema.nullable = true;
+
+    let json_str = serde_json::to_string(&schema).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // Should NOT have "nullable" field
+    assert!(
+        json.get("nullable").is_none(),
+        "Should not have 'nullable' field in 3.2 format, got: {}",
+        json_str
+    );
+
+    // Should have type as an array ["string", "null"]
+    let type_value = &json["type"];
+    assert!(
+        type_value.is_array(),
+        "nullable type should be an array, got: {}",
+        type_value
+    );
+    let type_array: Vec<&str> = type_value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert!(
+        type_array.contains(&"string") && type_array.contains(&"null"),
+        "type array should contain 'string' and 'null', got: {:?}",
+        type_array
+    );
+}
+
+#[test]
+fn openapi_3_2_exclusive_minimum_format() {
+    // Test that exclusiveMinimum is serialized as a number, not a boolean
+    // In OpenAPI 3.0: {"minimum": 0, "exclusiveMinimum": true}
+    // In OpenAPI 3.1+: {"exclusiveMinimum": 0}
+    let mut schema = MetaSchema::new("integer");
+    schema.minimum = Some(0.0);
+    schema.exclusive_minimum = Some(true);
+
+    let json_str = serde_json::to_string(&schema).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // exclusiveMinimum should be a number (0), not a boolean
+    let exclusive_min = &json["exclusiveMinimum"];
+    assert!(
+        exclusive_min.is_number(),
+        "exclusiveMinimum should be a number in 3.2 format, got: {}",
+        exclusive_min
+    );
+    assert_eq!(
+        exclusive_min.as_f64().unwrap(),
+        0.0,
+        "exclusiveMinimum value should be 0"
+    );
+
+    // Should NOT have a separate "minimum" field when exclusive
+    assert!(
+        json.get("minimum").is_none(),
+        "Should not have separate 'minimum' field when exclusiveMinimum is used, got: {}",
+        json_str
+    );
+}
+
+#[test]
+fn openapi_3_2_exclusive_maximum_format() {
+    // Test that exclusiveMaximum is serialized as a number, not a boolean
+    // In OpenAPI 3.0: {"maximum": 100, "exclusiveMaximum": true}
+    // In OpenAPI 3.1+: {"exclusiveMaximum": 100}
+    let mut schema = MetaSchema::new("integer");
+    schema.maximum = Some(100.0);
+    schema.exclusive_maximum = Some(true);
+
+    let json_str = serde_json::to_string(&schema).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // exclusiveMaximum should be a number (100), not a boolean
+    let exclusive_max = &json["exclusiveMaximum"];
+    assert!(
+        exclusive_max.is_number(),
+        "exclusiveMaximum should be a number in 3.2 format, got: {}",
+        exclusive_max
+    );
+    assert_eq!(
+        exclusive_max.as_f64().unwrap(),
+        100.0,
+        "exclusiveMaximum value should be 100"
+    );
+
+    // Should NOT have a separate "maximum" field when exclusive
+    assert!(
+        json.get("maximum").is_none(),
+        "Should not have separate 'maximum' field when exclusiveMaximum is used, got: {}",
+        json_str
+    );
+}
+
+#[test]
+fn openapi_3_2_non_exclusive_minimum_maximum() {
+    // Test that non-exclusive min/max still use the standard format
+    let mut schema = MetaSchema::new("integer");
+    schema.minimum = Some(0.0);
+    schema.maximum = Some(100.0);
+    // Note: exclusive_minimum and exclusive_maximum are None or Some(false)
+
+    let json_str = serde_json::to_string(&schema).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // Should have minimum and maximum as numbers
+    assert_eq!(
+        json["minimum"].as_f64().unwrap(),
+        0.0,
+        "minimum should be present"
+    );
+    assert_eq!(
+        json["maximum"].as_f64().unwrap(),
+        100.0,
+        "maximum should be present"
+    );
+
+    // Should NOT have exclusiveMinimum or exclusiveMaximum
+    assert!(
+        json.get("exclusiveMinimum").is_none(),
+        "Should not have exclusiveMinimum when not exclusive"
+    );
+    assert!(
+        json.get("exclusiveMaximum").is_none(),
+        "Should not have exclusiveMaximum when not exclusive"
+    );
+}
