@@ -198,6 +198,34 @@ impl<T> Node<T> {
         (0..self.indices.len()).find(|&i| self.indices[i] == prefix)
     }
 
+    /// Consumes this node and collects all routes with owned data into the provided vector.
+    fn collect_routes_owned(self, routes: &mut Vec<(Arc<str>, T)>) {
+        // Collect data from this node if it has any
+        if let Some(node_data) = self.data {
+            routes.push((node_data.pattern, node_data.data));
+        }
+
+        // Collect from static children
+        for child in self.children {
+            child.collect_routes_owned(routes);
+        }
+
+        // Collect from param children
+        for child in self.param_children {
+            child.collect_routes_owned(routes);
+        }
+
+        // Collect from regex children
+        for child in self.regex_children {
+            child.collect_routes_owned(routes);
+        }
+
+        // Collect from catch-all child
+        if let Some(child) = self.catch_all_child {
+            child.collect_routes_owned(routes);
+        }
+    }
+
     fn insert_child(&mut self, mut segments: Vec<Segment<'_>>, data: NodeData<T>) -> bool {
         match segments.pop() {
             Some(segment) => match segment {
@@ -530,6 +558,13 @@ impl<T> RadixTree<T> {
             }
             None => None,
         }
+    }
+
+    /// Consumes the tree and returns an iterator over all routes as owned (pattern, data) pairs.
+    pub(crate) fn into_iter(self) -> impl Iterator<Item = (Arc<str>, T)> {
+        let mut routes = Vec::new();
+        self.root.collect_routes_owned(&mut routes);
+        routes.into_iter()
     }
 }
 
@@ -1251,4 +1286,29 @@ mod tests {
         assert_eq!(matches.params[0].0, "id");
         assert_eq!(matches.params[0].1, "你好");
     }
+
+    #[test]
+    fn test_into_iter() {
+        let mut tree = RadixTree::default();
+        tree.add("/users", 1).unwrap();
+        tree.add("/posts", 2).unwrap();
+        tree.add("/users/:id", 3).unwrap();
+
+        let routes: Vec<_> = tree.into_iter().collect();
+        assert_eq!(routes.len(), 3);
+
+        // Check that all data values are present
+        let data: Vec<_> = routes.iter().map(|(_, d)| *d).collect();
+        assert!(data.contains(&1));
+        assert!(data.contains(&2));
+        assert!(data.contains(&3));
+    }
+
+    #[test]
+    fn test_into_iter_empty() {
+        let tree: RadixTree<i32> = RadixTree::default();
+        let routes: Vec<_> = tree.into_iter().collect();
+        assert!(routes.is_empty());
+    }
+
 }
