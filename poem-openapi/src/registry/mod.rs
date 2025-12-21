@@ -348,6 +348,42 @@ impl MetaSchemaRef {
             }
         }
     }
+
+    /// Apply a function to update the inline schema.
+    ///
+    /// The function receives both the original schema (before any merge) and
+    /// a mutable MetaSchema for updating.
+    ///
+    /// For inline schemas, the mutable schema is extracted from the Box.
+    /// For reference schemas that were wrapped in an allOf, a new schema is
+    /// created.
+    #[must_use]
+    pub fn update_with<F>(self, original_schema: &MetaSchemaRef, f: F) -> Self
+    where
+        F: FnOnce(&MetaSchemaRef, MetaSchema) -> MetaSchema,
+    {
+        match self {
+            MetaSchemaRef::Inline(schema) => {
+                let schema = f(original_schema, *schema);
+                MetaSchemaRef::Inline(Box::new(schema))
+            }
+            MetaSchemaRef::Reference(name) => {
+                // For a reference, we need to wrap it in an inline schema to apply updates
+                let schema = f(original_schema, MetaSchema::ANY);
+                if schema.is_empty() {
+                    MetaSchemaRef::Reference(name)
+                } else {
+                    MetaSchemaRef::Inline(Box::new(MetaSchema {
+                        all_of: vec![
+                            MetaSchemaRef::Reference(name),
+                            MetaSchemaRef::Inline(Box::new(schema.clone())),
+                        ],
+                        ..schema
+                    }))
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]

@@ -13,6 +13,7 @@ use crate::{
     utils::{
         get_crate_name, get_summary_and_description, optional_literal, optional_literal_string,
     },
+    validators::Validators,
 };
 
 #[derive(FromDeriveInput)]
@@ -41,6 +42,8 @@ struct NewTypeArgs {
     example: bool,
     #[darling(default)]
     rename: Option<LitOrPath<String>>,
+    #[darling(default)]
+    validator: Option<Validators>,
 }
 
 const fn default_true() -> bool {
@@ -104,21 +107,34 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         },
     };
 
+    // Get validators and create update_meta code for OpenAPI schema
+    let validators = args.validator.clone().unwrap_or_default();
+    let validators_update_meta = validators.create_update_meta(&crate_name)?;
+    let validators_checker =
+        validators.create_obj_field_checker(&crate_name, &ident.to_string())?;
+
     let schema_ref = quote! {
-        <#inner_ty as #crate_name::types::Type>::schema_ref().merge(#crate_name::registry::MetaSchema {
-            title: #summary,
-            description: #description,
-            external_docs: #external_docs,
-            example: #example,
-            ..#crate_name::registry::MetaSchema::ANY
-        })
+        {
+            let original_schema = <#inner_ty as #crate_name::types::Type>::schema_ref();
+            original_schema.clone().merge(#crate_name::registry::MetaSchema {
+                title: #summary,
+                description: #description,
+                external_docs: #external_docs,
+                example: #example,
+                ..#crate_name::registry::MetaSchema::ANY
+            }).update_with(&original_schema, |original_schema, mut schema| {
+                #validators_update_meta
+                schema
+            })
+        }
     };
 
     let from_json = if args.from_json {
         Some(quote! {
             impl #impl_generics #crate_name::types::ParseFromJSON for #ident #ty_generics #where_clause {
                 fn parse_from_json(value: ::std::option::Option<#crate_name::__private::serde_json::Value>) -> #crate_name::types::ParseResult<Self> {
-                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value), poem_openapi::types::ParseError::propagate)?;
+                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value), #crate_name::types::ParseError::propagate)?;
+                    #validators_checker
                     ::std::result::Result::Ok(#ident(value))
                 }
             }
@@ -131,14 +147,16 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         Some(quote! {
             impl #impl_generics #crate_name::types::ParseFromParameter for #ident #ty_generics #where_clause {
                 fn parse_from_parameter(value: &str) -> #crate_name::types::ParseResult<Self> {
-                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromParameter>::parse_from_parameter(value), poem_openapi::types::ParseError::propagate)?;
+                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromParameter>::parse_from_parameter(value), #crate_name::types::ParseError::propagate)?;
+                    #validators_checker
                     ::std::result::Result::Ok(#ident(value))
                 }
 
                 fn parse_from_parameters<I: ::std::iter::IntoIterator<Item = A>, A: ::std::convert::AsRef<str>>(
                     iter: I,
                 ) -> #crate_name::types::ParseResult<Self> {
-                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromParameter>::parse_from_parameters(iter), poem_openapi::types::ParseError::propagate)?;
+                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromParameter>::parse_from_parameters(iter), #crate_name::types::ParseError::propagate)?;
+                    #validators_checker
                     ::std::result::Result::Ok(#ident(value))
                 }
             }
@@ -151,12 +169,14 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         Some(quote! {
             impl #impl_generics #crate_name::types::ParseFromMultipartField for #ident #ty_generics #where_clause {
                 async fn parse_from_multipart(field: ::std::option::Option<#crate_name::__private::poem::web::Field>) -> #crate_name::types::ParseResult<Self> {
-                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromMultipartField>::parse_from_multipart(field).await, poem_openapi::types::ParseError::propagate)?;
+                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromMultipartField>::parse_from_multipart(field).await, #crate_name::types::ParseError::propagate)?;
+                    #validators_checker
                     ::std::result::Result::Ok(#ident(value))
                 }
 
                 async fn parse_from_repeated_field(self, field: #crate_name::__private::poem::web::Field) -> #crate_name::types::ParseResult<Self> {
-                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromMultipartField>::parse_from_repeated_field(self.0, field).await, poem_openapi::types::ParseError::propagate)?;
+                    let value = ::std::result::Result::map_err(<#inner_ty as #crate_name::types::ParseFromMultipartField>::parse_from_repeated_field(self.0, field).await, #crate_name::types::ParseError::propagate)?;
+                    #validators_checker
                     ::std::result::Result::Ok(#ident(value))
                 }
             }
