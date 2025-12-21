@@ -11,6 +11,8 @@ These are attributes that can be added to the `#[OpenApi]` attribute.
 | response_header | Add an extra response header to all operations.                                                                  | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 | request_header  | Add an extra request header to all operations.                                                                   | [`ExtraHeader`](macro@ApiResponse#extra-header-parameters) | Y        |
 | ignore_case     | Ignore case when matching the parameter name. (All operations)                                                   | bool                                                       | Y        |
+| security        | Apply a security scheme to all operations. Must be a type that implements `SecurityScheme`.                      | SecurityScheme                                             | Y        |
+| security_scope  | OAuth scope to require for the API-level security scheme. Can be specified multiple times.                       | OAuthScopes                                                | Y        |
 
 ## Example
 
@@ -59,6 +61,8 @@ Parameters that can be passed into the `#[oai()]` attribute above each operation
 | code_samples    | Code samples for the operation                                                                                       | object                                                     | Y        |
 | hidden          | Hide this operation in the document                                                                                  | bool                                                       | Y        |
 | ignore_case     | Ignore case when matching the parameter name. (All parameters)                                                       | bool                                                       | Y        |
+| security        | Apply a security scheme to this operation. Overrides API-level security. Must be a type that implements `SecurityScheme`. | SecurityScheme                                        | Y        |
+| security_scope  | OAuth scope to require for the operation-level security scheme. Can be specified multiple times.                     | OAuthScopes                                                | Y        |
 
 ## Example
 
@@ -154,6 +158,64 @@ impl PetApi {
         req: CreatePetRequest
     ) -> CreatePetResponse {
         todo!()
+    }
+}
+```
+
+# Security Scheme Attributes
+
+Instead of passing a security scheme as a function parameter, you can apply security schemes
+directly via attributes on the `#[OpenApi]` macro (API-level) or `#[oai]` attribute (operation-level).
+Operation-level security overrides API-level security.
+
+## Example
+
+```rust
+use poem_openapi::{OpenApi, SecurityScheme, OAuthScopes, auth::Bearer, payload::PlainText};
+
+#[derive(OAuthScopes)]
+enum MyScopes {
+    /// Read access
+    Read,
+    /// Write access
+    Write,
+}
+
+#[derive(SecurityScheme)]
+#[oai(
+    ty = "oauth2",
+    flows(implicit(
+        authorization_url = "https://example.com/authorize",
+        scopes = "MyScopes"
+    ))
+)]
+struct OAuth2(Bearer);
+
+#[derive(SecurityScheme)]
+#[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
+struct ApiKeyAuth(poem_openapi::auth::ApiKey);
+
+struct MyApi;
+
+// Apply OAuth2 with Read scope to all operations by default
+#[OpenApi(security = "OAuth2", security_scope = "MyScopes::Read")]
+impl MyApi {
+    /// Public endpoint - inherits API-level OAuth2 with Read scope
+    #[oai(path = "/read", method = "get")]
+    async fn read_data(&self) -> PlainText<String> {
+        PlainText("Read data".to_string())
+    }
+
+    /// Admin endpoint - overrides to require Write scope
+    #[oai(path = "/write", method = "post", security = "OAuth2", security_scope = "MyScopes::Write")]
+    async fn write_data(&self) -> PlainText<String> {
+        PlainText("Write data".to_string())
+    }
+
+    /// Alternative auth - uses API key instead of OAuth2
+    #[oai(path = "/apikey", method = "get", security = "ApiKeyAuth")]
+    async fn apikey_data(&self) -> PlainText<String> {
+        PlainText("API key data".to_string())
     }
 }
 ```

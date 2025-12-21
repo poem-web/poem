@@ -681,3 +681,204 @@ async fn fallback() {
         ])
     )
 }
+
+#[tokio::test]
+async fn security_attribute_on_api() {
+    #[derive(SecurityScheme)]
+    #[oai(ty = "basic")]
+    struct MySecurityScheme(Basic);
+
+    struct MyApi;
+
+    #[OpenApi(security = "MySecurityScheme")]
+    impl MyApi {
+        #[oai(path = "/protected", method = "get")]
+        async fn protected(&self) -> PlainText<String> {
+            PlainText("protected".to_string())
+        }
+
+        #[oai(path = "/also_protected", method = "get")]
+        async fn also_protected(&self) -> PlainText<String> {
+            PlainText("also protected".to_string())
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec_string = service.spec();
+    let spec = serde_json::from_str::<Value>(&spec_string).unwrap();
+
+    // Both endpoints should have the security scheme applied
+    assert_eq!(
+        &spec["paths"]["/protected"]["get"]["security"],
+        &json!([{"MySecurityScheme": []}])
+    );
+    assert_eq!(
+        &spec["paths"]["/also_protected"]["get"]["security"],
+        &json!([{"MySecurityScheme": []}])
+    );
+
+    // Security scheme should be registered
+    assert!(spec["components"]["securitySchemes"]["MySecurityScheme"].is_object());
+}
+
+#[tokio::test]
+async fn security_attribute_on_operation() {
+    #[derive(SecurityScheme)]
+    #[oai(ty = "basic")]
+    struct BasicAuth(Basic);
+
+    #[derive(SecurityScheme)]
+    #[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
+    struct ApiKeyAuth(ApiKey);
+
+    struct MyApi;
+
+    #[OpenApi]
+    impl MyApi {
+        #[oai(path = "/basic", method = "get", security = "BasicAuth")]
+        async fn basic_protected(&self) -> PlainText<String> {
+            PlainText("basic".to_string())
+        }
+
+        #[oai(path = "/apikey", method = "get", security = "ApiKeyAuth")]
+        async fn apikey_protected(&self) -> PlainText<String> {
+            PlainText("apikey".to_string())
+        }
+
+        #[oai(path = "/public", method = "get")]
+        async fn public(&self) -> PlainText<String> {
+            PlainText("public".to_string())
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec_string = service.spec();
+    let spec = serde_json::from_str::<Value>(&spec_string).unwrap();
+
+    // Basic auth endpoint
+    assert_eq!(
+        &spec["paths"]["/basic"]["get"]["security"],
+        &json!([{"BasicAuth": []}])
+    );
+
+    // API key auth endpoint
+    assert_eq!(
+        &spec["paths"]["/apikey"]["get"]["security"],
+        &json!([{"ApiKeyAuth": []}])
+    );
+
+    // Public endpoint should have no security
+    assert_eq!(spec["paths"]["/public"]["get"].get("security"), None);
+
+    // Both security schemes should be registered
+    assert!(spec["components"]["securitySchemes"]["BasicAuth"].is_object());
+    assert!(spec["components"]["securitySchemes"]["ApiKeyAuth"].is_object());
+}
+
+#[tokio::test]
+async fn security_attribute_operation_overrides_api() {
+    #[derive(SecurityScheme)]
+    #[oai(ty = "basic")]
+    struct BasicAuth(Basic);
+
+    #[derive(SecurityScheme)]
+    #[oai(ty = "api_key", key_name = "X-API-Key", key_in = "header")]
+    struct ApiKeyAuth(ApiKey);
+
+    struct MyApi;
+
+    // API-level security with BasicAuth
+    #[OpenApi(security = "BasicAuth")]
+    impl MyApi {
+        // Inherits BasicAuth from API level
+        #[oai(path = "/default", method = "get")]
+        async fn default_auth(&self) -> PlainText<String> {
+            PlainText("default".to_string())
+        }
+
+        // Overrides to ApiKeyAuth
+        #[oai(path = "/override", method = "get", security = "ApiKeyAuth")]
+        async fn override_auth(&self) -> PlainText<String> {
+            PlainText("override".to_string())
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec_string = service.spec();
+    let spec = serde_json::from_str::<Value>(&spec_string).unwrap();
+
+    // Default endpoint uses API-level BasicAuth
+    assert_eq!(
+        &spec["paths"]["/default"]["get"]["security"],
+        &json!([{"BasicAuth": []}])
+    );
+
+    // Override endpoint uses operation-level ApiKeyAuth
+    assert_eq!(
+        &spec["paths"]["/override"]["get"]["security"],
+        &json!([{"ApiKeyAuth": []}])
+    );
+
+    // Both security schemes should be registered
+    assert!(spec["components"]["securitySchemes"]["BasicAuth"].is_object());
+    assert!(spec["components"]["securitySchemes"]["ApiKeyAuth"].is_object());
+}
+
+#[tokio::test]
+async fn security_attribute_with_oauth_scopes() {
+    #[derive(OAuthScopes)]
+    enum MyScopes {
+        /// Read access
+        Read,
+        /// Write access  
+        Write,
+    }
+
+    #[derive(SecurityScheme)]
+    #[oai(
+        ty = "oauth2",
+        flows(implicit(
+            authorization_url = "https://example.com/authorize",
+            scopes = "MyScopes"
+        ))
+    )]
+    struct OAuth2Auth(Bearer);
+
+    struct MyApi;
+
+    #[OpenApi(security = "OAuth2Auth", security_scope = "MyScopes::Read")]
+    impl MyApi {
+        // Inherits OAuth2 with Read scope from API level
+        #[oai(path = "/read", method = "get")]
+        async fn read_only(&self) -> PlainText<String> {
+            PlainText("read".to_string())
+        }
+
+        // Overrides to require Write scope
+        #[oai(
+            path = "/write",
+            method = "post",
+            security = "OAuth2Auth",
+            security_scope = "MyScopes::Write"
+        )]
+        async fn write_access(&self) -> PlainText<String> {
+            PlainText("write".to_string())
+        }
+    }
+
+    let service = OpenApiService::new(MyApi, "test", "1.0");
+    let spec_string = service.spec();
+    let spec = serde_json::from_str::<Value>(&spec_string).unwrap();
+
+    // Read endpoint uses Read scope
+    assert_eq!(
+        &spec["paths"]["/read"]["get"]["security"],
+        &json!([{"OAuth2Auth": ["Read"]}])
+    );
+
+    // Write endpoint uses Write scope
+    assert_eq!(
+        &spec["paths"]["/write"]["post"]["security"],
+        &json!([{"OAuth2Auth": ["Write"]}])
+    );
+}

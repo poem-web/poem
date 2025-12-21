@@ -34,6 +34,12 @@ pub(crate) struct APIArgs {
     request_headers: Vec<ExtraHeader>,
     #[darling(default)]
     ignore_case: Option<bool>,
+    /// Security scheme type to apply to all operations in this API
+    #[darling(default)]
+    security: Option<Path>,
+    /// OAuth scopes for the API-level security scheme
+    #[darling(default, multiple, rename = "security_scope")]
+    security_scopes: Vec<Path>,
 }
 
 #[derive(FromMeta)]
@@ -63,6 +69,12 @@ struct APIOperation {
     hidden: bool,
     #[darling(default)]
     ignore_case: Option<bool>,
+    /// Security scheme type to apply to this operation (overrides API-level security)
+    #[darling(default)]
+    security: Option<Path>,
+    /// OAuth scopes for the operation-level security scheme
+    #[darling(default, multiple, rename = "security_scope")]
+    security_scopes: Vec<Path>,
 }
 
 #[derive(FromMeta, Default)]
@@ -190,6 +202,8 @@ fn generate_operation(
         code_samples,
         hidden,
         ignore_case,
+        security: operation_security,
+        security_scopes: operation_security_scopes,
     } = args;
     if methods.is_empty() {
         return Err(Error::new_spanned(
@@ -459,6 +473,34 @@ fn generate_operation(
                 if <#arg_ty as #crate_name::ApiExtractor>::has_security_fallback() {
                     security.push(::std::collections::HashMap::<&'static str, ::std::vec::Vec<&'static str>>::new());
                 }
+            }
+        });
+    }
+
+    // Handle attribute-based security schemes (operation-level overrides API-level)
+    let attr_security = operation_security.as_ref().or(api_args.security.as_ref());
+    let attr_security_scopes = if operation_security.is_some() {
+        &operation_security_scopes
+    } else {
+        &api_args.security_scopes
+    };
+
+    if let Some(security_scheme) = attr_security {
+        // Register the security scheme type
+        ctx.register_items.push(quote! {
+            <#security_scheme as #crate_name::ApiExtractor>::register(registry);
+        });
+
+        // Add security metadata
+        let scopes = attr_security_scopes;
+        security.push(quote! {
+            for security_name in <#security_scheme as #crate_name::ApiExtractor>::security_schemes() {
+                security.push(<::std::collections::HashMap<&'static str, ::std::vec::Vec<&'static str>> as ::std::convert::From<_>>::from([
+                    (security_name, ::std::vec![#(#crate_name::OAuthScopes::name(&#scopes)),*])
+                ]));
+            }
+            if <#security_scheme as #crate_name::ApiExtractor>::has_security_fallback() {
+                security.push(::std::collections::HashMap::<&'static str, ::std::vec::Vec<&'static str>>::new());
             }
         });
     }
