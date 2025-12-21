@@ -3,7 +3,7 @@ use poem_openapi::{
     registry::{
         MetaDiscriminatorObject, MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry,
     },
-    types::{ParseFromJSON, ToJSON, Type},
+    types::{Example, ParseFromJSON, ToJSON, Type},
 };
 use serde_json::json;
 
@@ -930,4 +930,83 @@ fn with_externally_tagged_primitives() {
             "B": true,
         }))
     );
+}
+
+/// Test that Union types can use the `example` attribute
+/// This is the fix for issue #960
+#[test]
+fn with_example() {
+    #[derive(Object, Debug, PartialEq, Clone)]
+    struct Dog {
+        name: String,
+        breed: String,
+    }
+
+    #[derive(Object, Debug, PartialEq, Clone)]
+    struct Cat {
+        name: String,
+        color: String,
+    }
+
+    #[derive(Union, Debug, PartialEq, Clone)]
+    #[oai(discriminator_name = "type", one_of = true, example)]
+    enum Pet {
+        Dog(Dog),
+        Cat(Cat),
+    }
+
+    impl Example for Pet {
+        fn example() -> Self {
+            Pet::Dog(Dog {
+                name: "Max".to_string(),
+                breed: "Labrador".to_string(),
+            })
+        }
+    }
+
+    let schema = get_meta::<Pet>();
+
+    // Verify the example is present in the schema
+    assert!(schema.example.is_some(), "Schema should have an example");
+
+    // Verify the example contains the expected data
+    let example = schema.example.unwrap();
+    assert_eq!(example.get("type").and_then(|v| v.as_str()), Some("Dog"));
+    assert_eq!(example.get("name").and_then(|v| v.as_str()), Some("Max"));
+    assert_eq!(
+        example.get("breed").and_then(|v| v.as_str()),
+        Some("Labrador")
+    );
+}
+
+/// Test Union with example but without discriminator
+#[test]
+fn with_example_no_discriminator() {
+    #[derive(Object, Debug, PartialEq, Clone)]
+    struct StringValue {
+        value: String,
+    }
+
+    #[derive(Object, Debug, PartialEq, Clone)]
+    struct IntValue {
+        value: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq, Clone)]
+    #[oai(example)]
+    enum Value {
+        String(StringValue),
+        Int(IntValue),
+    }
+
+    impl Example for Value {
+        fn example() -> Self {
+            Value::String(StringValue {
+                value: "hello".to_string(),
+            })
+        }
+    }
+
+    let schema = get_meta::<Value>();
+    assert!(schema.example.is_some(), "Schema should have an example");
 }

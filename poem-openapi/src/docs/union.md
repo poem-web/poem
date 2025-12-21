@@ -9,6 +9,7 @@ Define an OpenAPI discriminator object.
 | one_of             | Validates the value against exactly one of the subschemas                                                                                                                                                                    | bool   | Y        |
 | external_docs      | Specify a external resource for extended documentation                                                                                                                                                                       | string | Y        |
 | rename_all         | Rename all the mapping name according to the given case convention. The possible values are "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case", "SCREAMING_SNAKE_CASE", "kebab-case", "SCREAMING-KEBAB-CASE". | string | Y        |
+| example            | Indicates that the type has implemented `Example` trait                                                                                                                                                                      | bool   | Y        |
 
 # Item parameters
 

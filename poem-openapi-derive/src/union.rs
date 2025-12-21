@@ -45,6 +45,8 @@ struct UnionArgs {
     external_docs: Option<ExternalDocument>,
     #[darling(default)]
     rename_all: Option<RenameRule>,
+    #[darling(default)]
+    example: bool,
 }
 
 pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
@@ -291,15 +293,44 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         quote!(::std::vec![])
     };
 
+    // Handle example attribute - similar to Object derive
+    let (example, where_clause) = if args.example {
+        let new_where_clause = match where_clause {
+            Some(where_clause) => {
+                if where_clause.predicates.trailing_punct() {
+                    quote! { #where_clause Self: #crate_name::types::Example }
+                } else {
+                    quote! { #where_clause, Self: #crate_name::types::Example }
+                }
+            }
+            None => quote! { where Self: #crate_name::types::Example },
+        };
+        (
+            quote! {
+                <Self as #crate_name::types::ToJSON>::to_json(&#crate_name::types::Example::example())
+            },
+            new_where_clause,
+        )
+    } else {
+        (
+            quote! { ::std::option::Option::None },
+            quote!(#where_clause),
+        )
+    };
+
     let meta = quote! {
-        #crate_name::registry::MetaSchema {
-            ty: "object",
-            description: #description,
-            external_docs: #external_docs,
-            one_of: #one_of,
-            any_of: #any_of,
-            discriminator: #discriminator,
-            ..#crate_name::registry::MetaSchema::ANY
+        {
+            let mut meta = #crate_name::registry::MetaSchema {
+                ty: "object",
+                description: #description,
+                external_docs: #external_docs,
+                one_of: #one_of,
+                any_of: #any_of,
+                discriminator: #discriminator,
+                ..#crate_name::registry::MetaSchema::ANY
+            };
+            meta.example = #example;
+            meta
         }
     };
 
