@@ -931,3 +931,72 @@ fn with_externally_tagged_primitives() {
         }))
     );
 }
+
+#[test]
+fn flatten_union_in_object() {
+    // Test for issue #945: Union flattened in Object should use allOf composition
+    #[derive(Object, Debug, PartialEq)]
+    struct ValueA {
+        value: bool,
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct ValueB {
+        value: bool,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of = true, discriminator_name = "type")]
+    enum UnionEnum {
+        ValueA(ValueA),
+        ValueB(ValueB),
+    }
+
+    #[derive(Object, Debug, PartialEq)]
+    struct Flatten {
+        #[oai(flatten)]
+        inner: UnionEnum,
+        other: String,
+    }
+
+    let schema = get_meta::<Flatten>();
+
+    // The schema should use allOf to combine the Union with the additional
+    // properties
+    assert!(
+        !schema.all_of.is_empty(),
+        "Expected allOf to be used for flattened Union, got: {:?}",
+        schema
+    );
+
+    // Should have 2 items in allOf: the Union reference and the inline object with
+    // 'other' property
+    assert_eq!(
+        schema.all_of.len(),
+        2,
+        "Expected 2 items in allOf, got: {:?}",
+        schema.all_of
+    );
+
+    // Verify JSON serialization works correctly
+    let obj = Flatten {
+        inner: UnionEnum::ValueB(ValueB { value: true }),
+        other: "test".to_string(),
+    };
+
+    let json = obj.to_json().unwrap();
+    assert_eq!(json["type"], "ValueB");
+    assert_eq!(json["value"], true);
+    assert_eq!(json["other"], "test");
+
+    // Verify JSON deserialization works correctly
+    let parsed = Flatten::parse_from_json(Some(json!({
+        "type": "ValueA",
+        "value": false,
+        "other": "hello"
+    })))
+    .unwrap();
+
+    assert_eq!(parsed.other, "hello");
+    assert_eq!(parsed.inner, UnionEnum::ValueA(ValueA { value: false }));
+}

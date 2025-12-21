@@ -317,13 +317,31 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
             });
         } else {
             meta_fields.push(quote! {
-                fields.extend(registry.create_fake_schema::<#field_ty>().properties);
+                let flattened_schema = registry.create_fake_schema::<#field_ty>();
+                // Check if the flattened type is a Union (uses oneOf/anyOf)
+                if flattened_schema.is_union() {
+                    // For Union types, add to all_of for proper schema composition
+                    all_of_schemas.push(<#field_ty as #crate_name::types::Type>::schema_ref());
+                } else {
+                    // For regular Object types, extend properties
+                    fields.extend(flattened_schema.properties);
+                }
             });
             additional_properties = quote! {
-                registry.create_fake_schema::<#field_ty>().additional_properties
+                {
+                    let flattened_schema = registry.create_fake_schema::<#field_ty>();
+                    if !flattened_schema.is_union() {
+                        flattened_schema.additional_properties
+                    } else {
+                        ::std::option::Option::None
+                    }
+                }
             };
             required_fields.push(quote! {
-                fields.extend(registry.create_fake_schema::<#field_ty>().required);
+                let flattened_schema = registry.create_fake_schema::<#field_ty>();
+                if !flattened_schema.is_union() {
+                    fields.extend(flattened_schema.required);
+                }
             });
         }
     }
@@ -338,24 +356,46 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
         None => quote!(::std::option::Option::None),
     };
     let meta = quote! {
-        #crate_name::registry::MetaSchema {
-            title: ::std::option::Option::Some(#object_name),
-            description: #description,
-            external_docs: #external_docs,
-            required: {
-                #[allow(unused_mut)]
-                let mut fields = ::std::vec::Vec::new();
-                #(#required_fields)*
-                fields
-            },
-            properties: {
-                let mut fields = ::std::vec::Vec::new();
-                #(#meta_fields)*
-                fields
-            },
-            additional_properties: #additional_properties,
-            deprecated: #deprecated,
-            ..#crate_name::registry::MetaSchema::new("object")
+        {
+            #[allow(unused_mut)]
+            let mut all_of_schemas: ::std::vec::Vec<#crate_name::registry::MetaSchemaRef> = ::std::vec::Vec::new();
+            let base_schema = #crate_name::registry::MetaSchema {
+                title: ::std::option::Option::Some(#object_name),
+                description: #description,
+                external_docs: #external_docs,
+                required: {
+                    #[allow(unused_mut)]
+                    let mut fields = ::std::vec::Vec::new();
+                    #(#required_fields)*
+                    fields
+                },
+                properties: {
+                    let mut fields = ::std::vec::Vec::new();
+                    #(#meta_fields)*
+                    fields
+                },
+                additional_properties: #additional_properties,
+                deprecated: #deprecated,
+                ..#crate_name::registry::MetaSchema::new("object")
+            };
+
+            // If we have Union types in all_of, compose with allOf
+            if all_of_schemas.is_empty() {
+                base_schema
+            } else {
+                // Add the base schema as an inline schema in allOf
+                all_of_schemas.push(#crate_name::registry::MetaSchemaRef::Inline(
+                    ::std::boxed::Box::new(base_schema)
+                ));
+                #crate_name::registry::MetaSchema {
+                    title: ::std::option::Option::Some(#object_name),
+                    description: #description,
+                    external_docs: #external_docs,
+                    all_of: all_of_schemas,
+                    deprecated: #deprecated,
+                    ..#crate_name::registry::MetaSchema::ANY
+                }
+            }
         }
     };
     let deny_unknown_fields = if args.deny_unknown_fields {

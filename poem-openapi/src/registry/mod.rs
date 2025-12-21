@@ -185,6 +185,12 @@ impl MetaSchema {
         self == &Self::ANY
     }
 
+    /// Returns true if this schema uses `oneOf` or `anyOf` composition.
+    /// This is typically the case for Union types.
+    pub fn is_union(&self) -> bool {
+        !self.one_of.is_empty() || !self.any_of.is_empty()
+    }
+
     #[must_use]
     pub fn merge(
         mut self,
