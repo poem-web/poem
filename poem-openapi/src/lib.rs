@@ -197,5 +197,8 @@ pub mod __private {
     pub use serde;
     pub use serde_json;
 
-    pub use crate::{auth::CheckerReturn, base::UrlQuery, path_util::join_path};
+    pub use crate::{
+        auth::CheckerReturn, base::UrlQuery,
+        path_util::{convert_to_oai_path, join_path},
+    };
 }

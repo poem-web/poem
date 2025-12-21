@@ -207,7 +207,7 @@ fn generate_operation(
     let (oai_path, new_path) = convert_oai_path(&path)?;
     let oai_path = prefix_path
         .as_ref()
-        .map(|prefix| quote! { #crate_name::__private::join_path(#prefix, #oai_path) })
+        .map(|prefix| quote! { #crate_name::__private::join_path(&#crate_name::__private::convert_to_oai_path(#prefix), #oai_path) })
         .unwrap_or_else(|| quote! { ::std::string::ToString::to_string(#oai_path) });
     let new_path: TokenStream = prefix_path
         .as_ref()

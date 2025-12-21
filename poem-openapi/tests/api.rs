@@ -220,6 +220,80 @@ async fn prefix_path() {
         .assert_status_is_ok();
 }
 
+#[test]
+fn prefix_path_with_params() {
+    // Test that path parameters in prefix_path are correctly converted to OpenAPI format
+    // Issue #826: prefix_path with :name should generate {name} in OpenAPI spec
+
+    struct Api1;
+
+    #[OpenApi(prefix_path = "/hello/:name")]
+    impl Api1 {
+        #[oai(path = "/greet", method = "get")]
+        async fn get(&self, name: Path<String>) -> PlainText<String> {
+            PlainText(format!("Hello {}!", name.0))
+        }
+    }
+
+    let meta: MetaApi = Api1::meta().remove(0);
+    // The OpenAPI path should use {name} format, not :name
+    assert_eq!(meta.paths[0].path, "/hello/{name}/greet");
+
+    // Verify the path parameters are correctly defined
+    let params = &meta.paths[0].operations[0].params;
+    assert_eq!(params.len(), 1);
+    assert_eq!(params[0].name, "name");
+
+    // Test with path params in both prefix_path and path
+    struct Api2;
+
+    #[OpenApi(prefix_path = "/hello/:name")]
+    impl Api2 {
+        #[oai(path = "/:surname", method = "get")]
+        async fn get(&self, name: Path<String>, surname: Path<String>) -> PlainText<String> {
+            PlainText(format!("Hello {} {}!", name.0, surname.0))
+        }
+    }
+
+    let meta: MetaApi = Api2::meta().remove(0);
+    // Both params should use {param} format
+    assert_eq!(meta.paths[0].path, "/hello/{name}/{surname}");
+
+    // Verify both path parameters are defined
+    let params = &meta.paths[0].operations[0].params;
+    assert_eq!(params.len(), 2);
+    assert_eq!(params[0].name, "name");
+    assert_eq!(params[1].name, "surname");
+
+    // Test with multiple params in prefix_path
+    struct Api3;
+
+    #[OpenApi(prefix_path = "/org/:org_id/team/:team_id")]
+    impl Api3 {
+        #[oai(path = "/members/:member_id", method = "get")]
+        async fn get(
+            &self,
+            org_id: Path<String>,
+            team_id: Path<String>,
+            member_id: Path<String>,
+        ) -> PlainText<String> {
+            PlainText(format!("{}/{}/{}", org_id.0, team_id.0, member_id.0))
+        }
+    }
+
+    let meta: MetaApi = Api3::meta().remove(0);
+    assert_eq!(
+        meta.paths[0].path,
+        "/org/{org_id}/team/{team_id}/members/{member_id}"
+    );
+
+    let params = &meta.paths[0].operations[0].params;
+    assert_eq!(params.len(), 3);
+    assert_eq!(params[0].name, "org_id");
+    assert_eq!(params[1].name, "team_id");
+    assert_eq!(params[2].name, "member_id");
+}
+
 #[tokio::test]
 async fn request() {
     /// Test request
