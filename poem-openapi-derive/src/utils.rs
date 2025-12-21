@@ -34,10 +34,16 @@ pub(crate) fn get_description(attrs: &[Attribute]) -> Result<Option<String>> {
                 }) = &nv.value
                 {
                     let doc = doc.value();
-                    let doc_str = doc.trim();
+                    // Only trim trailing whitespace to preserve indentation for code blocks.
+                    // Leading whitespace from the first space after `///` is handled below.
+                    let doc_str = doc.trim_end();
                     if !full_docs.is_empty() {
                         full_docs += "\n";
                     }
+                    // Doc comments typically have a leading space after `///`.
+                    // Strip exactly one leading space if present, preserving any additional
+                    // indentation for code blocks and other formatted content.
+                    let doc_str = doc_str.strip_prefix(' ').unwrap_or(doc_str);
                     full_docs += doc_str;
                 }
             }

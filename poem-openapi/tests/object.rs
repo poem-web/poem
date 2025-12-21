@@ -263,6 +263,29 @@ fn field_description() {
 }
 
 #[test]
+fn description_preserves_indentation() {
+    /// Example JSON:
+    ///
+    /// ```json
+    /// {
+    ///   "id": 1,
+    ///   "nested": {
+    ///     "value": "test"
+    ///   }
+    /// }
+    /// ```
+    #[derive(Object)]
+    struct Obj {
+        a: i32,
+    }
+
+    let meta = get_meta::<Obj>();
+    // Verify that the indentation within the code block is preserved
+    let expected = "Example JSON:\n\n```json\n{\n  \"id\": 1,\n  \"nested\": {\n    \"value\": \"test\"\n  }\n}\n```";
+    assert_eq!(meta.description, Some(expected));
+}
+
+#[test]
 fn field_default() {
     #[derive(Object, Debug, Eq, PartialEq)]
     struct Obj {
