@@ -24,16 +24,51 @@ impl Serialize for MetaSchemaRef {
 
 struct PathMap<'a>(&'a [MetaApi], Option<&'a str>);
 
+/// A merged view of paths with the same path string from multiple APIs.
+/// This is needed because multiple API impls may define different HTTP methods
+/// for the same path (e.g., GET /user and POST /user), and they need to be
+/// merged into a single OpenAPI path entry.
+struct MergedPath<'a> {
+    operations: Vec<&'a crate::registry::MetaOperation>,
+}
+
+impl Serialize for MergedPath<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_map(None)?;
+        for operation in &self.operations {
+            s.serialize_entry(&operation.method.to_string().to_lowercase(), operation)?;
+        }
+        s.end()
+    }
+}
+
 impl Serialize for PathMap<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut s = serializer.serialize_map(Some(self.0.len()))?;
+        // Collect all paths and merge operations for paths with the same path string
+        let mut merged_paths: BTreeMap<String, Vec<&crate::registry::MetaOperation>> =
+            BTreeMap::new();
+
         for api in self.0 {
             for path in &api.paths {
-                match self.1 {
-                    Some(p) => s.serialize_entry(&format!("{}{}", p, path.path), path)?,
-                    None => s.serialize_entry(&path.path, path)?,
-                }
+                let full_path = match self.1 {
+                    Some(p) => format!("{}{}", p, path.path),
+                    None => path.path.clone(),
+                };
+                merged_paths
+                    .entry(full_path)
+                    .or_default()
+                    .extend(path.operations.iter());
             }
+        }
+
+        let mut s = serializer.serialize_map(Some(merged_paths.len()))?;
+        for (path, operations) in &merged_paths {
+            s.serialize_entry(
+                path,
+                &MergedPath {
+                    operations: operations.clone(),
+                },
+            )?;
         }
         s.end()
     }

@@ -1084,3 +1084,126 @@ async fn parameter_style_none() {
     let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
     assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }
+
+/// Test that paths from multiple APIs are properly merged when they have the
+/// same path but different HTTP methods. This is the CQRS use case where you
+/// have separate Command and Query APIs that operate on the same resource.
+#[tokio::test]
+async fn merge_paths_from_multiple_apis() {
+    struct QueryApi;
+
+    #[OpenApi]
+    impl QueryApi {
+        #[oai(path = "/user", method = "get")]
+        async fn get_user(&self) -> PlainText<String> {
+            PlainText("get user".to_string())
+        }
+    }
+
+    struct CommandApi;
+
+    #[OpenApi]
+    impl CommandApi {
+        #[oai(path = "/user", method = "post")]
+        async fn create_user(&self) -> PlainText<String> {
+            PlainText("create user".to_string())
+        }
+
+        #[oai(path = "/user", method = "patch")]
+        async fn update_user(&self) -> PlainText<String> {
+            PlainText("update user".to_string())
+        }
+    }
+
+    // Create combined API
+    let api_service = OpenApiService::new((QueryApi, CommandApi), "test", "1.0");
+    let spec = api_service.spec();
+
+    // Parse the JSON spec to verify structure
+    let spec_json: serde_json::Value = serde_json::from_str(&spec).unwrap();
+
+    // Verify that /user path exists and contains all three methods
+    let paths = spec_json.get("paths").unwrap();
+    let user_path = paths.get("/user").expect("/user path should exist");
+
+    // Check that all three methods are present under the single /user path
+    assert!(
+        user_path.get("get").is_some(),
+        "GET method should be present under /user"
+    );
+    assert!(
+        user_path.get("post").is_some(),
+        "POST method should be present under /user"
+    );
+    assert!(
+        user_path.get("patch").is_some(),
+        "PATCH method should be present under /user"
+    );
+
+    // Verify there's only one /user key in paths (no duplicates)
+    let paths_obj = paths.as_object().unwrap();
+    let user_count = paths_obj.keys().filter(|k| *k == "/user").count();
+    assert_eq!(
+        user_count, 1,
+        "There should be exactly one /user path entry"
+    );
+
+    // Also verify the API actually works with routing
+    let cli = poem::test::TestClient::new(api_service);
+    cli.get("/user").send().await.assert_status_is_ok();
+    cli.post("/user").send().await.assert_status_is_ok();
+    cli.patch("/user").send().await.assert_status_is_ok();
+}
+
+/// Test that paths are properly merged even when there are multiple paths
+/// with some overlapping and some unique paths
+#[tokio::test]
+async fn merge_paths_mixed_overlap() {
+    struct Api1;
+
+    #[OpenApi]
+    impl Api1 {
+        #[oai(path = "/items", method = "get")]
+        async fn list_items(&self) -> PlainText<String> {
+            PlainText("list items".to_string())
+        }
+
+        #[oai(path = "/only-in-api1", method = "get")]
+        async fn only_api1(&self) -> PlainText<String> {
+            PlainText("only api1".to_string())
+        }
+    }
+
+    struct Api2;
+
+    #[OpenApi]
+    impl Api2 {
+        #[oai(path = "/items", method = "post")]
+        async fn create_item(&self) -> PlainText<String> {
+            PlainText("create item".to_string())
+        }
+
+        #[oai(path = "/only-in-api2", method = "get")]
+        async fn only_api2(&self) -> PlainText<String> {
+            PlainText("only api2".to_string())
+        }
+    }
+
+    let api_service = OpenApiService::new((Api1, Api2), "test", "1.0");
+    let spec = api_service.spec();
+    let spec_json: serde_json::Value = serde_json::from_str(&spec).unwrap();
+
+    let paths = spec_json.get("paths").unwrap().as_object().unwrap();
+
+    // /items should have both get and post
+    let items_path = paths.get("/items").expect("/items should exist");
+    assert!(items_path.get("get").is_some());
+    assert!(items_path.get("post").is_some());
+
+    // Other paths should exist
+    assert!(paths.get("/only-in-api1").is_some());
+    assert!(paths.get("/only-in-api2").is_some());
+
+    // Total should be 3 unique paths
+    assert_eq!(paths.len(), 3);
+}
