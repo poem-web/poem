@@ -27,6 +27,54 @@ use crate::{FromRequest, Request, RequestBody, Result, error::GetDataError};
 /// assert_eq!(resp.status(), StatusCode::OK);
 /// # });
 /// ```
+///
+/// # Using Trait Objects
+///
+/// When using trait objects (like `Arc<dyn MyTrait>`), you must ensure the type
+/// used when storing the data matches the type used when extracting it. This is
+/// because Rust uses `TypeId` for type-safe storage, and `Arc<ConcreteType>` has
+/// a different `TypeId` than `Arc<dyn Trait>`.
+///
+/// **Wrong way** (will fail at runtime with `GetDataError`):
+/// ```ignore
+/// // This stores with TypeId::of::<Arc<PostgresDb>>()
+/// let app = endpoint.data(Arc::new(PostgresDb));
+///
+/// // This looks for TypeId::of::<Arc<dyn Database>>() - different TypeId!
+/// async fn handler(db: Data<&Arc<dyn Database>>) { ... }
+/// ```
+///
+/// **Correct way** - explicitly coerce to trait object type before storing:
+/// ```
+/// use std::sync::Arc;
+/// use poem::{
+///     Endpoint, EndpointExt, Request, Route, get, handler, http::StatusCode,
+///     web::Data,
+/// };
+///
+/// trait Database: Send + Sync {
+///     fn name(&self) -> &str;
+/// }
+///
+/// struct PostgresDb;
+/// impl Database for PostgresDb {
+///     fn name(&self) -> &str { "postgres" }
+/// }
+///
+/// #[handler]
+/// async fn index(db: Data<&Arc<dyn Database>>) -> String {
+///     db.name().to_string()
+/// }
+///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// // Key: explicitly coerce to Arc<dyn Database> before calling .data()
+/// let db: Arc<dyn Database> = Arc::new(PostgresDb);
+/// let app = Route::new().at("/", get(index)).data(db);
+/// let resp = app.get_response(Request::default()).await;
+/// assert_eq!(resp.status(), StatusCode::OK);
+/// # });
+/// ```
+///
 pub struct Data<T>(pub T);
 
 impl<T> Deref for Data<T> {

@@ -352,6 +352,42 @@ pub trait EndpointExt: IntoEndpoint {
     /// resp.assert_text("100").await;
     /// # });
     /// ```
+    ///
+    /// # Using with Trait Objects
+    ///
+    /// When using trait objects, you must explicitly coerce the value to the
+    /// trait object type before passing it to this method. See the
+    /// [`Data`](crate::web::Data) extractor documentation for a detailed
+    /// explanation and examples.
+    ///
+    /// ```
+    /// use std::sync::Arc;
+    /// use poem::{
+    ///     Endpoint, EndpointExt, Request, handler, http::StatusCode, test::TestClient, web::Data,
+    /// };
+    ///
+    /// trait Database: Send + Sync {
+    ///     fn name(&self) -> &str;
+    /// }
+    ///
+    /// struct PostgresDb;
+    /// impl Database for PostgresDb {
+    ///     fn name(&self) -> &str { "postgres" }
+    /// }
+    ///
+    /// #[handler]
+    /// async fn index(db: Data<&Arc<dyn Database>>) -> String {
+    ///     db.name().to_string()
+    /// }
+    ///
+    /// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+    /// // Key: coerce to Arc<dyn Database> before calling .data()
+    /// let db: Arc<dyn Database> = Arc::new(PostgresDb);
+    /// let resp = TestClient::new(index.data(db)).get("/").send().await;
+    /// resp.assert_status_is_ok();
+    /// resp.assert_text("postgres").await;
+    /// # });
+    /// ```
     fn data<T>(self, data: T) -> AddDataEndpoint<Self::Endpoint, T>
     where
         T: Clone + Send + Sync + 'static,
