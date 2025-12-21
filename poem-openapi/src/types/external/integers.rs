@@ -127,7 +127,7 @@ macro_rules! impl_type_for_integers {
 }
 
 macro_rules! impl_type_for_unsigneds {
-    ($(($ty:ty, $format:literal)),*) => {
+    ($(($ty:ty, $format:literal, $min:expr, $max:expr)),*) => {
         $(
         impl Type for $ty {
             const IS_REQUIRED: bool = true;
@@ -141,7 +141,13 @@ macro_rules! impl_type_for_unsigneds {
             }
 
             fn schema_ref() -> MetaSchemaRef {
-                MetaSchemaRef::Inline(Box::new(MetaSchema::new_with_format("integer", $format)))
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
+                    ty: "integer",
+                    format: Some($format),
+                    minimum: Some($min),
+                    maximum: Some($max),
+                    ..MetaSchema::ANY
+                }))
             }
 
             fn as_raw_value(&self) -> Option<&Self::RawValueType> {
@@ -215,9 +221,9 @@ macro_rules! impl_type_for_unsigneds {
 impl_type_for_integers!((i8, "int8"), (i16, "int16"), (i32, "int32"), (i64, "int64"));
 
 impl_type_for_unsigneds!(
-    (u8, "uint8"),
-    (u16, "uint16"),
-    (u32, "uint32"),
-    (u64, "uint64"),
-    (usize, "uint64")
+    (u8, "int32", 0.0, u8::MAX as f64),
+    (u16, "int32", 0.0, u16::MAX as f64),
+    (u32, "int64", 0.0, u32::MAX as f64),
+    (u64, "int64", 0.0, u64::MAX as f64),
+    (usize, "int64", 0.0, u64::MAX as f64)
 );

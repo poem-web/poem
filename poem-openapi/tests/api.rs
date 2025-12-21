@@ -469,7 +469,7 @@ async fn bad_request_handler() {
     resp.assert_status(StatusCode::BAD_REQUEST);
     resp.assert_content_type("text/plain; charset=utf-8");
     resp.assert_text(
-        r#"!!! failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#,
+        r#"!!! failed to parse parameter `code`: Type "integer(int32)" expects an input value."#,
     )
     .await;
 }

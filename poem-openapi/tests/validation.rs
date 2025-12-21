@@ -48,7 +48,7 @@ fn test_non_zero_u64() {
         A::parse_from_json(Some(json!({ "n": 0 })))
             .unwrap_err()
             .into_message(),
-        "failed to parse \"non_zero_integer(uint64)\": Integer should not be 0. (occurred while parsing \"A\")"
+        "failed to parse \"non_zero_integer(int64)\": Integer should not be 0. (occurred while parsing \"A\")"
     );
 }
 
@@ -495,7 +495,7 @@ fn test_unsigned_integers() {
         })))
         .unwrap_err()
         .into_message(),
-        "failed to parse \"integer(uint8)\": Only integers from 0 to 255 are accepted. (occurred while parsing \"A\")"
+        "failed to parse \"integer(int32)\": Only integers from 0 to 255 are accepted. (occurred while parsing \"A\")"
     );
 }
 
@@ -764,4 +764,47 @@ fn test_custom_validator() {
         .into_message(),
         "failed to parse \"A\": field `value` verification failed. MyIntValidator"
     );
+}
+
+#[test]
+fn test_unsigned_integer_schema() {
+    // Test that unsigned integers use standard OpenAPI formats with minimum/maximum constraints
+    // instead of non-standard uint* formats
+
+    let schema_u8 = u8::schema_ref();
+    let schema_u8 = schema_u8.unwrap_inline();
+    assert_eq!(schema_u8.ty, "integer");
+    assert_eq!(schema_u8.format, Some("int32"));
+    assert_eq!(schema_u8.minimum, Some(0.0));
+    assert_eq!(schema_u8.maximum, Some(u8::MAX as f64));
+
+    let schema_u16 = u16::schema_ref();
+    let schema_u16 = schema_u16.unwrap_inline();
+    assert_eq!(schema_u16.ty, "integer");
+    assert_eq!(schema_u16.format, Some("int32"));
+    assert_eq!(schema_u16.minimum, Some(0.0));
+    assert_eq!(schema_u16.maximum, Some(u16::MAX as f64));
+
+    let schema_u32 = u32::schema_ref();
+    let schema_u32 = schema_u32.unwrap_inline();
+    assert_eq!(schema_u32.ty, "integer");
+    assert_eq!(schema_u32.format, Some("int64"));
+    assert_eq!(schema_u32.minimum, Some(0.0));
+    assert_eq!(schema_u32.maximum, Some(u32::MAX as f64));
+
+    let schema_u64 = u64::schema_ref();
+    let schema_u64 = schema_u64.unwrap_inline();
+    assert_eq!(schema_u64.ty, "integer");
+    assert_eq!(schema_u64.format, Some("int64"));
+    assert_eq!(schema_u64.minimum, Some(0.0));
+    assert_eq!(schema_u64.maximum, Some(u64::MAX as f64));
+
+    // Test NonZero unsigned integers have minimum > 0 (exclusive)
+    let schema_nz_u64 = NonZero::<u64>::schema_ref();
+    let schema_nz_u64 = schema_nz_u64.unwrap_inline();
+    assert_eq!(schema_nz_u64.ty, "integer");
+    assert_eq!(schema_nz_u64.format, Some("int64"));
+    assert_eq!(schema_nz_u64.minimum, Some(0.0));
+    assert_eq!(schema_nz_u64.exclusive_minimum, Some(true));
+    assert_eq!(schema_nz_u64.maximum, Some(u64::MAX as f64));
 }

@@ -100,7 +100,7 @@ macro_rules! impl_type_for_non_zero_integers {
 }
 
 macro_rules! impl_type_for_non_zero_unsigneds {
-    ($(($ty:ty, $format:literal)),*) => {
+    ($(($ty:ty, $format:literal, $max:expr)),*) => {
         $(
         impl Type for NonZero<$ty> {
             const IS_REQUIRED: bool = true;
@@ -115,10 +115,11 @@ macro_rules! impl_type_for_non_zero_unsigneds {
 
             fn schema_ref() -> MetaSchemaRef {
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
-                    ty: "non_zero_integer",
+                    ty: "integer",
                     format: Some($format),
                     minimum: Some(0.0),
                     exclusive_minimum: Some(true),
+                    maximum: Some($max),
                     ..MetaSchema::ANY
                 }))
             }
@@ -181,9 +182,9 @@ macro_rules! impl_type_for_non_zero_unsigneds {
 impl_type_for_non_zero_integers!((i8, "int8"), (i16, "int16"), (i32, "int32"), (i64, "int64"));
 
 impl_type_for_non_zero_unsigneds!(
-    (u8, "uint8"),
-    (u16, "uint16"),
-    (u32, "uint32"),
-    (u64, "uint64"),
-    (usize, "uint64")
+    (u8, "int32", u8::MAX as f64),
+    (u16, "int32", u16::MAX as f64),
+    (u32, "int64", u32::MAX as f64),
+    (u64, "int64", u64::MAX as f64),
+    (usize, "int64", u64::MAX as f64)
 );
