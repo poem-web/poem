@@ -8,7 +8,7 @@ const SWAGGER_UI_TEMPLATE: &str = r#"
 <html charset="UTF-8">
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>Swagger UI</title>
+    <title>{:title}</title>
     <style charset="UTF-8">{:style}</style>
     <script charset="UTF-8">{:script}</script>
 </head>
@@ -44,15 +44,16 @@ const SWAGGER_UI_TEMPLATE: &str = r#"
 </html>
 "#;
 
-pub(crate) fn create_html(document: &str) -> String {
+pub(crate) fn create_html(title: &str, document: &str) -> String {
     SWAGGER_UI_TEMPLATE
+        .replace("{:title}", title)
         .replace("{:style}", SWAGGER_UI_CSS)
         .replace("{:script}", SWAGGER_UI_JS)
         .replace("{:spec}", document)
 }
 
-pub(crate) fn create_endpoint(document: String) -> impl Endpoint {
-    let ui_html = create_html(&document);
+pub(crate) fn create_endpoint(title: String, document: String) -> impl Endpoint {
+    let ui_html = create_html(&title, &document);
     poem::Route::new()
         .at("/", make_sync(move |_| Html(ui_html.clone())))
         .at(

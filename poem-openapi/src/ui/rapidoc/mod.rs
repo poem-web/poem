@@ -9,7 +9,7 @@ const RAPIDOC_TEMPLATE: &str = r#"
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;600&family=Roboto+Mono&display=swap" rel="stylesheet">
-    <title>RapiDoc</title>
+    <title>{:title}</title>
     <script charset="UTF-8">{:script}</script>
 </head>
 </html>
@@ -39,14 +39,15 @@ const RAPIDOC_TEMPLATE: &str = r#"
 </body>
 "#;
 
-pub(crate) fn create_html(document: &str) -> String {
+pub(crate) fn create_html(title: &str, document: &str) -> String {
     RAPIDOC_TEMPLATE
+        .replace("{:title}", title)
         .replace("{:script}", RAPIDOC_JS)
         .replace("{:spec}", document)
 }
 
-pub(crate) fn create_endpoint(document: String) -> impl Endpoint {
-    let ui_html = create_html(&document);
+pub(crate) fn create_endpoint(title: String, document: String) -> impl Endpoint {
+    let ui_html = create_html(&title, &document);
     let oauth_receiver_html = OAUTH_RECEIVER_HTML.replace("{:script}", RAPIDOC_JS);
 
     poem::Route::new()

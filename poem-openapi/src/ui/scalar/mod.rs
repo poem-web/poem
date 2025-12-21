@@ -6,7 +6,7 @@ const SCALAR_TEMPLATE: &str = r#"
 <!doctype html>
 <html>
   <head>
-    <title>Scalar</title>
+    <title>{:title}</title>
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -30,13 +30,14 @@ const SCALAR_TEMPLATE: &str = r#"
 </html>
 "#;
 
-pub(crate) fn create_html(document: &str) -> String {
+pub(crate) fn create_html(title: &str, document: &str) -> String {
     SCALAR_TEMPLATE
+        .replace("{:title}", title)
         .replace("{:script}", SCALAR_JS)
         .replace("{:spec}", document)
 }
 
-pub(crate) fn create_endpoint(document: String) -> impl Endpoint + 'static {
-    let ui_html = create_html(&document);
+pub(crate) fn create_endpoint(title: String, document: String) -> impl Endpoint + 'static {
+    let ui_html = create_html(&title, &document);
     poem::Route::new().at("/", make_sync(move |_| Html(ui_html.clone())))
 }

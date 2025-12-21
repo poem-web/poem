@@ -6,7 +6,7 @@ const REDOC_TEMPLATE: &str = r#"
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Redoc</title>
+    <title>{:title}</title>
     <!-- needed for adaptive design -->
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,13 +36,14 @@ const REDOC_TEMPLATE: &str = r#"
 </html>
 "#;
 
-pub(crate) fn create_html(document: &str) -> String {
+pub(crate) fn create_html(title: &str, document: &str) -> String {
     REDOC_TEMPLATE
+        .replace("{:title}", title)
         .replace("{:script}", REDOC_JS)
         .replace("{:spec}", document)
 }
 
-pub(crate) fn create_endpoint(document: String) -> impl Endpoint {
-    let ui_html = create_html(&document);
+pub(crate) fn create_endpoint(title: String, document: String) -> impl Endpoint {
+    let ui_html = create_html(&title, &document);
     poem::Route::new().at("/", make_sync(move |_| Html(ui_html.clone())))
 }

@@ -444,7 +444,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::openapi_explorer::create_endpoint(self.spec())
+        crate::ui::openapi_explorer::create_endpoint(self.info.title.clone(), self.spec())
     }
 
     /// Create the OpenAPI Explorer HTML
@@ -454,7 +454,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::openapi_explorer::create_html(&self.spec())
+        crate::ui::openapi_explorer::create_html(&self.info.title, &self.spec())
     }
 
     /// Create the Swagger UI endpoint.
@@ -465,7 +465,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::swagger_ui::create_endpoint(self.spec())
+        crate::ui::swagger_ui::create_endpoint(self.info.title.clone(), self.spec())
     }
 
     /// Create the Swagger UI HTML
@@ -475,7 +475,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::swagger_ui::create_html(&self.spec())
+        crate::ui::swagger_ui::create_html(&self.info.title, &self.spec())
     }
 
     /// Create the Rapidoc endpoint.
@@ -486,7 +486,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::rapidoc::create_endpoint(self.spec())
+        crate::ui::rapidoc::create_endpoint(self.info.title.clone(), self.spec())
     }
 
     /// Create the Rapidoc HTML
@@ -496,7 +496,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::rapidoc::create_html(&self.spec())
+        crate::ui::rapidoc::create_html(&self.info.title, &self.spec())
     }
 
     /// Create the Redoc endpoint.
@@ -507,7 +507,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::redoc::create_endpoint(self.spec())
+        crate::ui::redoc::create_endpoint(self.info.title.clone(), self.spec())
     }
 
     /// Create the Redoc HTML
@@ -518,7 +518,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::redoc::create_html(&self.spec())
+        crate::ui::redoc::create_html(&self.info.title, &self.spec())
     }
 
     /// Create the Scalar endpoint.
@@ -529,7 +529,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::scalar::create_endpoint(self.spec())
+        crate::ui::scalar::create_endpoint(self.info.title.clone(), self.spec())
     }
 
     /// Create the Scalar HTML
@@ -540,7 +540,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::scalar::create_html(&self.spec())
+        crate::ui::scalar::create_html(&self.info.title, &self.spec())
     }
 
     /// Create the Stoplight Elements endpoint.
@@ -551,7 +551,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::stoplight_elements::create_endpoint(self.spec())
+        crate::ui::stoplight_elements::create_endpoint(self.info.title.clone(), self.spec())
     }
 
     /// Create the Stoplight Elements HTML.
@@ -562,7 +562,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        crate::ui::stoplight_elements::create_html(&self.spec())
+        crate::ui::stoplight_elements::create_html(&self.info.title, &self.spec())
     }
 
     /// Create an endpoint to serve the open api specification as JSON.
