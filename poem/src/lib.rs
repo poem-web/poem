@@ -228,35 +228,37 @@
 //! To avoid compiling unused dependencies, `Poem` gates certain features, all
 //! of which are disabled by default:
 //!
-//! |Feature           |Description                     |
-//! |------------------|--------------------------------|
-//! | server | Server and listener APIs(enable by default) |
-//! |compression  | Support decompress request body and compress response body |
-//! |cookie            | Support for Cookie             |
-//! |csrf | Support for Cross-Site Request Forgery (CSRF) protection |
-//! |multipart         | Support for Multipart          |
-//! |native-tls        | Support for HTTP server over TLS with [`native-tls`](https://crates.io/crates/native-tls)  |
-//! |openssl-tls        | Support for HTTP server over TLS with [`openssl-tls`](https://crates.io/crates/openssl)  |
-//! |opentelemetry     | Support for opentelemetry    |
-//! |prometheus        | Support for Prometheus       |
-//! |redis-session     | Support for RedisSession     |
-//! |rustls            | Support for HTTP server over TLS with [`rustls`](https://crates.io/crates/rustls)  |
-//! |session           | Support for session    |
-//! |sse               | Support Server-Sent Events (SSE)       |
-//! |tempfile          | Support for [`tempfile`](https://crates.io/crates/tempfile) |
-//! |test              | Test utilities to test your endpoints. |
-//! |tower-compat      | Adapters for `tower::Layer` and `tower::Service`. |
-//! |websocket         | Support for WebSocket          |
-//! | anyhow        | Integrate with the [`anyhow`](https://crates.io/crates/anyhow) crate. |
-//! | eyre06        | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate. |
-//! | i18n          | Support for internationalization |
-//! | acme-native-roots | Support for ACME(Automatic Certificate Management Environment) |
-//! | acme-webpki-roots | Support for ACME using webpki TLS roots rather than native TLS roots |
-//! | tokio-metrics | Integrate with the [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate. |
-//! | embed  | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate. |
-//! | xml | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate. |
-//! | yaml | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate.                   |
-//! |sonic-rs          | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities |
+//! |Feature           | Description                                                                              |
+//! |------------------|------------------------------------------------------------------------------------------|
+//! | server           | Server and listener APIs (enabled by default)                                            |
+//! | compression      | Support decompress request body and compress response body                               |
+//! | cookie           | Support for Cookie                                                                       |
+//! | csrf             | Support for Cross-Site Request Forgery (CSRF) protection                                 |
+//! | multipart        | Support for Multipart                                                                    |
+//! | native-tls       | Support for HTTP server over TLS with [`native-tls`](https://crates.io/crates/native-tls)|
+//! | openssl-tls      | Support for HTTP server over TLS with [`openssl`](https://crates.io/crates/openssl)      |
+//! | opentelemetry    | Support for OpenTelemetry                                                                |
+//! | prometheus       | Support for Prometheus                                                                   |
+//! | redis-session    | Support for Redis-based session storage                                                  |
+//! | rustls           | Support for HTTP server over TLS with [`rustls`](https://crates.io/crates/rustls)        |
+//! | session          | Support for session                                                                      |
+//! | sse              | Support for Server-Sent Events (SSE)                                                     |
+//! | static-files     | Support for static file serving                                                          |
+//! | tempfile         | Support for [`tempfile`](https://crates.io/crates/tempfile)                              |
+//! | test             | Test utilities to test your endpoints                                                    |
+//! | tower-compat     | Adapters for `tower::Layer` and `tower::Service`                                         |
+//! | websocket        | Support for WebSocket                                                                    |
+//! | anyhow           | Integrate with [`anyhow`](https://crates.io/crates/anyhow) crate                         |
+//! | eyre06           | Integrate with version 0.6.x of the [`eyre`](https://crates.io/crates/eyre) crate        |
+//! | i18n             | Support for internationalization                                                         |
+//! | acme-native-roots| Support for ACME (Automatic Certificate Management Environment)                          |
+//! | acme-webpki-roots| Support for ACME using webpki TLS roots rather than native TLS roots                     |
+//! | tokio-metrics    | Integrate with [`tokio-metrics`](https://crates.io/crates/tokio-metrics) crate           |
+//! | embed            | Integrate with [`rust-embed`](https://crates.io/crates/rust-embed) crate                 |
+//! | xml              | Integrate with [`quick-xml`](https://crates.io/crates/quick-xml) crate                   |
+//! | yaml             | Integrate with [`serde-yaml`](https://crates.io/crates/serde-yaml) crate                 |
+//! | requestid        | Associates a unique ID with each incoming request                                        |
+//! | sonic-rs         | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`         |
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]
