@@ -27,6 +27,67 @@ pub use string_types::Password;
 
 use crate::registry::{MetaSchemaRef, Registry};
 
+/// Sanitizes a type name to be a valid OpenAPI component name.
+///
+/// According to the OpenAPI specification, component names can only contain
+/// the characters `A-Z a-z 0-9 - . _`. This function replaces invalid
+/// characters with underscores and cleans up the result.
+///
+/// This is particularly important for generic types, where Rust type names like
+/// `PaginatedResponse<SessionSnapshot>` contain `<>` characters that are
+/// invalid in OpenAPI identifiers.
+///
+/// # Examples
+///
+/// ```
+/// use poem_openapi::types::sanitize_type_name;
+///
+/// assert_eq!(sanitize_type_name("SimpleType"), "SimpleType");
+/// assert_eq!(sanitize_type_name("Generic<Inner>"), "Generic_Inner");
+/// assert_eq!(sanitize_type_name("Complex<A, B>"), "Complex_A_B");
+/// assert_eq!(sanitize_type_name("path::to::Type"), "path_to_Type");
+/// ```
+#[inline]
+pub fn sanitize_type_name(name: &str) -> String {
+    let mut result = String::with_capacity(name.len());
+    let mut last_was_underscore = false;
+
+    for c in name.chars() {
+        let new_char = match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '.' => {
+                last_was_underscore = false;
+                c
+            }
+            '_' => {
+                if last_was_underscore {
+                    continue; // Skip consecutive underscores
+                }
+                last_was_underscore = true;
+                '_'
+            }
+            // Replace invalid characters with underscore
+            '<' | '>' | ',' | ' ' | ':' => {
+                if last_was_underscore {
+                    continue; // Skip if previous was already underscore
+                }
+                last_was_underscore = true;
+                '_'
+            }
+            _ => {
+                if last_was_underscore {
+                    continue;
+                }
+                last_was_underscore = true;
+                '_'
+            }
+        };
+        result.push(new_char);
+    }
+
+    // Trim leading and trailing underscores
+    result.trim_matches('_').to_string()
+}
+
 /// Represents an OpenAPI type.
 pub trait Type: Send + Sync {
     /// If it is `true`, it means that this type is required.

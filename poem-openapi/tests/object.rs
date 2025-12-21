@@ -1132,3 +1132,68 @@ fn deserialize_with() {
         Obj { a: 7 }
     );
 }
+
+/// Test that generic type names are sanitized to be valid OpenAPI identifiers.
+/// This verifies the fix for issue #519 and #318.
+#[test]
+fn generic_type_name_sanitization() {
+    use poem_openapi::types::sanitize_type_name;
+
+    // Basic sanitization tests
+    assert_eq!(sanitize_type_name("SimpleType"), "SimpleType");
+    assert_eq!(sanitize_type_name("Generic<Inner>"), "Generic_Inner");
+    assert_eq!(sanitize_type_name("Complex<A, B>"), "Complex_A_B");
+    assert_eq!(sanitize_type_name("path::to::Type"), "path_to_Type");
+    assert_eq!(sanitize_type_name("A<B<C>>"), "A_B_C");
+
+    // Nested generic types should produce valid OpenAPI names
+    #[derive(Object)]
+    struct Inner {
+        value: String,
+    }
+
+    #[derive(Object)]
+    struct Wrapper<T: ParseFromJSON + ToJSON> {
+        data: T,
+    }
+
+    // The type name should not contain < or > characters
+    let name = <Wrapper<Inner>>::name();
+    assert!(
+        !name.contains('<') && !name.contains('>'),
+        "Type name '{}' should not contain < or > characters",
+        name
+    );
+
+    // Verify it's a valid OpenAPI component name (A-Z a-z 0-9 - . _)
+    let is_valid = name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_');
+    assert!(
+        is_valid,
+        "Type name '{}' should only contain valid OpenAPI identifier characters",
+        name
+    );
+
+    // Check nested generics
+    #[derive(Object)]
+    struct DeepWrapper<T: ParseFromJSON + ToJSON> {
+        inner: Wrapper<T>,
+    }
+
+    let deep_name = <DeepWrapper<Inner>>::name();
+    assert!(
+        !deep_name.contains('<') && !deep_name.contains('>'),
+        "Type name '{}' should not contain < or > characters",
+        deep_name
+    );
+
+    let is_valid_deep = deep_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_');
+    assert!(
+        is_valid_deep,
+        "Type name '{}' should only contain valid OpenAPI identifier characters",
+        deep_name
+    );
+}

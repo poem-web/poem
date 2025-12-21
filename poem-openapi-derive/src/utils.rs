@@ -194,10 +194,10 @@ pub(crate) fn create_object_name(
             let mut name = ::std::string::String::from(#name);
 
             name.push('_');
-            name.push_str(&<#first as #crate_name::types::Type>::name());
+            name.push_str(&#crate_name::types::sanitize_type_name(&<#first as #crate_name::types::Type>::name()));
             #(
                 name.push_str("_");
-                name.push_str(&<#tail as #crate_name::types::Type>::name());
+                name.push_str(&#crate_name::types::sanitize_type_name(&<#tail as #crate_name::types::Type>::name()));
             )*
 
             name
