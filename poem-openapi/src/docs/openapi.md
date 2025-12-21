@@ -97,6 +97,7 @@ impl Api {
 | deprecated               | Argument deprecated                                                                                                                                                                                                                                   | bool                                      | Y                 |
 | default                  | Default value                                                                                                                                                                                                                                         | bool,string                               | Y                 |
 | explode                  | When this is `true`, parameter values of type array or object generate separate parameters for each value of the array or key-value pair of the map.                                                                                                  | bool                                      | Y (default: true) |
+| hidden                   | Hide this parameter from the OpenAPI schema. The parameter will still be extracted at runtime.                                                                                                                                                        | bool                                      | Y                 |
 | validator.multiple_of    | The value of "multiple_of" MUST be a number, strictly greater than 0. A numeric instance is only valid if division by this value results in an integer.                                                                                               | number                                    | Y                 |
 | validator.maximum        | The value of "maximum" MUST be a number, representing an upper limit for a numeric instance. If `exclusive` is `true` and instance is less than the provided value, or else if the instance is less than or exactly equal to the provided value.      | { value: `<number>`, exclusive: `<bool>`} | Y                 |
 | validator.minimum        | The value of "minimum" MUST be a number, representing a lower limit for a numeric instance. If `exclusive` is `true` and instance is greater than the provided value, or else if the instance is greater than or exactly equal to the provided value. | { value: `<number>`, exclusive: `<bool>`} | Y                 |
@@ -154,6 +155,36 @@ impl PetApi {
         req: CreatePetRequest
     ) -> CreatePetResponse {
         todo!()
+    }
+}
+```
+
+## Hidden Parameters
+
+You can use `#[oai(hidden)]` on a parameter to hide it from the generated OpenAPI
+schema while still extracting it at runtime. This is useful for parameters that
+are added by middleware (like request IDs) and shouldn't be documented as user-provided.
+
+```rust
+use poem_openapi::{
+    param::{Header, Query},
+    payload::PlainText,
+    OpenApi,
+};
+
+struct Api;
+
+#[OpenApi]
+impl Api {
+    #[oai(path = "/test", method = "get")]
+    async fn test(
+        &self,
+        /// This parameter appears in the OpenAPI schema
+        visible: Query<String>,
+        /// This parameter is extracted but hidden from the schema
+        #[oai(hidden)] request_id: Header<String>,
+    ) -> PlainText<String> {
+        PlainText(format!("visible={}, request_id={}", visible.0, request_id.0))
     }
 }
 ```

@@ -776,3 +776,133 @@ async fn cookie_rename() {
         .await
         .assert_status_is_ok();
 }
+
+/// Test that hidden parameters are not included in OpenAPI schema but still
+/// work at runtime
+#[tokio::test]
+async fn hidden_parameter() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/test", method = "get")]
+        async fn test(
+            &self,
+            visible_param: Query<String>,
+            #[oai(hidden)] hidden_param: Header<String>,
+        ) -> Json<String> {
+            // Both parameters should be extracted at runtime
+            Json(format!(
+                "visible={}, hidden={}",
+                visible_param.0, hidden_param.0
+            ))
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    // Only visible_param should be in the schema
+    assert_eq!(meta.paths[0].operations[0].params.len(), 1);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "visible_param");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Query
+    );
+
+    // Test that both parameters still work at runtime
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let resp = TestClient::new(ep)
+        .get("/test")
+        .query("visible_param", &"hello")
+        .header("hidden_param", "world")
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_json(&"visible=hello, hidden=world".to_string())
+        .await;
+}
+
+/// Test that multiple hidden parameters work correctly
+#[tokio::test]
+async fn multiple_hidden_parameters() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/test/:id", method = "get")]
+        async fn test(
+            &self,
+            id: Path<i32>,
+            #[oai(hidden)] request_id: Header<String>,
+            visible_query: Query<String>,
+            #[oai(hidden)] internal_flag: Query<Option<bool>>,
+        ) -> Json<String> {
+            Json(format!(
+                "id={}, request_id={}, query={}, flag={:?}",
+                id.0, request_id.0, visible_query.0, internal_flag.0
+            ))
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    // Only id and visible_query should be in the schema
+    assert_eq!(meta.paths[0].operations[0].params.len(), 2);
+    assert_eq!(meta.paths[0].operations[0].params[0].name, "id");
+    assert_eq!(
+        meta.paths[0].operations[0].params[0].in_type,
+        MetaParamIn::Path
+    );
+    assert_eq!(meta.paths[0].operations[0].params[1].name, "visible_query");
+    assert_eq!(
+        meta.paths[0].operations[0].params[1].in_type,
+        MetaParamIn::Query
+    );
+
+    // Test runtime extraction
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let resp = TestClient::new(ep)
+        .get("/test/42")
+        .query("visible_query", &"test")
+        .query("internal_flag", &true)
+        .header("request_id", "req-123")
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_json(&"id=42, request_id=req-123, query=test, flag=Some(true)".to_string())
+        .await;
+}
+
+/// Test that all parameters can be hidden
+#[tokio::test]
+async fn all_parameters_hidden() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/test", method = "get")]
+        async fn test(
+            &self,
+            #[oai(hidden)] hidden_query: Query<String>,
+            #[oai(hidden)] hidden_header: Header<String>,
+        ) -> Json<String> {
+            Json(format!(
+                "query={}, header={}",
+                hidden_query.0, hidden_header.0
+            ))
+        }
+    }
+
+    let meta: MetaApi = Api::meta().remove(0);
+    // No parameters should be in the schema
+    assert!(meta.paths[0].operations[0].params.is_empty());
+
+    // Test runtime extraction still works
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let resp = TestClient::new(ep)
+        .get("/test")
+        .query("hidden_query", &"q")
+        .header("hidden_header", "h")
+        .send()
+        .await;
+    resp.assert_status_is_ok();
+    resp.assert_json(&"query=q, header=h".to_string()).await;
+}
