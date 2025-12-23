@@ -249,6 +249,106 @@ impl Config {
         self
     }
 
+    /// Add additional attribute to matched enums and one-ofs.
+    ///
+    /// # Arguments
+    ///
+    /// **`paths`** - a path matching any number of types. It works the same way
+    /// as in [`btree_map`](Self::btree_map), just with the field name
+    /// omitted.
+    ///
+    /// **`attribute`** - an arbitrary string to be placed before each matched
+    /// type. The expected usage are additional attributes, but anything is
+    /// allowed.
+    ///
+    /// The calls to this method are cumulative. They don't overwrite previous
+    /// calls and if a type is matched by multiple calls of the method, all
+    /// relevant attributes are added to it.
+    ///
+    /// For things like serde it might be needed to combine with [field
+    /// attributes](Self::field_attribute).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # let mut config = prost_build::Config::new();
+    /// // Nothing around uses floats, so we can derive real `Eq` in addition to `PartialEq`.
+    /// config.enum_attribute(".", "#[derive(Eq)]");
+    /// // Some messages want to be serializable with serde as well.
+    /// config.enum_attribute(
+    ///     "my_messages.MyEnumType",
+    ///     "#[derive(Serialize)] #[serde(rename_all = \"snake_case\")]",
+    /// );
+    /// config.enum_attribute(
+    ///     "my_messages.MyMessageType.MyNestedEnumType",
+    ///     "#[derive(Serialize)] #[serde(rename_all = \"snake_case\")]",
+    /// );
+    /// ```
+    ///
+    /// # Oneof fields
+    ///
+    /// The `oneof` fields don't have a type name of their own inside Protobuf.
+    /// Therefore, the field name can be used both with `enum_attribute` and
+    /// `field_attribute` ‒ the first is placed before the `enum` type
+    /// definition, the other before the field inside corresponding
+    /// message `struct`.
+    ///
+    /// In other words, to place an attribute on the `enum` implementing the
+    /// `oneof`, the match would look like
+    /// `my_messages.MyNestedMessageType.oneofname`.
+    pub fn enum_attribute<P, A>(mut self, path: P, attribute: A) -> Self
+    where
+        P: AsRef<str>,
+        A: AsRef<str>,
+    {
+        self.prost_config.enum_attribute(path, attribute);
+        self
+    }
+
+    /// Add additional attribute to matched messages.
+    ///
+    /// # Arguments
+    ///
+    /// **`paths`** - a path matching any number of types. It works the same way
+    /// as in [`btree_map`](Self::btree_map), just with the field name
+    /// omitted.
+    ///
+    /// **`attribute`** - an arbitrary string to be placed before each matched
+    /// type. The expected usage are additional attributes, but anything is
+    /// allowed.
+    ///
+    /// The calls to this method are cumulative. They don't overwrite previous
+    /// calls and if a type is matched by multiple calls of the method, all
+    /// relevant attributes are added to it.
+    ///
+    /// For things like serde it might be needed to combine with [field
+    /// attributes](Self::field_attribute).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # let mut config = prost_build::Config::new();
+    /// // Nothing around uses floats, so we can derive real `Eq` in addition to `PartialEq`.
+    /// config.message_attribute(".", "#[derive(Eq)]");
+    /// // Some messages want to be serializable with serde as well.
+    /// config.message_attribute(
+    ///     "my_messages.MyMessageType",
+    ///     "#[derive(Serialize)] #[serde(rename_all = \"snake_case\")]",
+    /// );
+    /// config.message_attribute(
+    ///     "my_messages.MyMessageType.MyNestedMessageType",
+    ///     "#[derive(Serialize)] #[serde(rename_all = \"snake_case\")]",
+    /// );
+    /// ```
+    pub fn message_attribute<P, A>(mut self, path: P, attribute: A) -> Self
+    where
+        P: AsRef<str>,
+        A: AsRef<str>,
+    {
+        self.prost_config.message_attribute(path, attribute);
+        self
+    }
+
     /// Add additional attribute to matched fields.
     ///
     /// # Arguments
