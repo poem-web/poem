@@ -20,32 +20,35 @@ use tokio::time::Instant;
 
 use crate::{
     McpServer,
+    prompts::Prompts,
     protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest},
     tool::Tools,
 };
 
 const SESSION_TIMEOUT: Duration = Duration::from_secs(60 * 5);
 
-type ServerFactoryFn<ToolsType> = Box<dyn Fn(&Request) -> McpServer<ToolsType> + Send + Sync>;
+type ServerFactoryFn<ToolsType, PromptsType> =
+    Box<dyn Fn(&Request) -> McpServer<ToolsType, PromptsType> + Send + Sync>;
 
-struct Session<ToolsType> {
-    server: Arc<tokio::sync::Mutex<McpServer<ToolsType>>>,
+struct Session<ToolsType, PromptsType> {
+    server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
     last_active: Instant,
 }
 
-struct State<ToolsType> {
-    server_factory: ServerFactoryFn<ToolsType>,
-    sessions: Mutex<HashMap<String, Session<ToolsType>>>,
+struct State<ToolsType, PromptsType> {
+    server_factory: ServerFactoryFn<ToolsType, PromptsType>,
+    sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType>>>,
 }
 
-async fn handle_request<ToolsType>(
-    server: Arc<tokio::sync::Mutex<McpServer<ToolsType>>>,
+async fn handle_request<ToolsType, PromptsType>(
+    server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
     session_id: &str,
     accept: &Mime,
     requests: impl Iterator<Item = McpRequest> + Send + 'static,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
+    PromptsType: Prompts + Send + Sync + 'static,
 {
     tracing::info!(
         session_id = session_id,
@@ -83,14 +86,15 @@ where
 }
 
 #[handler]
-async fn post_handler<ToolsType>(
-    data: Data<&Arc<State<ToolsType>>>,
+async fn post_handler<ToolsType, PromptsType>(
+    data: Data<&Arc<State<ToolsType, PromptsType>>>,
     request: &Request,
     batch_request: Json<McpBatchRequest>,
     accept: Accept,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
+    PromptsType: Prompts + Send + Sync + 'static,
 {
     let Some(accept) = accept.0.first() else {
         return StatusCode::BAD_REQUEST.into_response();
@@ -145,12 +149,13 @@ where
 }
 
 #[handler]
-async fn delete_handler<ToolsType>(
-    data: Data<&Arc<State<ToolsType>>>,
+async fn delete_handler<ToolsType, PromptsType>(
+    data: Data<&Arc<State<ToolsType, PromptsType>>>,
     headers: &HeaderMap,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
+    PromptsType: Prompts + Send + Sync + 'static,
 {
     let Some(session_id) = headers
         .get("Mcp-Session-Id")
@@ -168,10 +173,11 @@ where
 }
 
 /// A streamable http endpoint that can be used to handle MCP requests.
-pub fn endpoint<F, ToolsType>(server_factory: F) -> impl IntoEndpoint
+pub fn endpoint<F, ToolsType, PromptsType>(server_factory: F) -> impl IntoEndpoint
 where
-    F: Fn(&Request) -> McpServer<ToolsType> + Send + Sync + 'static,
+    F: Fn(&Request) -> McpServer<ToolsType, PromptsType> + Send + Sync + 'static,
     ToolsType: Tools + Send + Sync + 'static,
+    PromptsType: Prompts + Send + Sync + 'static,
 {
     let state = Arc::new(State {
         server_factory: Box::new(server_factory),
@@ -190,8 +196,8 @@ where
         }
     });
 
-    post(post_handler::<ToolsType>::default())
-        .delete(delete_handler::<ToolsType>::default())
+    post(post_handler::<ToolsType, PromptsType>::default())
+        .delete(delete_handler::<ToolsType, PromptsType>::default())
         .data(state)
 }
 
