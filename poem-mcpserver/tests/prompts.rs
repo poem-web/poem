@@ -52,7 +52,9 @@ impl TestPrompts {
                 lang,
                 code.unwrap()
             )))
-            .assistant(Text("I'll review this code for you. Let me analyze it...".to_string()))
+            .assistant(Text(
+                "I'll review this code for you. Let me analyze it...".to_string(),
+            ))
     }
 
     /// A simple prompt without required arguments.
@@ -235,10 +237,12 @@ async fn prompts_get_missing_required_argument() {
     assert_eq!(resp_value["jsonrpc"], "2.0");
     assert_eq!(resp_value["id"], 4);
     assert!(resp_value["error"]["code"].as_i64().is_some());
-    assert!(resp_value["error"]["message"]
-        .as_str()
-        .unwrap()
-        .contains("missing required argument: name"));
+    assert!(
+        resp_value["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("missing required argument: name")
+    );
 }
 
 #[tokio::test]
@@ -263,10 +267,12 @@ async fn prompts_get_unknown_prompt() {
     assert_eq!(resp_value["jsonrpc"], "2.0");
     assert_eq!(resp_value["id"], 5);
     assert!(resp_value["error"]["code"].as_i64().is_some());
-    assert!(resp_value["error"]["message"]
-        .as_str()
-        .unwrap()
-        .contains("prompt not found"));
+    assert!(
+        resp_value["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("prompt not found")
+    );
 }
 
 #[tokio::test]

@@ -1,9 +1,5 @@
 use poem_mcpserver::{
-    Prompts, Tools,
-    content::Text,
-    prompts::PromptMessages,
-    stdio::stdio,
-    McpServer,
+    content::Text, prompts::PromptMessages, stdio::stdio, McpServer, Prompts, Tools,
 };
 
 /// A collection of development assistant tools.
@@ -29,7 +25,13 @@ impl DevTools {
             self.review_count,
             lines,
             chars,
-            if lines > 50 { "High" } else if lines > 20 { "Medium" } else { "Low" }
+            if lines > 50 {
+                "High"
+            } else if lines > 20 {
+                "Medium"
+            } else {
+                "Low"
+            }
         ))
     }
 
@@ -78,11 +80,14 @@ impl DevPrompts {
     ) -> PromptMessages {
         let lang = language.unwrap_or_else(|| "unknown".to_string());
         let focus_area = focus.unwrap_or_else(|| "all".to_string());
-        
+
         PromptMessages::new()
             .user(Text(format!(
                 "Please review the following {} code. Focus on: {}\n\n```{}\n{}\n```",
-                lang, focus_area, lang, code.unwrap()
+                lang,
+                focus_area,
+                lang,
+                code.unwrap()
             )))
             .assistant(Text(format!(
                 "I'm {}, and I'll review this {} code focusing on {}. Let me analyze it...",
@@ -100,12 +105,12 @@ impl DevPrompts {
         style: Option<String>,
     ) -> PromptMessages {
         let doc_style = style.unwrap_or_else(|| "markdown".to_string());
-        
-        PromptMessages::new()
-            .user(Text(format!(
-                "Generate {} documentation for the following code:\n\n```\n{}\n```",
-                doc_style, code.unwrap()
-            )))
+
+        PromptMessages::new().user(Text(format!(
+            "Generate {} documentation for the following code:\n\n```\n{}\n```",
+            doc_style,
+            code.unwrap()
+        )))
     }
 
     /// Get help debugging an issue.
@@ -119,16 +124,19 @@ impl DevPrompts {
         /// Relevant code snippet
         code: Option<String>,
     ) -> PromptMessages {
-        let mut prompt = format!("I need help debugging an issue.\n\nProblem: {}", problem.unwrap());
-        
+        let mut prompt = format!(
+            "I need help debugging an issue.\n\nProblem: {}",
+            problem.unwrap()
+        );
+
         if let Some(err) = error_message {
             prompt.push_str(&format!("\n\nError message:\n```\n{}\n```", err));
         }
-        
+
         if let Some(code_snippet) = code {
             prompt.push_str(&format!("\n\nRelevant code:\n```\n{}\n```", code_snippet));
         }
-        
+
         PromptMessages::new()
             .user(Text(prompt))
             .assistant(Text(format!(
@@ -156,6 +164,6 @@ async fn main() -> std::io::Result<()> {
     let prompts = DevPrompts {
         assistant_name: "CodeBot".to_string(),
     };
-    
+
     stdio(McpServer::new().tools(tools).prompts(prompts)).await
 }
