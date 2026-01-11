@@ -6,16 +6,16 @@ use std::{
     time::Duration,
 };
 
-use mime::Mime;
 use poem::{
     EndpointExt, IntoEndpoint, IntoResponse, Request, handler,
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     post,
     web::{
-        Accept, Data, Json,
+        Accept, Data, Json, Query,
         sse::{Event, SSE},
     },
 };
+use serde_json::Value;
 use tokio::time::Instant;
 
 use crate::{
@@ -32,6 +32,7 @@ type ServerFactoryFn<ToolsType, PromptsType> =
 
 struct Session<ToolsType, PromptsType> {
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
+    sender: Option<tokio::sync::mpsc::UnboundedSender<String>>,
     last_active: Instant,
 }
 
@@ -40,49 +41,57 @@ struct State<ToolsType, PromptsType> {
     sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType>>>,
 }
 
-async fn handle_request<ToolsType, PromptsType>(
+async fn process_request<ToolsType, PromptsType>(
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
-    session_id: &str,
-    accept: &Mime,
-    requests: impl Iterator<Item = McpRequest> + Send + 'static,
+    request: McpRequest,
+) -> Option<crate::protocol::rpc::Response<Value>>
+where
+    ToolsType: Tools + Send + Sync + 'static,
+    PromptsType: Prompts + Send + Sync + 'static,
+{
+    server.lock().await.handle_request(request).await
+}
+
+#[handler]
+async fn get_handler<ToolsType, PromptsType>(
+    data: Data<&Arc<State<ToolsType, PromptsType>>>,
+    request: &Request,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
 {
+    let session_id = session_id();
+    let server = (data.0.server_factory)(request);
+
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+
+    {
+        let mut sessions = data.0.sessions.lock().unwrap();
+        sessions.insert(
+            session_id.clone(),
+            Session {
+                server: Arc::new(tokio::sync::Mutex::new(server)),
+                sender: Some(tx),
+                last_active: Instant::now(),
+            },
+        );
+    }
+
     tracing::info!(
         session_id = session_id,
-        accept = accept.essence_str(),
-        "handling requests"
+        "created new standard session (SSE)"
     );
 
-    match accept.essence_str() {
-        "application/json" => {
-            let mut resps = vec![];
-            for request in requests {
-                tracing::info!(session_id = session_id, request = ?request, "received request");
-                let resp = server.lock().await.handle_request(request).await;
-                tracing::info!(session_id = session_id, response = ?resp, "sending response");
-                resps.extend(resp);
-            }
-            Json(resps)
-                .with_content_type("application/json")
-                .into_response()
+    SSE::new(async_stream::stream! {
+        let endpoint_uri = format!("?session_id={}", session_id);
+        yield Event::message(endpoint_uri).event_type("endpoint");
+
+        while let Some(msg) = rx.recv().await {
+             yield Event::message(msg).event_type("message");
         }
-        "text/event-stream" => {
-            let session_id = session_id.to_string();
-            SSE::new(async_stream::stream! {
-                for request in requests {
-                    tracing::info!(session_id = session_id, request = ?request, "received request");
-                    let resp = server.lock().await.handle_request(request).await;
-                    tracing::info!(session_id = session_id, response = ?resp, "sending response");
-                    yield Event::message(serde_json::to_string(&resp).unwrap()).event_type("message");
-                }
-            })
-            .into_response()
-        }
-        _ => StatusCode::BAD_REQUEST.into_response(),
-    }
+    })
+    .into_response()
 }
 
 #[handler]
@@ -91,80 +100,143 @@ async fn post_handler<ToolsType, PromptsType>(
     request: &Request,
     batch_request: Json<McpBatchRequest>,
     accept: Accept,
+    query: Query<HashMap<String, String>>,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
 {
+    let session_id_param = request
+        .headers()
+        .get("Mcp-Session-Id")
+        .and_then(|value| value.to_str().ok())
+        .map(String::from)
+        .or_else(|| query.get("session_id").cloned());
+
+    if session_id_param.is_none() {
+        let Some(_accept) = accept.0.first() else {
+            return StatusCode::BAD_REQUEST.into_response();
+        };
+
+        if batch_request.len() == 1 && batch_request.requests()[0].is_initialize() {
+            let session_id = session_id();
+            let mut server = (data.0.server_factory)(request);
+            let initialize_request = batch_request.0.into_iter().next().unwrap();
+            let resp = server
+                .handle_request(initialize_request)
+                .await
+                .expect("BUG: initialize response");
+            let mut sessions = data.0.sessions.lock().unwrap();
+            sessions.insert(
+                session_id.clone(),
+                Session {
+                    server: Arc::new(tokio::sync::Mutex::new(server)),
+                    sender: None,
+                    last_active: Instant::now(),
+                },
+            );
+
+            tracing::info!(session_id = session_id, "created new legacy session");
+            return Json(resp)
+                .with_header("Mcp-Session-Id", session_id)
+                .into_response();
+        }
+
+        return StatusCode::BAD_REQUEST.into_response();
+    }
+
+    let session_id = session_id_param.unwrap();
+
+    let (server, sender) = {
+        let mut sessions = data.0.sessions.lock().unwrap();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return StatusCode::NOT_FOUND.into_response();
+        };
+        session.last_active = Instant::now();
+        (session.server.clone(), session.sender.clone())
+    };
+
+    if let Some(tx) = sender {
+        for request in batch_request.0 {
+            tracing::info!(session_id = session_id, request = ?request, "received request (std)");
+            let resp = process_request(server.clone(), request).await;
+            if let Some(resp) = resp {
+                tracing::info!(session_id = session_id, response = ?resp, "pushing to SSE");
+                if tx.send(serde_json::to_string(&resp).unwrap()).is_err() {
+                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                }
+            }
+        }
+        return StatusCode::ACCEPTED.into_response();
+    }
+
     let Some(accept) = accept.0.first() else {
         return StatusCode::BAD_REQUEST.into_response();
     };
 
-    if batch_request.len() == 1
-        && batch_request.requests()[0].is_initialize()
-        && !request.headers().contains_key("Mcp-Session-Id")
-    {
-        let session_id = session_id();
-        let mut server = (data.0.server_factory)(request);
-        let initialize_request = batch_request.0.into_iter().next().unwrap();
-        let resp = server
-            .handle_request(initialize_request)
-            .await
-            .expect("BUG: initialize response");
-        let mut sessions = data.0.sessions.lock().unwrap();
-        sessions.insert(
-            session_id.clone(),
-            Session {
-                server: Arc::new(tokio::sync::Mutex::new(server)),
-                last_active: Instant::now(),
-            },
-        );
+    let requests = batch_request.0.into_iter();
 
-        tracing::info!(session_id = session_id, "created new session");
-        return Json(resp)
-            .with_header("Mcp-Session-Id", session_id)
-            .into_response();
+    match accept.essence_str() {
+        "text/event-stream" => {
+            let session_id = session_id.clone();
+            SSE::new(async_stream::stream! {
+                for request in requests {
+                    tracing::info!(session_id = session_id, request = ?request, "received request");
+                    let resp = process_request(server.clone(), request).await;
+                    if let Some(resp) = resp {
+                        tracing::info!(session_id = session_id, response = ?resp, "sending response");
+                        yield Event::message(serde_json::to_string(&resp).unwrap()).event_type("message");
+                    }
+                }
+            })
+            .into_response()
+        }
+        _ => {
+            let mut resps = vec![];
+            for request in requests {
+                tracing::info!(session_id = session_id, request = ?request, "received request");
+                let resp = process_request(server.clone(), request).await;
+                if let Some(resp) = resp {
+                    tracing::info!(session_id = session_id, response = ?resp, "sending response");
+                    resps.push(resp);
+                }
+            }
+            Json(resps)
+                .with_content_type("application/json")
+                .into_response()
+        }
     }
-
-    let Some(session_id) = request
-        .headers()
-        .get("Mcp-Session-Id")
-        .and_then(|value| value.to_str().ok())
-    else {
-        return StatusCode::BAD_REQUEST.into_response();
-    };
-
-    let server = {
-        let mut sessions = data.0.sessions.lock().unwrap();
-        let Some(session) = sessions.get_mut(session_id) else {
-            return StatusCode::NOT_FOUND.into_response();
-        };
-        session.last_active = Instant::now();
-        session.server.clone()
-    };
-
-    handle_request(server, session_id, accept, batch_request.0.into_iter())
-        .await
-        .into_response()
 }
 
 #[handler]
 async fn delete_handler<ToolsType, PromptsType>(
     data: Data<&Arc<State<ToolsType, PromptsType>>>,
-    headers: &HeaderMap,
+    req: &Request,
+    query: Query<HashMap<String, String>>,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
 {
-    let Some(session_id) = headers
+    let session_id = req
+        .headers()
         .get("Mcp-Session-Id")
         .and_then(|value| value.to_str().ok())
-    else {
+        .map(String::from)
+        .or_else(|| query.get("session_id").cloned());
+
+    let Some(session_id) = session_id else {
         return StatusCode::BAD_REQUEST;
     };
 
-    if data.sessions.lock().unwrap().remove(session_id).is_none() {
+    if data
+        .0
+        .sessions
+        .lock()
+        .unwrap()
+        .remove(&session_id)
+        .is_none()
+    {
         return StatusCode::NOT_FOUND;
     }
 
@@ -197,6 +269,7 @@ where
     });
 
     post(post_handler::<ToolsType, PromptsType>::default())
+        .get(get_handler::<ToolsType, PromptsType>::default())
         .delete(delete_handler::<ToolsType, PromptsType>::default())
         .data(state)
 }
