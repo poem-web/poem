@@ -21,7 +21,7 @@ use tokio::time::Instant;
 use crate::{
     McpServer,
     prompts::Prompts,
-    protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest},
+    protocol::rpc::BatchRequest as McpBatchRequest,
     tool::Tools,
 };
 
@@ -44,7 +44,7 @@ async fn handle_request<ToolsType, PromptsType>(
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
     session_id: &str,
     accept: &Mime,
-    requests: impl Iterator<Item = McpRequest> + Send + 'static,
+    batch_request: McpBatchRequest,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
@@ -58,21 +58,28 @@ where
 
     match accept.essence_str() {
         "application/json" => {
+            let is_batch = matches!(batch_request, McpBatchRequest::Batch(_));
             let mut resps = vec![];
-            for request in requests {
+            for request in batch_request.into_iter() {
                 tracing::info!(session_id = session_id, request = ?request, "received request");
                 let resp = server.lock().await.handle_request(request).await;
                 tracing::info!(session_id = session_id, response = ?resp, "sending response");
                 resps.extend(resp);
             }
-            Json(resps)
-                .with_content_type("application/json")
-                .into_response()
+            if is_batch || resps.len() != 1 {
+                Json(resps)
+                    .with_content_type("application/json")
+                    .into_response()
+            } else {
+                Json(resps.pop().expect("BUG: missing single response"))
+                    .with_content_type("application/json")
+                    .into_response()
+            }
         }
         "text/event-stream" => {
             let session_id = session_id.to_string();
             SSE::new(async_stream::stream! {
-                for request in requests {
+                for request in batch_request.into_iter() {
                     tracing::info!(session_id = session_id, request = ?request, "received request");
                     let resp = server.lock().await.handle_request(request).await;
                     tracing::info!(session_id = session_id, response = ?resp, "sending response");
@@ -100,13 +107,15 @@ where
         return StatusCode::BAD_REQUEST.into_response();
     };
 
+    let batch_request = batch_request.0;
+
     if batch_request.len() == 1
         && batch_request.requests()[0].is_initialize()
         && !request.headers().contains_key("Mcp-Session-Id")
     {
         let session_id = session_id();
         let mut server = (data.0.server_factory)(request);
-        let initialize_request = batch_request.0.into_iter().next().unwrap();
+        let initialize_request = batch_request.into_iter().next().unwrap();
         let resp = server
             .handle_request(initialize_request)
             .await
@@ -143,7 +152,7 @@ where
         session.server.clone()
     };
 
-    handle_request(server, session_id, accept, batch_request.0.into_iter())
+    handle_request(server, session_id, accept, batch_request)
         .await
         .into_response()
 }
