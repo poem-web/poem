@@ -117,7 +117,13 @@ where
     T: Serialize + JsonSchema,
 {
     fn output_schema() -> Option<Schema> {
-        Some(schemars::SchemaGenerator::default().into_root_schema_for::<T>())
+        let schema = schemars::SchemaGenerator::default().into_root_schema_for::<T>();
+        if let Ok(value) = serde_json::to_value(&schema) {
+            if value.get("type") == Some(&serde_json::Value::String("array".to_string())) {
+                panic!("Tool return type must be an object, but found array. Please wrap the return value in a struct.");
+            }
+        }
+        Some(schema.into())
     }
 
     fn into_tool_response(self) -> ToolsCallResponse {
@@ -137,7 +143,13 @@ where
     E: Display,
 {
     fn output_schema() -> Option<Schema> {
-        Some(schemars::SchemaGenerator::default().into_root_schema_for::<T>())
+        let schema = schemars::SchemaGenerator::default().into_root_schema_for::<T>();
+        if let Ok(value) = serde_json::to_value(&schema) {
+            if value.get("type") == Some(&serde_json::Value::String("array".to_string())) {
+                panic!("Tool return type must be an object, but found array. Please wrap the return value in a struct.");
+            }
+        }
+        Some(schema.into())
     }
 
     fn into_tool_response(self) -> ToolsCallResponse {
