@@ -1,3 +1,4 @@
+mod prompts;
 mod tools;
 mod utils;
 
@@ -29,6 +30,17 @@ pub fn Tools(args: TokenStream, input: TokenStream) -> TokenStream {
     let tool_args = parse_nested_meta!(tools::ToolsArgs, args);
     let item_impl = parse_macro_input!(input as ItemImpl);
     match tools::generate(tool_args, item_impl) {
+        Ok(stream) => stream.into(),
+        Err(err) => err.write_errors().into(),
+    }
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Prompts(args: TokenStream, input: TokenStream) -> TokenStream {
+    let prompt_args = parse_nested_meta!(prompts::PromptsArgs, args);
+    let item_impl = parse_macro_input!(input as ItemImpl);
+    match prompts::generate(prompt_args, item_impl) {
         Ok(stream) => stream.into(),
         Err(err) => err.write_errors().into(),
     }

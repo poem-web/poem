@@ -5,6 +5,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::{
     McpServer,
+    prompts::Prompts,
     protocol::{
         JSON_RPC_VERSION,
         rpc::{BatchRequest, Response, RpcError},
@@ -17,9 +18,12 @@ fn print_response(response: impl Serialize) {
 }
 
 /// Run the server using standard input and output.
-pub async fn stdio<ToolsType>(server: McpServer<ToolsType>) -> std::io::Result<()>
+pub async fn stdio<ToolsType, PromptsType>(
+    server: McpServer<ToolsType, PromptsType>,
+) -> std::io::Result<()>
 where
     ToolsType: Tools,
+    PromptsType: Prompts,
 {
     let mut server = server;
     let mut input = BufReader::new(tokio::io::stdin()).lines();

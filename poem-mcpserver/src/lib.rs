@@ -7,6 +7,7 @@
 #![warn(missing_docs)]
 
 pub mod content;
+pub mod prompts;
 pub mod protocol;
 mod server;
 pub mod stdio;
@@ -14,7 +15,7 @@ pub mod stdio;
 #[cfg_attr(docsrs, doc(cfg(feature = "streamable-http")))]
 pub mod streamable_http;
 pub mod tool;
-pub use poem_mcpserver_macros::Tools;
+pub use poem_mcpserver_macros::{Prompts, Tools};
 pub use schemars::JsonSchema;
 pub use server::McpServer;
 
@@ -22,5 +23,5 @@ pub use server::McpServer;
 pub mod private {
     pub use serde_json;
 
-    pub use crate::tool::IntoToolResponse;
+    pub use crate::{prompts::IntoPromptResponse, tool::IntoToolResponse};
 }

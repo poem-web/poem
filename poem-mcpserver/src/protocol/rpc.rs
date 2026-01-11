@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use crate::protocol::{
     initialize::InitializeRequest,
-    prompts::PromptsListRequest,
+    prompts::{PromptsGetRequest, PromptsListRequest},
     tool::{ToolsCallRequest, ToolsListRequest},
 };
 
@@ -61,6 +61,12 @@ pub enum Requests {
         /// Prompts list request parameters.
         #[serde(default)]
         params: PromptsListRequest,
+    },
+    /// Get a prompt.
+    #[serde(rename = "prompts/get")]
+    PromptsGet {
+        /// Prompts get request parameters.
+        params: PromptsGetRequest,
     },
     /// Resources list.
     #[serde(rename = "resources/list")]

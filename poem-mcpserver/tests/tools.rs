@@ -278,3 +278,74 @@ async fn disable_tools() {
         })
     );
 }
+
+#[derive(JsonSchema, Serialize)]
+struct StringList {
+    items: Vec<String>,
+}
+
+struct CollectionTools;
+
+#[Tools]
+impl CollectionTools {
+    async fn get_list(&self) -> StructuredContent<StringList> {
+        StructuredContent(StringList {
+            items: vec!["a".to_string(), "b".to_string()],
+        })
+    }
+}
+
+#[tokio::test]
+async fn collection_schema() {
+    let tools = CollectionTools;
+    let mut server = McpServer::new().tools(tools);
+
+    let resp = server
+        .handle_request(Request {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id: Some(RequestId::Int(1)),
+            body: Requests::ToolsList {
+                params: ToolsListRequest { cursor: None },
+            },
+        })
+        .await;
+
+    let resp_json = serde_json::to_value(&resp).unwrap();
+    let tools = resp_json["result"]["tools"].as_array().unwrap();
+    let tool = &tools[0];
+
+    assert_eq!(tool["name"], "get_list");
+
+    let output_schema = &tool["outputSchema"];
+    assert_eq!(output_schema["type"], "object");
+    assert_eq!(output_schema["title"], "StringList");
+    assert!(output_schema["properties"]["items"]["type"] == "array");
+}
+
+struct ArrayTools;
+
+#[Tools]
+impl ArrayTools {
+    async fn array_ret(&self) -> StructuredContent<Vec<String>> {
+        StructuredContent(vec![])
+    }
+}
+
+#[tokio::test]
+#[should_panic(
+    expected = "Tool return type must be an object, but found array. Please wrap the return value in a struct."
+)]
+async fn test_array_panic() {
+    let tools = ArrayTools;
+    let mut server = McpServer::new().tools(tools);
+
+    let _ = server
+        .handle_request(Request {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id: Some(RequestId::Int(1)),
+            body: Requests::ToolsList {
+                params: ToolsListRequest { cursor: None },
+            },
+        })
+        .await;
+}
