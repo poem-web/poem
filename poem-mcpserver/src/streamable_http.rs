@@ -21,7 +21,7 @@ use tokio::time::Instant;
 use crate::{
     McpServer,
     prompts::Prompts,
-    protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest},
+    protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest, Requests},
     tool::Tools,
 };
 
@@ -170,14 +170,26 @@ where
         return StatusCode::ACCEPTED.into_response();
     }
 
-    let Some(accept) = accept.0.first() else {
-        return StatusCode::BAD_REQUEST.into_response();
-    };
+    let all_notifications = batch_request.requests().iter().all(|request| {
+        matches!(
+            request.body,
+            Requests::Initialized | Requests::Cancelled { .. }
+        )
+    });
 
     let requests = batch_request.0.into_iter();
 
-    match accept.essence_str() {
+    let accept = accept
+        .0
+        .first()
+        .map(|value| value.essence_str())
+        .unwrap_or("application/json");
+
+    match accept {
         "text/event-stream" => {
+            if all_notifications {
+                return StatusCode::ACCEPTED.into_response();
+            }
             let session_id = session_id.clone();
             SSE::new(async_stream::stream! {
                 for request in requests {
