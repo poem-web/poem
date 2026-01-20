@@ -201,6 +201,9 @@ where
                     resps.push(resp);
                 }
             }
+            if resps.is_empty() {
+                return StatusCode::ACCEPTED.into_response();
+            }
             Json(resps)
                 .with_content_type("application/json")
                 .into_response()

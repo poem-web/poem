@@ -125,7 +125,7 @@ where
                 );
             }
         }
-        Some(schema.into())
+        Some(schema)
     }
 
     fn into_tool_response(self) -> ToolsCallResponse {
@@ -153,7 +153,7 @@ where
                 );
             }
         }
-        Some(schema.into())
+        Some(schema)
     }
 
     fn into_tool_response(self) -> ToolsCallResponse {
