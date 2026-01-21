@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use poem::{error::BadRequest, listener::TcpListener, Result, Route, Server};
+use poem::{Result, Route, Server, error::BadRequest, listener::TcpListener};
 use poem_openapi::{
+    ApiResponse, Multipart, Object, OpenApi, OpenApiService,
     param::Path,
     payload::{Attachment, AttachmentType, Json},
     types::multipart::Upload,
-    ApiResponse, Multipart, Object, OpenApi, OpenApiService,
 };
 use tokio::sync::Mutex;
 

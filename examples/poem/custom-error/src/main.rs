@@ -1,6 +1,6 @@
 use poem::{
-    error::ResponseError, get, handler, http::StatusCode, listener::TcpListener, Result, Route,
-    Server,
+    Result, Route, Server, error::ResponseError, get, handler, http::StatusCode,
+    listener::TcpListener,
 };
 
 #[derive(Debug, thiserror::Error)]

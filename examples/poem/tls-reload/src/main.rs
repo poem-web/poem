@@ -1,7 +1,6 @@
 use poem::{
-    get, handler,
+    Route, Server, get, handler,
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
-    Route, Server,
 };
 use tokio::time::Duration;
 

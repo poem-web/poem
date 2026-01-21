@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Server};
+use poem::{EndpointExt, Server, listener::TcpListener, middleware::Tracing};
 use poem_grpc::{Request, Response, RouteGrpc, Status};
 
 poem_grpc::include_proto!("helloworld");

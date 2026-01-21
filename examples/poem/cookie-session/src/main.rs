@@ -1,8 +1,7 @@
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     session::{CookieConfig, CookieSession, Session},
-    EndpointExt, Route, Server,
 };
 
 #[handler]

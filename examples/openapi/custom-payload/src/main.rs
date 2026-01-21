@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, Route, Server};
+use poem::{Route, Server, listener::TcpListener};
 use poem_openapi::{Object, OpenApi, OpenApiService};
 use serde::{Deserialize, Serialize};
 

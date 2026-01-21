@@ -3,11 +3,11 @@ mod bcs_payload;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use bcs_payload::Bcs;
-use poem::{listener::TcpListener, web::Accept, Result, Route, Server};
+use poem::{Result, Route, Server, listener::TcpListener, web::Accept};
 use poem_openapi::{
+    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
     payload::Json,
     types::{ParseFromJSON, ToJSON, Type},
-    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -87,10 +87,10 @@ fn create_response<T: ToJSON + Send + Sync + Serialize>(
     for mime in &accept.0 {
         match mime.as_ref() {
             "application/json" => {
-                return MyResponse::Ok(MyResponseContent::Json(Json(resp)), version)
+                return MyResponse::Ok(MyResponseContent::Json(Json(resp)), version);
             }
             "application/x-bcs" => {
-                return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp)), version)
+                return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp)), version);
             }
             _ => {}
         }

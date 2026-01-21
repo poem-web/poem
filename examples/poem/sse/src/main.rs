@@ -2,13 +2,12 @@ use std::time::Instant;
 
 use futures_util::StreamExt;
 use poem::{
-    get, handler,
+    Route, Server, get, handler,
     listener::TcpListener,
     web::{
-        sse::{Event, SSE},
         Html,
+        sse::{Event, SSE},
     },
-    Route, Server,
 };
 use tokio::time::Duration;
 

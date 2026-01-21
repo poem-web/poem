@@ -1,12 +1,11 @@
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::{
-        acme::{AutoCert, LETS_ENCRYPT_PRODUCTION},
         Listener, TcpListener,
+        acme::{AutoCert, LETS_ENCRYPT_PRODUCTION},
     },
     middleware::Tracing,
     web::Path,
-    EndpointExt, Route, Server,
 };
 
 #[handler]

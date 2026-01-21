@@ -3,7 +3,7 @@ mod data;
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use futures_util::StreamExt;
-use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Server};
+use poem::{EndpointExt, Server, listener::TcpListener, middleware::Tracing};
 use poem_grpc::{Request, Response, RouteGrpc, Status, Streaming};
 
 poem_grpc::include_proto!("routeguide");

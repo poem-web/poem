@@ -1,4 +1,4 @@
-use poem::{handler, listener::TcpListener, post, web::Json, Route, Server};
+use poem::{Route, Server, handler, listener::TcpListener, post, web::Json};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
