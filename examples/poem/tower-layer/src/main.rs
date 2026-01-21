@@ -1,6 +1,6 @@
 use poem::{
-    get, handler, listener::TcpListener, middleware::TowerLayerCompatExt, EndpointExt, Route,
-    Server,
+    EndpointExt, Route, Server, get, handler, listener::TcpListener,
+    middleware::TowerLayerCompatExt,
 };
 use tokio::time::Duration;
 use tower::limit::RateLimitLayer;

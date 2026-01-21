@@ -1,9 +1,9 @@
-use poem::{listener::TcpListener, Route, Server};
+use poem::{Route, Server, listener::TcpListener};
 use poem_openapi::{
+    ApiResponse, Object, OpenApi, OpenApiService, Tags,
     param::Path,
     payload::Json,
     types::{Email, Password},
-    ApiResponse, Object, OpenApi, OpenApiService, Tags,
 };
 use slab::Slab;
 use tokio::sync::Mutex;

@@ -1,6 +1,6 @@
 use poem::{
-    error::NotFoundError, get, handler, http::StatusCode, listener::TcpListener, web::Path,
-    EndpointExt, Response, Route, Server,
+    EndpointExt, Response, Route, Server, error::NotFoundError, get, handler, http::StatusCode,
+    listener::TcpListener, web::Path,
 };
 
 #[handler]

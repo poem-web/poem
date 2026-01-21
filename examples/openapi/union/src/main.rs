@@ -1,5 +1,5 @@
-use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{payload::Json, Object, OpenApi, OpenApiService, Union};
+use poem::{Route, Server, listener::TcpListener};
+use poem_openapi::{Object, OpenApi, OpenApiService, Union, payload::Json};
 
 #[derive(Object, Debug, PartialEq)]
 struct A {

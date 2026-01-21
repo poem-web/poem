@@ -1,13 +1,13 @@
 use hmac::{Hmac, NewMac};
 use jwt::{SignWithKey, VerifyWithKey};
 use poem::{
-    error::InternalServerError, listener::TcpListener, web::Data, EndpointExt, Request, Result,
-    Route,
+    EndpointExt, Request, Result, Route, error::InternalServerError, listener::TcpListener,
+    web::Data,
 };
 use poem_openapi::{
+    Object, OpenApi, OpenApiService, SecurityScheme,
     auth::ApiKey,
     payload::{Json, PlainText},
-    Object, OpenApi, OpenApiService, SecurityScheme,
 };
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;

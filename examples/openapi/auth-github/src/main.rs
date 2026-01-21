@@ -1,11 +1,11 @@
 use poem::{
+    Result, Route, Server,
     error::{BadRequest, InternalServerError},
     handler,
     listener::TcpListener,
-    Result, Route, Server,
 };
 use poem_openapi::{
-    auth::Bearer, payload::PlainText, OAuthScopes, OpenApi, OpenApiService, SecurityScheme,
+    OAuthScopes, OpenApi, OpenApiService, SecurityScheme, auth::Bearer, payload::PlainText,
 };
 
 #[derive(OAuthScopes)]

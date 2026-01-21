@@ -2,15 +2,14 @@ use std::io;
 
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, Document},
     Client, Collection,
+    bson::{Document, doc},
 };
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::AddData,
     web::{Data, Json},
-    EndpointExt, Route, Server,
 };
 use serde::Deserialize;
 

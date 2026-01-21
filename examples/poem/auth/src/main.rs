@@ -1,10 +1,9 @@
 use poem::{
-    get, handler,
-    http::{header, StatusCode},
+    EndpointExt, IntoResponse, Response, Result, Route, Server, get, handler,
+    http::{StatusCode, header},
     listener::TcpListener,
     session::{CookieConfig, CookieSession, Session},
     web::{Form, Html},
-    EndpointExt, IntoResponse, Response, Result, Route, Server,
 };
 use serde::Deserialize;
 

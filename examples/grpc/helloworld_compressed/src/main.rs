@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, Server};
+use poem::{Server, listener::TcpListener};
 use poem_grpc::{CompressionEncoding, Request, Response, RouteGrpc, Status};
 
 poem_grpc::include_proto!("helloworld");
