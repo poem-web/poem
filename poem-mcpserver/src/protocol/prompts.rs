@@ -12,6 +12,17 @@ pub struct PromptsListRequest {
     pub cursor: Option<String>,
 }
 
+/// A request to get a prompt.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptsGetRequest {
+    /// The name of the prompt to get.
+    pub name: String,
+    /// Arguments to pass to the prompt.
+    #[serde(default)]
+    pub arguments: std::collections::HashMap<String, String>,
+}
+
 /// Prompt argument.
 #[derive(Debug, Serialize)]
 pub struct PromptArgument {

@@ -1,0 +1,10 @@
+[package]
+name = "prompts-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poem-mcpserver.workspace = true
+serde = { version = "1.0.219", features = ["derive"] }
+schemars = "1.0"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
