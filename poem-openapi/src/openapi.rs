@@ -281,12 +281,8 @@ impl<T> OpenApiService<T, ()> {
             _webhook: PhantomData,
             info: MetaInfo {
                 title: title.into(),
-                summary: None,
-                description: None,
                 version: version.into(),
-                terms_of_service: None,
-                contact: None,
-                license: None,
+                ..Default::default()
             },
             external_document: None,
             servers: Vec::new(),
@@ -415,6 +411,21 @@ impl<T, W> OpenApiService<T, W> {
         let extra_header = header.into();
         self.extra_request_headers
             .push((extra_header, HT::schema_ref(), HT::IS_REQUIRED));
+        self
+    }
+
+    /// Add info extension
+    #[must_use]
+    pub fn info_extension<E>(mut self, extension: E, value: serde_json::Value) -> Self
+    where
+        E: Into<String>,
+    {
+        let extension: String = extension.into();
+        assert!(
+            extension.starts_with("x-"),
+            "Extensions need to begin with 'x-'"
+        );
+        self.info.extensions.insert(extension, value);
         self
     }
 

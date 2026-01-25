@@ -540,6 +540,8 @@ pub struct MetaInfo {
     pub contact: Option<MetaContact>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<MetaLicense>,
+    #[serde(flatten)]
+    pub extensions: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Clone)]
