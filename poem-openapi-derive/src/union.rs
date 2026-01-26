@@ -112,7 +112,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         }
                     });
 
-                    // Create a named schema for the childless variant to support discriminator mapping
+                    // Create a named schema for the childless variant to support discriminator
+                    // mapping
                     let format_string = format!("{{}}_{}", item_ident);
                     let schema_name = quote! {
                         ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
@@ -155,7 +156,8 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         Self::#item_ident => ::std::option::Option::Some(#crate_name::__private::serde_json::json!({}))
                     });
 
-                    // For childless variants without a discriminator, create an inline empty object schema
+                    // For childless variants without a discriminator, create an inline empty object
+                    // schema
                     schemas.push(quote! {
                         #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
                             #crate_name::registry::MetaSchema::new("object")
