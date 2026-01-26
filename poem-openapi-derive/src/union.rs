@@ -98,7 +98,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         "Emtpy variant cannot be externally tagged.",
                     )
                     .into());
-                } else if discriminator_name.is_some() {
+                } else if let Some(discriminator_name) = &discriminator_name {
                     from_json.push(quote! {
                         if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
                             return ::std::result::Result::Ok(Self::#item_ident)
@@ -109,12 +109,55 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                             ::std::option::Option::Some(#crate_name::__private::serde_json::json!({ #discriminator_name: #mapping_name }))
                         }
                     });
+
+                    // Create a named schema for the childless variant to support discriminator mapping
+                    let format_string = format!("{{}}_{}", item_ident);
+                    let schema_name = quote! {
+                        ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
+                    };
+
+                    mapping.push(quote! {
+                        (::std::string::ToString::to_string(#mapping_name), ::std::format!("#/components/schemas/{}", #schema_name))
+                    });
+
+                    create_schemas.push(quote! {
+                        let schema = #crate_name::registry::MetaSchema {
+                            description: #description,
+                            required: #required,
+                            properties: ::std::vec![
+                                (
+                                    #discriminator_name,
+                                    #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
+                                        #crate_name::registry::MetaSchema {
+                                            ty: "string",
+                                            enum_items: ::std::vec![::std::convert::Into::into(#mapping_name)],
+                                            example: ::std::option::Option::Some(::std::convert::Into::into(#mapping_name)),
+                                            ..#crate_name::registry::MetaSchema::ANY
+                                        }
+                                    )),
+                                )
+                            ],
+                            ..#crate_name::registry::MetaSchema::new("object")
+                        };
+                        registry.schemas.insert(#schema_name, schema);
+                    });
+
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
+                    });
                 } else {
                     from_json.push(quote! {
                         if value.is_object(){ return ::std::result::Result::Ok(Self::#item_ident); }
                     });
                     to_json.push(quote! {
                         Self::#item_ident => ::std::option::Option::Some(#crate_name::__private::serde_json::json!({}))
+                    });
+
+                    // For childless variants without a discriminator, create an inline empty object schema
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
+                            #crate_name::registry::MetaSchema::new("object")
+                        ))
                     });
                 }
             }
