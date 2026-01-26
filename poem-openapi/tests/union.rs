@@ -37,6 +37,7 @@ fn with_discriminator() {
     enum MyObj {
         A(AContents),
         B(B),
+        C,
     }
 
     let schema = get_meta::<MyObj>();
@@ -151,6 +152,21 @@ fn with_discriminator() {
             "v3": true,
         }))
     );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "type": "C",
+        })))
+        .unwrap(),
+        MyObj::C
+    );
+
+    assert_eq!(
+        MyObj::C.to_json(),
+        Some(json!({
+            "type": "C",
+        }))
+    );
 }
 
 #[test]
@@ -173,6 +189,8 @@ fn with_discriminator_mapping() {
         A(A),
         #[oai(mapping = "d")]
         B(B),
+        #[oai(mapping = "e")]
+        C,
     }
 
     let schema = get_meta::<MyObj>();
