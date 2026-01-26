@@ -58,7 +58,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let discriminator_name = &args.discriminator_name;
 
     let Data::Enum(e) = &args.data else {
-        return Err(Error::new_spanned(ident, "AnyOf can only be applied to an enum.").into());
+        return Err(
+            Error::new_spanned(ident, "AnyOf (Union) can only be applied to an enum.").into(),
+        );
     };
 
     if discriminator_name.is_some() && args.externally_tagged {
@@ -304,9 +306,11 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 }
             }
             2.. => {
-                return Err(
-                    Error::new_spanned(&variant.ident, "Incorrect oneof definition..").into(),
-                );
+                return Err(Error::new_spanned(
+                    &variant.ident,
+                    "Oneof (Union) does not support multiple variant fields",
+                )
+                .into());
             }
         }
     }
