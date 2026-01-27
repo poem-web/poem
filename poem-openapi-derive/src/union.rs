@@ -97,7 +97,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                 if args.externally_tagged {
                     return Err(Error::new_spanned(
                         &variant.ident,
-                        "Emtpy variant cannot be externally tagged.",
+                        "Empty variant cannot be externally tagged.",
                     )
                     .into());
                 } else if let Some(discriminator_name) = &discriminator_name {
