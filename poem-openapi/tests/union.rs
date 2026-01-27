@@ -37,6 +37,7 @@ fn with_discriminator() {
     enum MyObj {
         A(AContents),
         B(B),
+        C,
     }
 
     let schema = get_meta::<MyObj>();
@@ -51,11 +52,13 @@ fn with_discriminator() {
                 mapping: vec![
                     ("A".to_string(), "#/components/schemas/MyObj_A".to_string()),
                     ("B".to_string(), "#/components/schemas/MyObj_B".to_string()),
+                    ("C".to_string(), "#/components/schemas/MyObj_C".to_string()),
                 ]
             }),
             any_of: vec![
                 MetaSchemaRef::Reference("MyObj_A".to_string()),
                 MetaSchemaRef::Reference("MyObj_B".to_string()),
+                MetaSchemaRef::Reference("MyObj_C".to_string()),
             ],
             ..MetaSchema::ANY
         }
@@ -109,6 +112,24 @@ fn with_discriminator() {
         }
     );
 
+    let schema_myobj_c = get_meta_by_name::<MyObj>("MyObj_C");
+    assert_eq!(
+        schema_myobj_c,
+        MetaSchema {
+            required: vec!["type"],
+            properties: vec![(
+                "type",
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
+                    ty: "string",
+                    example: Some("C".into()),
+                    enum_items: vec!["C".into()],
+                    ..MetaSchema::ANY
+                }))
+            )],
+            ..MetaSchema::new("object")
+        }
+    );
+
     assert_eq!(
         MyObj::parse_from_json(Some(json!({
             "type": "A",
@@ -151,6 +172,21 @@ fn with_discriminator() {
             "v3": true,
         }))
     );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "type": "C",
+        })))
+        .unwrap(),
+        MyObj::C
+    );
+
+    assert_eq!(
+        MyObj::C.to_json(),
+        Some(json!({
+            "type": "C",
+        }))
+    );
 }
 
 #[test]
@@ -173,6 +209,8 @@ fn with_discriminator_mapping() {
         A(A),
         #[oai(mapping = "d")]
         B(B),
+        #[oai(mapping = "e")]
+        C,
     }
 
     let schema = get_meta::<MyObj>();
@@ -187,11 +225,13 @@ fn with_discriminator_mapping() {
                 mapping: vec![
                     ("c".to_string(), "#/components/schemas/MyObj_A".to_string()),
                     ("d".to_string(), "#/components/schemas/MyObj_B".to_string()),
+                    ("e".to_string(), "#/components/schemas/MyObj_C".to_string()),
                 ]
             }),
             any_of: vec![
                 MetaSchemaRef::Reference("MyObj_A".to_string()),
                 MetaSchemaRef::Reference("MyObj_B".to_string()),
+                MetaSchemaRef::Reference("MyObj_C".to_string()),
             ],
             ..MetaSchema::ANY
         }
@@ -245,6 +285,24 @@ fn with_discriminator_mapping() {
         }
     );
 
+    let schema_myobj_c = get_meta_by_name::<MyObj>("MyObj_C");
+    assert_eq!(
+        schema_myobj_c,
+        MetaSchema {
+            required: vec!["type"],
+            properties: vec![(
+                "type",
+                MetaSchemaRef::Inline(Box::new(MetaSchema {
+                    ty: "string",
+                    example: Some("e".into()),
+                    enum_items: vec!["e".into()],
+                    ..MetaSchema::ANY
+                }))
+            )],
+            ..MetaSchema::new("object")
+        }
+    );
+
     let mut registry = Registry::new();
     MyObj::register(&mut registry);
     assert!(registry.schemas.contains_key("A"));
@@ -290,6 +348,21 @@ fn with_discriminator_mapping() {
         Some(json!({
             "type": "d",
             "v3": true,
+        }))
+    );
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({
+            "type": "e",
+        })))
+        .unwrap(),
+        MyObj::C
+    );
+
+    assert_eq!(
+        MyObj::C.to_json(),
+        Some(json!({
+            "type": "e",
         }))
     );
 }
