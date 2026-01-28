@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
@@ -11,7 +11,10 @@ use crate::{
             ServerCapabilities, ServerInfo, ToolsCapability,
         },
         prompts::{PromptsGetRequest, PromptsListResponse},
-        resources::ResourcesListResponse,
+        resources::{
+            Resource, ResourceContent, ResourcesListResponse, ResourcesReadRequest,
+            ResourcesReadResponse,
+        },
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
     },
@@ -24,6 +27,8 @@ pub struct McpServer<ToolsType = NoTools, PromptsType = NoPrompts> {
     prompts: PromptsType,
     disabled_tools: HashSet<String>,
     server_info: ServerInfo,
+    resources: Vec<Resource>,
+    resource_contents: HashMap<String, ResourceContent>,
 }
 
 impl Default for McpServer<NoTools, NoPrompts> {
@@ -45,6 +50,8 @@ impl McpServer<NoTools, NoPrompts> {
                 name: "poem-mcpserver".to_string(),
                 version: "0.1.0".to_string(),
             },
+            resources: Vec::new(),
+            resource_contents: HashMap::new(),
         }
     }
 }
@@ -65,6 +72,8 @@ where
             prompts: self.prompts,
             disabled_tools: self.disabled_tools,
             server_info: self.server_info,
+            resources: self.resources,
+            resource_contents: self.resource_contents,
         }
     }
 
@@ -79,6 +88,8 @@ where
             prompts,
             disabled_tools: self.disabled_tools,
             server_info: self.server_info,
+            resources: self.resources,
+            resource_contents: self.resource_contents,
         }
     }
 
@@ -90,6 +101,33 @@ where
     {
         self.disabled_tools
             .extend(names.into_iter().map(Into::into));
+        self
+    }
+
+    /// Adds a static UI resource.
+    pub fn ui_resource(
+        mut self,
+        uri: impl Into<String>,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        mime_type: impl Into<String>,
+        text: impl Into<String>,
+    ) -> Self {
+        let uri = uri.into();
+        let resource = Resource {
+            uri: uri.clone(),
+            name: name.into(),
+            description: description.into(),
+            mime_type: mime_type.into(),
+        };
+        let content = ResourceContent {
+            uri: uri.clone(),
+            mime_type: resource.mime_type.clone(),
+            text: Some(text.into()),
+            blob: None,
+        };
+        self.resources.push(resource);
+        self.resource_contents.insert(uri, content);
         self
     }
 
@@ -226,6 +264,46 @@ where
         }
     }
 
+    fn handle_resources_list(&self, id: Option<RequestId>) -> Response<Value> {
+        Response {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id,
+            result: Some(ResourcesListResponse {
+                resources: self.resources.clone(),
+            }),
+            error: None,
+        }
+        .map_result_to_value()
+    }
+
+    fn handle_resources_read(
+        &self,
+        request: ResourcesReadRequest,
+        id: Option<RequestId>,
+    ) -> Response<Value> {
+        match self.resource_contents.get(&request.uri) {
+            Some(content) => Response {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id,
+                result: Some(ResourcesReadResponse {
+                    contents: vec![content.clone()],
+                }),
+                error: None,
+            }
+            .map_result_to_value(),
+            None => Response::<()> {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id,
+                result: None,
+                error: Some(crate::protocol::rpc::RpcError::invalid_params(format!(
+                    "resource not found: {}",
+                    request.uri
+                ))),
+            }
+            .map_result_to_value(),
+        }
+    }
+
     /// Handles a request and returns a response.
     pub async fn handle_request(&mut self, request: Request) -> Option<Response<Value>> {
         match request.body {
@@ -241,15 +319,10 @@ where
             Requests::PromptsGet { params } => {
                 Some(self.handle_prompts_get(params, request.id).await)
             }
-            Requests::ResourcesList { .. } => Some(
-                Response {
-                    jsonrpc: JSON_RPC_VERSION.to_string(),
-                    id: request.id,
-                    result: Some(ResourcesListResponse { resources: vec![] }),
-                    error: None,
-                }
-                .map_result_to_value(),
-            ),
+            Requests::ResourcesList { .. } => Some(self.handle_resources_list(request.id)),
+            Requests::ResourcesRead { params } => {
+                Some(self.handle_resources_read(params, request.id))
+            }
         }
     }
 }
