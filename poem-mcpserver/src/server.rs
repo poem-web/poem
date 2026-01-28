@@ -11,7 +11,10 @@ use crate::{
             ServerCapabilities, ServerInfo, ToolsCapability,
         },
         prompts::{PromptsGetRequest, PromptsListResponse},
-        resources::{Resource, ResourceContent, ResourcesListResponse, ResourcesReadRequest, ResourcesReadResponse},
+        resources::{
+            Resource, ResourceContent, ResourcesListResponse, ResourcesReadRequest,
+            ResourcesReadResponse,
+        },
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
     },
@@ -292,9 +295,10 @@ where
                 jsonrpc: JSON_RPC_VERSION.to_string(),
                 id,
                 result: None,
-                error: Some(crate::protocol::rpc::RpcError::invalid_params(
-                    format!("resource not found: {}", request.uri),
-                )),
+                error: Some(crate::protocol::rpc::RpcError::invalid_params(format!(
+                    "resource not found: {}",
+                    request.uri
+                ))),
             }
             .map_result_to_value(),
         }
@@ -315,9 +319,7 @@ where
             Requests::PromptsGet { params } => {
                 Some(self.handle_prompts_get(params, request.id).await)
             }
-            Requests::ResourcesList { .. } => {
-                Some(self.handle_resources_list(request.id))
-            }
+            Requests::ResourcesList { .. } => Some(self.handle_resources_list(request.id)),
             Requests::ResourcesRead { params } => {
                 Some(self.handle_resources_read(params, request.id))
             }
