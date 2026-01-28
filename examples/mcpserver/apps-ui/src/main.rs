@@ -1,9 +1,4 @@
-use poem_mcpserver::{
-    McpServer, Tools,
-    content::Text,
-    stdio::stdio,
-    tool::StructuredContent,
-};
+use poem_mcpserver::{content::Text, stdio::stdio, tool::StructuredContent, McpServer, Tools};
 use schemars::JsonSchema;
 use serde::Serialize;
 
