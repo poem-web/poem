@@ -79,7 +79,7 @@ where
 }
 
 /// An tower service to endpoint adapter.
-pub struct TowerServiceToEndpoint<Svc: Service<Request>>(Buffer<Svc, Request>);
+pub struct TowerServiceToEndpoint<Svc: Service<Request>>(Buffer<Request, Svc::Future>);
 
 impl<Svc> Endpoint for TowerServiceToEndpoint<Svc>
 where
