@@ -295,7 +295,7 @@ where
 /// Set `Config::session_timeout` to `None` to disable session expiration.
 ///
 /// # Example
-/// ```rust
+/// ```rust,no_run
 /// use poem::Route;
 /// use poem_mcpserver::{McpServer, streamable_http};
 ///
