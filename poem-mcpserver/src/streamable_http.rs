@@ -296,9 +296,7 @@ where
 ///
 /// # Example
 /// ```rust
-/// use std::time::Duration;
-///
-/// use poem::{EndpointExt, Route, Server, listener::TcpListener};
+/// use poem::Route;
 /// use poem_mcpserver::{McpServer, streamable_http};
 ///
 /// let app = Route::new().at(
@@ -310,8 +308,6 @@ where
 ///         },
 ///     ),
 /// );
-///
-/// let _ = Server::new(TcpListener::bind("127.0.0.1:8000")).run(app);
 /// ```
 pub fn endpoint_with_config<F, ToolsType, PromptsType>(
     server_factory: F,
