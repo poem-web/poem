@@ -1,6 +1,6 @@
-use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route, Server};
+use poem::{EndpointExt, Route, Server, listener::TcpListener, middleware::Cors};
 use poem_mcpserver::{
-    content::Text, prompts::PromptMessages, streamable_http, McpServer, Prompts, Tools,
+    McpServer, Prompts, Tools, content::Text, prompts::PromptMessages, streamable_http,
 };
 
 /// A collection of development assistant tools.

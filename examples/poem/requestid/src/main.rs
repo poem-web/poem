@@ -1,8 +1,7 @@
 use poem::{
-    get, handler,
+    EndpointExt, Route, get, handler,
     listener::TcpListener,
     middleware::{ReqId, RequestId, ReuseId, Tracing},
-    EndpointExt, Route,
 };
 
 #[handler]

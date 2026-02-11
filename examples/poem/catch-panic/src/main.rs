@@ -1,8 +1,7 @@
 use poem::{
-    handler,
+    EndpointExt, Route, Server, handler,
     listener::TcpListener,
     middleware::{CatchPanic, Tracing},
-    EndpointExt, Route, Server,
 };
 
 #[handler]

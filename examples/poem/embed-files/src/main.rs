@@ -1,7 +1,7 @@
 use poem::{
+    Route, Server,
     endpoint::{EmbeddedFileEndpoint, EmbeddedFilesEndpoint},
     listener::TcpListener,
-    Route, Server,
 };
 use rust_embed::RustEmbed;
 

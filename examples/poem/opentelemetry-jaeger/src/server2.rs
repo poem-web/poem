@@ -1,10 +1,9 @@
 use opentelemetry::{global, trace::TracerProvider as _};
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
+use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator, trace::SdkTracerProvider};
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::{OpenTelemetryMetrics, OpenTelemetryTracing},
-    EndpointExt, Route, Server,
 };
 
 fn init_tracer() -> SdkTracerProvider {

@@ -1,6 +1,6 @@
-use futures_util::{stream::BoxStream, StreamExt};
-use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{payload::EventStream, Object, OpenApi, OpenApiService};
+use futures_util::{StreamExt, stream::BoxStream};
+use poem::{Route, Server, listener::TcpListener};
+use poem_openapi::{Object, OpenApi, OpenApiService, payload::EventStream};
 use tokio::time::Duration;
 
 #[derive(Object)]

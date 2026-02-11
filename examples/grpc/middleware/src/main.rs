@@ -1,6 +1,6 @@
 mod middleware;
 
-use poem::{listener::TcpListener, Server};
+use poem::{Server, listener::TcpListener};
 use poem_grpc::{Request, Response, RouteGrpc, Status};
 
 poem_grpc::include_proto!("helloworld");

@@ -1,10 +1,10 @@
 use once_cell::sync::Lazy;
 use poem::{
+    Route, Server,
     error::InternalServerError,
     get, handler,
     listener::TcpListener,
     web::{Html, Path},
-    Route, Server,
 };
 use tera::{Context, Tera};
 

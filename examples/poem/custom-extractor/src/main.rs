@@ -1,6 +1,6 @@
 use poem::{
-    get, handler, http::StatusCode, listener::TcpListener, Error, FromRequest, Request,
-    RequestBody, Result, Route, Server,
+    Error, FromRequest, Request, RequestBody, Result, Route, Server, get, handler,
+    http::StatusCode, listener::TcpListener,
 };
 
 struct Token(String);

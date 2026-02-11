@@ -1,10 +1,9 @@
 use std::time::Duration;
 
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::{TokioMetrics, Tracing},
-    EndpointExt, Route, Server,
 };
 
 #[handler]
