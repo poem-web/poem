@@ -56,11 +56,18 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
         _body: &mut RequestBody,
         param_opts: ExtractParamOptions<Self::ParamType>,
     ) -> Result<Self> {
-        let url_query = request.extensions().get::<UrlQuery>().unwrap();
-        let mut values = if !param_opts.ignore_case {
-            Either::Left(url_query.get_all(param_opts.name))
-        } else {
-            Either::Right(url_query.get_all_by(|n| param_opts.name.eq_ignore_ascii_case(n)))
+        let mut values = match request.extensions().get::<UrlQuery>() {
+            Some(query) =>  if !param_opts.ignore_case {
+                Either::Left(url_query.get_all(param_opts.name))
+            } else {
+                Either::Right(url_query.get_all_by(|n| param_opts.name.eq_ignore_ascii_case(n)))
+            }
+            None => {
+                return Err(ParseParamError {
+                    name: param_opts.name,
+                    reason: "UrlQuery service not found".to_string(),
+                })?
+            }
         }
         .peekable();
 
@@ -82,7 +89,18 @@ impl<'a, T: ParseFromParameter> ApiExtractor<'a> for Query<T> {
                     .into()
                 })
         } else {
-            let values = values.next().unwrap().split(',').map(|v| v.trim());
+            let first_value = match values.next() {
+                Some(val) => val,
+                None => {
+                    return Err(ParseParamError {
+                        name: param_opts.name,
+                        reason: "parameter not found".to_string(),
+                    }
+                    .into())
+                }
+            };
+
+            let values = first_value.split(',').map(|v| v.trim());
             ParseFromParameter::parse_from_parameters(values)
                 .map(Self)
                 .map_err(|err| {
