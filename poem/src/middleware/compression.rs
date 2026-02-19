@@ -12,6 +12,7 @@ enum ContentCoding {
     Brotli,
     Deflate,
     Gzip,
+    Identity,
     Star,
     Zstd,
 }
@@ -26,12 +27,57 @@ impl FromStr for ContentCoding {
             Ok(ContentCoding::Gzip)
         } else if s.eq_ignore_ascii_case("br") {
             Ok(ContentCoding::Brotli)
+        } else if s.eq_ignore_ascii_case("identity") {
+            Ok(ContentCoding::Identity)
         } else if s == "*" {
             Ok(ContentCoding::Star)
-        } else if s == "zsdt" {
+        } else if s.eq_ignore_ascii_case("zstd") {
             Ok(ContentCoding::Zstd)
         } else {
             Err(())
+        }
+    }
+}
+
+impl ContentCoding {
+    #[inline]
+    fn priority(&self) -> u8 {
+        match *self {
+            ContentCoding::Deflate => 1,
+            ContentCoding::Gzip => 2,
+            ContentCoding::Brotli => 3,
+            ContentCoding::Zstd => 4,
+            _ => 0,
+        }
+    }
+
+    #[inline]
+    fn to_compression_algo(
+        &self,
+        enabled_algorithms: &HashSet<CompressionAlgo>,
+    ) -> Option<CompressionAlgo> {
+        match *self {
+            ContentCoding::Gzip => Some(CompressionAlgo::GZIP),
+            ContentCoding::Deflate => Some(CompressionAlgo::DEFLATE),
+            ContentCoding::Brotli => Some(CompressionAlgo::BR),
+            ContentCoding::Zstd => Some(CompressionAlgo::ZSTD),
+            ContentCoding::Star => {
+                let candidates = [
+                    CompressionAlgo::ZSTD,
+                    CompressionAlgo::BR,
+                    CompressionAlgo::GZIP,
+                    CompressionAlgo::DEFLATE,
+                ];
+                if enabled_algorithms.is_empty() {
+                    return candidates.first().copied();
+                }
+
+                candidates
+                    .iter()
+                    .find(|algo| enabled_algorithms.contains(algo))
+                    .copied()
+            }
+            ContentCoding::Identity => None,
         }
     }
 }
@@ -68,7 +114,7 @@ fn parse_accept_encoding(
                 true
             }
         })
-        .max_by_key(|(coding, q)| (*q, coding_priority(coding)))
+        .max_by_key(|(coding, q)| (*q, coding.priority()))
         .map(|(coding, _)| coding)
 }
 
@@ -132,17 +178,6 @@ pub struct CompressionEndpoint<E: Endpoint> {
     algorithms: HashSet<CompressionAlgo>,
 }
 
-#[inline]
-fn coding_priority(c: &ContentCoding) -> u8 {
-    match *c {
-        ContentCoding::Deflate => 1,
-        ContentCoding::Gzip => 2,
-        ContentCoding::Brotli => 3,
-        ContentCoding::Zstd => 4,
-        _ => 0,
-    }
-}
-
 impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
     type Output = Response;
 
@@ -159,13 +194,8 @@ impl<E: Endpoint> Endpoint for CompressionEndpoint<E> {
         }
 
         // negotiate content-encoding
-        let compress_algo =
-            parse_accept_encoding(req.headers(), &self.algorithms).map(|coding| match coding {
-                ContentCoding::Gzip => CompressionAlgo::GZIP,
-                ContentCoding::Deflate => CompressionAlgo::DEFLATE,
-                ContentCoding::Brotli => CompressionAlgo::BR,
-                ContentCoding::Star | ContentCoding::Zstd => CompressionAlgo::ZSTD,
-            });
+        let compress_algo = parse_accept_encoding(req.headers(), &self.algorithms)
+            .and_then(|coding| coding.to_compression_algo(&self.algorithms));
 
         let resp = self.ep.call(req).await?;
         match compress_algo {
@@ -245,6 +275,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_identity_preferred() {
+        let ep = index.with(Compression::default());
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "identity;q=1.0, gzip;q=0.3, br;q=0.1")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header_is_not_exist("Content-Encoding");
+
+        let mut data = Vec::new();
+        let mut reader = resp.0.into_body().into_async_read();
+        reader.read_to_end(&mut data).await.unwrap();
+        assert_eq!(data, DATA_REV.as_bytes());
+    }
+
+    #[tokio::test]
     async fn test_star() {
         let ep = index.with(Compression::default());
         let cli = TestClient::new(ep);
@@ -260,6 +310,26 @@ mod tests {
 
         let mut data = Vec::new();
         let mut reader = CompressionAlgo::ZSTD.decompress(resp.0.into_body().into_async_read());
+        reader.read_to_end(&mut data).await.unwrap();
+        assert_eq!(data, DATA_REV.as_bytes());
+    }
+
+    #[tokio::test]
+    async fn test_star_with_enabled_algorithms() {
+        let ep = index.with(Compression::default().algorithms([CompressionAlgo::GZIP]));
+        let cli = TestClient::new(ep);
+
+        let resp = cli
+            .post("/")
+            .header("Accept-Encoding", "*")
+            .body(DATA)
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header("Content-Encoding", "gzip");
+
+        let mut data = Vec::new();
+        let mut reader = CompressionAlgo::GZIP.decompress(resp.0.into_body().into_async_read());
         reader.read_to_end(&mut data).await.unwrap();
         assert_eq!(data, DATA_REV.as_bytes());
     }

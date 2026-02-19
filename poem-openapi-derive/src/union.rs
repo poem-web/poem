@@ -58,7 +58,9 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let discriminator_name = &args.discriminator_name;
 
     let Data::Enum(e) = &args.data else {
-        return Err(Error::new_spanned(ident, "AnyOf can only be applied to an enum.").into());
+        return Err(
+            Error::new_spanned(ident, "AnyOf (Union) can only be applied to an enum.").into(),
+        );
     };
 
     if discriminator_name.is_some() && args.externally_tagged {
@@ -85,122 +87,45 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     for variant in e {
         let item_ident = &variant.ident;
 
-        if variant.fields.len() != 1 {
-            return Err(Error::new_spanned(&variant.ident, "Incorrect oneof definition.").into());
-        }
-
-        let object_ty = &variant.fields.fields[0];
-        let format_string = format!("{{}}_{}", item_ident);
-        let schema_name = quote! {
-            ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
-        };
         let mapping_name = match &variant.mapping {
             Some(mapping) => mapping.clone(),
             None => apply_rename_rule_variant(args.rename_all, item_ident.unraw().to_string()),
         };
-        types.push(object_ty);
 
-        if args.externally_tagged {
-            from_json.push(quote! {
-                if let value @ ::std::option::Option::Some(_) = value.as_object().and_then(|obj| obj.get(#mapping_name)).cloned() {
-                    return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value)
-                        .map(Self::#item_ident)
-                        .map_err(#crate_name::types::ParseError::propagate);
-                }
-            });
-        } else if discriminator_name.is_some() {
-            from_json.push(quote! {
-                if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
-                    return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
-                        .map(Self::#item_ident)
-                        .map_err(#crate_name::types::ParseError::propagate);
-                }
-            });
-        } else if !args.one_of {
-            // any of
-            from_json.push(quote! {
-                if let ::std::result::Result::Ok(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
-                    .map(Self::#item_ident) {
-                    return ::std::result::Result::Ok(obj);
-                }
-            });
-        } else {
-            // one of
-            from_json.push(quote! {
-                if let ::std::result::Result::Ok(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
-                    .map(Self::#item_ident) {
-                    if res_obj.is_some() {
-                        return ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value));
-                    }
-                    res_obj = Some(obj);
-                }
-            });
-        }
+        match variant.fields.len() {
+            0 => {
+                if args.externally_tagged {
+                    return Err(Error::new_spanned(
+                        &variant.ident,
+                        "Empty variant cannot be externally tagged.",
+                    )
+                    .into());
+                } else if let Some(discriminator_name) = &discriminator_name {
+                    from_json.push(quote! {
+                        if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
+                            return ::std::result::Result::Ok(Self::#item_ident)
+                        }
+                    });
+                    to_json.push(quote! {
+                        Self::#item_ident => {
+                            ::std::option::Option::Some(#crate_name::__private::serde_json::json!({ #discriminator_name: #mapping_name }))
+                        }
+                    });
 
-        if args.externally_tagged {
-            to_json.push(quote! {
-                Self::#item_ident(obj) => {
-                    let value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
-                    let mut wrapped = #crate_name::__private::serde_json::Map::new();
-                    wrapped.insert(::std::convert::Into::into(#mapping_name), ::std::option::Option::unwrap_or_default(value));
-                    ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(wrapped))
-                }
-            });
-        } else if let Some(discriminator_name) = &discriminator_name {
-            to_json.push(quote! {
-                Self::#item_ident(obj) => {
-                    let mut value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
-                    if let ::std::option::Option::Some(obj) = value.as_mut().and_then(|value| value.as_object_mut()) {
-                        obj.insert(::std::convert::Into::into(#discriminator_name), ::std::convert::Into::into(#mapping_name));
-                    }
-                    value
-                }
-            });
-        } else {
-            to_json.push(quote! {
-                Self::#item_ident(obj) => <#object_ty as #crate_name::types::ToJSON>::to_json(obj)
-            });
-        }
+                    // Create a named schema for the childless variant to support discriminator
+                    // mapping
+                    let format_string = format!("{{}}_{}", item_ident);
+                    let schema_name = quote! {
+                        ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
+                    };
 
-        mapping.push(quote! {
-            (::std::string::ToString::to_string(#mapping_name), ::std::format!("#/components/schemas/{}", #schema_name))
-        });
+                    mapping.push(quote! {
+                        (::std::string::ToString::to_string(#mapping_name), ::std::format!("#/components/schemas/{}", #schema_name))
+                    });
 
-        if args.externally_tagged {
-            create_schemas.push(quote! {
-                let schema = #crate_name::registry::MetaSchema {
-                    description: #description,
-                    all_of: ::std::vec![
-                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
-                            required: ::std::vec![#mapping_name],
-                            properties: ::std::vec![
-                                (
-                                    #mapping_name,
-                                    <#object_ty as #crate_name::types::Type>::schema_ref(),
-                                )
-                            ],
-                            ..#crate_name::registry::MetaSchema::new("object")
-                        })),
-                    ],
-                    ..#crate_name::registry::MetaSchema::ANY
-                };
-                registry.schemas.insert(#schema_name, schema);
-            });
-
-            schemas.push(quote! {
-                #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
-            });
-        } else if let Some(discriminator_name) = &args.discriminator_name {
-            create_schemas.push(quote! {
-                {
-                    fn __check_is_object_type<T: #crate_name::types::IsObjectType>() {}
-                    __check_is_object_type::<#object_ty>();
-                }
-
-                let schema = #crate_name::registry::MetaSchema {
-                    description: #description,
-                    all_of: ::std::vec![
-                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
+                    create_schemas.push(quote! {
+                        let schema = #crate_name::registry::MetaSchema {
+                            description: #description,
                             required: #required,
                             properties: ::std::vec![
                                 (
@@ -216,22 +141,179 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                                 )
                             ],
                             ..#crate_name::registry::MetaSchema::new("object")
-                        })),
-                        <#object_ty as #crate_name::types::Type>::schema_ref(),
-                    ],
-                    ..#crate_name::registry::MetaSchema::ANY
+                        };
+                        registry.schemas.insert(#schema_name, schema);
+                    });
+
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
+                    });
+                } else {
+                    from_json.push(quote! {
+                        if value.is_object(){ return ::std::result::Result::Ok(Self::#item_ident); }
+                    });
+                    to_json.push(quote! {
+                        Self::#item_ident => ::std::option::Option::Some(#crate_name::__private::serde_json::json!({}))
+                    });
+
+                    // For childless variants without a discriminator, create an inline empty object
+                    // schema
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
+                            #crate_name::registry::MetaSchema::new("object")
+                        ))
+                    });
+                }
+            }
+            1 => {
+                let object_ty = &variant.fields.fields[0];
+                let format_string = format!("{{}}_{}", item_ident);
+                let schema_name = quote! {
+                    ::std::format!(#format_string, <Self as #crate_name::types::Type>::name())
                 };
+                types.push(object_ty);
 
-                registry.schemas.insert(#schema_name, schema);
-            });
+                if args.externally_tagged {
+                    from_json.push(quote! {
+                    if let value @ ::std::option::Option::Some(_) = value.as_object().and_then(|obj| obj.get(#mapping_name)).cloned() {
+                        return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(value)
+                            .map(Self::#item_ident)
+                            .map_err(#crate_name::types::ParseError::propagate);
+                    }
+                });
+                } else if discriminator_name.is_some() {
+                    from_json.push(quote! {
+                    if ::std::matches!(discriminator_name, ::std::option::Option::Some(discriminator_name) if discriminator_name == #mapping_name) {
+                        return <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(value))
+                            .map(Self::#item_ident)
+                            .map_err(#crate_name::types::ParseError::propagate);
+                    }
+                });
+                } else if !args.one_of {
+                    // any of
+                    from_json.push(quote! {
+                    if let ::std::result::Result::Ok(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
+                        .map(Self::#item_ident) {
+                        return ::std::result::Result::Ok(obj);
+                    }
+                });
+                } else {
+                    // one of
+                    from_json.push(quote! {
+                    if let ::std::result::Result::Ok(obj) = <#object_ty as #crate_name::types::ParseFromJSON>::parse_from_json(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
+                        .map(Self::#item_ident) {
+                        if res_obj.is_some() {
+                            return ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value));
+                        }
+                        res_obj = Some(obj);
+                    }
+                });
+                }
 
-            schemas.push(quote! {
-                #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
-            });
-        } else {
-            schemas.push(quote! {
-                <#object_ty as #crate_name::types::Type>::schema_ref()
-            });
+                if args.externally_tagged {
+                    to_json.push(quote! {
+                    Self::#item_ident(obj) => {
+                        let value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
+                        let mut wrapped = #crate_name::__private::serde_json::Map::new();
+                        wrapped.insert(::std::convert::Into::into(#mapping_name), ::std::option::Option::unwrap_or_default(value));
+                        ::std::option::Option::Some(#crate_name::__private::serde_json::Value::Object(wrapped))
+                    }
+                });
+                } else if let Some(discriminator_name) = &discriminator_name {
+                    to_json.push(quote! {
+                    Self::#item_ident(obj) => {
+                        let mut value = <#object_ty as #crate_name::types::ToJSON>::to_json(obj);
+                        if let ::std::option::Option::Some(obj) = value.as_mut().and_then(|value| value.as_object_mut()) {
+                            obj.insert(::std::convert::Into::into(#discriminator_name), ::std::convert::Into::into(#mapping_name));
+                        }
+                        value
+                    }
+                });
+                } else {
+                    to_json.push(quote! {
+                    Self::#item_ident(obj) => <#object_ty as #crate_name::types::ToJSON>::to_json(obj)
+                });
+                }
+
+                mapping.push(quote! {
+                    (::std::string::ToString::to_string(#mapping_name), ::std::format!("#/components/schemas/{}", #schema_name))
+                });
+
+                if args.externally_tagged {
+                    create_schemas.push(quote! {
+                        let schema = #crate_name::registry::MetaSchema {
+                            description: #description,
+                            all_of: ::std::vec![
+                                #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
+                                    required: ::std::vec![#mapping_name],
+                                    properties: ::std::vec![
+                                        (
+                                            #mapping_name,
+                                            <#object_ty as #crate_name::types::Type>::schema_ref(),
+                                        )
+                                    ],
+                                    ..#crate_name::registry::MetaSchema::new("object")
+                                })),
+                            ],
+                            ..#crate_name::registry::MetaSchema::ANY
+                        };
+                        registry.schemas.insert(#schema_name, schema);
+                    });
+
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
+                    });
+                } else if let Some(discriminator_name) = &args.discriminator_name {
+                    create_schemas.push(quote! {
+                    {
+                        fn __check_is_object_type<T: #crate_name::types::IsObjectType>() {}
+                        __check_is_object_type::<#object_ty>();
+                    }
+
+                    let schema = #crate_name::registry::MetaSchema {
+                        description: #description,
+                        all_of: ::std::vec![
+                            #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(#crate_name::registry::MetaSchema {
+                                required: #required,
+                                properties: ::std::vec![
+                                    (
+                                        #discriminator_name,
+                                        #crate_name::registry::MetaSchemaRef::Inline(::std::boxed::Box::new(
+                                            #crate_name::registry::MetaSchema {
+                                                ty: "string",
+                                                enum_items: ::std::vec![::std::convert::Into::into(#mapping_name)],
+                                                example: ::std::option::Option::Some(::std::convert::Into::into(#mapping_name)),
+                                                ..#crate_name::registry::MetaSchema::ANY
+                                            }
+                                        )),
+                                    )
+                                ],
+                                ..#crate_name::registry::MetaSchema::new("object")
+                            })),
+                            <#object_ty as #crate_name::types::Type>::schema_ref(),
+                        ],
+                        ..#crate_name::registry::MetaSchema::ANY
+                    };
+
+                    registry.schemas.insert(#schema_name, schema);
+                });
+
+                    schemas.push(quote! {
+                        #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
+                    });
+                } else {
+                    schemas.push(quote! {
+                        <#object_ty as #crate_name::types::Type>::schema_ref()
+                    });
+                }
+            }
+            2.. => {
+                return Err(Error::new_spanned(
+                    &variant.ident,
+                    "Oneof (Union) does not support multiple variant fields",
+                )
+                .into());
+            }
         }
     }
 
