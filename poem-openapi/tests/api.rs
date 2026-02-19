@@ -1084,3 +1084,37 @@ async fn parameter_style_none() {
     let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
     assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }
+
+#[tokio::test]
+async fn info_extensions() {
+    use serde_json::Value as JsonVal;
+
+    #[allow(dead_code)]
+    struct Api;
+
+    #[OpenApi]
+    impl Api {}
+
+    let example_string = JsonVal::String("Example".to_string());
+    let example_array = JsonVal::Array(vec![
+        JsonVal::String("B2B".to_string()),
+        JsonVal::String("B2C".to_string()),
+    ]);
+
+    let spec = OpenApiService::new(Api {}, "test", "1.0")
+        .info_extension("x-category", example_string.clone())
+        .info_extension("x-segment", example_array.clone())
+        .spec();
+    let spec_parsed: JsonVal = serde_json::from_str(&spec).expect("Generated invalid JSON");
+    if let JsonVal::Object(spec_root) = spec_parsed {
+        let info = spec_root.get("info").expect("Spec has no info");
+        if let JsonVal::Object(spec_info) = info {
+            assert_eq!(spec_info.get("x-category"), Some(&example_string));
+            assert_eq!(spec_info.get("x-segment"), Some(&example_array));
+        } else {
+            panic!("Spec info isn't a JSON object");
+        }
+    } else {
+        panic!("Spec root isn't a JSON object");
+    }
+}
