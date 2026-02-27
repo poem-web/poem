@@ -74,3 +74,29 @@ async fn resources_list_and_read() {
         })
     );
 }
+
+#[tokio::test]
+async fn resources_templates_list() {
+    let mut server = McpServer::new();
+
+    let resp = server
+        .handle_request(Request {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id: Some(RequestId::Int(1)),
+            body: Requests::ResourcesTemplatesList {
+                params: Default::default(),
+            },
+        })
+        .await;
+
+    assert_eq!(
+        serde_json::to_value(&resp).unwrap(),
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "resourceTemplates": []
+            }
+        })
+    );
+}

@@ -1,13 +1,13 @@
 //! JSON-RPC protocol types.
 
 use itertools::Either;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 use serde_json::Value;
 
 use crate::protocol::{
     initialize::InitializeRequest,
     prompts::{PromptsGetRequest, PromptsListRequest},
-    resources::{ResourcesListRequest, ResourcesReadRequest},
+    resources::{ResourcesListRequest, ResourcesReadRequest, ResourcesTemplatesListRequest},
     tool::{ToolsCallRequest, ToolsListRequest},
 };
 
@@ -39,6 +39,7 @@ pub enum Requests {
     #[serde(rename = "notifications/cancelled")]
     Cancelled {
         /// The ID of the request to cancel
+        #[serde(alias = "requestId")]
         request_id: RequestId,
         /// An optional reason string that can be logged or displayed
         reason: Option<String>,
@@ -76,6 +77,13 @@ pub enum Requests {
         #[serde(default)]
         params: ResourcesListRequest,
     },
+    /// Resource templates list.
+    #[serde(rename = "resources/templates/list")]
+    ResourcesTemplatesList {
+        /// Resource templates list request parameters.
+        #[serde(default)]
+        params: ResourcesTemplatesListRequest,
+    },
     /// Read a resource.
     #[serde(rename = "resources/read")]
     ResourcesRead {
@@ -85,13 +93,77 @@ pub enum Requests {
 }
 
 /// A JSON-RPC batch request.
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum BatchRequest {
     /// A single request.
     Single(Request),
     /// A batch of requests.
     Batch(Vec<Request>),
+}
+
+impl<'de> Deserialize<'de> for BatchRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        fn normalize_request(value: &mut Value) {
+            let Some(obj) = value.as_object_mut() else {
+                return;
+            };
+
+            let method = obj
+                .get("method")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+
+            match method {
+                "notifications/initialized" => {
+                    if obj.get("params").is_some_and(|value| {
+                        value.as_object().is_some_and(serde_json::Map::is_empty)
+                    }) {
+                        obj.remove("params");
+                    }
+                }
+                "notifications/cancelled" => {
+                    let Some(params) = obj.get("params").and_then(Value::as_object).cloned() else {
+                        return;
+                    };
+                    if !obj.contains_key("request_id") && !obj.contains_key("requestId") {
+                        if let Some(request_id) =
+                            params.get("request_id").or_else(|| params.get("requestId"))
+                        {
+                            obj.insert("request_id".to_string(), request_id.clone());
+                        }
+                    }
+                    if !obj.contains_key("reason") {
+                        if let Some(reason) = params.get("reason") {
+                            obj.insert("reason".to_string(), reason.clone());
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let mut value = Value::deserialize(deserializer)?;
+        match &mut value {
+            Value::Object(_) => {
+                normalize_request(&mut value);
+                let request = serde_json::from_value(value).map_err(D::Error::custom)?;
+                Ok(BatchRequest::Single(request))
+            }
+            Value::Array(values) => {
+                for request in values {
+                    normalize_request(request);
+                }
+                let requests = serde_json::from_value(value).map_err(D::Error::custom)?;
+                Ok(BatchRequest::Batch(requests))
+            }
+            _ => Err(D::Error::custom(
+                "data didnot match any variant of untagged enum BatchRequest",
+            )),
+        }
+    }
 }
 
 impl IntoIterator for BatchRequest {
@@ -276,5 +348,84 @@ impl<E> RpcError<E> {
     #[inline]
     pub fn internal_error(message: impl Into<String>) -> Self {
         RpcError::new(INTERNAL_ERROR, message)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{BatchRequest, RequestId, Requests};
+
+    #[test]
+    fn parse_initialized_with_empty_params() {
+        let request: BatchRequest = serde_json::from_value(json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized",
+            "params": {}
+        }))
+        .expect("parse initialized notification");
+
+        let request = request.requests().first().expect("single request");
+        assert!(matches!(request.body, Requests::Initialized));
+    }
+
+    #[test]
+    fn parse_cancelled_with_params_object() {
+        let request: BatchRequest = serde_json::from_value(json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/cancelled",
+            "params": {
+                "requestId": 42,
+                "reason": "user cancelled"
+            }
+        }))
+        .expect("parse cancelled notification");
+
+        let request = request.requests().first().expect("single request");
+        assert!(matches!(
+            request.body,
+            Requests::Cancelled {
+                request_id: RequestId::Int(42),
+                reason: Some(ref reason),
+            } if reason == "user cancelled"
+        ));
+    }
+
+    #[test]
+    fn parse_cancelled_top_level_fields() {
+        let request: BatchRequest = serde_json::from_value(json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/cancelled",
+            "requestId": "abc",
+            "reason": "timeout"
+        }))
+        .expect("parse cancelled notification");
+
+        let request = request.requests().first().expect("single request");
+        assert!(matches!(
+            request.body,
+            Requests::Cancelled {
+                request_id: RequestId::String(ref request_id),
+                reason: Some(ref reason),
+            } if request_id == "abc" && reason == "timeout"
+        ));
+    }
+
+    #[test]
+    fn parse_resources_templates_list() {
+        let request: BatchRequest = serde_json::from_value(json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "resources/templates/list",
+            "params": {}
+        }))
+        .expect("parse resources/templates/list");
+
+        let request = request.requests().first().expect("single request");
+        assert!(matches!(
+            request.body,
+            Requests::ResourcesTemplatesList { .. }
+        ));
     }
 }

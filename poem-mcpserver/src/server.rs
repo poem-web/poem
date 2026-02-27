@@ -13,7 +13,7 @@ use crate::{
         prompts::{PromptsGetRequest, PromptsListResponse},
         resources::{
             Resource, ResourceContent, ResourcesListResponse, ResourcesReadRequest,
-            ResourcesReadResponse,
+            ResourcesReadResponse, ResourcesTemplatesListResponse,
         },
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
@@ -276,6 +276,18 @@ where
         .map_result_to_value()
     }
 
+    fn handle_resources_templates_list(&self, id: Option<RequestId>) -> Response<Value> {
+        Response {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id,
+            result: Some(ResourcesTemplatesListResponse {
+                resource_templates: vec![],
+            }),
+            error: None,
+        }
+        .map_result_to_value()
+    }
+
     fn handle_resources_read(
         &self,
         request: ResourcesReadRequest,
@@ -320,6 +332,9 @@ where
                 Some(self.handle_prompts_get(params, request.id).await)
             }
             Requests::ResourcesList { .. } => Some(self.handle_resources_list(request.id)),
+            Requests::ResourcesTemplatesList { .. } => {
+                Some(self.handle_resources_templates_list(request.id))
+            }
             Requests::ResourcesRead { params } => {
                 Some(self.handle_resources_read(params, request.id))
             }
