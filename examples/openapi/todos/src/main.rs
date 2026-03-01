@@ -1,11 +1,11 @@
 use poem::{
-    error::InternalServerError, listener::TcpListener, middleware::Cors, web::Data, EndpointExt,
-    Result, Route, Server,
+    EndpointExt, Result, Route, Server, error::InternalServerError, listener::TcpListener,
+    middleware::Cors, web::Data,
 };
 use poem_openapi::{
+    ApiResponse, Object, OpenApi, OpenApiService,
     param::Path,
     payload::{Json, PlainText},
-    ApiResponse, Object, OpenApi, OpenApiService,
 };
 use tokio_stream::StreamExt;
 

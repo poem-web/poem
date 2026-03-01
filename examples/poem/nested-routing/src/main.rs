@@ -1,4 +1,4 @@
-use poem::{get, handler, listener::TcpListener, Route, Server};
+use poem::{Route, Server, get, handler, listener::TcpListener};
 
 #[handler]
 fn hello() -> String {

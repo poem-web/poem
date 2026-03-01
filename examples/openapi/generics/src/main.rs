@@ -1,8 +1,8 @@
-use poem::{listener::TcpListener, Route, Server};
+use poem::{Route, Server, listener::TcpListener};
 use poem_openapi::{
+    Object, OpenApi, OpenApiService,
     payload::Json,
     types::{ParseFromJSON, ToJSON},
-    Object, OpenApi, OpenApiService,
 };
 
 #[derive(Object)]

@@ -1,10 +1,9 @@
 use poem::{
-    get, handler,
+    EndpointExt, Error, IntoResponse, Result, Route, Server, get, handler,
     http::StatusCode,
     listener::TcpListener,
     middleware::Csrf,
     web::{CsrfToken, CsrfVerifier, Form, Html},
-    EndpointExt, Error, IntoResponse, Result, Route, Server,
 };
 use serde::Deserialize;
 

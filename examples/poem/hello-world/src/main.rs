@@ -1,5 +1,5 @@
 use poem::{
-    get, handler, listener::TcpListener, middleware::Tracing, web::Path, EndpointExt, Route, Server,
+    EndpointExt, Route, Server, get, handler, listener::TcpListener, middleware::Tracing, web::Path,
 };
 
 #[handler]

@@ -1,5 +1,5 @@
-use poem::{http::StatusCode, listener::TcpListener, Error, Result, Route};
-use poem_openapi::{auth::Basic, payload::PlainText, OpenApi, OpenApiService, SecurityScheme};
+use poem::{Error, Result, Route, http::StatusCode, listener::TcpListener};
+use poem_openapi::{OpenApi, OpenApiService, SecurityScheme, auth::Basic, payload::PlainText};
 
 /// Basic authorization
 ///

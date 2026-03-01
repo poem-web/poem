@@ -1,5 +1,5 @@
-use poem::{listener::TcpListener, middleware::SetHeader, Endpoint, EndpointExt, Route};
-use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
+use poem::{Endpoint, EndpointExt, Route, listener::TcpListener, middleware::SetHeader};
+use poem_openapi::{OpenApi, OpenApiService, payload::PlainText};
 
 struct Api;
 

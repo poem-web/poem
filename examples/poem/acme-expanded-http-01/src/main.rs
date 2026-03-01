@@ -5,17 +5,16 @@
 use std::{sync::Arc, time::Duration};
 
 use poem::{
-    get, handler,
+    EndpointExt, Route, RouteScheme, Server, get, handler,
     listener::{
-        acme::{
-            issue_cert, seconds_until_expiry, AcmeClient, ChallengeType, Http01Endpoint,
-            Http01TokensMap, ResolveServerCert, ResolvedCertListener, LETS_ENCRYPT_PRODUCTION,
-        },
         Listener, TcpListener,
+        acme::{
+            AcmeClient, ChallengeType, Http01Endpoint, Http01TokensMap, LETS_ENCRYPT_PRODUCTION,
+            ResolveServerCert, ResolvedCertListener, issue_cert, seconds_until_expiry,
+        },
     },
     middleware::Tracing,
     web::Path,
-    EndpointExt, Route, RouteScheme, Server,
 };
 use tokio::{spawn, time::sleep};
 

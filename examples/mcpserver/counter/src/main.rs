@@ -1,4 +1,4 @@
-use poem_mcpserver::{content::Text, stdio::stdio, McpServer, Tools};
+use poem_mcpserver::{McpServer, Tools, content::Text, stdio::stdio};
 
 struct Counter {
     count: i32,

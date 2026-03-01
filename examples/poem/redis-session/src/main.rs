@@ -1,10 +1,9 @@
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     session::{CookieConfig, RedisStorage, ServerSession, Session},
-    EndpointExt, Route, Server,
 };
-use redis::{aio::ConnectionManager, Client};
+use redis::{Client, aio::ConnectionManager};
 
 #[handler]
 async fn count(session: &Session) -> String {

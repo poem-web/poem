@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, Route, Server};
+use poem::{Route, Server, listener::TcpListener};
 use poem_openapi::{OpenApi, OpenApiService};
 
 struct Api1;

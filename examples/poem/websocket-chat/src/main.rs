@@ -1,12 +1,11 @@
 use futures_util::{SinkExt, StreamExt};
 use poem::{
-    get, handler,
+    EndpointExt, IntoResponse, Route, Server, get, handler,
     listener::TcpListener,
     web::{
-        websocket::{Message, WebSocket},
         Data, Html, Path,
+        websocket::{Message, WebSocket},
     },
-    EndpointExt, IntoResponse, Route, Server,
 };
 
 #[handler]

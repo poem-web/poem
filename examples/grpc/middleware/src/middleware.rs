@@ -1,6 +1,6 @@
 use poem::{
-    endpoint::{BoxEndpoint, EndpointExt},
     Endpoint, Middleware,
+    endpoint::{BoxEndpoint, EndpointExt},
 };
 
 pub(crate) struct ClientMiddleware;
