@@ -56,6 +56,35 @@ struct State<ToolsType, PromptsType> {
     sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType>>>,
 }
 
+struct SessionCleanup<ToolsType, PromptsType> {
+    state: Arc<State<ToolsType, PromptsType>>,
+    session_id: String,
+}
+
+impl<ToolsType, PromptsType> SessionCleanup<ToolsType, PromptsType> {
+    fn new(state: Arc<State<ToolsType, PromptsType>>, session_id: String) -> Self {
+        Self { state, session_id }
+    }
+}
+
+impl<ToolsType, PromptsType> Drop for SessionCleanup<ToolsType, PromptsType> {
+    fn drop(&mut self) {
+        if self
+            .state
+            .sessions
+            .lock()
+            .unwrap()
+            .remove(&self.session_id)
+            .is_some()
+        {
+            tracing::info!(
+                session_id = self.session_id,
+                "cleaned up closed standard session"
+            );
+        }
+    }
+}
+
 async fn process_request<ToolsType, PromptsType>(
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
     request: McpRequest,
@@ -98,7 +127,10 @@ where
         "created new standard session (SSE)"
     );
 
+    let state = data.0.clone();
+    let cleanup_session_id = session_id.clone();
     SSE::new(async_stream::stream! {
+        let _cleanup = SessionCleanup::new(state, cleanup_session_id);
         let endpoint_uri = format!("?session_id={}", session_id);
         yield Event::message(endpoint_uri).event_type("endpoint");
 
@@ -292,7 +324,11 @@ where
 
 /// A streamable http endpoint with configurable session behavior.
 ///
-/// Set `Config::session_timeout` to `None` to disable session expiration.
+/// Set `Config::session_timeout` to `None` to disable idle expiration.
+///
+/// Standard SSE sessions are still cleaned up when the stream closes. Legacy
+/// sessions without an SSE stream must still be explicitly deleted by the
+/// client if idle expiration is disabled.
 ///
 /// # Example
 /// ```rust,no_run
@@ -332,6 +368,18 @@ where
                 let now = interval.tick().await;
                 let mut sessions = state.sessions.lock().unwrap();
                 sessions.retain(|session_id, session| {
+                    if session
+                        .sender
+                        .as_ref()
+                        .is_some_and(|sender| sender.is_closed())
+                    {
+                        tracing::info!(
+                            session_id = session_id,
+                            "cleaned up closed standard session"
+                        );
+                        return false;
+                    }
+
                     let Some(timeout) = session_timeout else {
                         return true;
                     };
@@ -358,4 +406,122 @@ where
 
 fn session_id() -> String {
     format!("{:016x}", rand::random::<u128>())
+}
+
+#[cfg(all(test, feature = "streamable-http"))]
+mod tests {
+    use std::time::Duration;
+
+    use poem::{http::StatusCode, test::TestClient};
+    use serde_json::json;
+    use tokio_stream::StreamExt;
+
+    use super::{Config, endpoint_with_config};
+    use crate::McpServer;
+
+    #[tokio::test]
+    async fn closes_standard_session_when_sse_stream_is_dropped() {
+        let app = endpoint_with_config(
+            |_| McpServer::new(),
+            Config {
+                session_timeout: None,
+            },
+        );
+        let cli = TestClient::new(app);
+
+        let resp = cli.get("/").send().await;
+        resp.assert_status_is_ok();
+
+        let mut stream = resp.sse_stream();
+        let session_event = stream.next().await.expect("endpoint event");
+        let session_id = match session_event {
+            poem::web::sse::Event::Message { data, .. } => data
+                .strip_prefix("?session_id=")
+                .expect("session id payload")
+                .to_string(),
+            poem::web::sse::Event::Retry { .. } => panic!("unexpected retry event"),
+        };
+
+        drop(stream);
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        cli.delete("/")
+            .header("Mcp-Session-Id", session_id)
+            .send()
+            .await
+            .assert_status(StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn legacy_session_without_timeout_requires_explicit_delete() {
+        let app = endpoint_with_config(
+            |_| McpServer::new(),
+            Config {
+                session_timeout: None,
+            },
+        );
+        let cli = TestClient::new(app);
+
+        let resp = cli
+            .post("/")
+            .header("Accept", "application/json")
+            .content_type("application/json")
+            .body_json(&json!({
+                "jsonrpc": "2.0",
+                "id": "init",
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "test-client",
+                        "version": "1.0.0"
+                    }
+                }
+            }))
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        resp.assert_header_exist("Mcp-Session-Id");
+        let session_id = resp
+            .0
+            .headers()
+            .get("Mcp-Session-Id")
+            .expect("session id header")
+            .to_str()
+            .expect("valid session id")
+            .to_string();
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        cli.post("/")
+            .header("Mcp-Session-Id", &session_id)
+            .header("Accept", "application/json")
+            .content_type("application/json")
+            .body_json(&json!({
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized"
+            }))
+            .send()
+            .await
+            .assert_status(StatusCode::ACCEPTED);
+
+        cli.delete("/")
+            .header("Mcp-Session-Id", &session_id)
+            .send()
+            .await
+            .assert_status(StatusCode::ACCEPTED);
+
+        cli.post("/")
+            .header("Mcp-Session-Id", session_id)
+            .header("Accept", "application/json")
+            .content_type("application/json")
+            .body_json(&json!({
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized"
+            }))
+            .send()
+            .await
+            .assert_status(StatusCode::NOT_FOUND);
+    }
 }
