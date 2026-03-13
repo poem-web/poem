@@ -13,6 +13,9 @@ use crate::{
     tool::Tools,
 };
 
+const REQUEST_LOG_TARGET: &str = "poem_mcpserver::payload::request";
+const RESPONSE_LOG_TARGET: &str = "poem_mcpserver::payload::response";
+
 fn print_response(response: impl Serialize) {
     println!("{}", serde_json::to_string(&response).unwrap());
 }
@@ -31,7 +34,7 @@ where
     tracing::info!("stdio server started");
 
     while let Some(line) = input.next_line().await? {
-        tracing::info!(request = &line, "received request");
+        tracing::info!(target: REQUEST_LOG_TARGET, request = &line, "received request");
 
         let Ok(batch_request) = serde_json::from_str::<BatchRequest>(&line).inspect_err(|err| {
             tracing::error!(error = ?err, "failed to parse request");
@@ -53,7 +56,7 @@ where
             }
 
             if let Some(resp) = server.handle_request(request).await {
-                tracing::info!(response = ?resp, "sending response");
+                tracing::info!(target: RESPONSE_LOG_TARGET, response = ?resp, "sending response");
                 print_response(resp);
             }
         }

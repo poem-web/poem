@@ -26,6 +26,8 @@ use crate::{
 };
 
 const DEFAULT_SESSION_TIMEOUT: Duration = Duration::from_secs(60 * 5);
+const REQUEST_LOG_TARGET: &str = "poem_mcpserver::payload::request";
+const RESPONSE_LOG_TARGET: &str = "poem_mcpserver::payload::response";
 
 /// Configuration options for streamable HTTP sessions.
 #[derive(Clone, Copy, Debug)]
@@ -122,10 +124,7 @@ where
         );
     }
 
-    tracing::info!(
-        session_id = session_id,
-        "created new standard session (SSE)"
-    );
+    tracing::info!(session_id, "created new standard session (SSE)");
 
     let state = data.0.clone();
     let cleanup_session_id = session_id.clone();
@@ -183,7 +182,7 @@ where
                 },
             );
 
-            tracing::info!(session_id = session_id, "created new legacy session");
+            tracing::info!(session_id, "created new legacy session");
             return Json(resp)
                 .with_header("Mcp-Session-Id", session_id)
                 .into_response();
@@ -197,10 +196,7 @@ where
     let (server, sender) = {
         let mut sessions = data.0.sessions.lock().unwrap();
         let Some(session) = sessions.get_mut(&session_id) else {
-            tracing::warn!(
-                session_id = session_id,
-                "session not found (expired or invalid)"
-            );
+            tracing::warn!(session_id, "session not found (expired or invalid)");
             return StatusCode::NOT_FOUND.into_response();
         };
         session.last_active = Instant::now();
@@ -209,10 +205,20 @@ where
 
     if let Some(tx) = sender {
         for request in batch_request.0 {
-            tracing::info!(session_id = session_id, request = ?request, "received request (std)");
+            tracing::info!(
+                target: REQUEST_LOG_TARGET,
+                session_id,
+                ?request,
+                "received request (std)"
+            );
             let resp = process_request(server.clone(), request).await;
             if let Some(resp) = resp {
-                tracing::info!(session_id = session_id, response = ?resp, "pushing to SSE");
+                tracing::info!(
+                    target: RESPONSE_LOG_TARGET,
+                    session_id,
+                    response = ?resp,
+                    "pushing to SSE"
+                );
                 if tx.send(serde_json::to_string(&resp).unwrap()).is_err() {
                     return StatusCode::INTERNAL_SERVER_ERROR.into_response();
                 }
@@ -244,10 +250,20 @@ where
             let session_id = session_id.clone();
             SSE::new(async_stream::stream! {
                 for request in requests {
-                    tracing::info!(session_id = session_id, request = ?request, "received request");
+                    tracing::info!(
+                        target: REQUEST_LOG_TARGET,
+                        session_id = session_id,
+                        request = ?request,
+                        "received request"
+                    );
                     let resp = process_request(server.clone(), request).await;
                     if let Some(resp) = resp {
-                        tracing::info!(session_id = session_id, response = ?resp, "sending response");
+                        tracing::info!(
+                            target: RESPONSE_LOG_TARGET,
+                            session_id = session_id,
+                            response = ?resp,
+                            "sending response"
+                        );
                         yield Event::message(serde_json::to_string(&resp).unwrap()).event_type("message");
                     }
                 }
@@ -257,10 +273,20 @@ where
         _ => {
             let mut resps = vec![];
             for request in requests {
-                tracing::info!(session_id = session_id, request = ?request, "received request");
+                tracing::info!(
+                    target: REQUEST_LOG_TARGET,
+                    session_id = session_id,
+                    request = ?request,
+                    "received request"
+                );
                 let resp = process_request(server.clone(), request).await;
                 if let Some(resp) = resp {
-                    tracing::info!(session_id = session_id, response = ?resp, "sending response");
+                    tracing::info!(
+                        target: RESPONSE_LOG_TARGET,
+                        session_id = session_id,
+                        response = ?resp,
+                        "sending response"
+                    );
                     resps.push(resp);
                 }
             }
