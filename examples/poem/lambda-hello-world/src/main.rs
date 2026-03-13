@@ -1,5 +1,5 @@
-use poem::{get, handler, web::Path, Route};
-use poem_lambda::{run, Error};
+use poem::{Route, get, handler, web::Path};
+use poem_lambda::{Error, run};
 
 #[handler]
 fn hello(Path(name): Path<String>) -> String {

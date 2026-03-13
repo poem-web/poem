@@ -1,7 +1,7 @@
 #[cfg(unix)]
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    use poem::{get, handler, http::Uri, listener::UnixListener, IntoResponse, Route, Server};
+    use poem::{IntoResponse, Route, Server, get, handler, http::Uri, listener::UnixListener};
 
     #[handler]
     fn hello(uri: &Uri) -> impl IntoResponse {

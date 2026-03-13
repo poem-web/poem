@@ -1,4 +1,4 @@
-use poem::{endpoint::StaticFilesEndpoint, listener::TcpListener, Route, Server};
+use poem::{Route, Server, endpoint::StaticFilesEndpoint, listener::TcpListener};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {

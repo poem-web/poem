@@ -1,12 +1,11 @@
 use poem::{
-    get, handler,
+    Endpoint, EndpointExt, Error, Middleware, Request, Result, Route, Server, get, handler,
     http::StatusCode,
     listener::TcpListener,
     web::{
         headers,
-        headers::{authorization::Basic, HeaderMapExt},
+        headers::{HeaderMapExt, authorization::Basic},
     },
-    Endpoint, EndpointExt, Error, Middleware, Request, Result, Route, Server,
 };
 
 struct BasicAuth {

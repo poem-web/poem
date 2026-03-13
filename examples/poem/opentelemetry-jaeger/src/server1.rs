@@ -1,22 +1,20 @@
 use std::str::FromStr;
 
 use opentelemetry::{
-    global,
+    Context, KeyValue, global,
     trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _, TracerProvider as _},
-    Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
 use opentelemetry_sdk::{
+    Resource,
     propagation::TraceContextPropagator,
     trace::{SdkTracerProvider, Tracer},
-    Resource,
 };
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::{OpenTelemetryMetrics, OpenTelemetryTracing},
     web::Data,
-    EndpointExt, Route, Server,
 };
 use reqwest::{Client, Url};
 

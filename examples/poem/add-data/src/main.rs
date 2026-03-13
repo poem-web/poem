@@ -4,11 +4,10 @@ use std::{
 };
 
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::AddData,
     web::{Data, Path},
-    EndpointExt, Route, Server,
 };
 
 struct AppState {

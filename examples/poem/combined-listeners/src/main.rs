@@ -1,7 +1,6 @@
 use poem::{
-    get, handler,
+    IntoResponse, Route, Server, get, handler,
     listener::{Listener, TcpListener},
-    IntoResponse, Route, Server,
 };
 
 #[handler]

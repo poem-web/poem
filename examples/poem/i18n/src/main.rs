@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     i18n::{I18NResources, Locale},
     listener::TcpListener,
     middleware::Tracing,
     web::Path,
-    EndpointExt, Route, Server,
 };
 
 #[handler]
