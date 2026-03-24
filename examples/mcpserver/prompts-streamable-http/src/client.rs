@@ -15,8 +15,7 @@ async fn main() -> Result<()> {
 
     let response = service
         .call_tool(
-            CallToolRequestParams::new("get_review_count")
-                .with_arguments(serde_json::Map::new()),
+            CallToolRequestParams::new("get_review_count").with_arguments(serde_json::Map::new()),
         )
         .await?;
     println!("get_review_count response: {response:#?}");
