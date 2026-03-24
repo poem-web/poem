@@ -23,5 +23,8 @@ pub use server::McpServer;
 pub mod private {
     pub use serde_json;
 
-    pub use crate::{prompts::IntoPromptResponse, tool::IntoToolResponse};
+    pub use crate::{
+        prompts::IntoPromptResponse,
+        tool::{IntoToolResponse, normalize_schema_value},
+    };
 }
