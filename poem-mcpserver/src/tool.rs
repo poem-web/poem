@@ -15,6 +15,40 @@ use crate::{
     },
 };
 
+fn is_nonstandard_uint_format(format: &str) -> bool {
+    matches!(
+        format,
+        "uint" | "uint8" | "uint16" | "uint32" | "uint64" | "uint128"
+    )
+}
+
+fn normalize_schema_value_inner(value: &mut Value) {
+    match value {
+        Value::Object(object) => {
+            if matches!(object.get("format"), Some(Value::String(format)) if is_nonstandard_uint_format(format))
+            {
+                object.remove("format");
+            }
+
+            for value in object.values_mut() {
+                normalize_schema_value_inner(value);
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                normalize_schema_value_inner(value);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[doc(hidden)]
+pub fn normalize_schema_value(mut value: Value) -> Value {
+    normalize_schema_value_inner(&mut value);
+    value
+}
+
 /// Represents the result of a tool call.
 pub trait IntoToolResponse {
     /// Returns the output schema of the tool response, if any.
@@ -214,5 +248,49 @@ impl Tools for NoTools {
         Err(RpcError::method_not_found(format!(
             "tool '{name}' not found"
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::normalize_schema_value;
+
+    #[test]
+    fn strips_nonstandard_unsigned_integer_formats() {
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "format": "uint32",
+                    "minimum": 0
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "format": "uint"
+                    }
+                },
+                "signed": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            }
+        });
+
+        let normalized = normalize_schema_value(schema);
+
+        assert_eq!(normalized["properties"]["count"]["type"], json!("integer"));
+        assert_eq!(normalized["properties"]["count"]["minimum"], json!(0));
+        assert!(normalized["properties"]["count"].get("format").is_none());
+        assert!(
+            normalized["properties"]["items"]["items"]
+                .get("format")
+                .is_none()
+        );
+        assert_eq!(normalized["properties"]["signed"]["format"], json!("int32"));
     }
 }
