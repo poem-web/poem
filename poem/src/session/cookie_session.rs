@@ -64,27 +64,35 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
             .unwrap_or_default();
 
         req.extensions_mut().insert(session.clone());
-        let resp = self.inner.call(req).await?;
 
-        match session.status() {
-            SessionStatus::Changed | SessionStatus::Renewed => {
-                let value = {
-                    #[cfg(not(feature = "sonic-rs"))]
-                    {
-                        serde_json::to_string(&session.entries()).unwrap_or_default()
-                    }
-                    #[cfg(feature = "sonic-rs")]
-                    {
-                        sonic_rs::to_string(&session.entries()).unwrap_or_default()
-                    }
-                };
-                self.config.set_cookie_value(&cookie_jar, &value);
-            }
-            SessionStatus::Purged => {
-                self.config.remove_cookie(&cookie_jar);
-            }
-            SessionStatus::Unchanged => {}
+        let mutate = move || {
+            match session.status() {
+                SessionStatus::Changed | SessionStatus::Renewed => {
+                    let value = {
+                        #[cfg(not(feature = "sonic-rs"))]
+                        {
+                            serde_json::to_string(&session.entries()).unwrap_or_default()
+                        }
+                        #[cfg(feature = "sonic-rs")]
+                        {
+                            sonic_rs::to_string(&session.entries()).unwrap_or_default()
+                        }
+                    };
+                    self.config.set_cookie_value(&cookie_jar, &value);
+                }
+                SessionStatus::Purged => {
+                    self.config.remove_cookie(&cookie_jar);
+                }
+                SessionStatus::Unchanged => {}
+            };
         };
+
+        let resp = self.inner.call(req).await.map_err(|err| {
+            mutate();
+            err
+        })?;
+
+        mutate();
 
         Ok(resp)
     }
