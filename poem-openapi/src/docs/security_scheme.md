@@ -71,3 +71,64 @@ impl MyApi {
     }
 }
 ```
+
+# Optional Authentication
+
+When authentication should be optional, use an enum with a `#[oai(fallback)]` variant.
+
+This is the right pattern for endpoints that should work for both anonymous and authenticated requests, such as a personalized `GET /me` or `GET /hello`.
+
+```rust
+use poem::Request;
+use poem_openapi::{OpenApi, SecurityScheme};
+use poem_openapi::auth::ApiKey;
+use poem_openapi::payload::PlainText;
+
+struct User {
+    username: String,
+}
+
+#[derive(SecurityScheme)]
+#[oai(
+    ty = "api_key",
+    key_name = "session",
+    key_in = "cookie",
+    checker = "session_checker"
+)]
+struct SessionAuthorization(User);
+
+async fn session_checker(_req: &Request, api_key: ApiKey) -> Option<User> {
+    match api_key.key.as_str() {
+        "demo-token" => Some(User {
+            username: "demo".to_string(),
+        }),
+        _ => None,
+    }
+}
+
+#[derive(SecurityScheme)]
+enum OptionalSessionAuthorization {
+    Session(SessionAuthorization),
+    #[oai(fallback)]
+    Anonymous,
+}
+
+struct MyApi;
+
+#[OpenApi]
+impl MyApi {
+    #[oai(path = "/hello", method = "get")]
+    async fn hello(&self, auth: OptionalSessionAuthorization) -> PlainText<String> {
+        match auth {
+            OptionalSessionAuthorization::Session(auth) => {
+                PlainText(format!("hello, {}", auth.0.username))
+            }
+            OptionalSessionAuthorization::Anonymous => {
+                PlainText("hello, anonymous".to_string())
+            }
+        }
+    }
+}
+```
+
+The fallback variant is used when the security extractor fails. Use a required `SecurityScheme` instead when invalid credentials must return `401 Unauthorized`.

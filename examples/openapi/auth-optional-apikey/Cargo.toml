@@ -1,0 +1,11 @@
+[package]
+name = "example-openapi-auth-optional-apikey"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+poem.workspace = true
+poem-openapi = { workspace = true, features = ["cookie"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber.workspace = true
