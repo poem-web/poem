@@ -49,7 +49,8 @@ struct Api;
 
 #[OpenApi]
 impl Api {
-    /// Returns a personalized greeting when the `session` cookie is present and valid.
+    /// Returns a personalized greeting when the `session` cookie is present and
+    /// valid.
     ///
     /// Try authorizing with the cookie value `demo-token`.
     #[oai(path = "/hello", method = "get")]
