@@ -7,7 +7,7 @@ use crate::{
     registry::{MetaSchema, MetaSchemaRef, Registry},
     types::{
         ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
-        ToJSON, Type,
+        ToJSON, ToXML, Type,
     },
 };
 
@@ -114,6 +114,12 @@ impl<T: ToJSON> ToJSON for Vec<T> {
             }
         }
         Some(Value::Array(values))
+    }
+}
+
+impl<T: ToJSON> ToXML for Vec<T> {
+    fn to_xml(&self) -> Option<Value> {
+        ToJSON::to_json(&self)
     }
 }
 
