@@ -87,9 +87,8 @@ impl<E: Endpoint> Endpoint for CookieSessionEndpoint<E> {
             };
         };
 
-        let resp = self.inner.call(req).await.map_err(|err| {
+        let resp = self.inner.call(req).await.inspect_err(|_| {
             mutate();
-            err
         })?;
 
         mutate();
