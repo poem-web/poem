@@ -52,10 +52,7 @@ impl Resources for ConfigResources {
         })
     }
 
-    async fn read(
-        &self,
-        request: ResourcesReadRequest,
-    ) -> Result<ResourcesReadResponse, RpcError> {
+    async fn read(&self, request: ResourcesReadRequest) -> Result<ResourcesReadResponse, RpcError> {
         let content = match request.uri.as_str() {
             "config://app/settings" => ResourceContent {
                 uri: request.uri,
@@ -97,16 +94,12 @@ impl Resources for ConfigResources {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    stdio(
-        McpServer::new()
-            .resources(ConfigResources)
-            .ui_resource(
-                "static://readme",
-                "README",
-                "A static readme resource",
-                "text/plain",
-                "Welcome to the resources example!",
-            ),
-    )
+    stdio(McpServer::new().resources(ConfigResources).ui_resource(
+        "static://readme",
+        "README",
+        "A static readme resource",
+        "text/plain",
+        "Welcome to the resources example!",
+    ))
     .await
 }
