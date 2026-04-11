@@ -9,6 +9,7 @@
 pub mod content;
 pub mod prompts;
 pub mod protocol;
+pub mod resources;
 mod server;
 pub mod stdio;
 #[cfg(feature = "streamable-http")]

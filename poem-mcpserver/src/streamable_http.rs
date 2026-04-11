@@ -22,6 +22,7 @@ use crate::{
     McpServer,
     prompts::Prompts,
     protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest, Requests},
+    resources::Resources,
     tool::Tools,
 };
 
@@ -44,32 +45,34 @@ impl Default for Config {
     }
 }
 
-type ServerFactoryFn<ToolsType, PromptsType> =
-    Box<dyn Fn(&Request) -> McpServer<ToolsType, PromptsType> + Send + Sync>;
+type ServerFactoryFn<ToolsType, PromptsType, ResourcesType> =
+    Box<dyn Fn(&Request) -> McpServer<ToolsType, PromptsType, ResourcesType> + Send + Sync>;
 
-struct Session<ToolsType, PromptsType> {
-    server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
+struct Session<ToolsType, PromptsType, ResourcesType> {
+    server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType, ResourcesType>>>,
     sender: Option<tokio::sync::mpsc::UnboundedSender<String>>,
     last_active: Instant,
 }
 
-struct State<ToolsType, PromptsType> {
-    server_factory: ServerFactoryFn<ToolsType, PromptsType>,
-    sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType>>>,
+struct State<ToolsType, PromptsType, ResourcesType> {
+    server_factory: ServerFactoryFn<ToolsType, PromptsType, ResourcesType>,
+    sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType, ResourcesType>>>,
 }
 
-struct SessionCleanup<ToolsType, PromptsType> {
-    state: Arc<State<ToolsType, PromptsType>>,
+struct SessionCleanup<ToolsType, PromptsType, ResourcesType> {
+    state: Arc<State<ToolsType, PromptsType, ResourcesType>>,
     session_id: String,
 }
 
-impl<ToolsType, PromptsType> SessionCleanup<ToolsType, PromptsType> {
-    fn new(state: Arc<State<ToolsType, PromptsType>>, session_id: String) -> Self {
+impl<ToolsType, PromptsType, ResourcesType> SessionCleanup<ToolsType, PromptsType, ResourcesType> {
+    fn new(state: Arc<State<ToolsType, PromptsType, ResourcesType>>, session_id: String) -> Self {
         Self { state, session_id }
     }
 }
 
-impl<ToolsType, PromptsType> Drop for SessionCleanup<ToolsType, PromptsType> {
+impl<ToolsType, PromptsType, ResourcesType> Drop
+    for SessionCleanup<ToolsType, PromptsType, ResourcesType>
+{
     fn drop(&mut self) {
         if self
             .state
@@ -87,25 +90,27 @@ impl<ToolsType, PromptsType> Drop for SessionCleanup<ToolsType, PromptsType> {
     }
 }
 
-async fn process_request<ToolsType, PromptsType>(
-    server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType>>>,
+async fn process_request<ToolsType, PromptsType, ResourcesType>(
+    server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType, ResourcesType>>>,
     request: McpRequest,
 ) -> Option<crate::protocol::rpc::Response<Value>>
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
 {
     server.lock().await.handle_request(request).await
 }
 
 #[handler]
-async fn get_handler<ToolsType, PromptsType>(
-    data: Data<&Arc<State<ToolsType, PromptsType>>>,
+async fn get_handler<ToolsType, PromptsType, ResourcesType>(
+    data: Data<&Arc<State<ToolsType, PromptsType, ResourcesType>>>,
     request: &Request,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
 {
     let session_id = session_id();
     let server = (data.0.server_factory)(request);
@@ -141,8 +146,8 @@ where
 }
 
 #[handler]
-async fn post_handler<ToolsType, PromptsType>(
-    data: Data<&Arc<State<ToolsType, PromptsType>>>,
+async fn post_handler<ToolsType, PromptsType, ResourcesType>(
+    data: Data<&Arc<State<ToolsType, PromptsType, ResourcesType>>>,
     request: &Request,
     batch_request: Json<McpBatchRequest>,
     accept: Accept,
@@ -151,6 +156,7 @@ async fn post_handler<ToolsType, PromptsType>(
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
 {
     let session_id_param = request
         .headers()
@@ -301,14 +307,15 @@ where
 }
 
 #[handler]
-async fn delete_handler<ToolsType, PromptsType>(
-    data: Data<&Arc<State<ToolsType, PromptsType>>>,
+async fn delete_handler<ToolsType, PromptsType, ResourcesType>(
+    data: Data<&Arc<State<ToolsType, PromptsType, ResourcesType>>>,
     req: &Request,
     query: Query<HashMap<String, String>>,
 ) -> impl IntoResponse
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
 {
     let session_id = req
         .headers()
@@ -339,11 +346,12 @@ where
 /// A streamable http endpoint that can be used to handle MCP requests.
 ///
 /// Uses the default configuration (5-minute idle timeout).
-pub fn endpoint<F, ToolsType, PromptsType>(server_factory: F) -> impl IntoEndpoint
+pub fn endpoint<F, ToolsType, PromptsType, ResourcesType>(server_factory: F) -> impl IntoEndpoint
 where
-    F: Fn(&Request) -> McpServer<ToolsType, PromptsType> + Send + Sync + 'static,
+    F: Fn(&Request) -> McpServer<ToolsType, PromptsType, ResourcesType> + Send + Sync + 'static,
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
 {
     endpoint_with_config(server_factory, Config::default())
 }
@@ -371,14 +379,15 @@ where
 ///     ),
 /// );
 /// ```
-pub fn endpoint_with_config<F, ToolsType, PromptsType>(
+pub fn endpoint_with_config<F, ToolsType, PromptsType, ResourcesType>(
     server_factory: F,
     config: Config,
 ) -> impl IntoEndpoint
 where
-    F: Fn(&Request) -> McpServer<ToolsType, PromptsType> + Send + Sync + 'static,
+    F: Fn(&Request) -> McpServer<ToolsType, PromptsType, ResourcesType> + Send + Sync + 'static,
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
 {
     let state = Arc::new(State {
         server_factory: Box::new(server_factory),
@@ -424,9 +433,9 @@ where
         }
     });
 
-    post(post_handler::<ToolsType, PromptsType>::default())
-        .get(get_handler::<ToolsType, PromptsType>::default())
-        .delete(delete_handler::<ToolsType, PromptsType>::default())
+    post(post_handler::<ToolsType, PromptsType, ResourcesType>::default())
+        .get(get_handler::<ToolsType, PromptsType, ResourcesType>::default())
+        .delete(delete_handler::<ToolsType, PromptsType, ResourcesType>::default())
         .data(state)
 }
 

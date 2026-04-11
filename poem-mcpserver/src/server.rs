@@ -12,39 +12,42 @@ use crate::{
         },
         prompts::{PromptsGetRequest, PromptsListResponse},
         resources::{
-            Resource, ResourceContent, ResourcesListResponse, ResourcesReadRequest,
-            ResourcesReadResponse, ResourcesTemplatesListResponse,
+            Resource, ResourceContent, ResourcesListRequest, ResourcesReadRequest,
+            ResourcesReadResponse, ResourcesTemplatesListRequest,
         },
         rpc::{Request, RequestId, Requests, Response},
         tool::{ToolsCallRequest, ToolsListResponse},
     },
+    resources::{NoResources, Resources},
     tool::{NoTools, Tools},
 };
 
 /// A server that can be used to handle MCP requests.
-pub struct McpServer<ToolsType = NoTools, PromptsType = NoPrompts> {
+pub struct McpServer<ToolsType = NoTools, PromptsType = NoPrompts, ResourcesType = NoResources> {
     tools: ToolsType,
     prompts: PromptsType,
+    resources_handler: ResourcesType,
     disabled_tools: HashSet<String>,
     server_info: ServerInfo,
     resources: Vec<Resource>,
     resource_contents: HashMap<String, ResourceContent>,
 }
 
-impl Default for McpServer<NoTools, NoPrompts> {
+impl Default for McpServer<NoTools, NoPrompts, NoResources> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl McpServer<NoTools, NoPrompts> {
+impl McpServer<NoTools, NoPrompts, NoResources> {
     /// Creates a new MCP server.
     #[inline]
     pub fn new() -> Self {
         Self {
             tools: NoTools,
             prompts: NoPrompts,
+            resources_handler: NoResources,
             disabled_tools: HashSet::new(),
             server_info: ServerInfo {
                 name: "poem-mcpserver".to_string(),
@@ -56,20 +59,22 @@ impl McpServer<NoTools, NoPrompts> {
     }
 }
 
-impl<ToolsType, PromptsType> McpServer<ToolsType, PromptsType>
+impl<ToolsType, PromptsType, ResourcesType> McpServer<ToolsType, PromptsType, ResourcesType>
 where
     ToolsType: Tools,
     PromptsType: Prompts,
+    ResourcesType: Resources,
 {
     /// Sets the tools that the server will use.
     #[inline]
-    pub fn tools<T>(self, tools: T) -> McpServer<T, PromptsType>
+    pub fn tools<T>(self, tools: T) -> McpServer<T, PromptsType, ResourcesType>
     where
         T: Tools,
     {
         McpServer {
             tools,
             prompts: self.prompts,
+            resources_handler: self.resources_handler,
             disabled_tools: self.disabled_tools,
             server_info: self.server_info,
             resources: self.resources,
@@ -79,13 +84,31 @@ where
 
     /// Sets the prompts that the server will use.
     #[inline]
-    pub fn prompts<P>(self, prompts: P) -> McpServer<ToolsType, P>
+    pub fn prompts<P>(self, prompts: P) -> McpServer<ToolsType, P, ResourcesType>
     where
         P: Prompts,
     {
         McpServer {
             tools: self.tools,
             prompts,
+            resources_handler: self.resources_handler,
+            disabled_tools: self.disabled_tools,
+            server_info: self.server_info,
+            resources: self.resources,
+            resource_contents: self.resource_contents,
+        }
+    }
+
+    /// Sets the resources that the server will use.
+    #[inline]
+    pub fn resources<R>(self, resources_handler: R) -> McpServer<ToolsType, PromptsType, R>
+    where
+        R: Resources,
+    {
+        McpServer {
+            tools: self.tools,
+            prompts: self.prompts,
+            resources_handler,
             disabled_tools: self.disabled_tools,
             server_info: self.server_info,
             resources: self.resources,
@@ -264,31 +287,56 @@ where
         }
     }
 
-    fn handle_resources_list(&self, id: Option<RequestId>) -> Response<Value> {
-        Response {
-            jsonrpc: JSON_RPC_VERSION.to_string(),
-            id,
-            result: Some(ResourcesListResponse {
-                resources: self.resources.clone(),
-            }),
-            error: None,
+    async fn handle_resources_list(
+        &self,
+        request: ResourcesListRequest,
+        id: Option<RequestId>,
+    ) -> Response<Value> {
+        match self.resources_handler.list(request).await {
+            Ok(mut response) => {
+                response.resources.extend(self.resources.clone());
+                Response {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id,
+                    result: Some(response),
+                    error: None,
+                }
+                .map_result_to_value()
+            }
+            Err(err) => Response::<()> {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id,
+                result: None,
+                error: Some(err),
+            }
+            .map_result_to_value(),
         }
-        .map_result_to_value()
     }
 
-    fn handle_resources_templates_list(&self, id: Option<RequestId>) -> Response<Value> {
-        Response {
-            jsonrpc: JSON_RPC_VERSION.to_string(),
-            id,
-            result: Some(ResourcesTemplatesListResponse {
-                resource_templates: vec![],
-            }),
-            error: None,
+    async fn handle_resources_templates_list(
+        &self,
+        request: ResourcesTemplatesListRequest,
+        id: Option<RequestId>,
+    ) -> Response<Value> {
+        match self.resources_handler.templates(request).await {
+            Ok(response) => Response {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id,
+                result: Some(response),
+                error: None,
+            }
+            .map_result_to_value(),
+            Err(err) => Response::<()> {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id,
+                result: None,
+                error: Some(err),
+            }
+            .map_result_to_value(),
         }
-        .map_result_to_value()
     }
 
-    fn handle_resources_read(
+    async fn handle_resources_read(
         &self,
         request: ResourcesReadRequest,
         id: Option<RequestId>,
@@ -303,16 +351,22 @@ where
                 error: None,
             }
             .map_result_to_value(),
-            None => Response::<()> {
-                jsonrpc: JSON_RPC_VERSION.to_string(),
-                id,
-                result: None,
-                error: Some(crate::protocol::rpc::RpcError::invalid_params(format!(
-                    "resource not found: {}",
-                    request.uri
-                ))),
-            }
-            .map_result_to_value(),
+            None => match self.resources_handler.read(request).await {
+                Ok(response) => Response {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id,
+                    result: Some(response),
+                    error: None,
+                }
+                .map_result_to_value(),
+                Err(err) => Response::<()> {
+                    jsonrpc: JSON_RPC_VERSION.to_string(),
+                    id,
+                    result: None,
+                    error: Some(err),
+                }
+                .map_result_to_value(),
+            },
         }
     }
 
@@ -331,12 +385,15 @@ where
             Requests::PromptsGet { params } => {
                 Some(self.handle_prompts_get(params, request.id).await)
             }
-            Requests::ResourcesList { .. } => Some(self.handle_resources_list(request.id)),
-            Requests::ResourcesTemplatesList { .. } => {
-                Some(self.handle_resources_templates_list(request.id))
+            Requests::ResourcesList { params } => {
+                Some(self.handle_resources_list(params, request.id).await)
             }
+            Requests::ResourcesTemplatesList { params } => Some(
+                self.handle_resources_templates_list(params, request.id)
+                    .await,
+            ),
             Requests::ResourcesRead { params } => {
-                Some(self.handle_resources_read(params, request.id))
+                Some(self.handle_resources_read(params, request.id).await)
             }
         }
     }

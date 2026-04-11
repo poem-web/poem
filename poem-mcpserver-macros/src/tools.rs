@@ -108,12 +108,10 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                     description: #tool_description,
                     input_schema: {
                         let schema = schemars::SchemaGenerator::default().into_root_schema_for::<#request_type>();
-                        let schema = #crate_name::private::serde_json::to_value(schema).expect("serialize input schema");
-                        #crate_name::private::normalize_schema_value(schema)
+                        #crate_name::private::serde_json::to_value(schema).expect("serialize input schema")
                     },
                     output_schema: std::option::Option::map(<#resp_ty as #crate_name::tool::IntoToolResponse>::output_schema(), |schema| {
-                        let schema = #crate_name::private::serde_json::to_value(schema).expect("serialize output schema");
-                        #crate_name::private::normalize_schema_value(schema)
+                        #crate_name::private::serde_json::to_value(schema).expect("serialize output schema")
                     }),
                     meta: #tool_meta,
                 },

@@ -10,6 +10,7 @@ use crate::{
         JSON_RPC_VERSION,
         rpc::{BatchRequest, Response, RpcError},
     },
+    resources::Resources,
     tool::Tools,
 };
 
@@ -21,12 +22,13 @@ fn print_response(response: impl Serialize) {
 }
 
 /// Run the server using standard input and output.
-pub async fn stdio<ToolsType, PromptsType>(
-    server: McpServer<ToolsType, PromptsType>,
+pub async fn stdio<ToolsType, PromptsType, ResourcesType>(
+    server: McpServer<ToolsType, PromptsType, ResourcesType>,
 ) -> std::io::Result<()>
 where
     ToolsType: Tools,
     PromptsType: Prompts,
+    ResourcesType: Resources,
 {
     let mut server = server;
     let mut input = BufReader::new(tokio::io::stdin()).lines();
