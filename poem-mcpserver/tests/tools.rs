@@ -322,6 +322,115 @@ async fn collection_schema() {
     assert!(output_schema["properties"]["items"]["type"] == "array");
 }
 
+struct ManualSchemaTools;
+
+impl poem_mcpserver::tool::Tools for ManualSchemaTools {
+    fn instructions() -> &'static str {
+        ""
+    }
+
+    fn list() -> Vec<poem_mcpserver::protocol::tool::Tool> {
+        vec![poem_mcpserver::protocol::tool::Tool {
+            name: "manual_schema",
+            description: "Return schemas without macro normalization.",
+            input_schema: serde_json::json!({
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "row_count": {
+                        "type": "integer",
+                        "format": "uint"
+                    }
+                },
+                "$defs": {
+                    "ChunkMeta": {
+                        "type": "object",
+                        "properties": {
+                            "submit_count": {
+                                "type": "integer",
+                                "format": "uint32"
+                            }
+                        }
+                    }
+                }
+            }),
+            output_schema: Some(serde_json::json!({
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "updated_count": {
+                        "type": "integer",
+                        "format": "uint32"
+                    }
+                },
+                "$defs": {
+                    "ResultMeta": {
+                        "type": "object",
+                        "properties": {
+                            "total_rows": {
+                                "type": "integer",
+                                "format": "uint"
+                            }
+                        }
+                    }
+                }
+            })),
+            meta: None,
+        }]
+    }
+
+    async fn call(
+        &mut self,
+        _name: &str,
+        _arguments: serde_json::Value,
+    ) -> Result<
+        poem_mcpserver::protocol::tool::ToolsCallResponse,
+        poem_mcpserver::protocol::rpc::RpcError,
+    > {
+        unreachable!("not used in schema normalization test")
+    }
+}
+
+#[tokio::test]
+async fn manual_tool_schemas_are_normalized_server_side() {
+    let tools = ManualSchemaTools;
+    let mut server = McpServer::new().tools(tools);
+
+    let resp = server
+        .handle_request(Request {
+            jsonrpc: JSON_RPC_VERSION.to_string(),
+            id: Some(RequestId::Int(1)),
+            body: Requests::ToolsList {
+                params: ToolsListRequest { cursor: None },
+            },
+        })
+        .await;
+
+    let resp_json = serde_json::to_value(&resp).unwrap();
+    let tool = &resp_json["result"]["tools"][0];
+
+    assert!(
+        tool["inputSchema"]["properties"]["row_count"]
+            .get("format")
+            .is_none()
+    );
+    assert!(
+        tool["inputSchema"]["$defs"]["ChunkMeta"]["properties"]["submit_count"]
+            .get("format")
+            .is_none()
+    );
+    assert!(
+        tool["outputSchema"]["properties"]["updated_count"]
+            .get("format")
+            .is_none()
+    );
+    assert!(
+        tool["outputSchema"]["$defs"]["ResultMeta"]["properties"]["total_rows"]
+            .get("format")
+            .is_none()
+    );
+}
+
 struct ArrayTools;
 
 #[Tools]
