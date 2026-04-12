@@ -19,7 +19,7 @@ use crate::{
         tool::{ToolsCallRequest, ToolsListResponse},
     },
     resources::{NoResources, Resources},
-    tool::{NoTools, Tools},
+    tool::{NoTools, Tools, normalize_schema_value},
 };
 
 /// A server that can be used to handle MCP requests.
@@ -212,6 +212,10 @@ where
                     tools.retain(|tool| !self.disabled_tools.contains(tool.name));
 
                     for tool in &mut tools {
+                        tool.input_schema =
+                            normalize_schema_value(std::mem::take(&mut tool.input_schema));
+                        tool.output_schema = tool.output_schema.take().map(normalize_schema_value);
+
                         if let Some(object) = tool.input_schema.as_object_mut() {
                             if !object.contains_key("properties") {
                                 object.insert(
