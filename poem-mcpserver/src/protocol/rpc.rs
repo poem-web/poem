@@ -117,12 +117,12 @@ impl<'de> Deserialize<'de> for BatchRequest {
                 .unwrap_or_default();
 
             match method {
-                "notifications/initialized" => {
+                "notifications/initialized"
                     if obj.get("params").is_some_and(|value| {
                         value.as_object().is_some_and(serde_json::Map::is_empty)
-                    }) {
-                        obj.remove("params");
-                    }
+                    }) =>
+                {
+                    obj.remove("params");
                 }
                 "notifications/cancelled" => {
                     let Some(params) = obj.get("params").and_then(Value::as_object).cloned() else {
