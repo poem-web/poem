@@ -33,7 +33,11 @@ const RESPONSE_LOG_TARGET: &str = "poem_mcpserver::payload::response";
 /// Configuration options for streamable HTTP sessions.
 #[derive(Clone, Copy, Debug)]
 pub struct Config {
-    /// Session idle timeout. Use `None` to disable expiration.
+    /// Session idle timeout. Use `None` to disable idle expiration.
+    ///
+    /// HTTP-only Streamable HTTP sessions have no persistent connection that
+    /// can signal client process exit. If idle expiration is disabled, clients
+    /// should terminate those sessions with `DELETE` and `Mcp-Session-Id`.
     pub session_timeout: Option<Duration>,
 }
 
@@ -188,7 +192,7 @@ where
                 },
             );
 
-            tracing::info!(session_id, "created new legacy session");
+            tracing::info!(session_id, "created new streamable HTTP session");
             return Json(resp)
                 .with_header("Mcp-Session-Id", session_id)
                 .into_response();
@@ -360,9 +364,10 @@ where
 ///
 /// Set `Config::session_timeout` to `None` to disable idle expiration.
 ///
-/// Standard SSE sessions are still cleaned up when the stream closes. Legacy
-/// sessions without an SSE stream must still be explicitly deleted by the
-/// client if idle expiration is disabled.
+/// Standard SSE sessions are still cleaned up when the stream closes. HTTP-only
+/// Streamable HTTP sessions do not have a persistent connection that can signal
+/// client process exit, so clients must explicitly `DELETE` them if idle
+/// expiration is disabled.
 ///
 /// # Example
 /// ```rust,no_run
@@ -396,11 +401,14 @@ where
 
     let session_timeout = config.session_timeout;
     tokio::spawn({
-        let state = state.clone();
+        let state = Arc::downgrade(&state);
         async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5));
             loop {
                 let now = interval.tick().await;
+                let Some(state) = state.upgrade() else {
+                    break;
+                };
                 let mut sessions = state.sessions.lock().unwrap();
                 sessions.retain(|session_id, session| {
                     if session
@@ -488,7 +496,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn legacy_session_without_timeout_requires_explicit_delete() {
+    async fn http_session_without_timeout_requires_explicit_delete() {
         let app = endpoint_with_config(
             |_| McpServer::new(),
             Config {
