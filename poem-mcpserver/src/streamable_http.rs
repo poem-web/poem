@@ -57,6 +57,12 @@ type ServerFactoryFn<ToolsType, PromptsType, ResourcesType> =
 struct Session<ToolsType, PromptsType, ResourcesType> {
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType, ResourcesType>>>,
     sender: Option<tokio::sync::mpsc::UnboundedSender<String>>,
+    /// Monotonic counter incremented every time a new SSE `sender` is
+    /// installed on this session. The attached [`SessionCleanup`] guard
+    /// remembers the generation it observed at attach time and only clears
+    /// `sender` on drop when it still owns the current generation, so a
+    /// stale guard cannot wipe out a sender that was replaced by a newer GET.
+    sender_gen: u64,
     last_active: Instant,
 }
 
@@ -92,16 +98,23 @@ where
 
 /// On-drop guard for an SSE attachment.
 ///
-/// In legacy SSE transport mode (`owns_session = true`) the session lifetime
-/// is bound to the SSE stream, so dropping removes the whole session. In
-/// streamable HTTP resume mode (`owns_session = false`) the session was
-/// created by a POST `initialize` and survives the SSE detaching: dropping
-/// only clears the per-session SSE sender so the cleanup task / next GET can
-/// reattach.
+/// In legacy SSE transport mode ([`SessionCleanupKind::Owning`]) the session
+/// lifetime is bound to the SSE stream, so dropping removes the whole
+/// session. In streamable HTTP resume mode ([`SessionCleanupKind::Attached`])
+/// the session was created by a POST `initialize` and survives the SSE
+/// detaching: dropping only clears the per-session SSE sender, and only when
+/// the recorded generation still matches — this prevents a stale guard
+/// (whose stream already lost the channel to a newer GET) from wiping out
+/// the live sender installed by the newer attachment.
 struct SessionCleanup<ToolsType, PromptsType, ResourcesType> {
     state: Arc<State<ToolsType, PromptsType, ResourcesType>>,
     session_id: String,
-    owns_session: bool,
+    kind: SessionCleanupKind,
+}
+
+enum SessionCleanupKind {
+    Owning,
+    Attached { sender_gen: u64 },
 }
 
 impl<ToolsType, PromptsType, ResourcesType> SessionCleanup<ToolsType, PromptsType, ResourcesType> {
@@ -112,18 +125,19 @@ impl<ToolsType, PromptsType, ResourcesType> SessionCleanup<ToolsType, PromptsTyp
         Self {
             state,
             session_id,
-            owns_session: true,
+            kind: SessionCleanupKind::Owning,
         }
     }
 
     fn attached(
         state: Arc<State<ToolsType, PromptsType, ResourcesType>>,
         session_id: String,
+        sender_gen: u64,
     ) -> Self {
         Self {
             state,
             session_id,
-            owns_session: false,
+            kind: SessionCleanupKind::Attached { sender_gen },
         }
     }
 }
@@ -133,19 +147,36 @@ impl<ToolsType, PromptsType, ResourcesType> Drop
 {
     fn drop(&mut self) {
         let mut sessions = self.state.sessions.lock().unwrap();
-        if self.owns_session {
-            if sessions.remove(&self.session_id).is_some() {
-                tracing::info!(
-                    session_id = self.session_id,
-                    "cleaned up closed standard session"
-                );
+        match self.kind {
+            SessionCleanupKind::Owning => {
+                if sessions.remove(&self.session_id).is_some() {
+                    tracing::info!(
+                        session_id = self.session_id,
+                        "cleaned up closed standard session"
+                    );
+                }
             }
-        } else if let Some(session) = sessions.get_mut(&self.session_id) {
-            session.sender = None;
-            tracing::info!(
-                session_id = self.session_id,
-                "detached SSE from streamable HTTP session"
-            );
+            SessionCleanupKind::Attached { sender_gen } => {
+                if let Some(session) = sessions.get_mut(&self.session_id) {
+                    // Only clear the sender if it still belongs to *this*
+                    // attachment. A newer GET may have replaced it, in which
+                    // case the newer guard is responsible for it.
+                    if session.sender_gen == sender_gen {
+                        session.sender = None;
+                        tracing::info!(
+                            session_id = self.session_id,
+                            "detached SSE from streamable HTTP session"
+                        );
+                    } else {
+                        tracing::debug!(
+                            session_id = self.session_id,
+                            stale_gen = sender_gen,
+                            current_gen = session.sender_gen,
+                            "stale SSE attachment guard skipped"
+                        );
+                    }
+                }
+            }
         }
     }
 }
@@ -180,7 +211,7 @@ where
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-    let (session_id, owns_session) = if let Some(existing) = existing_session_id {
+    let (session_id, attachment) = if let Some(existing) = existing_session_id {
         // Streamable HTTP "resume" path: attach SSE to an already-initialised
         // session, do NOT create a new server (which would leak the existing
         // one and duplicate state).
@@ -193,11 +224,15 @@ where
             return StatusCode::NOT_FOUND.into_response();
         };
         // Replace any previous sender; dropping it will tear down the previous
-        // SSE stream (if any), which is the desired behaviour for resume.
+        // SSE stream (if any), which is the desired behaviour for resume. Bump
+        // the generation so the previous attachment's drop guard becomes a
+        // no-op and cannot wipe out our freshly installed sender.
         session.sender = Some(tx);
+        session.sender_gen = session.sender_gen.wrapping_add(1);
         session.last_active = Instant::now();
+        let sender_gen = session.sender_gen;
         tracing::info!(session_id = existing, "attached SSE to existing session");
-        (existing, false)
+        (existing, Some(sender_gen))
     } else {
         // Legacy SSE transport: create a brand new session keyed off the SSE
         // connection itself.
@@ -209,11 +244,12 @@ where
             Session {
                 server: Arc::new(tokio::sync::Mutex::new(server)),
                 sender: Some(tx),
+                sender_gen: 0,
                 last_active: Instant::now(),
             },
         );
         tracing::info!(session_id, "created new standard session (SSE)");
-        (session_id, true)
+        (session_id, None)
     };
 
     let state = data.0.clone();
