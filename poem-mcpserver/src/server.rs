@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use serde_json::Value;
 
@@ -22,15 +25,40 @@ use crate::{
     tool::{NoTools, Tools, normalize_schema_value},
 };
 
+/// Shared, immutable metadata for an [`McpServer`].
+///
+/// These fields are configured once via the builder methods on [`McpServer`]
+/// and remain stable for the entire lifetime of the server, so they are kept
+/// behind an [`Arc`] and shared across all sessions to keep the per-session
+/// footprint small.
+#[derive(Clone)]
+pub(crate) struct ServerMetadata {
+    pub disabled_tools: HashSet<String>,
+    pub server_info: ServerInfo,
+    pub resources: Vec<Resource>,
+    pub resource_contents: HashMap<String, ResourceContent>,
+}
+
+impl ServerMetadata {
+    fn new() -> Self {
+        Self {
+            disabled_tools: HashSet::new(),
+            server_info: ServerInfo {
+                name: "poem-mcpserver".to_string(),
+                version: "0.1.0".to_string(),
+            },
+            resources: Vec::new(),
+            resource_contents: HashMap::new(),
+        }
+    }
+}
+
 /// A server that can be used to handle MCP requests.
 pub struct McpServer<ToolsType = NoTools, PromptsType = NoPrompts, ResourcesType = NoResources> {
     tools: ToolsType,
     prompts: PromptsType,
     resources_handler: ResourcesType,
-    disabled_tools: HashSet<String>,
-    server_info: ServerInfo,
-    resources: Vec<Resource>,
-    resource_contents: HashMap<String, ResourceContent>,
+    meta: Arc<ServerMetadata>,
 }
 
 impl Default for McpServer<NoTools, NoPrompts, NoResources> {
@@ -48,13 +76,7 @@ impl McpServer<NoTools, NoPrompts, NoResources> {
             tools: NoTools,
             prompts: NoPrompts,
             resources_handler: NoResources,
-            disabled_tools: HashSet::new(),
-            server_info: ServerInfo {
-                name: "poem-mcpserver".to_string(),
-                version: "0.1.0".to_string(),
-            },
-            resources: Vec::new(),
-            resource_contents: HashMap::new(),
+            meta: Arc::new(ServerMetadata::new()),
         }
     }
 }
@@ -75,10 +97,7 @@ where
             tools,
             prompts: self.prompts,
             resources_handler: self.resources_handler,
-            disabled_tools: self.disabled_tools,
-            server_info: self.server_info,
-            resources: self.resources,
-            resource_contents: self.resource_contents,
+            meta: self.meta,
         }
     }
 
@@ -92,10 +111,7 @@ where
             tools: self.tools,
             prompts,
             resources_handler: self.resources_handler,
-            disabled_tools: self.disabled_tools,
-            server_info: self.server_info,
-            resources: self.resources,
-            resource_contents: self.resource_contents,
+            meta: self.meta,
         }
     }
 
@@ -109,10 +125,7 @@ where
             tools: self.tools,
             prompts: self.prompts,
             resources_handler,
-            disabled_tools: self.disabled_tools,
-            server_info: self.server_info,
-            resources: self.resources,
-            resource_contents: self.resource_contents,
+            meta: self.meta,
         }
     }
 
@@ -122,7 +135,8 @@ where
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
-        self.disabled_tools
+        Arc::make_mut(&mut self.meta)
+            .disabled_tools
             .extend(names.into_iter().map(Into::into));
         self
     }
@@ -149,18 +163,39 @@ where
             text: Some(text.into()),
             blob: None,
         };
-        self.resources.push(resource);
-        self.resource_contents.insert(uri, content);
+        let meta = Arc::make_mut(&mut self.meta);
+        meta.resources.push(resource);
+        meta.resource_contents.insert(uri, content);
         self
     }
 
     /// Sets the server info (name and version).
     pub fn with_server_info(mut self, name: &str, version: &str) -> Self {
-        self.server_info = ServerInfo {
+        Arc::make_mut(&mut self.meta).server_info = ServerInfo {
             name: name.to_string(),
             version: version.to_string(),
         };
         self
+    }
+
+    /// Returns the shared metadata of this server.
+    ///
+    /// Used by transports (e.g. `streamable_http`) to deduplicate the
+    /// configuration across sessions.
+    #[cfg(feature = "streamable-http")]
+    #[inline]
+    pub(crate) fn metadata(&self) -> &Arc<ServerMetadata> {
+        &self.meta
+    }
+
+    /// Replaces the shared metadata of this server.
+    ///
+    /// Used by transports to attach a cached, shared metadata instance to a
+    /// freshly produced server, so that the per-session footprint stays small.
+    #[cfg(feature = "streamable-http")]
+    #[inline]
+    pub(crate) fn set_metadata(&mut self, meta: Arc<ServerMetadata>) {
+        self.meta = meta;
     }
 
     fn handle_ping(&self, id: Option<RequestId>) -> Response<Value> {
@@ -194,7 +229,7 @@ where
                         list_changed: false,
                     },
                 },
-                server_info: self.server_info.clone(),
+                server_info: self.meta.server_info.clone(),
                 instructions: Some(ToolsType::instructions().to_string()),
             }),
             error: None,
@@ -209,7 +244,7 @@ where
             result: Some(ToolsListResponse {
                 tools: {
                     let mut tools = ToolsType::list();
-                    tools.retain(|tool| !self.disabled_tools.contains(tool.name));
+                    tools.retain(|tool| !self.meta.disabled_tools.contains(tool.name));
 
                     for tool in &mut tools {
                         tool.input_schema =
@@ -298,7 +333,9 @@ where
     ) -> Response<Value> {
         match self.resources_handler.list(request).await {
             Ok(mut response) => {
-                response.resources.extend(self.resources.clone());
+                response
+                    .resources
+                    .extend(self.meta.resources.iter().cloned());
                 Response {
                     jsonrpc: JSON_RPC_VERSION.to_string(),
                     id,
@@ -345,7 +382,7 @@ where
         request: ResourcesReadRequest,
         id: Option<RequestId>,
     ) -> Response<Value> {
-        match self.resource_contents.get(&request.uri) {
+        match self.meta.resource_contents.get(&request.uri) {
             Some(content) => Response {
                 jsonrpc: JSON_RPC_VERSION.to_string(),
                 id,
