@@ -255,10 +255,9 @@ where
     let state = data.0.clone();
     let cleanup_session_id = session_id.clone();
     SSE::new(async_stream::stream! {
-        let _cleanup = if owns_session {
-            SessionCleanup::owning(state, cleanup_session_id)
-        } else {
-            SessionCleanup::attached(state, cleanup_session_id)
+        let _cleanup = match attachment {
+            None => SessionCleanup::owning(state, cleanup_session_id),
+            Some(sender_gen) => SessionCleanup::attached(state, cleanup_session_id, sender_gen),
         };
         let endpoint_uri = format!("?session_id={}", session_id);
         yield Event::message(endpoint_uri).event_type("endpoint");
@@ -310,6 +309,7 @@ where
                 Session {
                     server: Arc::new(tokio::sync::Mutex::new(server)),
                     sender: None,
+                    sender_gen: 0,
                     last_active: Instant::now(),
                 },
             );
