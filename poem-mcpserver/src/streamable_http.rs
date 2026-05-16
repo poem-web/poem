@@ -2,7 +2,7 @@
 
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
     time::Duration,
 };
 
@@ -23,10 +23,12 @@ use crate::{
     prompts::Prompts,
     protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest, Requests},
     resources::Resources,
+    server::ServerMetadata,
     tool::Tools,
 };
 
 const DEFAULT_SESSION_TIMEOUT: Duration = Duration::from_secs(60 * 5);
+const SSE_KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(15);
 const REQUEST_LOG_TARGET: &str = "poem_mcpserver::payload::request";
 const RESPONSE_LOG_TARGET: &str = "poem_mcpserver::payload::response";
 
@@ -55,22 +57,88 @@ type ServerFactoryFn<ToolsType, PromptsType, ResourcesType> =
 struct Session<ToolsType, PromptsType, ResourcesType> {
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType, ResourcesType>>>,
     sender: Option<tokio::sync::mpsc::UnboundedSender<String>>,
+    /// Monotonic counter incremented every time a new SSE `sender` is
+    /// installed on this session. The attached [`SessionCleanup`] guard
+    /// remembers the generation it observed at attach time and only clears
+    /// `sender` on drop when it still owns the current generation, so a
+    /// stale guard cannot wipe out a sender that was replaced by a newer GET.
+    sender_gen: u64,
     last_active: Instant,
 }
 
 struct State<ToolsType, PromptsType, ResourcesType> {
     server_factory: ServerFactoryFn<ToolsType, PromptsType, ResourcesType>,
     sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType, ResourcesType>>>,
+    /// Cached shared metadata, populated lazily from the first server
+    /// produced by `server_factory`. All subsequent sessions reuse this
+    /// instance, so the heavy configuration (resources, server info, ...) is
+    /// not duplicated across sessions.
+    shared_metadata: OnceLock<Arc<ServerMetadata>>,
 }
 
+impl<ToolsType, PromptsType, ResourcesType> State<ToolsType, PromptsType, ResourcesType>
+where
+    ToolsType: Tools + Send + Sync + 'static,
+    PromptsType: Prompts + Send + Sync + 'static,
+    ResourcesType: Resources + Send + Sync + 'static,
+{
+    /// Create a fresh per-session [`McpServer`] from the configured factory,
+    /// substituting its metadata with the shared cached instance to avoid
+    /// duplicating the static configuration across sessions.
+    fn make_server(&self, request: &Request) -> McpServer<ToolsType, PromptsType, ResourcesType> {
+        let mut server = (self.server_factory)(request);
+        let shared = self
+            .shared_metadata
+            .get_or_init(|| server.metadata().clone())
+            .clone();
+        server.set_metadata(shared);
+        server
+    }
+}
+
+/// On-drop guard for an SSE attachment.
+///
+/// In legacy SSE transport mode ([`SessionCleanupKind::Owning`]) the session
+/// lifetime is bound to the SSE stream, so dropping removes the whole
+/// session. In streamable HTTP resume mode ([`SessionCleanupKind::Attached`])
+/// the session was created by a POST `initialize` and survives the SSE
+/// detaching: dropping only clears the per-session SSE sender, and only when
+/// the recorded generation still matches — this prevents a stale guard
+/// (whose stream already lost the channel to a newer GET) from wiping out
+/// the live sender installed by the newer attachment.
 struct SessionCleanup<ToolsType, PromptsType, ResourcesType> {
     state: Arc<State<ToolsType, PromptsType, ResourcesType>>,
     session_id: String,
+    kind: SessionCleanupKind,
+}
+
+enum SessionCleanupKind {
+    Owning,
+    Attached { sender_gen: u64 },
 }
 
 impl<ToolsType, PromptsType, ResourcesType> SessionCleanup<ToolsType, PromptsType, ResourcesType> {
-    fn new(state: Arc<State<ToolsType, PromptsType, ResourcesType>>, session_id: String) -> Self {
-        Self { state, session_id }
+    fn owning(
+        state: Arc<State<ToolsType, PromptsType, ResourcesType>>,
+        session_id: String,
+    ) -> Self {
+        Self {
+            state,
+            session_id,
+            kind: SessionCleanupKind::Owning,
+        }
+    }
+
+    fn attached(
+        state: Arc<State<ToolsType, PromptsType, ResourcesType>>,
+        session_id: String,
+        sender_gen: u64,
+    ) -> Self {
+        Self {
+            state,
+            session_id,
+            kind: SessionCleanupKind::Attached { sender_gen },
+        }
     }
 }
 
@@ -78,18 +146,37 @@ impl<ToolsType, PromptsType, ResourcesType> Drop
     for SessionCleanup<ToolsType, PromptsType, ResourcesType>
 {
     fn drop(&mut self) {
-        if self
-            .state
-            .sessions
-            .lock()
-            .unwrap()
-            .remove(&self.session_id)
-            .is_some()
-        {
-            tracing::info!(
-                session_id = self.session_id,
-                "cleaned up closed standard session"
-            );
+        let mut sessions = self.state.sessions.lock().unwrap();
+        match self.kind {
+            SessionCleanupKind::Owning => {
+                if sessions.remove(&self.session_id).is_some() {
+                    tracing::info!(
+                        session_id = self.session_id,
+                        "cleaned up closed standard session"
+                    );
+                }
+            }
+            SessionCleanupKind::Attached { sender_gen } => {
+                if let Some(session) = sessions.get_mut(&self.session_id) {
+                    // Only clear the sender if it still belongs to *this*
+                    // attachment. A newer GET may have replaced it, in which
+                    // case the newer guard is responsible for it.
+                    if session.sender_gen == sender_gen {
+                        session.sender = None;
+                        tracing::info!(
+                            session_id = self.session_id,
+                            "detached SSE from streamable HTTP session"
+                        );
+                    } else {
+                        tracing::debug!(
+                            session_id = self.session_id,
+                            stale_gen = sender_gen,
+                            current_gen = session.sender_gen,
+                            "stale SSE attachment guard skipped"
+                        );
+                    }
+                }
+            }
         }
     }
 }
@@ -116,29 +203,62 @@ where
     PromptsType: Prompts + Send + Sync + 'static,
     ResourcesType: Resources + Send + Sync + 'static,
 {
-    let session_id = session_id();
-    let server = (data.0.server_factory)(request);
+    let existing_session_id = request
+        .headers()
+        .get("Mcp-Session-Id")
+        .and_then(|value| value.to_str().ok())
+        .map(String::from);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-    {
+    let (session_id, attachment) = if let Some(existing) = existing_session_id {
+        // Streamable HTTP "resume" path: attach SSE to an already-initialised
+        // session, do NOT create a new server (which would leak the existing
+        // one and duplicate state).
+        let mut sessions = data.0.sessions.lock().unwrap();
+        let Some(session) = sessions.get_mut(&existing) else {
+            tracing::warn!(
+                session_id = existing,
+                "GET for unknown session id (expired or invalid)"
+            );
+            return StatusCode::NOT_FOUND.into_response();
+        };
+        // Replace any previous sender; dropping it will tear down the previous
+        // SSE stream (if any), which is the desired behaviour for resume. Bump
+        // the generation so the previous attachment's drop guard becomes a
+        // no-op and cannot wipe out our freshly installed sender.
+        session.sender = Some(tx);
+        session.sender_gen = session.sender_gen.wrapping_add(1);
+        session.last_active = Instant::now();
+        let sender_gen = session.sender_gen;
+        tracing::info!(session_id = existing, "attached SSE to existing session");
+        (existing, Some(sender_gen))
+    } else {
+        // Legacy SSE transport: create a brand new session keyed off the SSE
+        // connection itself.
+        let session_id = session_id();
+        let server = data.0.make_server(request);
         let mut sessions = data.0.sessions.lock().unwrap();
         sessions.insert(
             session_id.clone(),
             Session {
                 server: Arc::new(tokio::sync::Mutex::new(server)),
                 sender: Some(tx),
+                sender_gen: 0,
                 last_active: Instant::now(),
             },
         );
-    }
-
-    tracing::info!(session_id, "created new standard session (SSE)");
+        tracing::info!(session_id, "created new standard session (SSE)");
+        (session_id, None)
+    };
 
     let state = data.0.clone();
     let cleanup_session_id = session_id.clone();
     SSE::new(async_stream::stream! {
-        let _cleanup = SessionCleanup::new(state, cleanup_session_id);
+        let _cleanup = match attachment {
+            None => SessionCleanup::owning(state, cleanup_session_id),
+            Some(sender_gen) => SessionCleanup::attached(state, cleanup_session_id, sender_gen),
+        };
         let endpoint_uri = format!("?session_id={}", session_id);
         yield Event::message(endpoint_uri).event_type("endpoint");
 
@@ -146,6 +266,7 @@ where
              yield Event::message(msg).event_type("message");
         }
     })
+    .keep_alive(SSE_KEEP_ALIVE_INTERVAL)
     .into_response()
 }
 
@@ -176,7 +297,7 @@ where
 
         if batch_request.len() == 1 && batch_request.requests()[0].is_initialize() {
             let session_id = session_id();
-            let mut server = (data.0.server_factory)(request);
+            let mut server = data.0.make_server(request);
             let initialize_request = batch_request.0.into_iter().next().unwrap();
             let resp = server
                 .handle_request(initialize_request)
@@ -188,6 +309,7 @@ where
                 Session {
                     server: Arc::new(tokio::sync::Mutex::new(server)),
                     sender: None,
+                    sender_gen: 0,
                     last_active: Instant::now(),
                 },
             );
@@ -278,6 +400,7 @@ where
                     }
                 }
             })
+            .keep_alive(SSE_KEEP_ALIVE_INTERVAL)
             .into_response()
         }
         _ => {
@@ -364,10 +487,23 @@ where
 ///
 /// Set `Config::session_timeout` to `None` to disable idle expiration.
 ///
-/// Standard SSE sessions are still cleaned up when the stream closes. HTTP-only
-/// Streamable HTTP sessions do not have a persistent connection that can signal
-/// client process exit, so clients must explicitly `DELETE` them if idle
-/// expiration is disabled.
+/// Standard SSE sessions are still cleaned up when the stream closes. The SSE
+/// stream emits periodic keep-alive comments so that silently disconnected
+/// clients (e.g. the client process was killed without sending `DELETE`) are
+/// detected through a failing socket write and their session is reclaimed
+/// promptly. HTTP-only Streamable HTTP sessions do not have a persistent
+/// connection that can signal client process exit, so clients must explicitly
+/// `DELETE` them if idle expiration is disabled.
+///
+/// # Shared configuration
+///
+/// The static configuration of the [`McpServer`] returned by `server_factory`
+/// (server info, registered resources, disabled tools, ...) is captured from
+/// the first invocation and shared across every session via an [`Arc`]. This
+/// keeps the per-session memory footprint small even when serving large
+/// embedded resources. The per-session mutable state of your `Tools` /
+/// `Prompts` / `Resources` implementations is still produced fresh by the
+/// factory on every new session.
 ///
 /// # Example
 /// ```rust,no_run
@@ -397,6 +533,7 @@ where
     let state = Arc::new(State {
         server_factory: Box::new(server_factory),
         sessions: Default::default(),
+        shared_metadata: OnceLock::new(),
     });
 
     let session_timeout = config.session_timeout;
@@ -563,6 +700,89 @@ mod tests {
                 "jsonrpc": "2.0",
                 "method": "notifications/initialized"
             }))
+            .send()
+            .await
+            .assert_status(StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn get_with_session_id_attaches_to_existing_session() {
+        let app = endpoint_with_config(
+            |_| McpServer::new(),
+            Config {
+                session_timeout: None,
+            },
+        );
+        let cli = TestClient::new(app);
+
+        let resp = cli
+            .post("/")
+            .header("Accept", "application/json")
+            .content_type("application/json")
+            .body_json(&json!({
+                "jsonrpc": "2.0",
+                "id": "init",
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": { "name": "test-client", "version": "1.0.0" }
+                }
+            }))
+            .send()
+            .await;
+        resp.assert_status_is_ok();
+        let session_id = resp
+            .0
+            .headers()
+            .get("Mcp-Session-Id")
+            .expect("session id header")
+            .to_str()
+            .expect("valid session id")
+            .to_string();
+
+        // Resuming with the session id MUST NOT create a new session.
+        let resume = cli
+            .get("/")
+            .header("Mcp-Session-Id", &session_id)
+            .send()
+            .await;
+        resume.assert_status_is_ok();
+        let mut stream = resume.sse_stream();
+        let event = stream.next().await.expect("endpoint event");
+        let echoed_session = match event {
+            poem::web::sse::Event::Message { data, .. } => data
+                .strip_prefix("?session_id=")
+                .expect("session id payload")
+                .to_string(),
+            poem::web::sse::Event::Retry { .. } => panic!("unexpected retry event"),
+        };
+        assert_eq!(echoed_session, session_id);
+
+        // Dropping the stream should release the SSE attachment but keep the
+        // underlying session intact, since the streamable HTTP session is owned
+        // by the POST init, not by the SSE GET.
+        drop(stream);
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        cli.delete("/")
+            .header("Mcp-Session-Id", &session_id)
+            .send()
+            .await
+            .assert_status(StatusCode::ACCEPTED);
+    }
+
+    #[tokio::test]
+    async fn get_with_unknown_session_id_returns_not_found() {
+        let app = endpoint_with_config(
+            |_| McpServer::new(),
+            Config {
+                session_timeout: None,
+            },
+        );
+        let cli = TestClient::new(app);
+        cli.get("/")
+            .header("Mcp-Session-Id", "deadbeef")
             .send()
             .await
             .assert_status(StatusCode::NOT_FOUND);
