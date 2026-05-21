@@ -13,7 +13,7 @@ use tokio_rustls::{
     rustls::{
         ServerConfig,
         crypto::aws_lc_rs::sign::any_ecdsa_type,
-        pki_types::{CertificateDer, PrivateKeyDer},
+        pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, pem::PemObject},
         sign::CertifiedKey,
     },
     server::TlsStream,
@@ -111,8 +111,8 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             let mut key = None;
 
             if let Some(cache_cert) = &self.auto_cert.cache_cert {
-                match rustls_pemfile::certs(&mut cache_cert.as_slice())
-                    .collect::<Result<_, _>>()
+                match CertificateDer::pem_slice_iter(cache_cert.as_slice())
+                    .collect::<Result<Vec<_>, _>>()
                     .map_err(|err| IoError::other(format!("invalid pem: {err}")))
                 {
                     Ok(c) => certs = Some(c),
@@ -123,7 +123,7 @@ impl<T: Listener> Listener for AutoCertListener<T> {
             }
 
             if let Some(cache_key) = &self.auto_cert.cache_key {
-                match rustls_pemfile::pkcs8_private_keys(&mut cache_key.as_slice())
+                match PrivatePkcs8KeyDer::pem_slice_iter(cache_key.as_slice())
                     .collect::<Result<Vec<_>, _>>()
                 {
                     Ok(k) => key = k.into_iter().next(),
@@ -382,8 +382,8 @@ pub async fn issue_cert<T: AsRef<str>>(
         )
         .await?;
     let pkey_pem = cert.serialize_private_key_pem();
-    let cert_chain = rustls_pemfile::certs(&mut acme_cert_pem.as_slice())
-        .collect::<Result<_, _>>()
+    let cert_chain = CertificateDer::pem_slice_iter(acme_cert_pem.as_slice())
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|err| IoError::other(format!("invalid pem: {err}")))?;
     let cert_key = CertifiedKey::new(cert_chain, pk);
 

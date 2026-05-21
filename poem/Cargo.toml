@@ -30,7 +30,7 @@ server = [
 ]
 websocket = ["tokio/rt", "tokio-tungstenite", "base64"]
 multipart = ["multer"]
-rustls = ["server", "tokio-rustls", "rustls-pemfile"]
+rustls = ["server", "tokio-rustls"]
 native-tls = ["server", "tokio-native-tls"]
 openssl-tls = ["server", "tokio-openssl", "openssl"]
 sse = ["tokio-stream"]
@@ -107,7 +107,6 @@ sync_wrapper = { version = "1.0.0", features = ["futures"] }
 multer = { version = "3.0.0", features = ["tokio"], optional = true }
 tokio-tungstenite = { version = "0.27", optional = true }
 tokio-rustls = { workspace = true, optional = true }
-rustls-pemfile = { version = "2.0.0", optional = true }
 async-compression = { version = "0.4.0", optional = true, features = [
     "tokio",
     "gzip",
