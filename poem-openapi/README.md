@@ -55,7 +55,8 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | camino             | Integrate with the [`camino` crate](https://crates.io/crates/camino).                                                                                              |
 | chrono             | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                                                                                              |
 | time               | Integrate with the [`time` crate](https://crates.io/crates/time).                                                                                                  |
-| humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)                                                                                         |
+| humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)
+| jiff               | Integrate with the [`jiff` create](https://crates.io/crates/jiff)                                                                                         |
 | openapi-explorer   | Add OpenAPI Explorer support                                                                                                                                       |
 | swagger-ui         | Add swagger UI support                                                                                                                                             |
 | rapidoc            | Add RapiDoc UI support                                                                                                                                             |
