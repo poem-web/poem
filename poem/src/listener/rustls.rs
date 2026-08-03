@@ -5,12 +5,12 @@ use futures_util::{
     stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
-use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_rustls::{
     rustls::{
         ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, WantsVerifier,
         crypto::{CryptoProvider, aws_lc_rs, aws_lc_rs::sign::any_supported_type},
+        pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
     },
@@ -69,21 +69,11 @@ impl RustlsCertificate {
 
 impl RustlsCertificate {
     fn create_certificate_key(&self) -> IoResult<CertifiedKey> {
-        let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
-            .collect::<Result<_, _>>()
+        let cert = CertificateDer::pem_slice_iter(self.cert.as_slice())
+            .collect::<Result<Vec<_>, _>>()
             .map_err(|_| IoError::other("failed to parse tls certificates"))?;
-        let mut key_reader = self.key.as_slice();
-        let priv_key = loop {
-            match rustls_pemfile::read_one(&mut key_reader)? {
-                Some(Item::Pkcs1Key(key)) => break key.into(),
-                Some(Item::Pkcs8Key(key)) => break key.into(),
-                Some(Item::Sec1Key(key)) => break key.into(),
-                None => {
-                    return Err(IoError::other("failed to parse tls private keys"));
-                }
-                _ => continue,
-            }
-        };
+        let priv_key = PrivateKeyDer::from_pem_slice(self.key.as_slice())
+            .map_err(|_| IoError::other("failed to parse tls private keys"))?;
 
         let key =
             any_supported_type(&priv_key).map_err(|_| IoError::other("invalid private key"))?;
@@ -275,10 +265,9 @@ fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
         .unwrap()
 }
 
-fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
+fn read_trust_anchor(trust_anchor: &[u8]) -> IoResult<RootCertStore> {
     let mut store = RootCertStore::empty();
-    let ders = rustls_pemfile::certs(&mut trust_anchor);
-    for der in ders {
+    for der in CertificateDer::pem_slice_iter(trust_anchor) {
         let der = der.map_err(|err| IoError::other(err.to_string()))?;
         store
             .add(der)
