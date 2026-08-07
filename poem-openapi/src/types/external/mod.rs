@@ -22,6 +22,8 @@ mod humantime;
 mod humantime_wrapper;
 mod integers;
 mod ip;
+#[cfg(feature = "jiff")]
+mod jiff;
 mod non_zero;
 mod optional;
 mod path_buf;
