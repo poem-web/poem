@@ -26,56 +26,53 @@
 <p align="center"><code>A program is like a poem, you cannot write a poem without writing it. --- Dijkstra</code></p>
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
 
-***
+---
 
 This repo contains the following main components:
 
 | Crate                                                                                                             | Description                        | Documentation                        | ChangeLog                                  |
-|-------------------------------------------------------------------------------------------------------------------|------------------------------------|--------------------------------------|--------------------------------------------|
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------ | ------------------------------------------ |
 | **poem** [![](https://img.shields.io/crates/v/poem)](https://crates.io/crates/poem)                               | Poem Web                           | [(README)](poem/README.md)           | [(CHANGELOG)](poem/CHANGELOG.md)           |
 | **poem-lambda** [![](https://img.shields.io/crates/v/poem-lambda)](https://crates.io/crates/poem-lambda)          | Poem for AWS Lambda                | [(README)](poem-lambda/README.md)    | [(CHANGELOG)](poem-lambda/CHANGELOG.md)    |
 | **poem-openapi** [![](https://img.shields.io/crates/v/poem-openapi)](https://crates.io/crates/poem-openapi)       | OpenAPI for Poem Web               | [(README)](poem-openapi/README.md)   | [(CHANGELOG)](poem-openapi/CHANGELOG.md)   |
 | **poem-grpc** [![](https://img.shields.io/crates/v/poem-grpc)](https://crates.io/crates/poem-grpc)                | GRPC support for Poem              | [(README)](poem-grpc/README.md)      | [(CHANGELOG)](poem-grpc/CHANGELOG.md)      |
 | **poem-mcpserver** [![](https://img.shields.io/crates/v/poem-mcpserver)](https://crates.io/crates/poem-mcpserver) | MCP Server implementation for Poem | [(README)](poem-mcpserver/README.md) | [(CHANGELOG)](poem-mcpserver/CHANGELOG.md) |
 
-***
+---
 
 The following are cases of community use:
 
-| Repo                                                                             | Description                                                                                                            | Documentation                                                                           |
-|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| [delicate](https://github.com/BinChengZhao/delicate)                             | A distributed task scheduling platform written in rust.                                                                | [(README)](https://delicate-rs.github.io/Roadmap.html)                                  |
-| [databend](https://github.com/datafuselabs/databend)                             | A cloud-native data warehouse written in rust.                                                                         | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746)                        |
-| [muse](https://leihuo.163.com/)                                                  | A NetEase Leihuo's internal art resource sharing platform, backend in rust.                                            |                                                                                         |
-| [hik-proconnect](https://www.hikvision.com/en/products/software/hik-proconnect/) | A front-end automated deployment platform based on continuous integration of aws. Hik-ProConnect project for Hikvision |                                                                                         |
-| [warpgate](https://github.com/eugeny/warpgate)                                   | A smart SSH bastion host that works with any SSH clients.                                                              | [(README)](https://github.com/warp-tech/warpgate/blob/main/README.md)                   |
-| [lust](https://github.com/ChillFish8/lust)                                       | A fast, auto-optimizing image server designed for high throughput and caching.                                         | [(README)](https://github.com/ChillFish8/lust/blob/master/README.md)                    |
-| [aptos](https://github.com/aptos-labs/aptos-core)                                | Building the safest and most scalable Layer 1 blockchain.                                                              | [(WEBSITE)](https://aptoslabs.com/)                                                     |
-| [poem-casbin](https://github.com/casbin-rs/poem-casbin)                          | Casbin access control middleware for poem framework.                                                                   | [(WEBSITE)](https://casbin.org/)                                                        |
-| [poem-grants](https://github.com/DDtKey/protect-endpoints/tree/main/poem-grants) | Authorization extension to protect endpoints.                                                                          | [(README)](https://github.com/DDtKey/protect-endpoints/blob/main/poem-grants/README.md) |
-
+| Repo                                                                             | Description                                                                                                            | Documentation                                                                                   |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [delicate](https://github.com/BinChengZhao/delicate)                             | A distributed task scheduling platform written in rust.                                                                | [(README)](https://delicate-rs.github.io/Roadmap.html)                                          |
+| [databend](https://github.com/datafuselabs/databend)                             | A cloud-native data warehouse written in rust.                                                                         | [(ROADMAP)](https://github.com/datafuselabs/databend/issues/746)                                |
+| [muse](https://leihuo.163.com/)                                                  | A NetEase Leihuo's internal art resource sharing platform, backend in rust.                                            |                                                                                                 |
+| [hik-proconnect](https://www.hikvision.com/en/products/software/hik-proconnect/) | A front-end automated deployment platform based on continuous integration of aws. Hik-ProConnect project for Hikvision |                                                                                                 |
+| [warpgate](https://github.com/eugeny/warpgate)                                   | A smart SSH bastion host that works with any SSH clients.                                                              | [(README)](https://github.com/warp-tech/warpgate/blob/main/README.md)                           |
+| [lust](https://github.com/ChillFish8/lust)                                       | A fast, auto-optimizing image server designed for high throughput and caching.                                         | [(README)](https://github.com/ChillFish8/lust/blob/master/README.md)                            |
+| [aptos](https://github.com/aptos-labs/aptos-core)                                | Building the safest and most scalable Layer 1 blockchain.                                                              | [(WEBSITE)](https://aptoslabs.com/)                                                             |
+| [poem-casbin](https://github.com/casbin-rs/poem-casbin)                          | Casbin access control middleware for poem framework.                                                                   | [(WEBSITE)](https://casbin.org/)                                                                |
+| [poem-grants](https://github.com/DDtKey/protect-endpoints/tree/main/poem-grants) | Authorization extension to protect endpoints.                                                                          | [(README)](https://github.com/DDtKey/protect-endpoints/blob/main/poem-grants/README.md)         |
+| [poem-helmet](https://github.com/danielkov/rust-helmet)                          | A security middleware library for popular Rust web frameworks, with first-class `poem` support.                        | [(README)](https://github.com/danielkov/rust-helmet/blob/master/packages/poem-helmet/README.md) |
 
 ### Startups
 
 - [My Data My Consent](https://mydatamyconsent.com/) | Online data sharing for people and businesses simplified
 
-
 ### Resources
 
 - [Examples](https://github.com/poem-web/poem/tree/master/examples)
-
 
 ## Contributing
 
 :balloon: Thanks for your help improving the project! We are so happy to have you!
 
-
 ## License
 
 Licensed under either of
 
-* Apache License, Version 2.0,([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-* MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0,([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
   at your option.
 
 ### Contribution
