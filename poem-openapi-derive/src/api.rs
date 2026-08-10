@@ -373,14 +373,30 @@ fn generate_operation(
         }).unwrap_or_default();
         let validators_update_meta = validator.create_update_meta(crate_name)?;
 
-        // do extract
-        let explode = operation_param.explode.unwrap_or(true);
-
         let style = match &operation_param.style {
             Some(operation_param) => {
                 quote!(::std::option::Option::Some(#crate_name::ParameterStyle::#operation_param))
             }
             None => quote!(::std::option::Option::None),
+        };
+        let extract_explode = operation_param.explode.unwrap_or(true);
+        let meta_explode = match operation_param.explode {
+            Some(explode) => quote!(#explode),
+            None => quote! {
+                match #style {
+                    ::std::option::Option::Some(#crate_name::ParameterStyle::Form) => true,
+                    ::std::option::Option::Some(_) => false,
+                    ::std::option::Option::None => ::std::matches!(
+                        <#arg_ty as #crate_name::ApiExtractor>::param_in(),
+                        ::std::option::Option::Some(
+                            #crate_name::registry::MetaParamIn::Query
+                                | #crate_name::registry::MetaParamIn::Cookie
+                                | #crate_name::registry::MetaParamIn::CookiePrivate
+                                | #crate_name::registry::MetaParamIn::CookieSigned
+                        )
+                    ),
+                }
+            },
         };
 
         parse_args.push(quote! {
@@ -389,7 +405,7 @@ fn generate_operation(
                 ignore_case: #ignore_case,
                 default_value: #default_value,
                 example_value: #example_value,
-                explode: #explode,
+                explode: #extract_explode,
                 style: #style,
             };
 
@@ -427,7 +443,7 @@ fn generate_operation(
                     description: #param_desc,
                     required: <#arg_ty as #crate_name::ApiExtractor>::PARAM_IS_REQUIRED && !#has_default,
                     deprecated: #deprecated,
-                    explode: #explode,
+                    explode: #meta_explode,
                     style: #style,
                 };
                 params.push(meta_param);
@@ -564,7 +580,7 @@ fn generate_operation(
                 description: #description,
                 required: <#ty as #crate_name::types::Type>::IS_REQUIRED,
                 deprecated: #deprecated,
-                explode: true,
+                explode: false,
                 style: None,
             });
         });

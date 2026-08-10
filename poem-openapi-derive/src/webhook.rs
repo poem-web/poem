@@ -213,7 +213,20 @@ fn generate_operation(
             .unwrap_or_else(|| arg_ident.unraw().to_string());
         let param_desc = optional_literal_string(&param_description);
         let deprecated = operation_param.deprecated;
-        let explode = operation_param.explode.unwrap_or(true);
+        let explode = match operation_param.explode {
+            Some(explode) => quote!(#explode),
+            None => quote! {
+                ::std::matches!(
+                    <#arg_ty as #crate_name::ApiExtractor>::param_in(),
+                    ::std::option::Option::Some(
+                        #crate_name::registry::MetaParamIn::Query
+                            | #crate_name::registry::MetaParamIn::Cookie
+                            | #crate_name::registry::MetaParamIn::CookiePrivate
+                            | #crate_name::registry::MetaParamIn::CookieSigned
+                    )
+                )
+            },
+        };
 
         params_meta.push(quote! {
             if <#arg_ty as #crate_name::ApiExtractor>::TYPES.contains(&#crate_name::ApiExtractorType::Parameter) {

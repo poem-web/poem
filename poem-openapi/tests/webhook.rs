@@ -1,7 +1,7 @@
 use poem::http::Method;
 use poem_openapi::{
     OpenApiService, Tags, Webhook,
-    param::{Path, Query},
+    param::{Header, Path, Query},
     payload::Json,
     registry::{
         MetaExternalDocument, MetaMediaType, MetaOperationParam, MetaParamIn, MetaRequest,
@@ -112,7 +112,14 @@ async fn parameters() {
     #[allow(dead_code)]
     trait MyWebhooks {
         #[oai(method = "post")]
-        fn test(&self, a: Query<i32>, b: Path<String>);
+        fn test(
+            &self,
+            a: Query<i32>,
+            b: Path<String>,
+            c: Header<String>,
+            #[oai(explode = true)] d: Path<String>,
+            #[oai(explode = false)] e: Query<i32>,
+        );
     }
 
     assert_eq!(
@@ -135,7 +142,37 @@ async fn parameters() {
                 description: None,
                 required: true,
                 deprecated: false,
+                explode: false,
+                style: None,
+            },
+            MetaOperationParam {
+                name: "c".to_string(),
+                schema: String::schema_ref(),
+                in_type: MetaParamIn::Header,
+                description: None,
+                required: true,
+                deprecated: false,
+                explode: false,
+                style: None,
+            },
+            MetaOperationParam {
+                name: "d".to_string(),
+                schema: String::schema_ref(),
+                in_type: MetaParamIn::Path,
+                description: None,
+                required: true,
+                deprecated: false,
                 explode: true,
+                style: None,
+            },
+            MetaOperationParam {
+                name: "e".to_string(),
+                schema: i32::schema_ref(),
+                in_type: MetaParamIn::Query,
+                description: None,
+                required: true,
+                deprecated: false,
+                explode: false,
                 style: None,
             }
         ]
