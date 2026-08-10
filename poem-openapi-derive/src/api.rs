@@ -383,19 +383,15 @@ fn generate_operation(
         let meta_explode = match operation_param.explode {
             Some(explode) => quote!(#explode),
             None => quote! {
-                match #style {
-                    ::std::option::Option::Some(#crate_name::ParameterStyle::Form) => true,
-                    ::std::option::Option::Some(_) => false,
-                    ::std::option::Option::None => ::std::matches!(
-                        <#arg_ty as #crate_name::ApiExtractor>::param_in(),
-                        ::std::option::Option::Some(
-                            #crate_name::registry::MetaParamIn::Query
-                                | #crate_name::registry::MetaParamIn::Cookie
-                                | #crate_name::registry::MetaParamIn::CookiePrivate
-                                | #crate_name::registry::MetaParamIn::CookieSigned
-                        )
-                    ),
-                }
+                ::std::matches!(
+                    <#arg_ty as #crate_name::ApiExtractor>::param_in(),
+                    ::std::option::Option::Some(
+                        #crate_name::registry::MetaParamIn::Query
+                            | #crate_name::registry::MetaParamIn::Cookie
+                            | #crate_name::registry::MetaParamIn::CookiePrivate
+                            | #crate_name::registry::MetaParamIn::CookieSigned
+                    )
+                )
             },
         };
 

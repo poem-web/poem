@@ -1107,7 +1107,6 @@ fn parameter_explode_defaults_and_overrides() {
             default_query: Query<Vec<i32>>,
             #[oai(explode = false)] collapsed_query: Query<Vec<i32>>,
             #[oai(style = "form")] form_query: Query<Vec<i32>>,
-            #[oai(style = "deep_object")] deep_object_query: Query<String>,
         ) {
         }
     }
@@ -1128,7 +1127,6 @@ fn parameter_explode_defaults_and_overrides() {
     assert!(explode("default_query"));
     assert!(!explode("collapsed_query"));
     assert!(explode("form_query"));
-    assert!(!explode("deep_object_query"));
 
     let spec: serde_json::Value =
         serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
@@ -1147,11 +1145,10 @@ fn parameter_explode_defaults_and_overrides() {
     assert!(explode("default_query"));
     assert!(!explode("collapsed_query"));
     assert!(explode("form_query"));
-    assert!(!explode("deep_object_query"));
 }
 
 #[tokio::test]
-async fn parameter_style_does_not_change_runtime_explode_default() {
+async fn parameter_style_does_not_change_explode_default() {
     struct Api;
 
     #[OpenApi]
@@ -1164,6 +1161,10 @@ async fn parameter_style_does_not_change_runtime_explode_default() {
             Json(values.0)
         }
     }
+
+    let param = &Api::meta()[0].paths[0].operations[0].params[0];
+    assert_eq!(param.style, Some(ParameterStyle::PipeDelimited));
+    assert!(param.explode);
 
     let cli = TestClient::new(OpenApiService::new(Api, "test", "1.0"));
 
