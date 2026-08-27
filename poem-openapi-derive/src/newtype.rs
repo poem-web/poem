@@ -192,6 +192,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
     let expanded = quote! {
         impl #impl_generics #crate_name::types::Type for #ident #ty_generics #where_clause {
             const IS_REQUIRED: bool = <#inner_ty as #crate_name::types::Type>::IS_REQUIRED;
+            const IS_NULLABLE: bool = <#inner_ty as #crate_name::types::Type>::IS_NULLABLE;
             type RawValueType = <#inner_ty as #crate_name::types::Type>::RawValueType;
             type RawElementValueType = <#inner_ty as #crate_name::types::Type>::RawElementValueType;
 

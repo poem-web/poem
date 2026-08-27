@@ -32,6 +32,9 @@ pub trait Type: Send + Sync {
     /// If it is `true`, it means that this type is required.
     const IS_REQUIRED: bool;
 
+    /// If it is `true`, it means that this type is nullable.
+    const IS_NULLABLE: bool = false;
+
     /// The raw type used for validator.
     ///
     /// Usually it is `Self`, but the wrapper type is its internal type.
@@ -198,6 +201,8 @@ pub trait ToHeader: Type {
 impl<T: Type> Type for &T {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
 
+    const IS_NULLABLE: bool = T::IS_NULLABLE;
+
     type RawValueType = T::RawValueType;
 
     type RawElementValueType = T::RawElementValueType;
@@ -251,6 +256,8 @@ impl<T: ToHeader> ToHeader for &T {
 
 impl<T: Type> Type for Arc<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
+
+    const IS_NULLABLE: bool = T::IS_NULLABLE;
 
     type RawValueType = T::RawValueType;
 
@@ -329,6 +336,8 @@ impl<T: ToHeader> ToHeader for Arc<T> {
 
 impl<T: Type> Type for Box<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
+
+    const IS_NULLABLE: bool = T::IS_NULLABLE;
 
     type RawValueType = T::RawValueType;
 

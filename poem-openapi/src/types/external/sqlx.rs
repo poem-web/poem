@@ -10,6 +10,8 @@ use crate::{
 impl<T: Type> Type for sqlx::types::Json<T> {
     const IS_REQUIRED: bool = Self::RawValueType::IS_REQUIRED;
 
+    const IS_NULLABLE: bool = Self::RawValueType::IS_NULLABLE;
+
     type RawValueType = T;
 
     type RawElementValueType = T::RawElementValueType;

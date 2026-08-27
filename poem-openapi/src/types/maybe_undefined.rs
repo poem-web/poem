@@ -306,6 +306,8 @@ impl<T: Deref> MaybeUndefined<T> {
 impl<T: Type> Type for MaybeUndefined<T> {
     const IS_REQUIRED: bool = false;
 
+    const IS_NULLABLE: bool = true;
+
     type RawValueType = T::RawValueType;
 
     type RawElementValueType = T::RawElementValueType;

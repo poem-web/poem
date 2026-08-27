@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use poem_openapi::{
     Enum, NewType, Object, OpenApi,
     registry::{MetaExternalDocument, MetaSchema, MetaSchemaRef, Registry},
-    types::{Example, ParseFromJSON, ToJSON, Type},
+    types::{Example, MaybeUndefined, ParseFromJSON, ToJSON, Type},
 };
 use serde_json::json;
 
@@ -1131,4 +1131,37 @@ fn deserialize_with() {
         Obj::parse_from_json(Some(json!({"a": "3 + 4"}))).unwrap(),
         Obj { a: 7 }
     );
+}
+
+#[test]
+fn maybe_undefined_is_nullable() {
+    #[derive(Object)]
+    struct Inner {
+        v: i32,
+    }
+
+    #[derive(NewType)]
+    struct Wrapper(MaybeUndefined<i32>);
+
+    #[derive(Object)]
+    struct Obj {
+        a: MaybeUndefined<i32>,
+        b: Option<i32>,
+        c: Box<MaybeUndefined<i32>>,
+        d: MaybeUndefined<Inner>,
+        e: Wrapper,
+    }
+
+    let meta = get_meta::<Obj>();
+    assert!(meta.properties[0].1.unwrap_inline().nullable);
+    assert!(!meta.properties[1].1.unwrap_inline().nullable);
+    assert!(meta.properties[2].1.unwrap_inline().nullable);
+
+    // OpenAPI 3.0 ignores keywords placed next to a `$ref`, so the reference
+    // is wrapped, the same way `#[oai(nullable)]` already wraps it.
+    let field = meta.properties[3].1.unwrap_inline();
+    assert!(field.nullable);
+    assert_eq!(field.all_of[0].unwrap_reference(), "Inner");
+
+    assert!(meta.properties[4].1.unwrap_inline().nullable);
 }
