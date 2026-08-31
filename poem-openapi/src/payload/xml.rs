@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
-    types::{ParseFromXML, ToXML, Type},
+    types::{ParseFromXML, Type},
 };
 
 /// A XML payload.
@@ -72,13 +73,13 @@ impl<T: ParseFromXML> ParsePayload for Xml<T> {
     }
 }
 
-impl<T: ToXML> IntoResponse for Xml<T> {
+impl<T: Serialize + Send> IntoResponse for Xml<T> {
     fn into_response(self) -> Response {
-        poem::web::Xml(self.0.to_xml()).into_response()
+        poem::web::Xml(self.0).into_response()
     }
 }
 
-impl<T: ToXML> ApiResponse for Xml<T> {
+impl<T: Serialize + Type> ApiResponse for Xml<T> {
     fn meta() -> MetaResponses {
         MetaResponses {
             responses: vec![MetaResponse {
