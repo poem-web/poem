@@ -259,7 +259,8 @@ fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
     // SAFETY: `CryptoProvider::get_default()` must be non-null at this point
     let provider = CryptoProvider::get_default().unwrap();
 
-    // SAFETY: process-level default provider is usable with the supplied versions
+    // SAFETY: process-level default provider is usable with the supplied
+    // versions
     ServerConfig::builder_with_provider(provider.clone())
         .with_protocol_versions(DEFAULT_VERSIONS)
         .unwrap()

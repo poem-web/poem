@@ -11,7 +11,8 @@ async fn main() -> Result<()> {
     let tools = service.list_tools(Default::default()).await?;
     println!("Available tools: {tools:#?}");
 
-    // Sending empty arguments object for get_review_count tool to satisfy schema
+    // Sending empty arguments object for get_review_count tool to satisfy
+    // schema
 
     let response = service
         .call_tool(

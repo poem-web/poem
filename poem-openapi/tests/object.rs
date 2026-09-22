@@ -1108,9 +1108,9 @@ fn deserialize_with() {
         a: i32,
     }
 
-    // NOTE(Rennorb): Function signature in complice with `parse_from_json` in the
-    // Type system. Would prefer the usual way of implementing this with a
-    // serializer reference, but this has to do for now.
+    // NOTE(Rennorb): Function signature in complice with `parse_from_json` in
+    // the Type system. Would prefer the usual way of implementing this with
+    // a serializer reference, but this has to do for now.
     fn add(value: Option<serde_json::Value>) -> poem_openapi::types::ParseResult<i32> {
         value
             .as_ref()

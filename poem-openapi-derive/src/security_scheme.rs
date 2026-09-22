@@ -244,7 +244,7 @@ impl SecuritySchemeArgs {
                 HeaderName::try_from(&**name).map_err(|_| {
                     Error::new(
                         name.span(),
-                        format!("`{}` is not a valid header name.", &**name),
+                        format!("`{}` is not a valid header name.", **name),
                     )
                 })?;
             }

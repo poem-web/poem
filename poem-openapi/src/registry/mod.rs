@@ -710,8 +710,8 @@ impl Registry {
                 }
             }
             None => {
-                // Inserting a fake type before calling the function allows recursive types to
-                // exist.
+                // Inserting a fake type before calling the function allows
+                // recursive types to exist.
                 self.schemas.insert(name.clone(), MetaSchema::new("fake"));
                 let mut meta_schema = f(self);
                 meta_schema.rust_typename = Some(std::any::type_name::<T>());

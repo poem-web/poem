@@ -161,7 +161,8 @@ impl crate::types::ParseFromJSON for Geometry {
     ) -> Result<Self, crate::types::ParseError<Self>> {
         let value = value.ok_or(crate::types::ParseError::expected_input())?;
 
-        // Try to parse as a geojson::Geometry and convert to geo_types::Geometry
+        // Try to parse as a geojson::Geometry and convert to
+        // geo_types::Geometry
         let geojson_geom = geojson::Geometry::try_from(value).map_err(|e| {
             crate::types::ParseError::custom(format!("Invalid GeoJSON geometry: {}", e))
         })?;
