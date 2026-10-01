@@ -380,9 +380,11 @@ fn generate_operation(
             None => quote!(::std::option::Option::None),
         };
         let extract_explode = operation_param.explode.unwrap_or(true);
-        let meta_explode = match operation_param.explode {
-            Some(explode) => quote!(#explode),
-            None => quote! {
+        let meta_explode = match (operation_param.explode, &operation_param.style) {
+            (Some(explode), _) => quote!(#explode),
+            (None, Some(ParameterStyle::Form)) => quote!(true),
+            (None, Some(_)) => quote!(false),
+            (None, None) => quote! {
                 ::std::matches!(
                     <#arg_ty as #crate_name::ApiExtractor>::param_in(),
                     ::std::option::Option::Some(

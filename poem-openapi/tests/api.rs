@@ -1103,9 +1103,9 @@ fn parameter_explode_defaults_and_overrides() {
             &self,
             id: Path<i32>,
             default_header: Header<Vec<i32>>,
-            #[oai(explode = true)] exploded_header: Header<Vec<i32>>,
+            #[oai(style = "simple", explode = true)] exploded_header: Header<Vec<i32>>,
             default_query: Query<Vec<i32>>,
-            #[oai(explode = false)] collapsed_query: Query<Vec<i32>>,
+            #[oai(style = "form", explode = false)] collapsed_query: Query<Vec<i32>>,
             #[oai(style = "form")] form_query: Query<Vec<i32>>,
         ) {
         }
@@ -1148,7 +1148,7 @@ fn parameter_explode_defaults_and_overrides() {
 }
 
 #[tokio::test]
-async fn parameter_style_does_not_change_explode_default() {
+async fn parameter_style_preserves_query_extraction_default() {
     struct Api;
 
     #[OpenApi]
@@ -1161,10 +1161,6 @@ async fn parameter_style_does_not_change_explode_default() {
             Json(values.0)
         }
     }
-
-    let param = &Api::meta()[0].paths[0].operations[0].params[0];
-    assert_eq!(param.style, Some(ParameterStyle::PipeDelimited));
-    assert!(param.explode);
 
     let cli = TestClient::new(OpenApiService::new(Api, "test", "1.0"));
 
@@ -1180,6 +1176,31 @@ async fn parameter_style_does_not_change_explode_default() {
         .await;
     response.assert_status_is_ok();
     response.assert_json(&[10, 20]).await;
+}
+
+#[test]
+fn parameter_explode_defaults_for_explicit_styles() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        #[allow(unused_variables)]
+        async fn get(
+            &self,
+            #[oai(style = "pipe_delimited")] pipe: Query<Vec<i32>>,
+            #[oai(style = "space_delimited")] space: Query<Vec<i32>>,
+        ) {
+        }
+    }
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    let params = spec["paths"]["/"]["get"]["parameters"].as_array().unwrap();
+    assert_eq!(params[0]["style"], "pipeDelimited");
+    assert_eq!(params[0]["explode"], false);
+    assert_eq!(params[1]["style"], "spaceDelimited");
+    assert_eq!(params[1]["explode"], false);
 }
 
 #[cfg(feature = "cookie")]
