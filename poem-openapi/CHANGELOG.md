@@ -34,6 +34,10 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 - Use `minItems`/`maxItems` rather than `minLength`/`maxLength` for fixed-size array schemas (`[T; LEN]`). [#1120](https://github.com/poem-web/poem/pull/1120)
 - Adapt derive macros to Syn 3 and preserve rejection of mutable API receivers; add BSON, SQLx, ULID and GeoJSON migration regressions. [#1198](https://github.com/poem-web/poem/pull/1198)
 
+## Changed
+
+- Avoid full-body copies when parsing JSON, XML, YAML and form payloads, and reuse the owned upload buffer when converting it to a string.
+
 # [5.1.16] 2025-07-28
 
 - Derive `Debug` for the bearer authentication extractor. [#1054](https://github.com/poem-web/poem/pull/1054)

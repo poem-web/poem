@@ -243,11 +243,11 @@ impl Body {
     pub async fn into_json<T: DeserializeOwned>(self) -> Result<T> {
         #[cfg(not(feature = "sonic-rs"))]
         {
-            Ok(serde_json::from_slice(&self.into_vec().await?).map_err(ParseJsonError::Parse)?)
+            Ok(serde_json::from_slice(&self.into_bytes().await?).map_err(ParseJsonError::Parse)?)
         }
         #[cfg(feature = "sonic-rs")]
         {
-            Ok(sonic_rs::from_slice(&self.into_vec().await?).map_err(ParseJsonError::Parse)?)
+            Ok(sonic_rs::from_slice(&self.into_bytes().await?).map_err(ParseJsonError::Parse)?)
         }
     }
 
@@ -259,8 +259,10 @@ impl Body {
     /// - [`ParseXmlError`](crate::error::ParseXmlError)
     #[cfg(feature = "xml")]
     pub async fn into_xml<T: DeserializeOwned>(self) -> Result<T> {
-        Ok(quick_xml::de::from_reader(self.into_vec().await?.as_ref())
-            .map_err(crate::error::ParseXmlError::Parse)?)
+        Ok(
+            quick_xml::de::from_reader(self.into_bytes().await?.as_ref())
+                .map_err(crate::error::ParseXmlError::Parse)?,
+        )
     }
 
     /// Consumes this body object to return a reader.
@@ -332,5 +334,79 @@ mod tests {
 
         let body = Body::from_json("abc").unwrap();
         assert_eq!(body.into_json::<String>().await.unwrap(), "abc");
+    }
+
+    #[tokio::test]
+    async fn parse_fragmented_json() {
+        let body = Body::from_bytes_stream(futures_util::stream::iter([
+            Ok::<_, IoError>(Bytes::from_static(b"{\"text\":\"\xe4")),
+            Ok(Bytes::from_static(b"\xbd\xa0\"}")),
+        ]));
+        assert_eq!(
+            body.into_json::<serde_json::Value>().await.unwrap(),
+            serde_json::json!({ "text": "你" })
+        );
+    }
+
+    #[tokio::test]
+    async fn parse_json_preserves_errors() {
+        for data in [b"".as_slice(), b"{", b"\"\xff\""] {
+            let err = Body::from(data)
+                .into_json::<serde_json::Value>()
+                .await
+                .unwrap_err();
+            assert!(matches!(
+                err.downcast_ref::<ParseJsonError>(),
+                Some(ParseJsonError::Parse(_))
+            ));
+            assert_eq!(err.status(), http::StatusCode::BAD_REQUEST);
+        }
+
+        let body = Body::from_bytes_stream(futures_util::stream::iter([
+            Ok(Bytes::from_static(b"{")),
+            Err(IoError::other("read failed")),
+        ]));
+        let err = body.into_json::<serde_json::Value>().await.unwrap_err();
+        assert!(matches!(
+            err.downcast_ref::<ReadBodyError>(),
+            Some(ReadBodyError::Io(_))
+        ));
+    }
+
+    #[cfg(feature = "xml")]
+    #[tokio::test]
+    async fn parse_xml_preserves_fragments_and_errors() {
+        #[derive(Debug, serde::Deserialize, PartialEq)]
+        struct Data {
+            text: String,
+        }
+
+        let body = Body::from_bytes_stream(futures_util::stream::iter([
+            Ok::<_, IoError>(Bytes::from_static(b"<Data><text>\xe4")),
+            Ok(Bytes::from_static(b"\xbd\xa0</text></Data>")),
+        ]));
+        assert_eq!(
+            body.into_xml::<Data>().await.unwrap(),
+            Data { text: "你".into() }
+        );
+
+        for data in [b"".as_slice(), b"<Data>", b"<Data><text>\xff</text></Data>"] {
+            let err = Body::from(data).into_xml::<Data>().await.unwrap_err();
+            assert!(matches!(
+                err.downcast_ref::<crate::error::ParseXmlError>(),
+                Some(crate::error::ParseXmlError::Parse(_))
+            ));
+            assert_eq!(err.status(), http::StatusCode::BAD_REQUEST);
+        }
+
+        let body = Body::from_bytes_stream(futures_util::stream::iter([
+            Ok(Bytes::from_static(b"<Data>")),
+            Err(IoError::other("read failed")),
+        ]));
+        let err = body.into_xml::<Data>().await.unwrap_err();
+        assert!(matches!(
+            err.downcast_ref::<ReadBodyError>(),
+            Some(ReadBodyError::Io(_))
+        ));
     }
 }

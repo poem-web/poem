@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use bytes::Bytes;
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
@@ -54,7 +55,7 @@ impl<T: ParseFromJSON> ParsePayload for Json<T> {
     const IS_REQUIRED: bool = T::IS_REQUIRED;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data = Vec::<u8>::from_request(request, body).await?;
+        let data = Bytes::from_request(request, body).await?;
         let value = if data.is_empty() {
             Value::Null
         } else {
