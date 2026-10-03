@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use bytes::Bytes;
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
@@ -54,16 +55,19 @@ impl<T: ParseFromXML> ParsePayload for Xml<T> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data = Vec::<u8>::from_request(request, body).await?;
+        let data = Bytes::from_request(request, body).await?;
         let value = if data.is_empty() {
             Value::Null
         } else {
-            quick_xml::de::from_str(&String::from_utf8(data).unwrap_or_default()).map_err(
+            quick_xml::de::from_str(std::str::from_utf8(&data).unwrap_or_default()).map_err(
                 |err| ParseRequestPayloadError {
                     reason: err.to_string(),
                 },
             )?
         };
+
+        // Release the request buffer before converting the parsed value.
+        drop(data);
 
         let value = T::parse_from_xml(Some(value)).map_err(|err| ParseRequestPayloadError {
             reason: err.into_message(),

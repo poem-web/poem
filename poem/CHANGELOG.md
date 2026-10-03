@@ -28,6 +28,8 @@ This release also covers `poem-derive` 4.0.0. See the [major-release migration g
 
 ## Changed
 
+- Avoid copying the collected request body before JSON, XML and form deserialization.
+
 - Enable `TCP_NODELAY` on accepted TCP sockets. [#1177](https://github.com/poem-web/poem/pull/1177)
 - Improve OpenTelemetry error attributes and server-error span status; stop attaching `telemetry.sdk.*` resource metadata to each request span. Review trace queries and dashboards. [#1087](https://github.com/poem-web/poem/pull/1087)
 - Update Tower to 0.5, x509-parser to 0.18 and quick-xml to 0.42, adapting XML serialization errors. Refresh shared dependencies, including Syn 3 in `poem-derive`; session IDs retain 32 bytes of entropy after the Rand update. [#1091](https://github.com/poem-web/poem/pull/1091), [#1162](https://github.com/poem-web/poem/pull/1162), [#1194](https://github.com/poem-web/poem/pull/1194), [#1198](https://github.com/poem-web/poem/pull/1198)
