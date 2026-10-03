@@ -7,7 +7,7 @@ use crate::{
     ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromXML, ToXML, Type},
 };
 
@@ -80,18 +80,7 @@ impl<T: ToXML> IntoResponse for Xml<T> {
 
 impl<T: ToXML> ApiResponse for Xml<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(registry: &mut Registry) {
