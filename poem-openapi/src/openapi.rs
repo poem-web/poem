@@ -3,6 +3,7 @@ use std::{
     marker::PhantomData,
 };
 
+use bytes::Bytes;
 use poem::{
     Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route, RouteMethod,
     endpoint::{BoxEndpoint, make_sync},
@@ -582,7 +583,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        let spec = self.spec();
+        let spec = Bytes::from(self.spec());
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/json")
@@ -596,7 +597,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        let spec = self.spec_yaml();
+        let spec = Bytes::from(self.spec_yaml());
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/x-yaml")
