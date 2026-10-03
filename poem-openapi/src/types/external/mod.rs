@@ -9,6 +9,7 @@ mod camino;
 mod char;
 #[cfg(feature = "chrono")]
 mod chrono;
+mod collections;
 #[cfg(feature = "rust_decimal")]
 mod decimal;
 mod floats;

@@ -9,7 +9,7 @@ use poem::{
 use crate::{
     ApiResponse,
     payload::Payload,
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchema, MetaSchemaRef, Registry},
     types::{ToJSON, Type},
 };
 
@@ -113,18 +113,7 @@ impl<T: Stream<Item = E> + Send + 'static, E: Type + ToJSON + 'static> IntoRespo
 
 impl<T: Stream<Item = E> + Send + 'static, E: Type + ToJSON> ApiResponse for EventStream<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(registry: &mut Registry) {

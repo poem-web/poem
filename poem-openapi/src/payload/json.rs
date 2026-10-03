@@ -7,7 +7,7 @@ use crate::{
     ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromJSON, ToJSON, Type},
 };
 
@@ -78,18 +78,7 @@ impl<T: ToJSON> IntoResponse for Json<T> {
 
 impl<T: ToJSON> ApiResponse for Json<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(registry: &mut Registry) {

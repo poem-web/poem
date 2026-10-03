@@ -51,3 +51,43 @@ async fn response_wrapper() {
     resp.assert_status(StatusCode::BAD_REQUEST);
     resp.assert_header("MY-HEADER1", "def");
 }
+
+#[test]
+fn payload_response_metadata() {
+    use poem_openapi::{
+        payload::{Base64, Binary, EventStream, Html, Payload, PlainText, Xml, Yaml},
+        registry::{MetaMediaType, MetaResponse, MetaResponses},
+    };
+
+    #[derive(poem_openapi::Object)]
+    struct TestPayload {
+        value: i32,
+    }
+
+    fn check<T: ApiResponse + Payload>(content_type: &'static str) {
+        assert_eq!(
+            T::meta(),
+            MetaResponses {
+                responses: vec![MetaResponse {
+                    description: "",
+                    status: Some(200),
+                    status_range: None,
+                    content: vec![MetaMediaType {
+                        content_type,
+                        schema: T::schema_ref(),
+                    }],
+                    headers: vec![],
+                }],
+            }
+        );
+    }
+
+    check::<Json<i32>>("application/json; charset=utf-8");
+    check::<Xml<i32>>("application/xml; charset=utf-8");
+    check::<Yaml<TestPayload>>("application/yaml; charset=utf-8");
+    check::<PlainText<String>>("text/plain; charset=utf-8");
+    check::<Html<String>>("text/html; charset=utf-8");
+    check::<Binary<Vec<u8>>>("application/octet-stream");
+    check::<Base64<Vec<u8>>>("text/plain; charset=utf-8");
+    check::<EventStream<futures_util::stream::Empty<i32>>>("text/event-stream");
+}
