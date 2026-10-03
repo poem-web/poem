@@ -28,6 +28,7 @@ mod optional;
 mod path_buf;
 #[cfg(feature = "prost-wkt-types")]
 mod prost_wkt_types;
+mod range;
 mod regex;
 mod slice;
 #[cfg(feature = "sqlx")]

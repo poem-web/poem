@@ -18,6 +18,8 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 
 ## Added
 
+- Support `std::ops::Range<T>` in JSON payloads and OpenAPI schemas, using required `start` and `end` fields.
+
 - Support primitive payloads in externally tagged unions. [1c2474ec](https://github.com/poem-web/poem/commit/1c2474ec)
 - Support childless union variants, including discriminator schemas; externally tagged childless variants remain unsupported. [#1159](https://github.com/poem-web/poem/pull/1159)
 - Add external type implementations for `()`, `Path`/`PathBuf`, `camino::Utf8Path`/`Utf8PathBuf` and `ulid::Ulid`. Camino and ULID support use their respective optional features. [#1083](https://github.com/poem-web/poem/pull/1083), [#1100](https://github.com/poem-web/poem/pull/1100), [#1103](https://github.com/poem-web/poem/pull/1103), [#1099](https://github.com/poem-web/poem/pull/1099)
