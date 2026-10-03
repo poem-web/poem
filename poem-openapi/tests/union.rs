@@ -552,6 +552,81 @@ fn title_and_description() {
     assert_eq!(schema.description, Some("A\n\nB\nC"));
 }
 
+#[test]
+fn oneof_childless_variant_first_rejects_ambiguous_object() {
+    #[derive(Object, Debug, PartialEq)]
+    struct Data {
+        value: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyObj {
+        Empty,
+        Data(Data),
+    }
+
+    assert!(MyObj::parse_from_json(Some(json!({ "value": 42 }))).is_err());
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({}))).unwrap(),
+        MyObj::Empty
+    );
+}
+
+#[test]
+fn oneof_childless_variant_last_rejects_ambiguous_object() {
+    #[derive(Object, Debug, PartialEq)]
+    struct Data {
+        value: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyObj {
+        Data(Data),
+        Empty,
+    }
+
+    assert!(MyObj::parse_from_json(Some(json!({ "value": 42 }))).is_err());
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({}))).unwrap(),
+        MyObj::Empty
+    );
+}
+
+#[test]
+fn oneof_multiple_childless_variants_rejects_ambiguous_object() {
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyObj {
+        First,
+        Second,
+    }
+
+    assert!(MyObj::parse_from_json(Some(json!({}))).is_err());
+}
+
+#[test]
+fn oneof_childless_variant_preserves_unambiguous_primitive() {
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyObj {
+        Empty,
+        Value(bool),
+    }
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!(true))).unwrap(),
+        MyObj::Value(true)
+    );
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({}))).unwrap(),
+        MyObj::Empty
+    );
+    assert!(MyObj::parse_from_json(Some(json!(42))).is_err());
+    assert!(MyObj::parse_from_json(None).is_err());
+}
+
 #[tokio::test]
 async fn external_docs() {
     #[derive(Union, Debug, PartialEq)]
@@ -1002,5 +1077,47 @@ fn with_externally_tagged_primitives() {
         Some(json!({
             "B": true,
         }))
+    );
+}
+
+#[test]
+fn anyof_unit_payload_preserves_object_data() {
+    #[derive(Object, Debug, PartialEq)]
+    struct Data {
+        value: i32,
+    }
+
+    #[derive(Union, Debug, PartialEq)]
+    enum MyObj {
+        Empty(()),
+        Data(Data),
+    }
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!({ "value": 42 }))).unwrap(),
+        MyObj::Data(Data { value: 42 })
+    );
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!(null))).unwrap(),
+        MyObj::Empty(())
+    );
+}
+
+#[test]
+fn oneof_unit_payload_preserves_distinct_alternatives() {
+    #[derive(Union, Debug, PartialEq)]
+    #[oai(one_of)]
+    enum MyObj {
+        Empty(()),
+        Value(bool),
+    }
+
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!(true))).unwrap(),
+        MyObj::Value(true)
+    );
+    assert_eq!(
+        MyObj::parse_from_json(Some(json!(null))).unwrap(),
+        MyObj::Empty(())
     );
 }

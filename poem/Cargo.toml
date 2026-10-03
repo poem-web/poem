@@ -84,7 +84,7 @@ http.workspace = true
 hyper = { version = "1.11.1", features = ["http1", "http2"] }
 hyper-util = { version = "0.1.21", features = ["tokio"] }
 http-body-util = "0.1.5"
-tokio = { workspace = true, features = ["sync", "time", "macros", "net"] }
+tokio = { workspace = true, features = ["sync", "time", "macros"] }
 tokio-util = { workspace = true, features = ["io"] }
 serde.workspace = true
 sonic-rs = { workspace = true, optional = true }
@@ -179,6 +179,8 @@ uuid = { version = "1.26.1", optional = true, default-features = false, features
 ] }
 
 [target.'cfg(unix)'.dependencies]
+# Addr::Unix is available even without the server feature.
+tokio = { workspace = true, features = ["net"] }
 nix = { version = "0.31.3", features = ["fs", "user"] }
 
 [dev-dependencies]

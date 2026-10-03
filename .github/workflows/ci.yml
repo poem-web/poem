@@ -123,3 +123,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Check minimum supported Rust version
         run: cargo check --workspace --all-features --all-targets
+
+  check-worker:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check native Poem without server features
+        run: cargo check -p poem --no-default-features
+      - name: Install WebAssembly target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Check Cloudflare Worker example
+        run: cargo check --target wasm32-unknown-unknown
+        working-directory: examples/poem/worker-hello-world

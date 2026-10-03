@@ -19,7 +19,7 @@ pub struct ResourcesTemplatesListRequest {
 }
 
 /// Resource information.
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Resource {
     /// The uri of the resource.
@@ -41,7 +41,7 @@ pub struct ResourcesReadRequest {
 }
 
 /// Resource content.
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceContent {
     /// The uri of the resource.

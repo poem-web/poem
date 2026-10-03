@@ -56,6 +56,8 @@ type ServerFactoryFn<ToolsType, PromptsType, ResourcesType> =
 
 struct Session<ToolsType, PromptsType, ResourcesType> {
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType, ResourcesType>>>,
+    /// Only legacy SSE sessions deliver POST responses on the GET stream.
+    legacy_sse: bool,
     sender: Option<tokio::sync::mpsc::UnboundedSender<String>>,
     /// Monotonic counter incremented every time a new SSE `sender` is
     /// installed on this session. The attached [`SessionCleanup`] guard
@@ -70,9 +72,8 @@ struct State<ToolsType, PromptsType, ResourcesType> {
     server_factory: ServerFactoryFn<ToolsType, PromptsType, ResourcesType>,
     sessions: Mutex<HashMap<String, Session<ToolsType, PromptsType, ResourcesType>>>,
     /// Cached shared metadata, populated lazily from the first server
-    /// produced by `server_factory`. All subsequent sessions reuse this
-    /// instance, so the heavy configuration (resources, server info, ...) is
-    /// not duplicated across sessions.
+    /// produced by `server_factory`. Subsequent sessions with identical
+    /// metadata reuse this instance; request-specific metadata stays isolated.
     shared_metadata: OnceLock<Arc<ServerMetadata>>,
 }
 
@@ -83,15 +84,15 @@ where
     ResourcesType: Resources + Send + Sync + 'static,
 {
     /// Create a fresh per-session [`McpServer`] from the configured factory,
-    /// substituting its metadata with the shared cached instance to avoid
-    /// duplicating the static configuration across sessions.
+    /// reusing the cached metadata only when its contents are identical.
     fn make_server(&self, request: &Request) -> McpServer<ToolsType, PromptsType, ResourcesType> {
         let mut server = (self.server_factory)(request);
         let shared = self
             .shared_metadata
-            .get_or_init(|| server.metadata().clone())
-            .clone();
-        server.set_metadata(shared);
+            .get_or_init(|| server.metadata().clone());
+        if server.metadata().as_ref() == shared.as_ref() {
+            server.set_metadata(shared.clone());
+        }
         server
     }
 }
@@ -243,6 +244,7 @@ where
             session_id.clone(),
             Session {
                 server: Arc::new(tokio::sync::Mutex::new(server)),
+                legacy_sse: true,
                 sender: Some(tx),
                 sender_gen: 0,
                 last_active: Instant::now(),
@@ -308,6 +310,7 @@ where
                 session_id.clone(),
                 Session {
                     server: Arc::new(tokio::sync::Mutex::new(server)),
+                    legacy_sse: false,
                     sender: None,
                     sender_gen: 0,
                     last_active: Instant::now(),
@@ -332,7 +335,10 @@ where
             return StatusCode::NOT_FOUND.into_response();
         };
         session.last_active = Instant::now();
-        (session.server.clone(), session.sender.clone())
+        (
+            session.server.clone(),
+            session.sender.clone().filter(|_| session.legacy_sse),
+        )
     };
 
     if let Some(tx) = sender {
@@ -498,12 +504,12 @@ where
 /// # Shared configuration
 ///
 /// The static configuration of the [`McpServer`] returned by `server_factory`
-/// (server info, registered resources, disabled tools, ...) is captured from
-/// the first invocation and shared across every session via an [`Arc`]. This
-/// keeps the per-session memory footprint small even when serving large
-/// embedded resources. The per-session mutable state of your `Tools` /
-/// `Prompts` / `Resources` implementations is still produced fresh by the
-/// factory on every new session.
+/// (server info, registered resources, disabled tools, ...) is shared via an
+/// [`Arc`] when it is identical to the first factory result. This keeps the
+/// per-session memory footprint small for constant configuration while
+/// preserving request-specific metadata. The per-session mutable state of your
+/// `Tools` / `Prompts` / `Resources` implementations is still produced fresh by
+/// the factory on every new session.
 ///
 /// # Example
 /// ```rust,no_run
@@ -590,14 +596,66 @@ fn session_id() -> String {
 
 #[cfg(all(test, feature = "streamable-http"))]
 mod tests {
-    use std::time::Duration;
+    use std::{
+        sync::{Arc, OnceLock},
+        time::Duration,
+    };
 
     use poem::{http::StatusCode, test::TestClient};
     use serde_json::json;
     use tokio_stream::StreamExt;
 
-    use super::{Config, endpoint_with_config};
+    use super::{Config, State, endpoint_with_config};
     use crate::McpServer;
+
+    #[test]
+    fn metadata_is_shared_only_when_all_contents_match() {
+        let state = State {
+            server_factory: Box::new(|request: &poem::Request| {
+                let change = request
+                    .headers()
+                    .get("x-config")
+                    .and_then(|value| value.to_str().ok())
+                    .unwrap_or_default();
+                let server = McpServer::new().ui_resource(
+                    "ui://account",
+                    if change == "resource" {
+                        "Different name"
+                    } else {
+                        "Account"
+                    },
+                    "Account UI",
+                    "text/html",
+                    if change == "content" {
+                        "private"
+                    } else {
+                        "shared"
+                    },
+                );
+                match change {
+                    "info" => server.with_server_info("different", "1"),
+                    "tools" => server.disable_tools(["private_tool"]),
+                    _ => server,
+                }
+            }),
+            sessions: Default::default(),
+            shared_metadata: OnceLock::new(),
+        };
+        let first = state.make_server(&poem::Request::default());
+        let second = state.make_server(&poem::Request::default());
+        assert!(Arc::ptr_eq(first.metadata(), second.metadata()));
+
+        for change in ["content", "resource", "info", "tools"] {
+            let different =
+                state.make_server(&poem::Request::builder().header("x-config", change).finish());
+            assert!(
+                !Arc::ptr_eq(first.metadata(), different.metadata()),
+                "must preserve differing {change}"
+            );
+        }
+        let same_again = state.make_server(&poem::Request::default());
+        assert!(Arc::ptr_eq(first.metadata(), same_again.metadata()));
+    }
 
     #[tokio::test]
     async fn closes_standard_session_when_sse_stream_is_dropped() {

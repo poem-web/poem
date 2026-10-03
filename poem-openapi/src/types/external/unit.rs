@@ -6,8 +6,8 @@ use serde_json::Value;
 use crate::{
     registry::{MetaSchema, MetaSchemaRef},
     types::{
-        ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult, ToHeader, ToJSON,
-        Type,
+        ParseError, ParseFromJSON, ParseFromMultipartField, ParseFromParameter, ParseResult,
+        ToHeader, ToJSON, Type,
     },
 };
 
@@ -23,7 +23,13 @@ impl Type for () {
     }
 
     fn schema_ref() -> MetaSchemaRef {
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new("unit")))
+        // OpenAPI 3.0 has no null type. Restrict a nullable type to null
+        // instead.
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            nullable: true,
+            enum_items: vec![Value::Null],
+            ..MetaSchema::new("object")
+        }))
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
@@ -38,8 +44,11 @@ impl Type for () {
 }
 
 impl ParseFromJSON for () {
-    fn parse_from_json(_: Option<Value>) -> ParseResult<Self> {
-        Ok(())
+    fn parse_from_json(value: Option<Value>) -> ParseResult<Self> {
+        match value {
+            None | Some(Value::Null) => Ok(()),
+            Some(value) => Err(ParseError::expected_type(value)),
+        }
     }
 }
 
@@ -77,6 +86,18 @@ mod tests {
     }
 
     #[test]
+    fn schema_describes_null() {
+        assert_eq!(
+            serde_json::to_value(<()>::schema_ref()).unwrap(),
+            serde_json::json!({
+                "type": "object",
+                "nullable": true,
+                "enum": [null],
+            })
+        );
+    }
+
+    #[test]
     fn parse_from_json_none() {
         <()>::parse_from_json(None).expect("failed to parse 'None'");
     }
@@ -84,6 +105,24 @@ mod tests {
     #[test]
     fn parse_from_json_value_null() {
         <()>::parse_from_json(Some(Value::Null)).expect("failed to parse 'Value::Null'");
+    }
+
+    #[test]
+    fn parse_from_json_matches_serde_unit() {
+        for value in [
+            serde_json::json!(null),
+            serde_json::json!({ "value": 42 }),
+            serde_json::json!([42]),
+            serde_json::json!(true),
+            serde_json::json!(42),
+            serde_json::json!("data"),
+        ] {
+            assert_eq!(
+                <()>::parse_from_json(Some(value.clone())).is_ok(),
+                serde_json::from_value::<()>(value.clone()).is_ok(),
+                "unit parsing disagrees for {value}"
+            );
+        }
     }
 
     #[test]
