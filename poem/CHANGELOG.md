@@ -23,7 +23,7 @@ This release also covers `poem-derive` 4.0.0. See the [major-release migration g
 ## Fixed
 
 - Correct compression negotiation for `identity`, `zstd` and wildcard requests restricted to enabled algorithms. [#1157](https://github.com/poem-web/poem/pull/1157)
-- Explicitly enable Tokio's `net` feature for the networking APIs used by Poem. [#1081](https://github.com/poem-web/poem/pull/1081)
+- Enable Tokio's `net` feature for native server listeners and Unix address APIs without forcing the unsupported Mio backend on Cloudflare Worker WASM builds. [#1081](https://github.com/poem-web/poem/pull/1081)
 - Preserve ACME native-only, Mozilla-only and combined root choices with Reqwest 0.13; adapt certificate generation to RCGen 0.14 and retain certificate/CSR regression coverage. [#1198](https://github.com/poem-web/poem/pull/1198)
 
 ## Changed

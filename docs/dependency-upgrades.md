@@ -90,10 +90,12 @@ Local compilation and regression tests do not establish production interoperabil
 with AWS, Cloudflare, MongoDB, GitHub OAuth or an OTLP collector. Validate deployment
 services before release.
 
-## Existing platform limitation
+## Worker target validation
 
-The standalone Worker example still fails native Cargo checking for
-`wasm32-unknown-unknown`: Poem enables Tokio's `net` feature, which pulls in Mio's
-unsupported networking backend on that target. The same failure was reproduced
-on unchanged master before this dependency update. Host-target checks pass, but
-this PR does not claim a successful Cloudflare WASM build or deployment.
+The final release review corrected a regression introduced after Poem 3.1.12:
+Tokio's `net` feature is needed for native server listeners and Unix address
+APIs, but must not be enabled unconditionally on `wasm32-unknown-unknown`.
+Poem now enables it through the server feature and its Unix target dependency.
+The standalone Worker example passes `cargo check --target wasm32-unknown-unknown`,
+and CI checks that target alongside native Poem without default features. This
+does not establish a successful Cloudflare deployment or change publication policy.

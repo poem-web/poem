@@ -13,7 +13,6 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 - Require Rust 1.94 and use Poem 4 for the optional `streamable-http` transport. [#1198](https://github.com/poem-web/poem/pull/1198)
 - Add `meta` to the public `Tool` struct and extend request types for prompts and resources. Update manual struct literals and exhaustive request matches. Explicit generic arguments to `stdio` and `streamable_http::endpoint` must account for prompt/resource handlers; inferred calls remain supported. [#1155](https://github.com/poem-web/poem/pull/1155), [#1160](https://github.com/poem-web/poem/pull/1160), [#1178](https://github.com/poem-web/poem/pull/1178)
 - Reject top-level array schemas in structured tool outputs by panicking during output-schema generation. Wrap vectors in an object type. Normalize nonstandard integer formats for MCP client compatibility. [#1172](https://github.com/poem-web/poem/pull/1172), [#1179](https://github.com/poem-web/poem/pull/1179)
-- Share streamable-HTTP server metadata across sessions. Server information, disabled tools and static UI resources are taken from the first server factory result; do not vary them by session. [#1183](https://github.com/poem-web/poem/pull/1183)
 
 ## Added
 
@@ -25,6 +24,8 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 
 ## Fixed
 
+- Preserve request-scoped server metadata and UI resource contents; share metadata across streamable-HTTP sessions only when all contents match.
+- Keep Streamable HTTP POST responses on the POST connection when a GET event stream is attached or disconnects; retain legacy SSE response routing.
 - Clean up closed and expired sessions, keep SSE reconnections working, add keep-alives to detect disconnected clients, stop background session tasks and reduce per-session metadata allocations. [#1170](https://github.com/poem-web/poem/pull/1170), [#1181](https://github.com/poem-web/poem/pull/1181), [#1183](https://github.com/poem-web/poem/pull/1183)
 - Normalize nonstandard integer formats recursively in tool input/output schemas. [#1179](https://github.com/poem-web/poem/pull/1179)
 - Refresh shared dependencies and migrate macro parsing to Syn 3. [#1198](https://github.com/poem-web/poem/pull/1198)

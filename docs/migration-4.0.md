@@ -118,7 +118,8 @@ expectations. GeoJSON 1 also serializes an empty polygon as `[]` rather than
   See the updated todo example when migrating application queries.
 
 Childless union variants are supported, but not with `externally_tagged`.
-Externally tagged unions now accept primitive payload types.
+Externally tagged unions now accept primitive payload types. Unit `()` JSON
+values must be `null`; missing unit fields remain accepted.
 
 ## Lambda 6
 
@@ -166,11 +167,12 @@ sessions. Legacy SSE-created sessions are reclaimed when their stream closes.
 POST-initialized Streamable HTTP sessions survive SSE detachment for reconnect
 until timeout or `DELETE`. Keep-alives help detect disconnected clients.
 
-Server information, disabled tools and static UI resources are captured from the
-**first** server factory result and shared across sessions. Keep that configuration
-constant. Per-session mutable `Tools`, `Prompts` and `Resources` state can still
-be created fresh in the factory. Do not use varying `disable_tools` calls as a
-per-user authorization boundary.
+Server information, disabled tools and static UI resources remain scoped to the
+server factory result. Configurations identical to the first factory result
+share storage across sessions; differing metadata and resource contents remain
+isolated. Per-session mutable `Tools`, `Prompts` and `Resources` state is created
+fresh in the factory. Do not use `disable_tools` as a per-user authorization
+boundary: it filters the advertised tool list, not tool execution.
 
 ## Worker 0.2: not publication-ready
 
@@ -183,10 +185,11 @@ does not add it. No prior published `poem-worker` version was found in the crate
 index during the release audit. Its 0.1.0 changelog entry records repository
 introduction, not a registry publication.
 
-The existing `wasm32-unknown-unknown` example build is blocked by Poem's Tokio
-`net` feature pulling in Mio's unsupported target backend. Resolve and verify
-that separately before claiming Cloudflare deployment support. A host-target
-workspace check is not a WASM deployment check.
+The final release review restores the `wasm32-unknown-unknown` example build by
+restricting Tokio's `net` feature to server-enabled builds and Unix targets.
+Native Unix address APIs remain available with default features disabled.
+CI now checks the standalone Worker example on its WASM target. This is a target
+compilation check, not a Cloudflare deployment check.
 
 ## Changelog scope and release process
 

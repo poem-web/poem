@@ -1146,3 +1146,70 @@ async fn info_extensions() {
         panic!("Spec root isn't a YAML mapping");
     }
 }
+
+#[test]
+fn unit_payload_uses_nullable_schema() {
+    #[derive(Object)]
+    struct UnitField {
+        value: (),
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/unit", method = "get")]
+        async fn unit(&self) -> Json<()> {
+            Json(())
+        }
+
+        #[oai(path = "/object", method = "get")]
+        async fn object(&self) -> Json<UnitField> {
+            Json(UnitField { value: () })
+        }
+    }
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    let expected = serde_json::json!({
+        "type": "object",
+        "nullable": true,
+        "enum": [null],
+    });
+    assert_eq!(
+        spec["paths"]["/unit"]["get"]["responses"]["200"]["content"]["application/json; charset=utf-8"]
+            ["schema"],
+        expected
+    );
+    assert_eq!(
+        spec["components"]["schemas"]["UnitField"]["properties"]["value"],
+        expected
+    );
+}
+
+#[tokio::test]
+async fn unit_payload_rejects_non_null_data() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "post")]
+        async fn unit(&self, _body: Json<()>) -> Json<()> {
+            Json(())
+        }
+    }
+
+    let client = TestClient::new(OpenApiService::new(Api, "test", "1.0"));
+    client
+        .post("/")
+        .body_json(&serde_json::json!({ "value": 42 }))
+        .send()
+        .await
+        .assert_status(StatusCode::BAD_REQUEST);
+    client
+        .post("/")
+        .body_json(&serde_json::json!(null))
+        .send()
+        .await
+        .assert_status_is_ok();
+}

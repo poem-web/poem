@@ -28,6 +28,8 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 
 ## Fixed
 
+- Preserve `one_of` uniqueness checks for childless union variants, rejecting ambiguous object input rather than discarding its data.
+- Represent unit `()` using a nullable, null-only OpenAPI 3.0 schema and reject non-null JSON input, matching Serde instead of discarding populated data.
 - Enable Time's `macros` feature for the optional Time integration. [#1082](https://github.com/poem-web/poem/pull/1082)
 - Use `minItems`/`maxItems` rather than `minLength`/`maxLength` for fixed-size array schemas (`[T; LEN]`). [#1120](https://github.com/poem-web/poem/pull/1120)
 - Adapt derive macros to Syn 3 and preserve rejection of mutable API receivers; add BSON, SQLx, ULID and GeoJSON migration regressions. [#1198](https://github.com/poem-web/poem/pull/1198)

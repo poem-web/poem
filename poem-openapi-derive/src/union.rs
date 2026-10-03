@@ -149,9 +149,22 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                         #crate_name::registry::MetaSchemaRef::Reference(#schema_name)
                     });
                 } else {
-                    from_json.push(quote! {
-                        if value.is_object(){ return ::std::result::Result::Ok(Self::#item_ident); }
-                    });
+                    if args.one_of {
+                        from_json.push(quote! {
+                            if value.is_object() {
+                                if res_obj.is_some() {
+                                    return ::std::result::Result::Err(#crate_name::types::ParseError::expected_type(value));
+                                }
+                                res_obj = ::std::option::Option::Some(Self::#item_ident);
+                            }
+                        });
+                    } else {
+                        from_json.push(quote! {
+                            if value.is_object() {
+                                return ::std::result::Result::Ok(Self::#item_ident);
+                            }
+                        });
+                    }
                     to_json.push(quote! {
                         Self::#item_ident => ::std::option::Option::Some(#crate_name::__private::serde_json::json!({}))
                     });

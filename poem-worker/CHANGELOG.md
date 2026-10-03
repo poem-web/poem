@@ -10,7 +10,7 @@
 ## Release status
 
 - `poem-worker` is outside the automated crate-publishing workflow. This version bump records its incompatible dependency boundary; it does not enable publication.
-- The standalone `wasm32-unknown-unknown` example has a pre-existing Tokio/Mio networking build blocker. Host-target checks do not establish a successful Cloudflare build or deployment. See the [dependency migration notes](../docs/dependency-upgrades.md#existing-platform-limitation).
+- Restore compilation of the standalone `wasm32-unknown-unknown` example by avoiding Poem's unconditional Tokio/Mio networking features. CI covers the WASM target and native Poem without server features. Target checks do not establish a successful Cloudflare deployment. See the [dependency migration notes](../docs/dependency-upgrades.md#worker-target-validation).
 
 # [0.1.0] - Repository introduction (2025-07-28)
 
