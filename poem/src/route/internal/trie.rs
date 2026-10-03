@@ -90,16 +90,16 @@ impl<T> Trie<T> {
             None => return parent_node.data.as_ref(),
         };
 
-        if let Some(node) = parent_node.named_children.get(segment) {
-            if let Some(data) = Self::internal_matches(tail, node) {
-                return Some(data);
-            }
+        if let Some(node) = parent_node.named_children.get(segment)
+            && let Some(data) = Self::internal_matches(tail, node)
+        {
+            return Some(data);
         }
 
-        if let Some(plus_child) = &parent_node.plus_child {
-            if let Some(data) = Self::internal_matches(tail, plus_child) {
-                return Some(data);
-            }
+        if let Some(plus_child) = &parent_node.plus_child
+            && let Some(data) = Self::internal_matches(tail, plus_child)
+        {
+            return Some(data);
         }
 
         if let Some(data) = &parent_node.star_child {

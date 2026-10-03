@@ -215,26 +215,26 @@ impl StaticFileRequest {
             etag_str = etag(ino(&metadata), &modified, metadata.len());
             let etag = ETag::from_str(&etag_str).unwrap();
 
-            if let Some(if_match) = self.if_match {
-                if !if_match.precondition_passes(&etag) {
-                    return Err(StaticFileError::PreconditionFailed);
-                }
+            if let Some(if_match) = self.if_match
+                && !if_match.precondition_passes(&etag)
+            {
+                return Err(StaticFileError::PreconditionFailed);
             }
 
-            if let Some(if_unmodified_since) = self.if_unmodified_since {
-                if !if_unmodified_since.precondition_passes(modified) {
-                    return Err(StaticFileError::PreconditionFailed);
-                }
+            if let Some(if_unmodified_since) = self.if_unmodified_since
+                && !if_unmodified_since.precondition_passes(modified)
+            {
+                return Err(StaticFileError::PreconditionFailed);
             }
 
             if let Some(if_non_match) = self.if_none_match {
                 if !if_non_match.precondition_passes(&etag) {
                     return Ok(StaticFileResponse::NotModified);
                 }
-            } else if let Some(if_modified_since) = self.if_modified_since {
-                if !if_modified_since.is_modified(modified) {
-                    return Ok(StaticFileResponse::NotModified);
-                }
+            } else if let Some(if_modified_since) = self.if_modified_since
+                && !if_modified_since.is_modified(modified)
+            {
+                return Ok(StaticFileResponse::NotModified);
             }
 
             last_modified_str = HttpDate::from(modified).to_string();

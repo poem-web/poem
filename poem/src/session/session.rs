@@ -78,12 +78,12 @@ impl Session {
     /// Sets a key-value pair into the session.
     pub fn set(&self, name: &str, value: impl Serialize) {
         let mut inner = self.inner.write();
-        if inner.status != SessionStatus::Purged {
-            if let Ok(value) = serde_json::to_value(&value) {
-                inner.entries.insert(name.to_string(), value);
-                if inner.status != SessionStatus::Renewed {
-                    inner.status = SessionStatus::Changed;
-                }
+        if inner.status != SessionStatus::Purged
+            && let Ok(value) = serde_json::to_value(&value)
+        {
+            inner.entries.insert(name.to_string(), value);
+            if inner.status != SessionStatus::Renewed {
+                inner.status = SessionStatus::Changed;
             }
         }
     }

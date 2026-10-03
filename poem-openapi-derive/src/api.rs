@@ -106,17 +106,15 @@ pub(crate) fn generate(args: APIArgs, mut item_impl: ItemImpl) -> GeneratorResul
     };
 
     for item in &mut item_impl.items {
-        if let ImplItem::Fn(method) = item {
-            if let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)? {
-                if method.sig.asyncness.is_none() {
-                    return Err(
-                        Error::new_spanned(&method.sig.ident, "Must be asynchronous").into(),
-                    );
-                }
-
-                generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
-                remove_oai_attrs(&mut method.attrs);
+        if let ImplItem::Fn(method) = item
+            && let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)?
+        {
+            if method.sig.asyncness.is_none() {
+                return Err(Error::new_spanned(&method.sig.ident, "Must be asynchronous").into());
             }
+
+            generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
+            remove_oai_attrs(&mut method.attrs);
         }
     }
 

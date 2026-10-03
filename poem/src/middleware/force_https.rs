@@ -67,20 +67,19 @@ where
     type Output = Response;
 
     async fn call(&self, mut req: Request) -> Result<Self::Output> {
-        if req.scheme() == &Scheme::HTTP && self.filter_fn.as_ref().map(|f| f(&req)).unwrap_or(true)
+        if req.scheme() == &Scheme::HTTP
+            && self.filter_fn.as_ref().map(|f| f(&req)).unwrap_or(true)
+            && let Some(host) = req.headers().get(header::HOST).cloned()
+            && let Ok(host) = host.to_str()
         {
-            if let Some(host) = req.headers().get(header::HOST).cloned() {
-                if let Ok(host) = host.to_str() {
-                    let host = redirect_host(host, self.https_port);
-                    let uri_parts = std::mem::take(req.uri_mut()).into_parts();
-                    let mut builder = Uri::builder().scheme(Scheme::HTTPS).authority(&*host);
-                    if let Some(path_and_query) = uri_parts.path_and_query {
-                        builder = builder.path_and_query(path_and_query);
-                    }
-                    if let Ok(uri) = builder.build() {
-                        return Ok(Redirect::permanent(uri).into_response());
-                    }
-                }
+            let host = redirect_host(host, self.https_port);
+            let uri_parts = std::mem::take(req.uri_mut()).into_parts();
+            let mut builder = Uri::builder().scheme(Scheme::HTTPS).authority(&*host);
+            if let Some(path_and_query) = uri_parts.path_and_query {
+                builder = builder.path_and_query(path_and_query);
+            }
+            if let Ok(uri) = builder.build() {
+                return Ok(Redirect::permanent(uri).into_response());
             }
         }
 

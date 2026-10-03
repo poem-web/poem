@@ -86,30 +86,26 @@ impl OAuthFlows {
             .into());
         }
 
-        if let Some(implicit) = &self.implicit {
-            if implicit.authorization_url.is_none() {
-                return Err(Error::new(
-                    span,
-                    r#"Missing authorization url. #[oai(authorization_url="...")]"#,
-                )
-                .into());
-            }
+        if let Some(implicit) = &self.implicit
+            && implicit.authorization_url.is_none()
+        {
+            return Err(Error::new(
+                span,
+                r#"Missing authorization url. #[oai(authorization_url="...")]"#,
+            )
+            .into());
         }
 
-        if let Some(password) = &self.password {
-            if password.token_url.is_none() {
-                return Err(
-                    Error::new(span, r#"Missing token url. #[oai(token_url="...")]"#).into(),
-                );
-            }
+        if let Some(password) = &self.password
+            && password.token_url.is_none()
+        {
+            return Err(Error::new(span, r#"Missing token url. #[oai(token_url="...")]"#).into());
         }
 
-        if let Some(client_credentials) = &self.client_credentials {
-            if client_credentials.token_url.is_none() {
-                return Err(
-                    Error::new(span, r#"Missing token url. #[oai(token_url="...")]"#).into(),
-                );
-            }
+        if let Some(client_credentials) = &self.client_credentials
+            && client_credentials.token_url.is_none()
+        {
+            return Err(Error::new(span, r#"Missing token url. #[oai(token_url="...")]"#).into());
         }
 
         if let Some(authorization_code) = &self.authorization_code {

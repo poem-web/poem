@@ -152,12 +152,12 @@ where
 {
     fn output_schema() -> Option<Schema> {
         let schema = schemars::SchemaGenerator::default().into_root_schema_for::<T>();
-        if let Ok(value) = serde_json::to_value(&schema) {
-            if value.get("type") == Some(&serde_json::Value::String("array".to_string())) {
-                panic!(
-                    "Tool return type must be an object, but found array. Please wrap the return value in a struct."
-                );
-            }
+        if let Ok(value) = serde_json::to_value(&schema)
+            && value.get("type") == Some(&serde_json::Value::String("array".to_string()))
+        {
+            panic!(
+                "Tool return type must be an object, but found array. Please wrap the return value in a struct."
+            );
         }
         Some(schema)
     }
@@ -180,12 +180,12 @@ where
 {
     fn output_schema() -> Option<Schema> {
         let schema = schemars::SchemaGenerator::default().into_root_schema_for::<T>();
-        if let Ok(value) = serde_json::to_value(&schema) {
-            if value.get("type") == Some(&serde_json::Value::String("array".to_string())) {
-                panic!(
-                    "Tool return type must be an object, but found array. Please wrap the return value in a struct."
-                );
-            }
+        if let Ok(value) = serde_json::to_value(&schema)
+            && value.get("type") == Some(&serde_json::Value::String("array".to_string()))
+        {
+            panic!(
+                "Tool return type must be an object, but found array. Please wrap the return value in a struct."
+            );
         }
         Some(schema)
     }

@@ -128,17 +128,17 @@ impl<'de> Deserialize<'de> for BatchRequest {
                     let Some(params) = obj.get("params").and_then(Value::as_object).cloned() else {
                         return;
                     };
-                    if !obj.contains_key("request_id") && !obj.contains_key("requestId") {
-                        if let Some(request_id) =
+                    if !obj.contains_key("request_id")
+                        && !obj.contains_key("requestId")
+                        && let Some(request_id) =
                             params.get("request_id").or_else(|| params.get("requestId"))
-                        {
-                            obj.insert("request_id".to_string(), request_id.clone());
-                        }
+                    {
+                        obj.insert("request_id".to_string(), request_id.clone());
                     }
-                    if !obj.contains_key("reason") {
-                        if let Some(reason) = params.get("reason") {
-                            obj.insert("reason".to_string(), reason.clone());
-                        }
+                    if !obj.contains_key("reason")
+                        && let Some(reason) = params.get("reason")
+                    {
+                        obj.insert("reason".to_string(), reason.clone());
                     }
                 }
                 _ => {}

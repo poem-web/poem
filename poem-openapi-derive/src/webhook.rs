@@ -76,11 +76,11 @@ pub(crate) fn generate(
     };
 
     for item in &mut trait_impl.items {
-        if let TraitItem::Fn(method) = item {
-            if let Some(operation_args) = parse_oai_attrs::<WebhookOperation>(&method.attrs)? {
-                generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
-                remove_oai_attrs(&mut method.attrs);
-            }
+        if let TraitItem::Fn(method) = item
+            && let Some(operation_args) = parse_oai_attrs::<WebhookOperation>(&method.attrs)?
+        {
+            generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
+            remove_oai_attrs(&mut method.attrs);
         }
     }
 
