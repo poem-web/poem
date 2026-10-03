@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use rand::{Rng, rng};
+use rand::{RngExt, rng};
 
 use crate::{
     Endpoint, Middleware, Request, Result,
@@ -112,5 +112,21 @@ where
         };
 
         Ok(resp)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+
+    use super::generate_session_id;
+
+    #[test]
+    fn session_ids_have_256_random_bits() {
+        let first = generate_session_id();
+        let second = generate_session_id();
+        assert_eq!(URL_SAFE_NO_PAD.decode(&first).unwrap().len(), 32);
+        assert_eq!(URL_SAFE_NO_PAD.decode(&second).unwrap().len(), 32);
+        assert_ne!(first, second);
     }
 }

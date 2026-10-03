@@ -71,3 +71,45 @@ impl ToHeader for ObjectId {
         HeaderValue::from_str(&self.to_hex()).ok()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    const HEX: &str = "507f1f77bcf86cd799439011";
+
+    #[test]
+    fn parses_hex_string_and_extended_json() {
+        let object_id = ObjectId::parse_str(HEX).unwrap();
+        assert_eq!(
+            ObjectId::parse_from_json(Some(json!(HEX))).unwrap(),
+            object_id
+        );
+        assert_eq!(
+            ObjectId::parse_from_json(Some(json!({ "$oid": HEX }))).unwrap(),
+            object_id
+        );
+    }
+
+    #[test]
+    fn serializes_extended_json() {
+        let object_id = ObjectId::parse_str(HEX).unwrap();
+        assert_eq!(object_id.to_json(), Some(json!({ "$oid": HEX })));
+    }
+
+    #[test]
+    fn parses_parameters_and_formats_headers_as_hex() {
+        let object_id = ObjectId::parse_from_parameter(HEX).unwrap();
+        assert_eq!(object_id.to_header(), Some(HeaderValue::from_static(HEX)));
+        assert!(ObjectId::parse_from_parameter("invalid").is_err());
+    }
+
+    #[test]
+    fn rejects_missing_null_and_invalid_json() {
+        assert!(ObjectId::parse_from_json(None).is_err());
+        assert!(ObjectId::parse_from_json(Some(Value::Null)).is_err());
+        assert!(ObjectId::parse_from_json(Some(json!({ "$oid": "invalid" }))).is_err());
+    }
+}

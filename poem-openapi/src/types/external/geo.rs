@@ -81,18 +81,14 @@ macro_rules! impl_geojson_types {
                 value: Option<::serde_json::Value>,
             ) -> Result<Self, crate::types::ParseError<Self>> {
                 let value = value.ok_or(crate::types::ParseError::expected_input())?;
-                Self::try_from(geojson::Geometry::try_from(value)?).map_err(Into::into)
+                let geometry = ::serde_json::from_value::<geojson::Geometry>(value)?;
+                Self::try_from(geometry).map_err(Into::into)
             }
         }
 
         impl crate::types::ToJSON for $geometry {
             fn to_json(&self) -> Option<::serde_json::Value> {
-                Some(
-                    ::serde_json::Map::<String, ::serde_json::Value>::from(
-                        &geojson::Geometry::from(self),
-                    )
-                    .into(),
-                )
+                ::serde_json::to_value(geojson::Geometry::from(self)).ok()
             }
         }
     };
@@ -163,7 +159,7 @@ impl crate::types::ParseFromJSON for Geometry {
 
         // Try to parse as a geojson::Geometry and convert to
         // geo_types::Geometry
-        let geojson_geom = geojson::Geometry::try_from(value).map_err(|e| {
+        let geojson_geom = ::serde_json::from_value::<geojson::Geometry>(value).map_err(|e| {
             crate::types::ParseError::custom(format!("Invalid GeoJSON geometry: {}", e))
         })?;
 
@@ -175,13 +171,15 @@ impl crate::types::ToJSON for Geometry {
     fn to_json(&self) -> Option<::serde_json::Value> {
         // Convert to geojson::Geometry and then to JSON
         let geojson_geom = geojson::Geometry::from(self);
-        Some(::serde_json::Map::<String, ::serde_json::Value>::from(&geojson_geom).into())
+        ::serde_json::to_value(geojson_geom).ok()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use geo_types::{Geometry, LineString, Point};
+    use geo_types::{
+        Geometry, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
+    };
 
     use crate::{
         registry::{MetaSchemaRef, Registry},
@@ -210,6 +208,56 @@ mod tests {
             Point::parse_from_json(Some(point_json())).unwrap(),
             point_geo()
         )
+    }
+
+    #[test]
+    fn roundtrips_all_coordinate_shapes() {
+        macro_rules! roundtrip {
+            ($geometry:ty, $name:literal, $coordinates:expr) => {{
+                let json = serde_json::json!({
+                    "type": $name,
+                    "coordinates": $coordinates,
+                });
+                let geometry = <$geometry>::parse_from_json(Some(json.clone())).unwrap();
+                assert_eq!(geometry.to_json(), Some(json.clone()));
+                let geometry = Geometry::parse_from_json(Some(json.clone())).unwrap();
+                assert_eq!(geometry.to_json(), Some(json));
+            }};
+        }
+
+        roundtrip!(Point, "Point", [1.0, 2.0]);
+        roundtrip!(MultiPoint, "MultiPoint", [[1.0, 2.0], [3.0, 4.0]]);
+        roundtrip!(LineString, "LineString", [[1.0, 2.0], [3.0, 4.0]]);
+        roundtrip!(
+            MultiLineString,
+            "MultiLineString",
+            [[[1.0, 2.0], [3.0, 4.0]]]
+        );
+        roundtrip!(
+            Polygon,
+            "Polygon",
+            [[[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]]
+        );
+        roundtrip!(
+            MultiPolygon,
+            "MultiPolygon",
+            [[[[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]]]
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_geometry_json() {
+        for json in [
+            serde_json::Value::Null,
+            serde_json::json!({ "type": "Point", "coordinates": [1.0] }),
+            serde_json::json!({ "type": "Point", "coordinates": ["x", "y"] }),
+            serde_json::json!({ "coordinates": [1.0, 2.0] }),
+        ] {
+            assert!(Point::parse_from_json(Some(json.clone())).is_err());
+            assert!(Geometry::parse_from_json(Some(json)).is_err());
+        }
+        assert!(Point::parse_from_json(None).is_err());
+        assert!(Geometry::parse_from_json(None).is_err());
     }
 
     #[test]

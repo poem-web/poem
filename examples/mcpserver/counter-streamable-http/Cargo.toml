@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 poem-mcpserver = { workspace = true, features = ["streamable-http"] }
-serde = { version = "1.0.219", features = ["derive"] }
-schemars = "1.0"
+serde = { version = "1.0.229", features = ["derive"] }
+schemars = "1.2.2"
 poem = { workspace = true, features = ["sse"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true

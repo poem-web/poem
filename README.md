@@ -10,8 +10,8 @@
       alt="Unsafe Rust forbidden" />
   </a>
   <a>
-    <img src="https://img.shields.io/badge/rustc-1.85.0+-ab6000.svg"
-      alt="rustc 1.85.0+" />
+    <img src="https://img.shields.io/badge/rustc-1.94.0+-ab6000.svg"
+      alt="rustc 1.94.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -27,6 +27,9 @@
 <p align="center"> A full-featured and easy-to-use web framework with the Rust programming language.</p>
 
 ***
+
+For the Rust 1.94 dependency update, see the [migration guide](docs/dependency-upgrades.md)
+for public type changes, behavior changes, and reviewed upstream release notes.
 
 This repo contains the following main components:
 

@@ -9,12 +9,12 @@ name = "prompts-streamable-http-client"
 path = "src/client.rs"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.104"
 poem-mcpserver = { workspace = true, features = ["streamable-http"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { workspace = true }
-schemars = "1.0"
+schemars = "1.2.2"
 poem = { workspace = true, features = ["sse"] }
-rmcp = { version = "1.4", features = ["client", "transport-streamable-http-client-reqwest"] }
+rmcp = { version = "3.5.0", features = ["client", "transport-streamable-http-client-reqwest"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true
