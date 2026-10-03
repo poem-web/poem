@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use opentelemetry::{
     global,
-    trace::{FutureExt, TraceContextExt, Tracer as _},
+    trace::{FutureExt, TraceContextExt, Tracer as _, TracerProvider as _},
     Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
@@ -23,9 +23,10 @@ fn init_tracer() -> SdkTracerProvider {
 
 #[tokio::main]
 async fn main() {
-    let tracer = init_tracer();
+    let tracer_provider = init_tracer();
+    let tracer = tracer_provider.tracer("example-opentelemetry/client");
     let client = Client::new();
-    let span = global::tracer("example-opentelemetry/client").start("request/server1");
+    let span = tracer.start("request/server1");
     let cx = Context::current_with_span(span);
 
     let req = {
@@ -56,5 +57,5 @@ async fn main() {
     .with_context(cx)
     .await;
 
-    tracer.shutdown().expect("Always shutdown tracer");
+    tracer_provider.shutdown().expect("Always shutdown tracer");
 }

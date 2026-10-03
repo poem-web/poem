@@ -2,8 +2,8 @@ use darling::{FromMeta, util::SpannedValue};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    Error, Expr, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat, Path, ReturnType, Type, ext::IdentExt,
-    visit_mut::VisitMut,
+    Error, Expr, FnArg, ImplItem, ImplItemFn, ItemImpl, Pat, Path, ReceiverKind, ReturnType, Type,
+    ext::IdentExt, visit_mut::VisitMut,
 };
 
 use crate::{
@@ -106,17 +106,15 @@ pub(crate) fn generate(args: APIArgs, mut item_impl: ItemImpl) -> GeneratorResul
     };
 
     for item in &mut item_impl.items {
-        if let ImplItem::Fn(method) = item {
-            if let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)? {
-                if method.sig.asyncness.is_none() {
-                    return Err(
-                        Error::new_spanned(&method.sig.ident, "Must be asynchronous").into(),
-                    );
-                }
-
-                generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
-                remove_oai_attrs(&mut method.attrs);
+        if let ImplItem::Fn(method) = item
+            && let Some(operation_args) = parse_oai_attrs::<APIOperation>(&method.attrs)?
+        {
+            if method.sig.asyncness.is_none() {
+                return Err(Error::new_spanned(&method.sig.ident, "Must be asynchronous").into());
             }
+
+            generate_operation(&mut ctx, &crate_name, &args, operation_args, method)?;
+            remove_oai_attrs(&mut method.attrs);
         }
     }
 
@@ -223,7 +221,9 @@ fn generate_operation(
     }
 
     if let FnArg::Receiver(receiver) = &item_method.sig.inputs[0] {
-        if receiver.mutability.is_some() {
+        if receiver.mutability.is_some()
+            || matches!(receiver.kind, ReceiverKind::Reference(_, _, Some(_)))
+        {
             return Err(Error::new_spanned(
                 receiver,
                 "The first parameter must be a `&self` receiver.",
@@ -284,7 +284,7 @@ fn generate_operation(
             }
         };
         let is_path = match &*arg_ty {
-            syn::Type::Path(syn::TypePath { qself: _, path }) => {
+            syn::Type::Path(syn::TypePath { path, .. }) => {
                 path.segments.iter().any(|v| v.ident == "Path")
             }
             _ => false,
@@ -664,4 +664,40 @@ fn generate_operation(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_mutable_receivers() {
+        for receiver in [quote!(&mut self), quote!(mut self)] {
+            let args = APIArgs::from_list(&[]).unwrap();
+            let item_impl = syn::parse2(quote! {
+                impl Api {
+                    #[oai(path = "/", method = "get")]
+                    async fn test(#receiver) {}
+                }
+            })
+            .unwrap();
+            let error = generate(args, item_impl).unwrap_err();
+            assert_eq!(
+                error.to_string(),
+                "The first parameter must be a `&self` receiver."
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_shared_receiver_and_path_parameter() {
+        let args = APIArgs::from_list(&[]).unwrap();
+        let item_impl = syn::parse_quote! {
+            impl Api {
+                #[oai(path = "/:id", method = "get")]
+                async fn test(&self, id: Path<i32>) {}
+            }
+        };
+        assert!(generate(args, item_impl).is_ok());
+    }
 }

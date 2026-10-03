@@ -724,10 +724,10 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
             .flat_map(|api| api.paths.into_iter())
             .flat_map(|path| path.operations.into_iter())
         {
-            if let Some(operation_id) = operation.operation_id {
-                if !operation_ids.insert(operation_id) {
-                    panic!("duplicate operation id: {operation_id}");
-                }
+            if let Some(operation_id) = operation.operation_id
+                && !operation_ids.insert(operation_id)
+            {
+                panic!("duplicate operation id: {operation_id}");
             }
         }
 

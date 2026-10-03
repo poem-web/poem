@@ -1,4 +1,4 @@
-use hmac::{Hmac, NewMac};
+use hmac::{Hmac, Mac};
 use jwt::{SignWithKey, VerifyWithKey};
 use poem::{
     error::InternalServerError, listener::TcpListener, web::Data, EndpointExt, Request, Result,
@@ -87,4 +87,24 @@ async fn main() -> Result<(), std::io::Error> {
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signed_tokens_round_trip_and_reject_another_key() {
+        let key = ServerKey::new_from_slice(SERVER_KEY).unwrap();
+        let token = User {
+            username: "test".into(),
+        }
+        .sign_with_key(&key)
+        .unwrap();
+        let user: User = token.verify_with_key(&key).unwrap();
+        assert_eq!(user.username, "test");
+
+        let another_key = ServerKey::new_from_slice(b"another secret").unwrap();
+        assert!(VerifyWithKey::<User>::verify_with_key(token.as_str(), &another_key).is_err());
+    }
 }

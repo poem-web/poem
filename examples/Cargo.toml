@@ -17,12 +17,13 @@ poem-grpc-build = { path = "../poem-grpc-build" }
 poem-mcpserver = { path = "../poem-mcpserver" }
 poem-worker = { path = "../poem-worker" }
 
-tokio = "1.17.0"
-tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
-serde_json = "1.0.68"
-serde = { version = "1.0.140", features = ["derive"] }
-mime = "0.3.16"
-open = "5.0.1"
-futures-util = "0.3.21"
-tokio-stream = "0.1.8"
-prost = "0.14"
+tokio = "1.53.1"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+serde_json = "1.0.151"
+serde = { version = "1.0.229", features = ["derive"] }
+schemars = "1.2.2"
+mime = "0.3.17"
+open = "5.4.4"
+futures-util = "0.3.34"
+tokio-stream = "0.1.19"
+prost = "0.14.4"

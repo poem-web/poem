@@ -6,7 +6,7 @@ use std::{
 
 use http::uri::Scheme;
 use rcgen::{
-    Certificate, CertificateParams, CustomExtension, DistinguishedName, PKCS_ECDSA_P256_SHA256,
+    CertificateParams, CustomExtension, DistinguishedName, KeyPair, PKCS_ECDSA_P256_SHA256,
 };
 use tokio_rustls::{
     TlsAcceptor,
@@ -226,21 +226,17 @@ impl<T: Acceptor> Acceptor for AutoCertAcceptor<T> {
 }
 
 fn gen_acme_cert(domain: &str, acme_hash: &[u8]) -> IoResult<CertifiedKey> {
-    let mut params = CertificateParams::new(vec![domain.to_string()]);
-    params.alg = &PKCS_ECDSA_P256_SHA256;
+    let mut params = CertificateParams::new(vec![domain.to_string()])
+        .map_err(|err| IoError::other(format!("invalid acme certificate parameters: {err}")))?;
     params.custom_extensions = vec![CustomExtension::new_acme_identifier(acme_hash)];
-    let cert = Certificate::from_params(params)
-        .map_err(|_| IoError::other("failed to generate acme certificate"))?;
-    let key = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
-        cert.serialize_private_key_der().into(),
-    ))
-    .unwrap();
-    Ok(CertifiedKey::new(
-        vec![CertificateDer::from(cert.serialize_der().map_err(
-            |_| IoError::other("failed to serialize acme certificate"),
-        )?)],
-        key,
-    ))
+    let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256)
+        .map_err(|err| IoError::other(format!("failed to generate acme key: {err}")))?;
+    let cert = params
+        .self_signed(&key_pair)
+        .map_err(|err| IoError::other(format!("failed to generate acme certificate: {err}")))?;
+    let key = any_ecdsa_type(&PrivateKeyDer::Pkcs8(key_pair.serialize_der().into()))
+        .map_err(|err| IoError::other(format!("invalid acme key: {err}")))?;
+    Ok(CertifiedKey::new(vec![cert.der().clone()], key))
 }
 
 /// The result of [`issue_cert`] function.
@@ -339,20 +335,18 @@ pub async fn issue_cert<T: AsRef<str>>(
             .iter()
             .map(|domain| domain.as_ref().to_string())
             .collect::<Vec<_>>(),
-    );
+    )
+    .map_err(|err| IoError::other(format!("invalid certificate request parameters: {err}")))?;
     params.distinguished_name = DistinguishedName::new();
-    params.alg = &PKCS_ECDSA_P256_SHA256;
-    let cert = Certificate::from_params(params)
-        .map_err(|err| IoError::other(format!("failed create certificate request: {err}")))?;
-    let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(
-        cert.serialize_private_key_der().into(),
-    ))
-    .unwrap();
-    let csr = cert
-        .serialize_request_der()
-        .map_err(|err| IoError::other(format!("failed to serialize request der {err}")))?;
+    let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256)
+        .map_err(|err| IoError::other(format!("failed to generate certificate key: {err}")))?;
+    let pk = any_ecdsa_type(&PrivateKeyDer::Pkcs8(key_pair.serialize_der().into()))
+        .map_err(|err| IoError::other(format!("invalid certificate key: {err}")))?;
+    let csr = params
+        .serialize_request(&key_pair)
+        .map_err(|err| IoError::other(format!("failed to serialize request der: {err}")))?;
 
-    let order_resp = client.send_csr(&order_resp.finalize, &csr).await?;
+    let order_resp = client.send_csr(&order_resp.finalize, csr.der()).await?;
 
     if order_resp.status == "invalid" {
         return Err(IoError::other(format!(
@@ -381,7 +375,7 @@ pub async fn issue_cert<T: AsRef<str>>(
                 .ok_or_else(|| IoError::other("invalid response: missing `certificate` url"))?,
         )
         .await?;
-    let pkey_pem = cert.serialize_private_key_pem();
+    let pkey_pem = key_pair.serialize_pem();
     let cert_chain = CertificateDer::pem_slice_iter(acme_cert_pem.as_slice())
         .collect::<Result<Vec<_>, _>>()
         .map_err(|err| IoError::other(format!("invalid pem: {err}")))?;
@@ -394,4 +388,43 @@ pub async fn issue_cert<T: AsRef<str>>(
         public_pem: acme_cert_pem,
         rustls_key: Arc::new(cert_key),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use x509_parser::{extensions::GeneralName, prelude::FromDer};
+
+    use super::{X509Certificate, gen_acme_cert};
+
+    #[test]
+    fn acme_certificate_preserves_domain_and_challenge() {
+        let hash = [42; 32];
+        let certified_key = gen_acme_cert("example.com", &hash).unwrap();
+        let (_, cert) = X509Certificate::from_der(certified_key.cert[0].as_ref()).unwrap();
+        // rustls's general-purpose certificate parser rejects the critical ACME
+        // extension. Compare the SPKI directly without applying TLS trust
+        // rules.
+        let signing_public_key = certified_key.key.public_key().unwrap();
+        assert_eq!(signing_public_key.as_ref(), cert.public_key().raw);
+
+        let san = cert.subject_alternative_name().unwrap().unwrap();
+        assert_eq!(
+            san.value.general_names,
+            [GeneralName::DNSName("example.com")]
+        );
+
+        let extension = cert
+            .extensions()
+            .iter()
+            .find(|extension| extension.oid.to_id_string() == "1.3.6.1.5.5.7.1.31")
+            .unwrap();
+        assert!(extension.critical);
+        assert_eq!(&extension.value[..2], &[0x04, 32]);
+        assert_eq!(&extension.value[2..], &hash);
+    }
+
+    #[test]
+    fn acme_certificate_rejects_invalid_dns_name() {
+        assert!(gen_acme_cert("☃.example.com", &[42; 32]).is_err());
+    }
 }

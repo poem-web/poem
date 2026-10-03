@@ -9,6 +9,6 @@ poem.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 serde.workspace = true
 serde_json.workspace = true
-mongodb = "2"
-futures = "0.3"
+mongodb = "3.9.1"
+futures = "0.3.34"
 tracing-subscriber.workspace = true

@@ -251,13 +251,13 @@ where
                             normalize_schema_value(std::mem::take(&mut tool.input_schema));
                         tool.output_schema = tool.output_schema.take().map(normalize_schema_value);
 
-                        if let Some(object) = tool.input_schema.as_object_mut() {
-                            if !object.contains_key("properties") {
-                                object.insert(
-                                    "properties".to_string(),
-                                    Value::Object(Default::default()),
-                                );
-                            }
+                        if let Some(object) = tool.input_schema.as_object_mut()
+                            && !object.contains_key("properties")
+                        {
+                            object.insert(
+                                "properties".to_string(),
+                                Value::Object(Default::default()),
+                            );
                         }
                     }
                     tools

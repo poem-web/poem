@@ -12,6 +12,6 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version = "0.6.0" }
+worker = { version = "0.8.7" }
 poem = { path = "../../../poem", default-features = false }
 poem-worker = { path = "../../../poem-worker" }

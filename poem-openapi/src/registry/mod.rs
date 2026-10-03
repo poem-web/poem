@@ -698,15 +698,15 @@ impl Registry {
     {
         match self.schemas.get(&name) {
             Some(schema) => {
-                if let Some(prev_typename) = schema.rust_typename {
-                    if prev_typename != std::any::type_name::<T>() {
-                        panic!(
-                            "`{}` and `{}` have the same OpenAPI name `{}`",
-                            prev_typename,
-                            std::any::type_name::<T>(),
-                            name,
-                        );
-                    }
+                if let Some(prev_typename) = schema.rust_typename
+                    && prev_typename != std::any::type_name::<T>()
+                {
+                    panic!(
+                        "`{}` and `{}` have the same OpenAPI name `{}`",
+                        prev_typename,
+                        std::any::type_name::<T>(),
+                        name,
+                    );
                 }
             }
             None => {

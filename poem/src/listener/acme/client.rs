@@ -29,7 +29,7 @@ impl AcmeClient {
     /// `contacts` is a list of URLS (ex: `mailto:`) the ACME service can
     /// use to reach you if there's issues with your certificates.
     pub async fn try_new(directory_url: &str, contacts: Vec<String>) -> IoResult<Self> {
-        let client = Client::new();
+        let client = create_client()?;
         let directory = get_directory(&client, directory_url).await?;
         Ok(Self {
             client,
@@ -265,4 +265,34 @@ async fn create_acme_account(
 
     tracing::debug!(kid = kid.as_str(), "account created");
     Ok(kid)
+}
+
+fn create_client() -> IoResult<Client> {
+    let builder = Client::builder();
+    #[cfg(feature = "acme-webpki-roots")]
+    let builder = {
+        let roots = webpki_root_certs::TLS_SERVER_ROOT_CERTS
+            .iter()
+            .map(|cert| reqwest::Certificate::from_der(cert.as_ref()))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| IoError::other(format!("invalid webpki root certificate: {err}")))?;
+        // Keep the two root features additive while avoiding native roots when
+        // only the embedded Mozilla certificate bundle was requested.
+        #[cfg(feature = "acme-native-roots")]
+        let builder = builder.tls_certs_merge(roots);
+        #[cfg(not(feature = "acme-native-roots"))]
+        let builder = builder.tls_certs_only(roots);
+        builder
+    };
+    builder
+        .build()
+        .map_err(|err| IoError::other(format!("failed to create acme client: {err}")))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn create_acme_client() {
+        super::create_client().unwrap();
+    }
 }
