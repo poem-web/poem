@@ -7,7 +7,7 @@ use std::{
 };
 
 use poem::{
-    EndpointExt, IntoEndpoint, IntoResponse, Request, handler,
+    EndpointExt, IntoEndpoint, IntoResponse, Request, Response, handler,
     http::StatusCode,
     post,
     web::{
@@ -51,8 +51,59 @@ impl Default for Config {
     }
 }
 
-type ServerFactoryFn<ToolsType, PromptsType, ResourcesType> =
-    Box<dyn Fn(&Request) -> McpServer<ToolsType, PromptsType, ResourcesType> + Send + Sync>;
+/// A server or a fallible result returned by a streamable HTTP server factory.
+///
+/// Implemented for [`McpServer`] and `Result<McpServer, E>` where `E` can be
+/// converted into [`poem::Error`].
+pub trait IntoMcpServer<ToolsType, PromptsType, ResourcesType> {
+    /// Converts the factory output into a server or a Poem error.
+    fn into_mcp_server(self) -> poem::Result<McpServer<ToolsType, PromptsType, ResourcesType>>;
+}
+
+impl<ToolsType, PromptsType, ResourcesType> IntoMcpServer<ToolsType, PromptsType, ResourcesType>
+    for McpServer<ToolsType, PromptsType, ResourcesType>
+{
+    fn into_mcp_server(self) -> poem::Result<Self> {
+        Ok(self)
+    }
+}
+
+impl<ToolsType, PromptsType, ResourcesType, E> IntoMcpServer<ToolsType, PromptsType, ResourcesType>
+    for Result<McpServer<ToolsType, PromptsType, ResourcesType>, E>
+where
+    E: Into<poem::Error>,
+{
+    fn into_mcp_server(self) -> poem::Result<McpServer<ToolsType, PromptsType, ResourcesType>> {
+        self.map_err(Into::into)
+    }
+}
+
+/// A synchronous factory for a new streamable HTTP session's server.
+///
+/// Automatically implemented for functions and closures accepting a [`Request`]
+/// reference and returning either an [`McpServer`] or `Result<McpServer, E>`
+/// where `E` can be converted into [`poem::Error`].
+pub trait McpServerFactory<ToolsType, PromptsType, ResourcesType>:
+    Fn(&Request) -> Self::Return
+{
+    /// The server or fallible result produced by the factory.
+    type Return: IntoMcpServer<ToolsType, PromptsType, ResourcesType>;
+}
+
+impl<F, R, ToolsType, PromptsType, ResourcesType>
+    McpServerFactory<ToolsType, PromptsType, ResourcesType> for F
+where
+    F: Fn(&Request) -> R,
+    R: IntoMcpServer<ToolsType, PromptsType, ResourcesType>,
+{
+    type Return = R;
+}
+
+type ServerFactoryFn<ToolsType, PromptsType, ResourcesType> = Box<
+    dyn Fn(&Request) -> poem::Result<McpServer<ToolsType, PromptsType, ResourcesType>>
+        + Send
+        + Sync,
+>;
 
 struct Session<ToolsType, PromptsType, ResourcesType> {
     server: Arc<tokio::sync::Mutex<McpServer<ToolsType, PromptsType, ResourcesType>>>,
@@ -85,15 +136,18 @@ where
 {
     /// Create a fresh per-session [`McpServer`] from the configured factory,
     /// reusing the cached metadata only when its contents are identical.
-    fn make_server(&self, request: &Request) -> McpServer<ToolsType, PromptsType, ResourcesType> {
-        let mut server = (self.server_factory)(request);
+    fn make_server(
+        &self,
+        request: &Request,
+    ) -> poem::Result<McpServer<ToolsType, PromptsType, ResourcesType>> {
+        let mut server = (self.server_factory)(request)?;
         let shared = self
             .shared_metadata
             .get_or_init(|| server.metadata().clone());
         if server.metadata().as_ref() == shared.as_ref() {
             server.set_metadata(shared.clone());
         }
-        server
+        Ok(server)
     }
 }
 
@@ -198,7 +252,7 @@ where
 async fn get_handler<ToolsType, PromptsType, ResourcesType>(
     data: Data<&Arc<State<ToolsType, PromptsType, ResourcesType>>>,
     request: &Request,
-) -> impl IntoResponse
+) -> poem::Result<Response>
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
@@ -222,7 +276,7 @@ where
                 session_id = existing,
                 "GET for unknown session id (expired or invalid)"
             );
-            return StatusCode::NOT_FOUND.into_response();
+            return Ok(StatusCode::NOT_FOUND.into_response());
         };
         // Replace any previous sender; dropping it will tear down the previous
         // SSE stream (if any), which is the desired behaviour for resume. Bump
@@ -237,8 +291,8 @@ where
     } else {
         // Legacy SSE transport: create a brand new session keyed off the SSE
         // connection itself.
+        let server = data.0.make_server(request)?;
         let session_id = session_id();
-        let server = data.0.make_server(request);
         let mut sessions = data.0.sessions.lock().unwrap();
         sessions.insert(
             session_id.clone(),
@@ -256,7 +310,7 @@ where
 
     let state = data.0.clone();
     let cleanup_session_id = session_id.clone();
-    SSE::new(async_stream::stream! {
+    Ok(SSE::new(async_stream::stream! {
         let _cleanup = match attachment {
             None => SessionCleanup::owning(state, cleanup_session_id),
             Some(sender_gen) => SessionCleanup::attached(state, cleanup_session_id, sender_gen),
@@ -269,7 +323,7 @@ where
         }
     })
     .keep_alive(SSE_KEEP_ALIVE_INTERVAL)
-    .into_response()
+    .into_response())
 }
 
 #[handler]
@@ -279,7 +333,7 @@ async fn post_handler<ToolsType, PromptsType, ResourcesType>(
     batch_request: Json<McpBatchRequest>,
     accept: Accept,
     query: Query<HashMap<String, String>>,
-) -> impl IntoResponse
+) -> poem::Result<Response>
 where
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
@@ -294,12 +348,12 @@ where
 
     if session_id_param.is_none() {
         let Some(_accept) = accept.0.first() else {
-            return StatusCode::BAD_REQUEST.into_response();
+            return Ok(StatusCode::BAD_REQUEST.into_response());
         };
 
         if batch_request.len() == 1 && batch_request.requests()[0].is_initialize() {
+            let mut server = data.0.make_server(request)?;
             let session_id = session_id();
-            let mut server = data.0.make_server(request);
             let initialize_request = batch_request.0.into_iter().next().unwrap();
             let resp = server
                 .handle_request(initialize_request)
@@ -318,12 +372,12 @@ where
             );
 
             tracing::info!(session_id, "created new streamable HTTP session");
-            return Json(resp)
+            return Ok(Json(resp)
                 .with_header("Mcp-Session-Id", session_id)
-                .into_response();
+                .into_response());
         }
 
-        return StatusCode::BAD_REQUEST.into_response();
+        return Ok(StatusCode::BAD_REQUEST.into_response());
     }
 
     let session_id = session_id_param.unwrap();
@@ -332,7 +386,7 @@ where
         let mut sessions = data.0.sessions.lock().unwrap();
         let Some(session) = sessions.get_mut(&session_id) else {
             tracing::warn!(session_id, "session not found (expired or invalid)");
-            return StatusCode::NOT_FOUND.into_response();
+            return Ok(StatusCode::NOT_FOUND.into_response());
         };
         session.last_active = Instant::now();
         (
@@ -358,11 +412,11 @@ where
                     "pushing to SSE"
                 );
                 if tx.send(serde_json::to_string(&resp).unwrap()).is_err() {
-                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                    return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
                 }
             }
         }
-        return StatusCode::ACCEPTED.into_response();
+        return Ok(StatusCode::ACCEPTED.into_response());
     }
 
     let all_notifications = batch_request.requests().iter().all(|request| {
@@ -380,10 +434,10 @@ where
         .map(|value| value.essence_str())
         .unwrap_or("application/json");
 
-    match accept {
+    Ok(match accept {
         "text/event-stream" => {
             if all_notifications {
-                return StatusCode::ACCEPTED.into_response();
+                return Ok(StatusCode::ACCEPTED.into_response());
             }
             let session_id = session_id.clone();
             SSE::new(async_stream::stream! {
@@ -430,13 +484,13 @@ where
                 }
             }
             if resps.is_empty() {
-                return StatusCode::ACCEPTED.into_response();
+                return Ok(StatusCode::ACCEPTED.into_response());
             }
             Json(resps)
                 .with_content_type("application/json")
                 .into_response()
         }
-    }
+    })
 }
 
 #[handler]
@@ -479,9 +533,42 @@ where
 /// A streamable http endpoint that can be used to handle MCP requests.
 ///
 /// Uses the default configuration (5-minute idle timeout).
+///
+/// The factory may return an [`McpServer`] directly or `Result<McpServer, E>`
+/// where `E: Into<poem::Error>`. A factory error is propagated through Poem's
+/// normal error handling without creating a session or caching server metadata.
+///
+/// The factory runs only when creating a new session: a POST `initialize`
+/// without a session ID, or a legacy SSE GET without a session ID. Requests for
+/// an existing session do not run it again. Use middleware to authenticate and
+/// authorize every request, including access to existing session IDs.
+///
+/// # Fallible factory
+///
+/// This example reads a user already authenticated by middleware from request
+/// data. Failure to provide that data rejects session creation.
+///
+/// ```rust,no_run
+/// use poem::{Route, http::StatusCode};
+/// use poem_mcpserver::{McpServer, streamable_http};
+///
+/// struct AuthenticatedUser {
+///     name: String,
+/// }
+///
+/// let app = Route::new().at(
+///     "/mcp",
+///     streamable_http::endpoint(|request| {
+///         let user = request
+///             .data::<AuthenticatedUser>()
+///             .ok_or(StatusCode::UNAUTHORIZED)?;
+///         Ok::<_, poem::Error>(McpServer::new().with_server_info(&user.name, "1.0"))
+///     }),
+/// );
+/// ```
 pub fn endpoint<F, ToolsType, PromptsType, ResourcesType>(server_factory: F) -> impl IntoEndpoint
 where
-    F: Fn(&Request) -> McpServer<ToolsType, PromptsType, ResourcesType> + Send + Sync + 'static,
+    F: McpServerFactory<ToolsType, PromptsType, ResourcesType> + Send + Sync + 'static,
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
     ResourcesType: Resources + Send + Sync + 'static,
@@ -490,6 +577,11 @@ where
 }
 
 /// A streamable http endpoint with configurable session behavior.
+///
+/// Accepts the same infallible or fallible factories as [`endpoint`]. Factory
+/// errors propagate through Poem's normal error handling without creating a
+/// session or caching metadata. The factory runs only for new sessions; use
+/// middleware for per-request authentication and authorization of session IDs.
 ///
 /// Set `Config::session_timeout` to `None` to disable idle expiration.
 ///
@@ -505,11 +597,11 @@ where
 ///
 /// The static configuration of the [`McpServer`] returned by `server_factory`
 /// (server info, registered resources, disabled tools, ...) is shared via an
-/// [`Arc`] when it is identical to the first factory result. This keeps the
-/// per-session memory footprint small for constant configuration while
-/// preserving request-specific metadata. The per-session mutable state of your
-/// `Tools` / `Prompts` / `Resources` implementations is still produced fresh by
-/// the factory on every new session.
+/// [`Arc`] when it is identical to the first successful factory result. This
+/// keeps the per-session memory footprint small for constant configuration
+/// while preserving request-specific metadata. The per-session mutable state of
+/// your `Tools` / `Prompts` / `Resources` implementations is still produced
+/// fresh by the factory on every new session.
 ///
 /// # Example
 /// ```rust,no_run
@@ -531,13 +623,13 @@ pub fn endpoint_with_config<F, ToolsType, PromptsType, ResourcesType>(
     config: Config,
 ) -> impl IntoEndpoint
 where
-    F: Fn(&Request) -> McpServer<ToolsType, PromptsType, ResourcesType> + Send + Sync + 'static,
+    F: McpServerFactory<ToolsType, PromptsType, ResourcesType> + Send + Sync + 'static,
     ToolsType: Tools + Send + Sync + 'static,
     PromptsType: Prompts + Send + Sync + 'static,
     ResourcesType: Resources + Send + Sync + 'static,
 {
     let state = Arc::new(State {
-        server_factory: Box::new(server_factory),
+        server_factory: Box::new(move |request| server_factory(request).into_mcp_server()),
         sessions: Default::default(),
         shared_metadata: OnceLock::new(),
     });
@@ -601,12 +693,17 @@ mod tests {
         time::Duration,
     };
 
-    use poem::{http::StatusCode, test::TestClient};
+    use poem::{
+        EndpointExt,
+        http::{Method, StatusCode},
+        post,
+        test::TestClient,
+    };
     use serde_json::json;
     use tokio_stream::StreamExt;
 
-    use super::{Config, State, endpoint_with_config};
-    use crate::McpServer;
+    use super::{Config, State, endpoint_with_config, get_handler, post_handler};
+    use crate::{McpServer, prompts::NoPrompts, resources::NoResources, tool::NoTools};
 
     #[test]
     fn metadata_is_shared_only_when_all_contents_match() {
@@ -632,29 +729,92 @@ mod tests {
                         "shared"
                     },
                 );
-                match change {
+                Ok(match change {
                     "info" => server.with_server_info("different", "1"),
                     "tools" => server.disable_tools(["private_tool"]),
                     _ => server,
-                }
+                })
             }),
             sessions: Default::default(),
             shared_metadata: OnceLock::new(),
         };
-        let first = state.make_server(&poem::Request::default());
-        let second = state.make_server(&poem::Request::default());
+        let first = state.make_server(&poem::Request::default()).unwrap();
+        let second = state.make_server(&poem::Request::default()).unwrap();
         assert!(Arc::ptr_eq(first.metadata(), second.metadata()));
 
         for change in ["content", "resource", "info", "tools"] {
-            let different =
-                state.make_server(&poem::Request::builder().header("x-config", change).finish());
+            let different = state
+                .make_server(&poem::Request::builder().header("x-config", change).finish())
+                .unwrap();
             assert!(
                 !Arc::ptr_eq(first.metadata(), different.metadata()),
                 "must preserve differing {change}"
             );
         }
-        let same_again = state.make_server(&poem::Request::default());
+        let same_again = state.make_server(&poem::Request::default()).unwrap();
         assert!(Arc::ptr_eq(first.metadata(), same_again.metadata()));
+    }
+
+    #[tokio::test]
+    async fn failed_factory_does_not_insert_sessions_or_cache_metadata() {
+        let state = Arc::new(State {
+            server_factory: Box::new(|request: &poem::Request| {
+                if !request.headers().contains_key("x-allow-session") {
+                    return Err(StatusCode::FORBIDDEN.into());
+                }
+                Ok(McpServer::new().with_server_info("successful", "1"))
+            }),
+            sessions: Default::default(),
+            shared_metadata: OnceLock::new(),
+        });
+        let client = TestClient::new(
+            post(post_handler::<NoTools, NoPrompts, NoResources>::default())
+                .get(get_handler::<NoTools, NoPrompts, NoResources>::default())
+                .data(state.clone()),
+        );
+        let initialize = json!({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-03-26", "capabilities": {},
+                "clientInfo": {"name": "test", "version": "1"}
+            }
+        });
+        for method in [Method::GET, Method::POST] {
+            client
+                .request(method, "/")
+                .header("Accept", "application/json")
+                .body_json(&initialize)
+                .send()
+                .await
+                .assert_status(StatusCode::FORBIDDEN);
+            assert!(state.sessions.lock().unwrap().is_empty());
+            assert!(state.shared_metadata.get().is_none());
+        }
+        client
+            .post("/")
+            .header("Accept", "application/json")
+            .header("x-allow-session", "yes")
+            .body_json(&initialize)
+            .send()
+            .await
+            .assert_status_is_ok();
+        assert_eq!(state.sessions.lock().unwrap().len(), 1);
+        let metadata = state.shared_metadata.get().unwrap().clone();
+        assert_eq!(metadata.server_info.name, "successful");
+
+        // Later failures must leave existing sessions and the shared cache
+        // intact.
+        for method in [Method::GET, Method::POST] {
+            client
+                .request(method, "/")
+                .header("Accept", "application/json")
+                .body_json(&initialize)
+                .send()
+                .await
+                .assert_status(StatusCode::FORBIDDEN);
+            assert_eq!(state.sessions.lock().unwrap().len(), 1);
+            assert!(Arc::ptr_eq(&metadata, state.shared_metadata.get().unwrap()));
+        }
     }
 
     #[tokio::test]

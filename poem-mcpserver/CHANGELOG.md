@@ -16,6 +16,7 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 
 ## Added
 
+- Allow streamable-HTTP endpoint factories to return `Result<McpServer, E>` with `E: Into<poem::Error>`, propagating construction errors before creating a session. Existing infallible factories and four-parameter generic calls remain supported. [#1187](https://github.com/poem-web/poem/issues/1187)
 - Add prompt handlers and the `#[Prompts]` macro, with stdio/streamable-HTTP examples and legacy SSE transport support. [#1155](https://github.com/poem-web/poem/pull/1155)
 - Add MCP Apps UI resources and tool UI metadata. [#1160](https://github.com/poem-web/poem/pull/1160)
 - Add resource listing, templates, reads and the `Resources` handler abstraction. [#1178](https://github.com/poem-web/poem/pull/1178)
