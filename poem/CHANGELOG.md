@@ -4,8 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [4.0.0] - Unreleased
+
+This release also covers `poem-derive` 4.0.0. See the [major-release migration guide](../docs/migration-4.0.md).
+
+## Breaking changes
+
+- Require Rust 1.94 (previously 1.85) across the workspace. [#1198](https://github.com/poem-web/poem/pull/1198)
+- Update public integration types to OpenTelemetry 0.33, Redis 1.7, tungstenite 0.30 (`WebSocketConfig`), Fluent 0.17, fluent-syntax 0.12 and quick-xml 0.42. Align application dependencies when passing these types to Poem or matching their errors. [#1118](https://github.com/poem-web/poem/pull/1118), [#1121](https://github.com/poem-web/poem/pull/1121), [#1198](https://github.com/poem-web/poem/pull/1198)
+- Remove the implicit `rustls-pemfile` Cargo feature along with the dependency. Use Poem's `rustls` feature and rustls's PEM APIs instead. PEM certificate/key loading remains supported. [#1184](https://github.com/poem-web/poem/pull/1184)
+
+## Added
+
+- Add `Server::http2_builder_customize` for HTTP/2 options not exposed by individual setters. The customizer runs after the existing setters. [#1093](https://github.com/poem-web/poem/pull/1093)
+- Add `Locale::accept_languages()` to inspect the request's preferred languages. [#1109](https://github.com/poem-web/poem/pull/1109)
+- Add `RustlsConfig::versions()` for per-listener TLS protocol selection, including TLS 1.3-only listeners. Invalid reloads keep the last valid configuration. [#1199](https://github.com/poem-web/poem/pull/1199)
+
+## Fixed
+
+- Correct compression negotiation for `identity`, `zstd` and wildcard requests restricted to enabled algorithms. [#1157](https://github.com/poem-web/poem/pull/1157)
+- Explicitly enable Tokio's `net` feature for the networking APIs used by Poem. [#1081](https://github.com/poem-web/poem/pull/1081)
+- Preserve ACME native-only, Mozilla-only and combined root choices with Reqwest 0.13; adapt certificate generation to RCGen 0.14 and retain certificate/CSR regression coverage. [#1198](https://github.com/poem-web/poem/pull/1198)
+
+## Changed
+
+- Enable `TCP_NODELAY` on accepted TCP sockets. [#1177](https://github.com/poem-web/poem/pull/1177)
+- Improve OpenTelemetry error attributes and server-error span status; stop attaching `telemetry.sdk.*` resource metadata to each request span. Review trace queries and dashboards. [#1087](https://github.com/poem-web/poem/pull/1087)
+- Update Tower to 0.5, x509-parser to 0.18 and quick-xml to 0.42, adapting XML serialization errors. Refresh shared dependencies, including Syn 3 in `poem-derive`; session IDs retain 32 bytes of entropy after the Rand update. [#1091](https://github.com/poem-web/poem/pull/1091), [#1162](https://github.com/poem-web/poem/pull/1162), [#1194](https://github.com/poem-web/poem/pull/1194), [#1198](https://github.com/poem-web/poem/pull/1198)
+- Document Let's Encrypt rate limits for ACME users. [#1080](https://github.com/poem-web/poem/pull/1080)
+
 # [3.1.12] 2025-07-28
 
+- Bump optional sonic-rs from 0.3 to 0.5. [#1052](https://github.com/poem-web/poem/pull/1052)
+- Bump Redis from 0.31 to 0.32. [#1061](https://github.com/poem-web/poem/pull/1061)
+- Gate server-related Hyper/Hyper-util features for the Cloudflare Worker adapter. [#1075](https://github.com/poem-web/poem/pull/1075)
 - Bump `tokio-tungstenite` to `0.27`
 - Bump `opentelemetry`
 - Bump `x509-parser` to `0.17`

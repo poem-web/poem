@@ -9,8 +9,8 @@ consumer review below; this is not a backwards-compatibility guarantee.
 
 - **Rust 1.94 minimum**: update local, CI and deployment toolchains. SQLx 0.9 sets
   this floor. All workspace crates inherit it; READMEs and a dedicated CI check
-  reflect it. Crate release numbers are intentionally unchanged in this PR and
-  must be considered separately when preparing releases.
+  reflect it. The [major-release migration guide](migration-4.0.md) records
+  the prepared crate versions and additional changes since their last releases.
 - **OpenAPI external types**: use BSON 3 ObjectId, ULID 3 Ulid and SQLx 0.9 Json<T>.
   Older crate generations are different Rust types and no longer get these trait
   implementations. BSON serde is now opt-in and enabled by Poem. When combining

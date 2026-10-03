@@ -28,8 +28,9 @@
 
 ***
 
-For the Rust 1.94 dependency update, see the [migration guide](docs/dependency-upgrades.md)
-for public type changes, behavior changes, and reviewed upstream release notes.
+For the upcoming Poem 4 release family, see the [major-release migration guide](docs/migration-4.0.md)
+and [dependency upgrade notes](docs/dependency-upgrades.md) for version choices,
+public API changes, behavior changes, and reviewed upstream release notes.
 
 This repo contains the following main components:
 
