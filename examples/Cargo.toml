@@ -21,6 +21,7 @@ tokio = "1.53.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 serde_json = "1.0.151"
 serde = { version = "1.0.229", features = ["derive"] }
+schemars = "1.2.2"
 mime = "0.3.17"
 open = "5.4.4"
 futures-util = "0.3.34"

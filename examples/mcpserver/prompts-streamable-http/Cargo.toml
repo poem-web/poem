@@ -11,9 +11,9 @@ path = "src/client.rs"
 [dependencies]
 anyhow = "1.0.104"
 poem-mcpserver = { workspace = true, features = ["streamable-http"] }
-serde = { version = "1.0.229", features = ["derive"] }
+serde.workspace = true
 serde_json = { workspace = true }
-schemars = "1.2.2"
+schemars.workspace = true
 poem = { workspace = true, features = ["sse"] }
 rmcp = { version = "3.5.0", features = ["client", "transport-streamable-http-client-reqwest"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
