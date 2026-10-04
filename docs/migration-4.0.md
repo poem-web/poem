@@ -137,6 +137,23 @@ Fixed-size array (`[T; LEN]`) constraints now use `minItems`/`maxItems` rather t
 expectations. GeoJSON 1 also serializes an empty polygon as `[]` rather than
 `[[]]`; the public `geo-types` dependency remains 0.7.
 
+### Nullable values
+
+`Option<T>` and `MaybeUndefined<T>` now describe null in generated OpenAPI 3.0
+schemas. Typed inline schemas use `nullable: true`; referenced or composed
+schemas use `anyOf` with a null-only alternative. Shared component schemas stay
+unchanged. The `nullable` and `nullable_all` object attributes use the same
+representation, including for referenced enums and unions. Regenerate schema
+snapshots and generated clients.
+
+Requiredness and JSON behavior are unchanged: missing and explicit null inputs
+both parse as `Option::None`, which serializes as JSON null unless an existing
+skip-serialization setting omits it. `MaybeUndefined::Undefined` omits an object
+field, while `MaybeUndefined::Null` writes null. Nested `Option<Option<T>>` does
+not distinguish missing input from null; use `MaybeUndefined<T>` when that
+distinction matters. Explicit nullable attributes remain schema annotations,
+not new parser behavior or changes to required fields.
+
 ### Optional external types
 
 - Use BSON **3** `ObjectId`, SQLx **0.9** `Json<T>` and prost-wkt-types **0.7**

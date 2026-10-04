@@ -22,13 +22,8 @@ impl<T: Type> Type for Range<T> {
         let endpoint_schema = if T::IS_REQUIRED {
             T::schema_ref()
         } else {
-            // Optional endpoints still require a key, but allow null. A
-            // separate null-only branch also works for referenced types in
-            // OpenAPI 3.0, where nullable cannot override a $ref.
-            MetaSchemaRef::Inline(Box::new(MetaSchema {
-                any_of: vec![T::schema_ref(), <()>::schema_ref()],
-                ..MetaSchema::ANY
-            }))
+            // Optional endpoints still require a key, but allow null.
+            T::schema_ref().nullable()
         };
         MetaSchemaRef::Inline(Box::new(MetaSchema {
             description: Some("A half-open range with an inclusive start and exclusive end."),
