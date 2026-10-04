@@ -73,6 +73,8 @@ impl Acceptor for TcpAcceptor {
     #[inline]
     async fn accept(&mut self) -> Result<(Self::Io, LocalAddr, RemoteAddr, Scheme)> {
         self.listener.accept().await.map(|(io, addr)| {
+            let _ = io.set_nodelay(true);
+
             (
                 io,
                 self.local_addr.clone(),

@@ -22,8 +22,8 @@
       alt="Unsafe Rust forbidden" />
   </a>
   <a>
-    <img src="https://img.shields.io/badge/rustc-1.85.0+-ab6000.svg"
-      alt="rustc 1.85.0+" />
+    <img src="https://img.shields.io/badge/rustc-1.94.0+-ab6000.svg"
+      alt="rustc 1.94.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -52,6 +52,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 
 | Feature            | Description                                                                                                                                                        |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| camino             | Integrate with the [`camino` crate](https://crates.io/crates/camino).                                                                                              |
 | chrono             | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                                                                                              |
 | time               | Integrate with the [`time` crate](https://crates.io/crates/time).                                                                                                  |
 | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)                                                                                         |
@@ -63,6 +64,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | stoplight-elements | Add Stoplight Elements UI support                                                                                                                                  |
 | email              | Support for email address string                                                                                                                                   |
 | hostname           | Support for hostname string                                                                                                                                        |
+| ulid               | Integrate with the [`ulid` crate](https://crates.io/crates/ulid)                                                                                                   |
 | uuid               | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                                                                                                   |
 | url                | Integrate with the [`url` crate](https://crates.io/crates/url)                                                                                                     |
 | geo                | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)                                                                                         |
@@ -112,8 +114,8 @@ async fn main() -> Result<(), std::io::Error> {
 This feature needs to be opted-in. It can be done by adding the feature in `Cargo.toml` file
 ```toml filename=Cargo.toml
 [dependencies]
-poem = "3"
-poem-openapi = { version = "5", features = ["swagger-ui"]}
+poem = "4"
+poem-openapi = { version = "6", features = ["swagger-ui"]}
 tokio = { version = "1", features = ["full"] }
 ```
 

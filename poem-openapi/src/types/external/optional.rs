@@ -23,7 +23,7 @@ impl<T: Type> Type for Option<T> {
     }
 
     fn schema_ref() -> MetaSchemaRef {
-        T::schema_ref()
+        T::schema_ref().nullable()
     }
 
     fn register(registry: &mut Registry) {

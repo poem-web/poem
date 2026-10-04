@@ -8,7 +8,7 @@ use opentelemetry::{
 use opentelemetry_http::HeaderInjector;
 use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
-    trace::{SdkTracerProvider, Tracer},
+    trace::{SdkTracer, SdkTracerProvider},
     Resource,
 };
 use poem::{
@@ -34,8 +34,8 @@ fn init_tracer() -> SdkTracerProvider {
 }
 
 #[handler]
-async fn index(tracer: Data<&Tracer>, body: String) -> String {
-    let mut span = tracer
+async fn index(tracer: Data<&SdkTracer>, body: String) -> String {
+    let span = tracer
         .span_builder("request/server2")
         .with_kind(SpanKind::Client)
         .start(tracer.0);

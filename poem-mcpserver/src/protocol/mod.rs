@@ -12,4 +12,4 @@ pub mod tool;
 pub const JSON_RPC_VERSION: &str = "2.0";
 
 /// The MCP protocol version.
-pub const MCP_PROTOCOL_VERSION: time::Date = time::macros::date!(2025 - 03 - 26);
+pub const MCP_PROTOCOL_VERSION: time::Date = time::macros::date!(2025 - 06 - 18);

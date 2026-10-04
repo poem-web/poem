@@ -16,7 +16,7 @@ use serde::Deserialize;
 
 #[handler]
 async fn get_users(collection: Data<&Collection<Document>>) -> Json<serde_json::Value> {
-    let cursor = collection.find(None, None).await.unwrap();
+    let cursor = collection.find(doc! {}).await.unwrap();
     let result = cursor.try_collect::<Vec<Document>>().await.unwrap();
 
     Json(serde_json::json!(result))
@@ -35,18 +35,15 @@ async fn create_user(
     req: Json<InsertableUser>,
 ) -> Json<serde_json::Value> {
     let result = collection
-        .insert_one(
-            doc! {
-                "name": &req.name,
-                "email": &req.email,
-                "age": req.age
-            },
-            None,
-        )
+        .insert_one(doc! {
+            "name": &req.name,
+            "email": &req.email,
+            "age": req.age
+        })
         .await
         .unwrap();
     let result = collection
-        .find_one(doc! {"_id": result.inserted_id}, None)
+        .find_one(doc! {"_id": result.inserted_id})
         .await
         .unwrap();
 

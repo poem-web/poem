@@ -1084,3 +1084,132 @@ async fn parameter_style_none() {
     let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
     assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
 }
+
+#[tokio::test]
+async fn info_extensions() {
+    use serde_json::Value as JsonVal;
+    use serde_yaml::Value as YamlVal;
+
+    #[allow(dead_code)]
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/hello", method = "get")]
+        #[allow(dead_code)]
+        async fn index(&self) -> PlainText<String> {
+            PlainText("hello, world!".to_string())
+        }
+    }
+
+    let example_string = JsonVal::String("Example".to_string());
+    let example_string_yaml = YamlVal::String("Example".to_string());
+    let example_array = JsonVal::Array(vec![
+        JsonVal::String("B2B".to_string()),
+        JsonVal::String("B2C".to_string()),
+    ]);
+    let example_array_yaml = YamlVal::Sequence(vec![
+        YamlVal::String("B2B".to_string()),
+        YamlVal::String("B2C".to_string()),
+    ]);
+
+    let api = OpenApiService::new(Api {}, "test", "1.0")
+        .info_extension("x-category", example_string.clone())
+        .info_extension("x-segment", example_array.clone());
+
+    // check JSON:
+    let spec_parsed: JsonVal = serde_json::from_str(&api.spec()).expect("Generated invalid JSON");
+    if let JsonVal::Object(spec_root) = spec_parsed {
+        let info = spec_root.get("info").expect("Spec has no info");
+        if let JsonVal::Object(spec_info) = info {
+            assert_eq!(spec_info.get("x-category"), Some(&example_string));
+            assert_eq!(spec_info.get("x-segment"), Some(&example_array));
+        } else {
+            panic!("Spec info isn't a JSON object");
+        }
+    } else {
+        panic!("Spec root isn't a JSON object");
+    }
+
+    // check YAML:
+    let spec_parsed: YamlVal =
+        serde_yaml::from_str(&api.spec_yaml()).expect("Generated invalid YAML");
+    if let YamlVal::Mapping(spec_root) = spec_parsed {
+        let info = spec_root.get("info").expect("YAML Spec has no info");
+        if let YamlVal::Mapping(spec_info) = info {
+            assert_eq!(spec_info.get("x-category"), Some(&example_string_yaml));
+            assert_eq!(spec_info.get("x-segment"), Some(&example_array_yaml));
+        } else {
+            panic!("Spec info isn't a YAML mapping");
+        }
+    } else {
+        panic!("Spec root isn't a YAML mapping");
+    }
+}
+
+#[test]
+fn unit_payload_uses_nullable_schema() {
+    #[derive(Object)]
+    struct UnitField {
+        value: (),
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/unit", method = "get")]
+        async fn unit(&self) -> Json<()> {
+            Json(())
+        }
+
+        #[oai(path = "/object", method = "get")]
+        async fn object(&self) -> Json<UnitField> {
+            Json(UnitField { value: () })
+        }
+    }
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    let expected = serde_json::json!({
+        "type": "object",
+        "nullable": true,
+        "enum": [null],
+    });
+    assert_eq!(
+        spec["paths"]["/unit"]["get"]["responses"]["200"]["content"]["application/json; charset=utf-8"]
+            ["schema"],
+        expected
+    );
+    assert_eq!(
+        spec["components"]["schemas"]["UnitField"]["properties"]["value"],
+        expected
+    );
+}
+
+#[tokio::test]
+async fn unit_payload_rejects_non_null_data() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "post")]
+        async fn unit(&self, _body: Json<()>) -> Json<()> {
+            Json(())
+        }
+    }
+
+    let client = TestClient::new(OpenApiService::new(Api, "test", "1.0"));
+    client
+        .post("/")
+        .body_json(&serde_json::json!({ "value": 42 }))
+        .send()
+        .await
+        .assert_status(StatusCode::BAD_REQUEST);
+    client
+        .post("/")
+        .body_json(&serde_json::json!(null))
+        .send()
+        .await
+        .assert_status_is_ok();
+}

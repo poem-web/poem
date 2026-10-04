@@ -1,4 +1,5 @@
 mod clean_unused;
+mod number;
 mod ser;
 
 use std::{
@@ -7,6 +8,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+pub use number::MetaSchemaNumber;
 use poem::http::Method;
 pub(crate) use ser::Document;
 use serde::{Serialize, Serializer, ser::SerializeMap};
@@ -95,11 +97,11 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiple_of: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub maximum: Option<f64>,
+    pub maximum: Option<MetaSchemaNumber>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exclusive_maximum: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub minimum: Option<f64>,
+    pub minimum: Option<MetaSchemaNumber>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exclusive_minimum: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -306,6 +308,44 @@ pub enum MetaSchemaRef {
 }
 
 impl MetaSchemaRef {
+    /// Allow null without changing the schema of a shared component.
+    pub(crate) fn nullable(self) -> Self {
+        if let MetaSchemaRef::Inline(mut schema) = self {
+            if schema.any_of.is_empty()
+                && schema.one_of.is_empty()
+                && schema.all_of.is_empty()
+                && !schema.ty.is_empty()
+            {
+                schema.nullable = true;
+                // `nullable` extends `type`, but does not override `enum`.
+                if !schema.enum_items.is_empty() && !schema.enum_items.contains(&Value::Null) {
+                    schema.enum_items.push(Value::Null);
+                }
+                return MetaSchemaRef::Inline(schema);
+            }
+            if schema.ty.is_empty()
+                && schema.enum_items.is_empty()
+                && schema.one_of.is_empty()
+                && schema.all_of.is_empty()
+                && schema.any_of.contains(&<()>::schema_ref())
+            {
+                return MetaSchemaRef::Inline(schema);
+            }
+            return Self::null_union(MetaSchemaRef::Inline(schema));
+        }
+        Self::null_union(self)
+    }
+
+    fn null_union(schema: Self) -> Self {
+        // In OpenAPI 3.0 `nullable` only affects a type in the same schema.
+        // Neither a $ref sibling nor nullable on an allOf wrapper can make
+        // the referenced/composed schema accept null. Use a null-only branch.
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            any_of: vec![schema, <()>::schema_ref()],
+            ..MetaSchema::ANY
+        }))
+    }
+
     pub fn is_array(&self) -> bool {
         matches!(self, MetaSchemaRef::Inline(schema) if schema.ty == "array")
     }
@@ -329,7 +369,11 @@ impl MetaSchemaRef {
     }
 
     #[must_use]
-    pub fn merge(self, other: MetaSchema) -> Self {
+    pub fn merge(self, mut other: MetaSchema) -> Self {
+        if other.nullable {
+            other.nullable = false;
+            return self.nullable().merge(other);
+        }
         match self {
             MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(Box::new(schema.merge(other))),
             MetaSchemaRef::Reference(name) => {
@@ -540,6 +584,8 @@ pub struct MetaInfo {
     pub contact: Option<MetaContact>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<MetaLicense>,
+    #[serde(flatten)]
+    pub extensions: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Clone)]
@@ -696,20 +742,20 @@ impl Registry {
     {
         match self.schemas.get(&name) {
             Some(schema) => {
-                if let Some(prev_typename) = schema.rust_typename {
-                    if prev_typename != std::any::type_name::<T>() {
-                        panic!(
-                            "`{}` and `{}` have the same OpenAPI name `{}`",
-                            prev_typename,
-                            std::any::type_name::<T>(),
-                            name,
-                        );
-                    }
+                if let Some(prev_typename) = schema.rust_typename
+                    && prev_typename != std::any::type_name::<T>()
+                {
+                    panic!(
+                        "`{}` and `{}` have the same OpenAPI name `{}`",
+                        prev_typename,
+                        std::any::type_name::<T>(),
+                        name,
+                    );
                 }
             }
             None => {
-                // Inserting a fake type before calling the function allows recursive types to
-                // exist.
+                // Inserting a fake type before calling the function allows
+                // recursive types to exist.
                 self.schemas.insert(name.clone(), MetaSchema::new("fake"));
                 let mut meta_schema = f(self);
                 meta_schema.rust_typename = Some(std::any::type_name::<T>());
@@ -719,7 +765,24 @@ impl Registry {
     }
 
     pub fn create_fake_schema<T: Type>(&mut self) -> MetaSchema {
-        match T::schema_ref() {
+        let mut schema_ref = T::schema_ref();
+        if !T::IS_REQUIRED
+            && let MetaSchemaRef::Inline(schema) = &mut schema_ref
+        {
+            // Flattening needs the wrapped object's fields, not the
+            // optional value's null alternative. Preserve the existing
+            // properties and required keys when resolving our null union.
+            if schema.ty.is_empty()
+                && schema.enum_items.is_empty()
+                && schema.one_of.is_empty()
+                && schema.all_of.is_empty()
+                && schema.any_of.len() == 2
+                && schema.any_of[1] == <()>::schema_ref()
+            {
+                schema_ref = schema.any_of.remove(0);
+            }
+        }
+        match schema_ref {
             MetaSchemaRef::Inline(schema) => *schema,
             MetaSchemaRef::Reference(name) => {
                 T::register(self);

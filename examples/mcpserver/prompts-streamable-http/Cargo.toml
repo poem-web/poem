@@ -1,0 +1,20 @@
+[package]
+name = "prompts-streamable-http"
+version = "0.1.0"
+edition = "2021"
+default-run = "prompts-streamable-http"
+
+[[bin]]
+name = "prompts-streamable-http-client"
+path = "src/client.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+poem-mcpserver = { workspace = true, features = ["streamable-http"] }
+serde.workspace = true
+serde_json = { workspace = true }
+schemars.workspace = true
+poem = { workspace = true, features = ["sse"] }
+rmcp = { version = "3.5.0", features = ["client", "transport-streamable-http-client-reqwest"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tracing-subscriber.workspace = true

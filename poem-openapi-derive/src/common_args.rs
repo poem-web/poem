@@ -3,6 +3,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Lit, Path};
 
+use crate::numeric_bound::NumericBound;
+
 #[derive(Debug, Copy, Clone, FromMeta)]
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum RenameRule {
@@ -124,18 +126,6 @@ impl APIMethod {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromMeta, Eq, PartialEq)]
-pub(crate) enum ParamIn {
-    #[darling(rename = "path")]
-    Path,
-    #[darling(rename = "query")]
-    Query,
-    #[darling(rename = "header")]
-    Header,
-    #[darling(rename = "cookie")]
-    Cookie,
-}
-
 #[derive(Debug)]
 pub(crate) enum DefaultValue {
     Default,
@@ -176,14 +166,14 @@ impl FromMeta for ExampleValue {
 
 #[derive(FromMeta, Clone)]
 pub(crate) struct MaximumValidator {
-    pub(crate) value: f64,
+    pub(crate) value: NumericBound,
     #[darling(default)]
     pub(crate) exclusive: bool,
 }
 
 #[derive(FromMeta, Clone)]
 pub(crate) struct MinimumValidator {
-    pub(crate) value: f64,
+    pub(crate) value: NumericBound,
     #[darling(default)]
     pub(crate) exclusive: bool,
 }

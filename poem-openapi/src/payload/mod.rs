@@ -29,7 +29,7 @@ pub use self::{
     xml::Xml,
     yaml::Yaml,
 };
-use crate::registry::{MetaSchemaRef, Registry};
+use crate::registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry};
 
 /// Represents a payload type.
 pub trait Payload: Send {
@@ -59,4 +59,20 @@ pub trait ParsePayload: Sized {
         request: &Request,
         body: &mut RequestBody,
     ) -> impl Future<Output = Result<Self>> + Send;
+}
+
+#[inline]
+fn response_meta<T: Payload>() -> MetaResponses {
+    MetaResponses {
+        responses: vec![MetaResponse {
+            description: "",
+            status: Some(200),
+            status_range: None,
+            content: vec![MetaMediaType {
+                content_type: T::CONTENT_TYPE,
+                schema: T::schema_ref(),
+            }],
+            headers: vec![],
+        }],
+    }
 }

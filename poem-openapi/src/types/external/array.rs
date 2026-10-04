@@ -21,8 +21,8 @@ impl<T: Type, const LEN: usize> Type for [T; LEN] {
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
             items: Some(Box::new(T::schema_ref())),
-            max_length: Some(LEN),
-            min_length: Some(LEN),
+            max_items: Some(LEN),
+            min_items: Some(LEN),
             ..MetaSchema::new("array")
         }))
     }
@@ -94,12 +94,6 @@ impl<T: ParseFromParameter, const LEN: usize> ParseFromParameter for [T; LEN] {
 
 impl<T: ToJSON, const LEN: usize> ToJSON for [T; LEN] {
     fn to_json(&self) -> Option<Value> {
-        let mut values = Vec::with_capacity(self.len());
-        for item in self {
-            if let Some(value) = item.to_json() {
-                values.push(value);
-            }
-        }
-        Some(Value::Array(values))
+        super::collections::sequence_to_json!(self, self.len())
     }
 }

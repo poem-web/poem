@@ -1,0 +1,8 @@
+[package]
+name = "resources-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poem-mcpserver.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }

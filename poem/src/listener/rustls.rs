@@ -5,12 +5,13 @@ use futures_util::{
     stream::{BoxStream, Chain, Pending},
 };
 use http::uri::Scheme;
-use rustls_pemfile::Item;
 use tokio::io::{Error as IoError, Result as IoResult};
 use tokio_rustls::{
     rustls::{
-        ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, WantsVerifier,
+        ConfigBuilder, DEFAULT_VERSIONS, RootCertStore, ServerConfig, SupportedProtocolVersion,
+        WantsVerifier,
         crypto::{CryptoProvider, aws_lc_rs, aws_lc_rs::sign::any_supported_type},
+        pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
         server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
     },
@@ -69,21 +70,11 @@ impl RustlsCertificate {
 
 impl RustlsCertificate {
     fn create_certificate_key(&self) -> IoResult<CertifiedKey> {
-        let cert = rustls_pemfile::certs(&mut self.cert.as_slice())
-            .collect::<Result<_, _>>()
+        let cert = CertificateDer::pem_slice_iter(self.cert.as_slice())
+            .collect::<Result<Vec<_>, _>>()
             .map_err(|_| IoError::other("failed to parse tls certificates"))?;
-        let mut key_reader = self.key.as_slice();
-        let priv_key = loop {
-            match rustls_pemfile::read_one(&mut key_reader)? {
-                Some(Item::Pkcs1Key(key)) => break key.into(),
-                Some(Item::Pkcs8Key(key)) => break key.into(),
-                Some(Item::Sec1Key(key)) => break key.into(),
-                None => {
-                    return Err(IoError::other("failed to parse tls private keys"));
-                }
-                _ => continue,
-            }
-        };
+        let priv_key = PrivateKeyDer::from_pem_slice(self.key.as_slice())
+            .map_err(|_| IoError::other("failed to parse tls private keys"))?;
 
         let key =
             any_supported_type(&priv_key).map_err(|_| IoError::other("invalid private key"))?;
@@ -106,6 +97,7 @@ pub struct RustlsConfig {
     certificates: HashMap<String, RustlsCertificate>,
     fallback: Option<RustlsCertificate>,
     client_auth: TlsClientAuth,
+    versions: Vec<&'static SupportedProtocolVersion>,
 }
 
 impl Default for RustlsConfig {
@@ -121,6 +113,7 @@ impl RustlsConfig {
             certificates: HashMap::new(),
             fallback: Default::default(),
             client_auth: TlsClientAuth::Off,
+            versions: DEFAULT_VERSIONS.to_vec(),
         }
     }
 
@@ -212,6 +205,30 @@ impl RustlsConfig {
         self
     }
 
+    /// Sets the supported TLS protocol versions.
+    ///
+    /// By default, rustls's default versions (TLS 1.2 and TLS 1.3) are enabled.
+    /// This setting applies to this listener even if other dependencies enable
+    /// additional protocol versions through Cargo features.
+    ///
+    /// An empty list, or versions incompatible with the process's crypto
+    /// provider, causes an error when the configuration is loaded. A streamed
+    /// invalid configuration is ignored, keeping the last valid configuration.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::listener::RustlsConfig;
+    /// use tokio_rustls::rustls::version::TLS13;
+    ///
+    /// let config = RustlsConfig::new().versions(&[&TLS13]);
+    /// ```
+    #[must_use]
+    pub fn versions(mut self, versions: &[&'static SupportedProtocolVersion]) -> Self {
+        self.versions = versions.to_vec();
+        self
+    }
+
     fn create_server_config(&self) -> IoResult<ServerConfig> {
         let fallback = self
             .fallback
@@ -228,7 +245,7 @@ impl RustlsConfig {
             );
         }
 
-        let builder = make_server_config_builder();
+        let builder = make_server_config_builder(&self.versions)?;
         let builder = match &self.client_auth {
             TlsClientAuth::Off => builder.with_no_client_auth(),
             TlsClientAuth::Optional(trust_anchor) => {
@@ -260,7 +277,9 @@ impl RustlsConfig {
 
 // A port of CryptoProvider::get_default_or_install_from_crate_features while
 // always use aws_lc_rs as the default provider.
-fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
+fn make_server_config_builder(
+    versions: &[&'static SupportedProtocolVersion],
+) -> IoResult<ConfigBuilder<ServerConfig, WantsVerifier>> {
     if CryptoProvider::get_default().is_none() {
         let provider = aws_lc_rs::default_provider();
         let _ = provider.install_default();
@@ -269,16 +288,14 @@ fn make_server_config_builder() -> ConfigBuilder<ServerConfig, WantsVerifier> {
     // SAFETY: `CryptoProvider::get_default()` must be non-null at this point
     let provider = CryptoProvider::get_default().unwrap();
 
-    // SAFETY: process-level default provider is usable with the supplied versions
     ServerConfig::builder_with_provider(provider.clone())
-        .with_protocol_versions(DEFAULT_VERSIONS)
-        .unwrap()
+        .with_protocol_versions(versions)
+        .map_err(|err| IoError::new(std::io::ErrorKind::InvalidInput, err))
 }
 
-fn read_trust_anchor(mut trust_anchor: &[u8]) -> IoResult<RootCertStore> {
+fn read_trust_anchor(trust_anchor: &[u8]) -> IoResult<RootCertStore> {
     let mut store = RootCertStore::empty();
-    let ders = rustls_pemfile::certs(&mut trust_anchor);
-    for der in ders {
+    for der in CertificateDer::pem_slice_iter(trust_anchor) {
         let der = der.map_err(|err| IoError::other(err.to_string()))?;
         store
             .add(der)
@@ -469,5 +486,139 @@ mod tests {
 
         let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
         assert_eq!(stream.read_i32().await.unwrap(), 10);
+    }
+
+    async fn negotiate_version(
+        config: RustlsConfig,
+        client_version: &'static tokio_rustls::rustls::SupportedProtocolVersion,
+    ) -> (
+        IoResult<tokio_rustls::rustls::ProtocolVersion>,
+        IoResult<()>,
+    ) {
+        let config = config.fallback(
+            RustlsCertificate::new()
+                .cert(include_bytes!("certs/cert1.pem").as_ref())
+                .key(include_bytes!("certs/key1.pem").as_ref()),
+        );
+        let server =
+            tokio_rustls::TlsAcceptor::from(Arc::new(config.create_server_config().unwrap()));
+        let client = ClientConfig::builder_with_provider(Arc::new(aws_lc_rs::default_provider()))
+            .with_protocol_versions(&[client_version])
+            .unwrap()
+            .with_root_certificates(read_trust_anchor(include_bytes!("certs/chain1.pem")).unwrap())
+            .with_no_client_auth();
+        let client = tokio_rustls::TlsConnector::from(Arc::new(client));
+        let (server_io, client_io) = tokio::io::duplex(65536);
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            tokio::join!(
+                async {
+                    let mut stream = server.accept(server_io).await?;
+                    stream.write_i32(10).await?;
+                    Ok(stream.get_ref().1.protocol_version().unwrap())
+                },
+                async {
+                    let domain = ServerName::try_from("testserver.com").unwrap();
+                    let mut stream = client.connect(domain, client_io).await?;
+                    assert_eq!(stream.read_i32().await?, 10);
+                    Ok(())
+                }
+            )
+        })
+        .await
+        .expect("TLS handshake timed out")
+    }
+
+    #[tokio::test]
+    async fn default_tls_versions() {
+        use tokio_rustls::rustls::version::{TLS12, TLS13};
+        for version in [&TLS12, &TLS13] {
+            let (server, client) = negotiate_version(RustlsConfig::new(), version).await;
+            assert_eq!(server.unwrap(), version.version);
+            client.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn restricted_tls_versions() {
+        use tokio_rustls::rustls::version::{TLS12, TLS13};
+        for server_version in [&TLS12, &TLS13] {
+            for client_version in [&TLS12, &TLS13] {
+                let (server, client) = negotiate_version(
+                    RustlsConfig::new().versions(&[server_version]),
+                    client_version,
+                )
+                .await;
+                if server_version == client_version {
+                    assert_eq!(server.unwrap(), server_version.version);
+                    client.unwrap();
+                } else {
+                    assert!(server.is_err(), "server accepted a disabled TLS version");
+                    assert!(client.is_err(), "client negotiated a disabled TLS version");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn empty_tls_versions_returns_error() {
+        let result = RustlsConfig::new().versions(&[]).into_stream();
+        assert!(matches!(result, Err(err) if err.kind() == std::io::ErrorKind::InvalidInput));
+    }
+    #[tokio::test]
+    async fn invalid_reload_keeps_tls_versions() {
+        use tokio_rustls::rustls::version::{TLS12, TLS13};
+
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            let (loaded_tx, loaded_rx) = tokio::sync::oneshot::channel();
+            let valid = RustlsConfig::new().versions(&[&TLS13]).fallback(
+                RustlsCertificate::new()
+                    .cert(include_bytes!("certs/cert1.pem").as_ref())
+                    .key(include_bytes!("certs/key1.pem").as_ref()),
+            );
+            let configs = futures_util::stream::iter([valid, RustlsConfig::new().versions(&[])])
+                .chain(futures_util::stream::once(async move {
+                    // Polled after both configurations have been processed.
+                    loaded_tx.send(()).unwrap();
+                    futures_util::future::pending::<RustlsConfig>().await
+                }));
+            let mut acceptor = TcpListener::bind("127.0.0.1:0")
+                .rustls(configs)
+                .into_acceptor()
+                .await
+                .unwrap();
+            let addr = *acceptor.local_addr()[0].as_socket_addr().unwrap();
+            let server = async {
+                for expected_success in [true, false] {
+                    let (mut stream, _, _, _) = acceptor.accept().await.unwrap();
+                    assert_eq!(stream.read_i32().await.is_ok(), expected_success);
+                }
+            };
+            let client = async {
+                loaded_rx.await.unwrap();
+                for version in [&TLS13, &TLS12] {
+                    let config = ClientConfig::builder_with_provider(Arc::new(
+                        aws_lc_rs::default_provider(),
+                    ))
+                    .with_protocol_versions(&[version])
+                    .unwrap()
+                    .with_root_certificates(
+                        read_trust_anchor(include_bytes!("certs/chain1.pem")).unwrap(),
+                    )
+                    .with_no_client_auth();
+                    let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
+                    let domain = ServerName::try_from("testserver.com").unwrap();
+                    let stream = TcpStream::connect(addr).await.unwrap();
+                    let result = connector.connect(domain, stream).await;
+                    if version == &TLS13 {
+                        result.unwrap().write_i32(10).await.unwrap();
+                    } else {
+                        assert!(result.is_err(), "invalid reload re-enabled TLS 1.2");
+                    }
+                }
+            };
+            tokio::join!(server, client);
+        })
+        .await
+        .expect("TLS reload test timed out");
     }
 }

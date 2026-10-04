@@ -67,6 +67,12 @@ impl AutoCertBuilder {
     /// This is not a necessary option. If you do not configure the cache path,
     /// the obtained certificate will be stored in memory and will need to be
     /// obtained again when the server is restarted next time.
+    ///
+    /// Note that the default ACME service, Letsencrypt, only allows [five
+    /// certificates to be issued](https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-identifiers)
+    /// for an exact set of domains every seven days. If cache path is omitted,
+    /// each application restart will count toward this limit, which can prevent
+    /// new certificate issuance from succeeding for 34 hours once reached.
     #[must_use]
     pub fn cache_path(self, path: impl Into<PathBuf>) -> Self {
         Self {

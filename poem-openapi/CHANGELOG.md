@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [6.0.0] - Unreleased
+
+This release also covers `poem-openapi-derive` 6.0.0. See the [major-release migration guide](../docs/migration-4.0.md).
+
+## Breaking changes
+
+- Preserve exact integer minimum/maximum bounds in schemas, derives and runtime validation. `MetaSchema.minimum`/`maximum` now use `MetaSchemaNumber`; validators require `Copy + Into<MetaSchemaNumber>` rather than `AsPrimitive<f64>`. See [numeric-bound migration guidance](../docs/migration-4.0.md#exact-numeric-bounds). [#910](https://github.com/poem-web/poem/issues/910)
+
+- Upgrade to Poem 4 and require Rust 1.94. Keep runtime and derive dependencies on the same major release. [#1198](https://github.com/poem-web/poem/pull/1198)
+- Name generated discriminator/externally tagged union variant schemas after the Rust variant, rather than its payload type (`Union_Variant` instead of `Union_PayloadType`). Update schema snapshots, explicit `$ref` consumers and generated clients. [#1051](https://github.com/poem-web/poem/pull/1051)
+- Add `extensions` to `registry::MetaInfo`; update complete struct literals or use `..Default::default()`. [#1158](https://github.com/poem-web/poem/pull/1158)
+- Target BSON 3 `ObjectId`, SQLx 0.9 `Json<T>` and prost-wkt-types 0.7 `Duration`/`Timestamp`/`Struct`/`Value` in external type implementations. Older dependency generations are distinct Rust types. The new optional ULID integration targets ULID 3. [#1089](https://github.com/poem-web/poem/pull/1089), [#1099](https://github.com/poem-web/poem/pull/1099), [#1198](https://github.com/poem-web/poem/pull/1198)
+- Upgrade GeoJSON to 1.0. Empty polygons serialize as `[]` rather than `[[]]`; review serialized output and diagnostics. Public geo-types remain on 0.7. [#1198](https://github.com/poem-web/poem/pull/1198)
+
+## Added
+
+- Support `std::ops::Range<T>` in JSON payloads and OpenAPI schemas, using required `start` and `end` fields.
+
+- Support primitive payloads in externally tagged unions. [1c2474ec](https://github.com/poem-web/poem/commit/1c2474ec)
+- Support childless union variants, including discriminator schemas; externally tagged childless variants remain unsupported. [#1159](https://github.com/poem-web/poem/pull/1159)
+- Add external type implementations for `()`, `Path`/`PathBuf`, `camino::Utf8Path`/`Utf8PathBuf` and `ulid::Ulid`. Camino and ULID support use their respective optional features. [#1083](https://github.com/poem-web/poem/pull/1083), [#1100](https://github.com/poem-web/poem/pull/1100), [#1103](https://github.com/poem-web/poem/pull/1103), [#1099](https://github.com/poem-web/poem/pull/1099)
+- Support `geo_types::Geometry` with the `geo` feature and fix fixed-size array schema validation. [#1120](https://github.com/poem-web/poem/pull/1120)
+- Add `OpenApiService::info_extension` for OpenAPI information-object extensions. [#1158](https://github.com/poem-web/poem/pull/1158)
+- Implement `ToXML` for vectors of JSON-convertible values. [#1173](https://github.com/poem-web/poem/pull/1173)
+- Add optional/anonymous security-scheme examples. [#1175](https://github.com/poem-web/poem/pull/1175)
+
+## Fixed
+
+- Describe `Option<T>` and `MaybeUndefined<T>` as nullable while preserving JSON output and required fields. Referenced and composed schemas use a null-only union without changing shared components; `nullable`/`nullable_all` use the same semantics. [#701](https://github.com/poem-web/poem/issues/701), [#913](https://github.com/poem-web/poem/issues/913), [#1122](https://github.com/poem-web/poem/issues/1122)
+
+- Preserve `one_of` uniqueness checks for childless union variants, rejecting ambiguous object input rather than discarding its data.
+- Represent unit `()` using a nullable, null-only OpenAPI 3.0 schema and reject non-null JSON input, matching Serde instead of discarding populated data.
+- Enable Time's `macros` feature for the optional Time integration. [#1082](https://github.com/poem-web/poem/pull/1082)
+- Use `minItems`/`maxItems` rather than `minLength`/`maxLength` for fixed-size array schemas (`[T; LEN]`). [#1120](https://github.com/poem-web/poem/pull/1120)
+- Adapt derive macros to Syn 3 and preserve rejection of mutable API receivers; add BSON, SQLx, ULID and GeoJSON migration regressions. [#1198](https://github.com/poem-web/poem/pull/1198)
+
+## Changed
+
+- Avoid full-body copies when parsing JSON, XML, YAML and form payloads, and reuse the owned upload buffer when converting it to a string.
+
+# [5.1.16] 2025-07-28
+
+- Derive `Debug` for the bearer authentication extractor. [#1054](https://github.com/poem-web/poem/pull/1054)
+- Refresh shared dependencies, including Poem 3.1.12 and the optional sonic-rs 0.5 integration. [#1052](https://github.com/poem-web/poem/pull/1052), [f3cfdd8b](https://github.com/poem-web/poem/commit/f3cfdd8b)
+
 # [5.1.15] 2025-06-06
 
 - Bump `derive_more` to `2.0`

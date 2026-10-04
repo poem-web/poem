@@ -85,6 +85,12 @@ impl Api {
         *self.resource.lock().await = Some(obj.0);
         MyResponse::Ok(Json(ResponseObject::ok(true)))
     }
+
+    #[oai(path = "/resource", method = "post")]
+    async fn post(&self, obj: Json<Resource>) -> MyResponse<()> {
+        *self.resource.lock().await = Some(obj.0);
+        MyResponse::Ok(Json(ResponseObject::ok(())))
+    }
 }
 
 #[tokio::main]

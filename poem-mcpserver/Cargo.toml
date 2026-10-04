@@ -1,6 +1,6 @@
 [package]
 name = "poem-mcpserver"
-version = "0.2.4"
+version = "0.4.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -28,18 +28,19 @@ schemars.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 time = { workspace = true, features = ["macros", "formatting", "parsing"] }
-tokio = { workspace = true, features = ["io-std", "io-util", "rt"] }
+tokio = { workspace = true, features = ["io-std", "io-util", "rt", "net"] }
 poem = { workspace = true, features = ["sse"], optional = true }
 rand.workspace = true
 tokio-stream.workspace = true
 async-stream.workspace = true
 tracing.workspace = true
-pin-project-lite = "0.2.16"
-itertools = "0.14.0"
+pin-project-lite = "0.2.17"
+itertools = "0.15.0"
 mime.workspace = true
 base64.workspace = true
 
 [dev-dependencies]
+poem = { workspace = true, features = ["test"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [package.metadata.docs.rs]

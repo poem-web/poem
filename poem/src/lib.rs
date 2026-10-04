@@ -34,7 +34,7 @@
 //! # Endpoint
 //!
 //! The [`Endpoint`] trait represents a type that can handle HTTP requests, and
-//! it returns the `Result<T: IntoResponse, Error>` type.
+//! it returns a `Result<T: IntoResponse, Error>` type.
 //!
 //! The [`handler`] macro is used to convert a function into an endpoint.
 //!

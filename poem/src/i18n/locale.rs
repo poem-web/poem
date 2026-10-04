@@ -61,6 +61,7 @@ type LanguageArray = SmallVec<[LanguageIdentifier; 8]>;
 /// ```
 pub struct Locale {
     bundle: I18NBundle,
+    accept_languages: LanguageArray,
 }
 
 impl Locale {
@@ -81,6 +82,32 @@ impl Locale {
     pub fn text(&self, id: impl AsRef<str>) -> Result<String, I18NError> {
         self.bundle.text(id)
     }
+
+    /// Returns the parsed and prioritized list of language identifiers from
+    /// the `Accept-Language` header.
+    ///
+    /// The languages are sorted by their quality values (q-values), with the
+    /// most preferred language first. This can be used to retrieve localized
+    /// content from other sources beyond i18n message lookups.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poem::{handler, i18n::Locale};
+    ///
+    /// #[handler]
+    /// async fn index(locale: Locale) -> String {
+    ///     let languages = locale.accept_languages();
+    ///     if let Some(first) = languages.first() {
+    ///         format!("Preferred language: {}", first)
+    ///     } else {
+    ///         "No language preference".to_string()
+    ///     }
+    /// }
+    /// ```
+    pub fn accept_languages(&self) -> &[unic_langid::LanguageIdentifier] {
+        &self.accept_languages
+    }
 }
 
 impl<'a> FromRequest<'a> for Locale {
@@ -99,6 +126,7 @@ impl<'a> FromRequest<'a> for Locale {
 
         Ok(Self {
             bundle: resources.negotiate_languages(&accept_languages),
+            accept_languages,
         })
     }
 }

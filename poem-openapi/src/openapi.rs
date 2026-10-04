@@ -3,6 +3,7 @@ use std::{
     marker::PhantomData,
 };
 
+use bytes::Bytes;
 use poem::{
     Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route, RouteMethod,
     endpoint::{BoxEndpoint, make_sync},
@@ -281,12 +282,8 @@ impl<T> OpenApiService<T, ()> {
             _webhook: PhantomData,
             info: MetaInfo {
                 title: title.into(),
-                summary: None,
-                description: None,
                 version: version.into(),
-                terms_of_service: None,
-                contact: None,
-                license: None,
+                ..Default::default()
             },
             external_document: None,
             servers: Vec::new(),
@@ -415,6 +412,21 @@ impl<T, W> OpenApiService<T, W> {
         let extra_header = header.into();
         self.extra_request_headers
             .push((extra_header, HT::schema_ref(), HT::IS_REQUIRED));
+        self
+    }
+
+    /// Add info extension
+    #[must_use]
+    pub fn info_extension<E>(mut self, extension: E, value: serde_json::Value) -> Self
+    where
+        E: Into<String>,
+    {
+        let extension: String = extension.into();
+        assert!(
+            extension.starts_with("x-"),
+            "Extensions need to begin with 'x-'"
+        );
+        self.info.extensions.insert(extension, value);
         self
     }
 
@@ -571,7 +583,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        let spec = self.spec();
+        let spec = Bytes::from(self.spec());
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/json")
@@ -585,7 +597,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        let spec = self.spec_yaml();
+        let spec = Bytes::from(self.spec_yaml());
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/x-yaml")
@@ -713,10 +725,10 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
             .flat_map(|api| api.paths.into_iter())
             .flat_map(|path| path.operations.into_iter())
         {
-            if let Some(operation_id) = operation.operation_id {
-                if !operation_ids.insert(operation_id) {
-                    panic!("duplicate operation id: {operation_id}");
-                }
+            if let Some(operation_id) = operation.operation_id
+                && !operation_ids.insert(operation_id)
+            {
+                panic!("duplicate operation id: {operation_id}");
             }
         }
 

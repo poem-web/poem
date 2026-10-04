@@ -1,11 +1,11 @@
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use libopentelemetry::{
     Context, Key, KeyValue, global,
-    trace::{FutureExt, Span, SpanKind, TraceContextExt, Tracer},
+    trace::{FutureExt, Span, SpanKind, Status, TraceContextExt, Tracer},
 };
 use opentelemetry_http::HeaderExtractor;
-use opentelemetry_semantic_conventions::{attribute, resource};
+use opentelemetry_semantic_conventions::attribute;
 
 use crate::{
     Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
@@ -73,15 +73,6 @@ where
 
         let mut attributes = Vec::new();
         attributes.push(KeyValue::new(
-            resource::TELEMETRY_SDK_NAME,
-            env!("CARGO_CRATE_NAME"),
-        ));
-        attributes.push(KeyValue::new(
-            resource::TELEMETRY_SDK_VERSION,
-            env!("CARGO_PKG_VERSION"),
-        ));
-        attributes.push(KeyValue::new(resource::TELEMETRY_SDK_LANGUAGE, "rust"));
-        attributes.push(KeyValue::new(
             attribute::HTTP_REQUEST_METHOD,
             req.method().to_string(),
         ));
@@ -103,7 +94,7 @@ where
             .with_attributes(attributes)
             .start_with_context(&*self.tracer, &parent_cx);
 
-        span.add_event("request.started".to_string(), vec![]);
+        span.add_event("request.started", vec![]);
 
         async move {
             let res = self.inner.call(req).await;
@@ -123,7 +114,7 @@ where
                         ));
                     }
 
-                    span.add_event("request.completed".to_string(), vec![]);
+                    span.add_event("request.completed", vec![]);
                     span.set_attribute(KeyValue::new(
                         attribute::HTTP_RESPONSE_STATUS_CODE,
                         resp.status().as_u16() as i64,
@@ -148,14 +139,25 @@ where
                         ));
                     }
 
+                    let status = err.status();
+                    let mut error_attributes = vec![
+                        KeyValue::new(attribute::EXCEPTION_MESSAGE, err.to_string()),
+                        KeyValue::new(
+                            attribute::EXCEPTION_STACKTRACE,
+                            err.source().map(ToString::to_string).unwrap_or_default(),
+                        ),
+                    ];
                     span.set_attribute(KeyValue::new(
                         attribute::HTTP_RESPONSE_STATUS_CODE,
-                        err.status().as_u16() as i64,
+                        status.as_u16() as i64,
                     ));
-                    span.add_event(
-                        "request.error".to_string(),
-                        vec![KeyValue::new(attribute::EXCEPTION_MESSAGE, err.to_string())],
-                    );
+                    if status.is_server_error() {
+                        span.set_status(Status::error(err.to_string()));
+                        error_attributes.push(KeyValue::new(attribute::ERROR_TYPE, "server"));
+                    } else {
+                        error_attributes.push(KeyValue::new(attribute::ERROR_TYPE, "client"));
+                    }
+                    span.add_event("request.error", error_attributes);
                     Err(err)
                 }
             }

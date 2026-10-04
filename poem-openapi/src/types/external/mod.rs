@@ -4,9 +4,12 @@ mod bool;
 mod bson;
 mod btreemap;
 mod btreeset;
+#[cfg(feature = "camino")]
+mod camino;
 mod char;
 #[cfg(feature = "chrono")]
 mod chrono;
+mod collections;
 #[cfg(feature = "rust_decimal")]
 mod decimal;
 mod floats;
@@ -22,8 +25,10 @@ mod integers;
 mod ip;
 mod non_zero;
 mod optional;
+mod path_buf;
 #[cfg(feature = "prost-wkt-types")]
 mod prost_wkt_types;
+mod range;
 mod regex;
 mod slice;
 #[cfg(feature = "sqlx")]
@@ -31,6 +36,9 @@ mod sqlx;
 mod string;
 #[cfg(feature = "time")]
 mod time;
+#[cfg(feature = "ulid")]
+mod ulid;
+mod unit;
 mod uri;
 #[cfg(feature = "url")]
 mod url;

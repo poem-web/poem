@@ -21,8 +21,8 @@
       alt="Unsafe Rust forbidden" />
   </a>
   <a>
-    <img src="https://img.shields.io/badge/rustc-1.85.0+-ab6000.svg"
-      alt="rustc 1.85.0+" />
+    <img src="https://img.shields.io/badge/rustc-1.94.0+-ab6000.svg"
+      alt="rustc 1.94.0+" />
   </a>
 </div>
 
@@ -32,7 +32,7 @@
 [dependencies]
 poem-mcpserver.workspace = "*"
 serde = { version = "1.0", features = ["derive"] }
-schemars = "0.8.22"
+schemars = "1.0"
 ```
 
 ```rust
@@ -78,7 +78,7 @@ This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in
 
 ## MSRV
 
-The minimum supported Rust version for this crate is `1.85.0`.
+The minimum supported Rust version for this crate is `1.94.0`.
 
 ## Contributing
 

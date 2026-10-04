@@ -350,8 +350,9 @@ impl Endpoint for Route {
 
                 let result = matches.data.data.call(req).await;
 
-                // Add PathPattern to the innermost response so that metrics instrumentation
-                // can report the innermost matched pattern.
+                // Add PathPattern to the innermost response so that metrics
+                // instrumentation can report the innermost
+                // matched pattern.
                 match result {
                     Ok(mut res) => {
                         if res.data::<PathPattern>().is_none() {

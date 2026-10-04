@@ -33,8 +33,8 @@
 //! edition = "2021"
 //!
 //! [dependencies]
-//! poem = "3"
-//! poem-openapi = { version = "5", features = ["swagger-ui"] }
+//! poem = "4"
+//! poem-openapi = { version = "6", features = ["swagger-ui"] }
 //! tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 //! ```
 //!
@@ -94,6 +94,7 @@
 //!
 //! | Feature            | Description                                                                            |
 //! |--------------------|----------------------------------------------------------------------------------------|
+//! | camino             | Integrate with the [`camino` crate](https://crates.io/crates/camino).                  |
 //! | chrono             | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                  |
 //! | time               | Integrate with the [`time` crate](https://crates.io/crates/time).                      |
 //! | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
@@ -106,6 +107,7 @@
 //! | email              | Support for email address string                                                       |
 //! | hostname           | Support for hostname string                                                            |
 //! | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
+//! | ulid               | Integrate with the [`ulid` crate](https://crates.io/crates/ulid)                       |
 //! | uuid               | Integrate with the [`uuid` crate](https://crates.io/crates/uuid)                       |
 //! | url                | Integrate with the [`url` crate](https://crates.io/crates/url)                         |
 //! | geo                | Integrate with the [`geo-types` crate](https://crates.io/crates/geo-types)             |

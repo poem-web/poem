@@ -30,7 +30,7 @@ pub trait ResponseError {
     /// The status code of this error.
     fn status(&self) -> StatusCode;
 
-    /// Convert this error to a HTTP response.
+    /// Converts this error to an HTTP response.
     fn as_response(&self) -> Response
     where
         Self: StdError + Send + Sync + 'static,
@@ -103,7 +103,7 @@ impl AsResponse {
 /// }
 /// ```
 ///
-/// # Create you own error type
+/// # Create your own error type
 ///
 /// ```
 /// use poem::{Endpoint, Request, Result, error::ResponseError, handler, http::StatusCode};

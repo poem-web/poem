@@ -256,12 +256,11 @@ impl<E: Endpoint> CorsEndpoint<E> {
             return (true, true);
         }
 
-        if let Some(allow_origins_fn) = &self.allow_origins_fn {
-            if let Ok(origin) = origin.to_str() {
-                if allow_origins_fn(origin) {
-                    return (true, true);
-                }
-            }
+        if let Some(allow_origins_fn) = &self.allow_origins_fn
+            && let Ok(origin) = origin.to_str()
+            && allow_origins_fn(origin)
+        {
+            return (true, true);
         }
 
         (
@@ -330,11 +329,11 @@ impl<E: Endpoint> CorsEndpoint<E> {
                 allow_headers = false;
                 if let Ok(s) = request_header.to_str() {
                     for header in s.split(',') {
-                        if let Ok(header) = HeaderName::from_str(header.trim()) {
-                            if self.allow_headers.contains(&header) {
-                                allow_headers = true;
-                                break;
-                            }
+                        if let Ok(header) = HeaderName::from_str(header.trim())
+                            && self.allow_headers.contains(&header)
+                        {
+                            allow_headers = true;
+                            break;
                         }
                     }
                 }
