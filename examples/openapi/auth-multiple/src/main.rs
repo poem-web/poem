@@ -1,4 +1,4 @@
-use hmac::{Hmac, NewMac};
+use hmac::{Hmac, Mac};
 use jwt::{SignWithKey, VerifyWithKey};
 use poem::{
     EndpointExt, Error, Request, Result, Route, error::InternalServerError, http::StatusCode,
@@ -88,10 +88,11 @@ impl Api {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let api_service =
         OpenApiService::new(Api, "Authorization Demo", "1.0").server("http://localhost:3000/api");
@@ -105,4 +106,24 @@ async fn main() -> Result<(), std::io::Error> {
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signed_tokens_round_trip_and_reject_another_key() {
+        let key = ServerKey::new_from_slice(SERVER_KEY).unwrap();
+        let token = User {
+            username: "test".into(),
+        }
+        .sign_with_key(&key)
+        .unwrap();
+        let user: User = token.verify_with_key(&key).unwrap();
+        assert_eq!(user.username, "test");
+
+        let another_key = ServerKey::new_from_slice(b"another secret").unwrap();
+        assert!(VerifyWithKey::<User>::verify_with_key(token.as_str(), &another_key).is_err());
+    }
 }

@@ -101,7 +101,7 @@ fn test_maximum() {
 
     let mut schema = MetaSchema::new("string");
     validation::Maximum::new(10.0, false).update_meta(&mut schema);
-    assert_eq!(schema.maximum, Some(10.0));
+    assert_eq!(schema.maximum, Some(10.0.into()));
     assert_eq!(schema.exclusive_maximum, None);
 }
 
@@ -132,7 +132,7 @@ fn test_maximum_exclusive() {
 
     let mut schema = MetaSchema::new("string");
     validation::Maximum::new(10.0, true).update_meta(&mut schema);
-    assert_eq!(schema.maximum, Some(10.0));
+    assert_eq!(schema.maximum, Some(10.0.into()));
     assert_eq!(schema.exclusive_maximum, Some(true));
 }
 
@@ -359,7 +359,7 @@ async fn param_validator() {
             .schema
             .unwrap_inline()
             .maximum,
-        Some(100.0)
+        Some(100.0.into())
     );
     assert_eq!(
         meta.paths[0].operations[0].params[0]
@@ -527,7 +527,7 @@ fn test_list_on_object() {
     let schema_n = field_n.unwrap_inline();
     let schema_items = schema_n.items.as_ref().unwrap();
     let schema_items = schema_items.unwrap_inline();
-    assert_eq!(schema_items.maximum, Some(10.0));
+    assert_eq!(schema_items.maximum, Some(10.0.into()));
 }
 
 #[test]
@@ -550,7 +550,7 @@ fn test_list_on_multipart() {
 
     let schema_items = schema_values.items.as_ref().unwrap();
     let schema_items = schema_items.unwrap_inline();
-    assert_eq!(schema_items.maximum, Some(32.0));
+    assert_eq!(schema_items.maximum, Some(32.0.into()));
 }
 
 #[test]
@@ -723,7 +723,7 @@ fn test_map_on_object() {
     let schema_values = field_values.unwrap_inline();
     let schema_properties = schema_values.additional_properties.as_ref().unwrap();
     let schema_properties = schema_properties.unwrap_inline();
-    assert_eq!(schema_properties.maximum, Some(100.0));
+    assert_eq!(schema_properties.maximum, Some(100.0.into()));
 }
 
 #[test]

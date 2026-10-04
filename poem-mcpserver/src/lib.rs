@@ -9,6 +9,7 @@
 pub mod content;
 pub mod prompts;
 pub mod protocol;
+pub mod resources;
 mod server;
 pub mod stdio;
 #[cfg(feature = "streamable-http")]
@@ -23,5 +24,8 @@ pub use server::McpServer;
 pub mod private {
     pub use serde_json;
 
-    pub use crate::{prompts::IntoPromptResponse, tool::IntoToolResponse};
+    pub use crate::{
+        prompts::IntoPromptResponse,
+        tool::{IntoToolResponse, normalize_schema_value},
+    };
 }

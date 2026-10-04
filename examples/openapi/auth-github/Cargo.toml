@@ -2,13 +2,14 @@
 name = "example-openapi-auth-github"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
 poem.workspace = true
 poem-openapi.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-reqwest = { version = "0.12.2", default-features = false, features = [
-    "rustls-tls",
+reqwest = { version = "0.13.5", default-features = false, features = [
+    "rustls",
 ] }
 tracing-subscriber.workspace = true

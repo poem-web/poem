@@ -99,6 +99,7 @@ fn from_lambda_request(req: LambdaRequest) -> Request {
         LambdaBody::Empty => Body::empty(),
         LambdaBody::Text(data) => Body::from_string(data),
         LambdaBody::Binary(data) => Body::from_vec(data),
+        body => Body::from_vec(body.as_ref().to_vec()),
     };
     let mut req = Request::builder()
         .method(parts.method)
@@ -117,5 +118,44 @@ impl<'a> FromRequest<'a> for &'a Context {
             None => panic!("Lambda runtime is required."),
         };
         Ok(ctx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use poem::http::{Method, Version};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn preserves_request_parts_and_body_variants() {
+        for (body, expected) in [
+            (LambdaBody::Empty, Vec::new()),
+            (
+                LambdaBody::Text("hello 世界".into()),
+                "hello 世界".as_bytes().to_vec(),
+            ),
+            (LambdaBody::Binary(vec![0, 159, 255]), vec![0, 159, 255]),
+        ] {
+            let req = poem::http::Request::builder()
+                .method(Method::POST)
+                .uri("https://example.com/hello?name=world")
+                .version(Version::HTTP_11)
+                .header("x-example", "preserved")
+                .extension(String::from("request extension"))
+                .body(body)
+                .unwrap();
+
+            let mut req = from_lambda_request(req);
+            assert_eq!(req.method(), Method::POST);
+            assert_eq!(req.uri(), "https://example.com/hello?name=world");
+            assert_eq!(req.version(), Version::HTTP_11);
+            assert_eq!(req.headers()["x-example"], "preserved");
+            assert_eq!(
+                req.extensions().get::<String>().unwrap(),
+                "request extension"
+            );
+            assert_eq!(req.take_body().into_vec().await.unwrap(), expected);
+        }
     }
 }

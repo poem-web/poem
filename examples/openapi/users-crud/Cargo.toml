@@ -2,11 +2,12 @@
 name = "example-openapi-users-crud"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
 poem.workspace = true
 poem-openapi = { workspace = true, features = ["swagger-ui", "email"] }
-slab = "0.4.4"
+slab = "0.4.12"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true

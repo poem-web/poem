@@ -2,13 +2,14 @@
 name = "example-redis-session"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
 poem = { workspace = true, features = ["redis-session"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-redis = { version = "0.32", features = [
+redis = { version = "1.7.1", features = [
     "aio",
     "tokio-comp",
     "connection-manager",

@@ -395,10 +395,10 @@ impl<T> Node<T> {
 
         if let Some(pos) = self.find_static_child(path[0]) {
             let child = &self.children[pos];
-            if let Some(tail_path) = path.strip_prefix(child.name.as_slice()) {
-                if let Some(data) = child.matches(tail_path, params) {
-                    return Some(data);
-                }
+            if let Some(tail_path) = path.strip_prefix(child.name.as_slice())
+                && let Some(data) = child.matches(tail_path, params)
+            {
+                return Some(data);
             }
         }
 

@@ -30,10 +30,10 @@ impl Display for Event {
         match self {
             Event::Message { id, event, data } => {
                 if !id.is_empty() {
-                    writeln!(f, "id: {}", &id)?;
+                    writeln!(f, "id: {}", id)?;
                 }
                 if !event.is_empty() && event != "message" {
-                    writeln!(f, "event: {}", &event)?;
+                    writeln!(f, "event: {}", event)?;
                 }
                 for line in data.lines() {
                     writeln!(f, "data: {line}")?;

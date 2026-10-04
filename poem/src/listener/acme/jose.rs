@@ -129,7 +129,7 @@ pub(crate) async fn request(
         None => Vec::new(),
     };
     let payload = URL_SAFE_NO_PAD.encode(payload);
-    let combined = format!("{}.{}", &protected, &payload);
+    let combined = format!("{protected}.{payload}");
     let signature = URL_SAFE_NO_PAD.encode(key_pair.sign(combined.as_bytes())?);
 
     tracing::debug!(uri = %uri, "http request");

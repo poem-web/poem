@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MCP Apps Color Picker</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        margin: 0;
+        padding: 16px;
+        color: #111827;
+        background: #f8fafc;
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 12px;
+      }
+      .preview {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #ff0000;
+      }
+      button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Color Picker MCP App</h2>
+      <p>Select a color and sync it back to the MCP server.</p>
+      <div class="row">
+        <input id="color" type="color" value="#ff0000" />
+        <div id="preview" class="preview"></div>
+        <button id="save">Save</button>
+      </div>
+      <div id="status" class="status">Connecting...</div>
+    </div>
+
+    <script type="module">
+      import { App } from "https://esm.sh/@modelcontextprotocol/ext-apps";
+
+      const colorInput = document.getElementById("color");
+      const preview = document.getElementById("preview");
+      const status = document.getElementById("status");
+      const saveButton = document.getElementById("save");
+
+      const app = new App();
+
+      const applyColor = (color) => {
+        if (!color) return;
+        colorInput.value = color;
+        preview.style.background = color;
+      };
+
+      const updateFromResponse = (response) => {
+        const structured = response?.structuredContent;
+        if (structured?.color) {
+          applyColor(structured.color);
+          return;
+        }
+        const text = response?.content?.[0]?.text;
+        if (text) {
+          applyColor(text);
+        }
+      };
+
+      app.ontoolresult = (result) => {
+        const color = result?.structuredContent?.color || result?.data?.color;
+        applyColor(color);
+      };
+
+      const connect = async () => {
+        status.textContent = "Connecting to host...";
+        await app.connect();
+        status.textContent = "Connected. Loading current color...";
+        const response = await app.callServerTool({
+          name: "get_color",
+          arguments: {},
+        });
+        updateFromResponse(response);
+        status.textContent = "Ready.";
+      };
+
+      saveButton.addEventListener("click", async () => {
+        saveButton.disabled = true;
+        status.textContent = "Saving color...";
+        const response = await app.callServerTool({
+          name: "set_color",
+          arguments: { color: colorInput.value },
+        });
+        updateFromResponse(response);
+        await app.updateModelContext({
+          content: [
+            {
+              type: "text",
+              text: `User selected color ${colorInput.value}`,
+            },
+          ],
+        });
+        status.textContent = "Saved.";
+        saveButton.disabled = false;
+      });
+
+      connect().catch((error) => {
+        status.textContent = `Failed to connect: ${error?.message ?? error}`;
+      });
+    </script>
+  </body>
+</html>

@@ -2,10 +2,11 @@
 name = "counter"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
 poem-mcpserver.workspace = true
-serde = { version = "1.0.219", features = ["derive"] }
-schemars = "1.0"
+serde.workspace = true
+schemars.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }

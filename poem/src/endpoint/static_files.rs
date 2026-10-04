@@ -206,15 +206,15 @@ impl Endpoint for StaticFilesEndpoint {
         }
 
         if !file_path.exists() {
-            if self.fallback_to_index {
-                if let Some(index_file) = &self.index_file {
-                    let index_path = self.path.join(index_file);
-                    if index_path.is_file() {
-                        return Ok(StaticFileRequest::from_request_without_body(&req)
-                            .await?
-                            .create_response(&index_path, self.prefer_utf8, self.no_cache_index)?
-                            .into_response());
-                    }
+            if self.fallback_to_index
+                && let Some(index_file) = &self.index_file
+            {
+                let index_path = self.path.join(index_file);
+                if index_path.is_file() {
+                    return Ok(StaticFileRequest::from_request_without_body(&req)
+                        .await?
+                        .create_response(&index_path, self.prefer_utf8, self.no_cache_index)?
+                        .into_response());
                 }
             }
             return Err(StaticFileError::NotFound.into());

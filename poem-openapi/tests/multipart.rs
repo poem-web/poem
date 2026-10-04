@@ -549,3 +549,32 @@ async fn deny_unknown_fields() {
     .unwrap_err();
     assert_eq!(err.to_string(), "parse multipart error: unknown field `c`");
 }
+
+#[tokio::test]
+async fn upload_into_string_preserves_utf8() {
+    #[derive(Multipart)]
+    struct Data {
+        file: Upload,
+    }
+
+    for contents in [b"".as_slice(), "你好".as_bytes(), b"invalid \xff"] {
+        let data = create_multipart_payload(&[("file", Some("test.txt"), contents)]);
+        let data = Data::from_request(
+            &Request::builder()
+                .header("content-type", "multipart/form-data; boundary=X-BOUNDARY")
+                .finish(),
+            &mut RequestBody::new(data.into()),
+        )
+        .await
+        .unwrap();
+        let result = data.file.into_string().await;
+        match std::str::from_utf8(contents) {
+            Ok(expected) => assert_eq!(result.unwrap(), expected),
+            Err(_) => {
+                let err = result.unwrap_err();
+                assert_eq!(err.kind(), std::io::ErrorKind::Other);
+                assert!(err.get_ref().unwrap().is::<std::string::FromUtf8Error>());
+            }
+        }
+    }
+}

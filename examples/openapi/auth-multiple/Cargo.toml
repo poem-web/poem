@@ -2,14 +2,16 @@
 name = "example-openapi-auth-multiple"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-jwt = "0.15.0"
+jwt = "0.16.0"
 poem.workspace = true
 poem-openapi.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber.workspace = true
-hmac = "0.11"
-sha2 = "0.9"
+# jwt 0.16 uses the digest 0.10 traits from these compatible crypto versions.
+hmac = "0.12.1"
+sha2 = "0.10.9"
 serde.workspace = true

@@ -117,28 +117,16 @@ impl TodosApi {
         id: Path<i64>,
         update: Json<UpdateTodo>,
     ) -> Result<()> {
-        let mut sql = "update todos ".to_string();
-        if update.description.is_some() {
-            sql += "set description = ?";
-        }
-        if update.done.is_some() {
-            sql += "set done = ?";
-        }
-        sql += "where id = ?";
-
-        let mut query = sqlx::query(&sql);
-        if let Some(description) = &update.description {
-            query = query.bind(description);
-        }
-        if let Some(done) = &update.done {
-            query = query.bind(done);
-        }
-
-        query
-            .bind(id.0)
-            .execute(pool.0)
-            .await
-            .map_err(InternalServerError)?;
+        sqlx::query(
+            "update todos set description = COALESCE(?, description), \
+             done = COALESCE(?, done) where id = ?",
+        )
+        .bind(update.description.as_deref())
+        .bind(update.done)
+        .bind(id.0)
+        .execute(pool.0)
+        .await
+        .map_err(InternalServerError)?;
         Ok(())
     }
 }
@@ -162,4 +150,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run(route)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn partial_updates_preserve_omitted_fields() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "create table todos (id integer primary key, description text not null, \
+             done boolean not null default false)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let Json(id) = TodosApi
+            .create(Data(&pool), PlainText("first".into()))
+            .await
+            .unwrap();
+
+        for (description, done, expected_description, expected_done) in [
+            (Some("updated"), None, "updated", false),
+            (None, Some(true), "updated", true),
+            (
+                Some("'; drop table todos; --"),
+                Some(false),
+                "'; drop table todos; --",
+                false,
+            ),
+            (None, None, "'; drop table todos; --", false),
+        ] {
+            TodosApi
+                .update(
+                    Data(&pool),
+                    Path(id),
+                    Json(UpdateTodo {
+                        description: description.map(str::to_owned),
+                        done,
+                    }),
+                )
+                .await
+                .unwrap();
+            let row: (String, bool) =
+                sqlx::query_as("select description, done from todos where id = ?")
+                    .bind(id)
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+            assert_eq!(row, (expected_description.to_owned(), expected_done));
+        }
+    }
 }

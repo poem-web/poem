@@ -22,8 +22,8 @@
       alt="Unsafe Rust forbidden" />
   </a>
   <a>
-    <img src="https://img.shields.io/badge/rustc-1.85.0+-ab6000.svg"
-      alt="rustc 1.85.0+" />
+    <img src="https://img.shields.io/badge/rustc-1.94.0+-ab6000.svg"
+      alt="rustc 1.94.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -114,8 +114,8 @@ async fn main() -> Result<(), std::io::Error> {
 This feature needs to be opted-in. It can be done by adding the feature in `Cargo.toml` file
 ```toml filename=Cargo.toml
 [dependencies]
-poem = "3"
-poem-openapi = { version = "5", features = ["swagger-ui"]}
+poem = "4"
+poem-openapi = { version = "6", features = ["swagger-ui"]}
 tokio = { version = "1", features = ["full"] }
 ```
 

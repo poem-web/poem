@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use bytes::Bytes;
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
@@ -7,7 +8,7 @@ use crate::{
     ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromXML, ToXML, Type},
 };
 
@@ -54,16 +55,19 @@ impl<T: ParseFromXML> ParsePayload for Xml<T> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data = Vec::<u8>::from_request(request, body).await?;
+        let data = Bytes::from_request(request, body).await?;
         let value = if data.is_empty() {
             Value::Null
         } else {
-            quick_xml::de::from_str(&String::from_utf8(data).unwrap_or_default()).map_err(
+            quick_xml::de::from_str(std::str::from_utf8(&data).unwrap_or_default()).map_err(
                 |err| ParseRequestPayloadError {
                     reason: err.to_string(),
                 },
             )?
         };
+
+        // Release the request buffer before converting the parsed value.
+        drop(data);
 
         let value = T::parse_from_xml(Some(value)).map_err(|err| ParseRequestPayloadError {
             reason: err.into_message(),
@@ -80,18 +84,7 @@ impl<T: ToXML> IntoResponse for Xml<T> {
 
 impl<T: ToXML> ApiResponse for Xml<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(registry: &mut Registry) {

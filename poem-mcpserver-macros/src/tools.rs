@@ -11,6 +11,8 @@ pub(crate) struct ToolsArgs {}
 #[derive(FromMeta, Default)]
 pub(crate) struct ToolArgs {
     name: Option<String>,
+    #[darling(default)]
+    ui_resource: Option<String>,
 }
 
 #[derive(FromMeta, Default)]
@@ -89,6 +91,17 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                 }
                 syn::ReturnType::Type(_, ty) => ty,
             };
+            let tool_meta = match &tool_args.ui_resource {
+                Some(uri) => quote! {
+                    ::std::option::Option::Some(#crate_name::protocol::tool::ToolMeta {
+                        ui: ::std::option::Option::Some(#crate_name::protocol::tool::ToolUi {
+                            resource_uri: #uri.to_string(),
+                        }),
+                    })
+                },
+                None => quote!(::std::option::Option::None),
+            };
+
             tools_descriptions.push(quote! {
                 #crate_name::protocol::tool::Tool {
                     name: #tool_name,
@@ -100,6 +113,7 @@ pub(crate) fn generate(_args: ToolsArgs, mut item_impl: ItemImpl) -> Result<Toke
                     output_schema: std::option::Option::map(<#resp_ty as #crate_name::tool::IntoToolResponse>::output_schema(), |schema| {
                         #crate_name::private::serde_json::to_value(schema).expect("serialize output schema")
                     }),
+                    meta: #tool_meta,
                 },
             });
 

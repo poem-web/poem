@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use bytes::Bytes;
 use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use serde_json::Value;
 
@@ -7,7 +8,7 @@ use crate::{
     ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchemaRef, Registry},
     types::{ParseFromYAML, ToYAML, Type},
 };
 
@@ -54,7 +55,7 @@ impl<T: ParseFromYAML> ParsePayload for Yaml<T> {
     const IS_REQUIRED: bool = true;
 
     async fn from_request(request: &Request, body: &mut RequestBody) -> Result<Self> {
-        let data = Vec::<u8>::from_request(request, body).await?;
+        let data = Bytes::from_request(request, body).await?;
         let value = if data.is_empty() {
             Value::Null
         } else {
@@ -78,18 +79,7 @@ impl<T: ToYAML> IntoResponse for Yaml<T> {
 
 impl<T: ToYAML> ApiResponse for Yaml<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(registry: &mut Registry) {

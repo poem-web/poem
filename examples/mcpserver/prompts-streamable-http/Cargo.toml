@@ -2,6 +2,7 @@
 name = "prompts-streamable-http"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 default-run = "prompts-streamable-http"
 
@@ -10,15 +11,12 @@ name = "prompts-streamable-http-client"
 path = "src/client.rs"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.104"
 poem-mcpserver = { workspace = true, features = ["streamable-http"] }
-serde = { version = "1.0", features = ["derive"] }
+serde.workspace = true
 serde_json = { workspace = true }
-schemars = "1.0"
+schemars.workspace = true
 poem = { workspace = true, features = ["sse"] }
-rmcp = { version = "0.13", features = [
-    "client",
-    "transport-streamable-http-client-reqwest",
-] }
+rmcp = { version = "3.5.0", features = ["client", "transport-streamable-http-client-reqwest"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true

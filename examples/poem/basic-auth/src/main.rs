@@ -35,10 +35,11 @@ impl<E: Endpoint> Endpoint for BasicAuthEndpoint<E> {
     type Output = E::Output;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
-        if let Some(auth) = req.headers().typed_get::<headers::Authorization<Basic>>() {
-            if auth.0.username() == self.username && auth.0.password() == self.password {
-                return self.ep.call(req).await;
-            }
+        if let Some(auth) = req.headers().typed_get::<headers::Authorization<Basic>>()
+            && auth.0.username() == self.username
+            && auth.0.password() == self.password
+        {
+            return self.ep.call(req).await;
         }
         Err(Error::from_status(StatusCode::UNAUTHORIZED))
     }
@@ -51,10 +52,11 @@ fn index() -> &'static str {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let app = Route::new().at("/", get(index)).with(BasicAuth {
         username: "test".to_string(),

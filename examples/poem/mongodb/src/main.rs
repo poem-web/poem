@@ -15,7 +15,7 @@ use serde::Deserialize;
 
 #[handler]
 async fn get_users(collection: Data<&Collection<Document>>) -> Json<serde_json::Value> {
-    let cursor = collection.find(None, None).await.unwrap();
+    let cursor = collection.find(doc! {}).await.unwrap();
     let result = cursor.try_collect::<Vec<Document>>().await.unwrap();
 
     Json(serde_json::json!(result))
@@ -34,18 +34,15 @@ async fn create_user(
     req: Json<InsertableUser>,
 ) -> Json<serde_json::Value> {
     let result = collection
-        .insert_one(
-            doc! {
-                "name": &req.name,
-                "email": &req.email,
-                "age": req.age
-            },
-            None,
-        )
+        .insert_one(doc! {
+            "name": &req.name,
+            "email": &req.email,
+            "age": req.age
+        })
         .await
         .unwrap();
     let result = collection
-        .find_one(doc! {"_id": result.inserted_id}, None)
+        .find_one(doc! {"_id": result.inserted_id})
         .await
         .unwrap();
 
@@ -54,10 +51,11 @@ async fn create_user(
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let mongodb = Client::with_uri_str("mongodb://127.0.0.1:27017")
         .await

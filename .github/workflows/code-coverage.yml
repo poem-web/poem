@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
   cover:
     runs-on: ubuntu-latest
@@ -18,19 +21,23 @@ jobs:
           - 6379:6379
         options: --entrypoint redis-server
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
-      - name: Install Redis
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install coverage dependencies
         run: |
           apt-get update
-          apt-get install -y redis-server
+          apt-get install -y bash curl git gpg redis-server
           redis-server --daemonize yes
           redis-cli ping
       - name: Generate code coverage
         run: |
           cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
       - name: Upload To codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          token: ${{secrets.CODECOV_TOKEN}}
+          token: ${{ secrets.CODECOV_TOKEN }}
