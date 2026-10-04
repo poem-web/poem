@@ -28,6 +28,8 @@ This release also covers `poem-derive` 4.0.0. See the [major-release migration g
 
 ## Changed
 
+- Retain the deprecated `RustlsConfig::cert`, `key` and `ocsp_resp` methods throughout Poem 4; removal is scheduled for Poem 5. Use `RustlsConfig::fallback` with `RustlsCertificate` instead. See the [retained API guidance](../docs/migration-4.0.md#apis-retained-until-the-next-major-release).
+- Retain `serde_yaml` 0.9 and the public `ParseYamlError::Parse(serde_yaml::Error)` payload. YAML backend and public error-type replacement are deferred to Poem 5 / OpenAPI 7; this release does not migrate to `serde_yml`.
 - Avoid copying the collected request body before JSON, XML and form deserialization.
 
 - Enable `TCP_NODELAY` on accepted TCP sockets. [#1177](https://github.com/poem-web/poem/pull/1177)

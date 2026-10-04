@@ -81,7 +81,42 @@ Tower moves to 0.5, but its shared `tower-layer`/`tower-service` traits remain o
 RCGen and Rand migrations are internal to Poem. ACME root-source choices and
 32-byte session entropy are preserved.
 
+### APIs retained until the next major release
+
+The deprecated `poem::listener::RustlsConfig::cert`, `key` and `ocsp_resp`
+methods remain available in Poem 4. They are scheduled for removal in **Poem
+5**, not this release. Migrate to `RustlsConfig::fallback` with a
+`RustlsCertificate`; the certificate's own `cert`, `key` and `ocsp_resp` methods
+remain supported:
+
+```rust
+use poem::listener::{RustlsCertificate, RustlsConfig};
+
+let config = RustlsConfig::new().fallback(
+    RustlsCertificate::new()
+        .cert(cert_bytes)
+        .key(key_bytes)
+        .ocsp_resp(ocsp_bytes), // Optional; omit when no OCSP response is supplied.
+);
+```
+
+YAML support continues to use `serde_yaml` 0.9. In particular,
+`poem::error::ParseYamlError::Parse` retains its public `serde_yaml::Error`
+payload and the corresponding `From<serde_yaml::Error>` implementation in Poem
+4. Replacing this public error type and the YAML backend is deferred to the
+**Poem 5 / OpenAPI 7** release family. There is no migration to `serde_yml` in
+Poem 4 / OpenAPI 6, and no YAML error-handling changes are required for this
+upgrade.
+
 ## OpenAPI 6
+
+### YAML compatibility
+
+YAML payloads, `ParseFromYAML`, `ToYAML` and YAML specification output continue
+to use `serde_yaml` 0.9 in OpenAPI 6. The YAML backend replacement is deferred
+to **OpenAPI 7**, alongside Poem 5; it is not part of this upgrade. See the
+[retained API guidance](#apis-retained-until-the-next-major-release) for Poem's
+public YAML error type.
 
 ### Exact numeric bounds
 
@@ -204,11 +239,20 @@ For hand-written protocol integrations:
 - `stdio` now has three type parameters and `streamable_http::endpoint` has
   four. Prefer inferred calls; update explicit turbofish arguments if used.
   `McpServer`'s additional handler parameters have defaults.
-- `StructuredContent<Vec<T>>` and the corresponding `Result` form now panic
-  during output-schema generation. Wrap arrays in an object, for example a
+- Structured tool results must remain JSON objects under MCP **2025-06-18**;
+  this release does not change the protocol version. `StructuredContent<Vec<T>>`
+  and the corresponding `Result` form no longer panic during `tools/list`.
+  Schemas without an explicit `type: "object"` root are omitted from
+  `outputSchema`, so other tools remain discoverable. Non-object results and
+  serialization failures return a tool result with `isError: true`, an
+  explanatory text message and no `structuredContent`; existing `Result::Err`
+  messages are preserved. Successful object results still include structured
+  content and its JSON text representation, even if their schema was omitted.
+  Wrap arrays in an object, for example a
   `#[derive(Serialize, JsonSchema)] struct Items { items: Vec<Item> }` and return
-  `StructuredContent<Items>`. Tool schemas also normalize nonstandard unsigned
-  integer formats recursively.
+  `StructuredContent<Items>`. Arrays nested inside an object remain supported.
+  Use `content::Json<T>` when only JSON text is needed. Tool schemas also
+  normalize nonstandard unsigned integer formats recursively.
 
 Streamable HTTP retains its **five-minute idle timeout** by default, now
 configurable. Use

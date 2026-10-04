@@ -42,6 +42,7 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 
 ## Changed
 
+- Retain `serde_yaml` 0.9 for YAML payloads, conversion traits and specification output in OpenAPI 6. YAML backend replacement is deferred to OpenAPI 7 alongside Poem 5; this release does not migrate to `serde_yml`. See the [YAML compatibility guidance](../docs/migration-4.0.md#yaml-compatibility).
 - Avoid full-body copies when parsing JSON, XML, YAML and form payloads, and reuse the owned upload buffer when converting it to a string.
 
 # [5.1.16] 2025-07-28
