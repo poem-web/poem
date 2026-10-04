@@ -117,7 +117,7 @@ macro_rules! impl_type_for_non_zero_unsigneds {
                 MetaSchemaRef::Inline(Box::new(MetaSchema {
                     ty: "non_zero_integer",
                     format: Some($format),
-                    minimum: Some(0.0),
+                    minimum: Some(0.into()),
                     exclusive_minimum: Some(true),
                     ..MetaSchema::ANY
                 }))
