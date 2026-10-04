@@ -3,11 +3,11 @@ mod bcs_payload;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use bcs_payload::Bcs;
-use poem::{listener::TcpListener, web::Accept, Result, Route, Server};
+use poem::{Result, Route, Server, listener::TcpListener, web::Accept};
 use poem_openapi::{
+    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
     payload::Json,
     types::{ParseFromJSON, ToJSON, Type},
-    ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ResponseContent,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -87,10 +87,10 @@ fn create_response<T: ToJSON + Send + Sync + Serialize>(
     for mime in &accept.0 {
         match mime.as_ref() {
             "application/json" => {
-                return MyResponse::Ok(MyResponseContent::Json(Json(resp)), version)
+                return MyResponse::Ok(MyResponseContent::Json(Json(resp)), version);
             }
             "application/x-bcs" => {
-                return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp)), version)
+                return MyResponse::Ok(MyResponseContent::Bcs(Bcs(resp)), version);
             }
             _ => {}
         }
@@ -133,10 +133,6 @@ impl Api {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-
     let api_service =
         OpenApiService::new(Api::new(), "Hello World", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();

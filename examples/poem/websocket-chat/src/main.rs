@@ -1,12 +1,11 @@
 use futures_util::{SinkExt, StreamExt};
 use poem::{
-    get, handler,
+    EndpointExt, IntoResponse, Route, Server, get, handler,
     listener::TcpListener,
     web::{
-        websocket::{Message, WebSocket},
         Data, Html, Path,
+        websocket::{Message, WebSocket},
     },
-    EndpointExt, IntoResponse, Route, Server,
 };
 
 #[handler]
@@ -72,10 +71,10 @@ fn ws(
 
         tokio::spawn(async move {
             while let Some(Ok(msg)) = stream.next().await {
-                if let Message::Text(text) = msg {
-                    if sender.send(format!("{name}: {text}")).is_err() {
-                        break;
-                    }
+                if let Message::Text(text) = msg
+                    && sender.send(format!("{name}: {text}")).is_err()
+                {
+                    break;
                 }
             }
         });
@@ -92,10 +91,11 @@ fn ws(
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let app = Route::new().at("/", get(index)).at(
         "/ws/:name",

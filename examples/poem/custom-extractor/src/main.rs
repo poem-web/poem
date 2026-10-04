@@ -1,6 +1,6 @@
 use poem::{
-    get, handler, http::StatusCode, listener::TcpListener, Error, FromRequest, Request,
-    RequestBody, Result, Route, Server,
+    Error, FromRequest, Request, RequestBody, Result, Route, Server, get, handler,
+    http::StatusCode, listener::TcpListener,
 };
 
 struct Token(String);
@@ -24,10 +24,11 @@ async fn index(token: Token) {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let app = Route::new().at("/", get(index));
     Server::new(TcpListener::bind("0.0.0.0:3000"))

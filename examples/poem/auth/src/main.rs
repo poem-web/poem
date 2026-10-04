@@ -1,10 +1,9 @@
 use poem::{
-    get, handler,
-    http::{header, StatusCode},
+    EndpointExt, IntoResponse, Response, Result, Route, Server, get, handler,
+    http::{StatusCode, header},
     listener::TcpListener,
     session::{CookieConfig, CookieSession, Session},
     web::{Form, Html},
-    EndpointExt, IntoResponse, Response, Result, Route, Server,
 };
 use serde::Deserialize;
 
@@ -95,10 +94,11 @@ fn logout(session: &Session) -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let app = Route::new()
         .at("/", get(index))

@@ -1,9 +1,12 @@
 [package]
 name = "examples-worker-hello-world"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.94"
+publish = false
 
 [workspace]
+resolver = "2"
 
 [package.metadata.release]
 release = false

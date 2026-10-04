@@ -1,14 +1,13 @@
 mod starwars;
 
 use async_graphql::{
-    http::{playground_source, GraphQLPlaygroundConfig},
     EmptyMutation, EmptySubscription, Request, Response, Schema,
+    http::{GraphQLPlaygroundConfig, playground_source},
 };
 use poem::{
-    get, handler,
+    EndpointExt, IntoResponse, Route, Server, get, handler,
     listener::TcpListener,
     web::{Data, Html, Json},
-    EndpointExt, IntoResponse, Route, Server,
 };
 use starwars::{QueryRoot, StarWars, StarWarsSchema};
 
@@ -24,10 +23,11 @@ fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
         .data(StarWars::new())

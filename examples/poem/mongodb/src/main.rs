@@ -2,15 +2,14 @@ use std::io;
 
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, Document},
     Client, Collection,
+    bson::{Document, doc},
 };
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::AddData,
     web::{Data, Json},
-    EndpointExt, Route, Server,
 };
 use serde::Deserialize;
 
@@ -52,10 +51,11 @@ async fn create_user(
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let mongodb = Client::with_uri_str("mongodb://127.0.0.1:27017")
         .await

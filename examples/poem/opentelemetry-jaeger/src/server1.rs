@@ -1,22 +1,20 @@
 use std::str::FromStr;
 
 use opentelemetry::{
-    global,
+    Context, KeyValue, global,
     trace::{FutureExt, SpanKind, TraceContextExt, Tracer as _, TracerProvider as _},
-    Context, KeyValue,
 };
 use opentelemetry_http::HeaderInjector;
 use opentelemetry_sdk::{
+    Resource,
     propagation::TraceContextPropagator,
     trace::{SdkTracer, SdkTracerProvider},
-    Resource,
 };
 use poem::{
-    get, handler,
+    EndpointExt, Route, Server, get, handler,
     listener::TcpListener,
     middleware::{OpenTelemetryMetrics, OpenTelemetryTracing},
     web::Data,
-    EndpointExt, Route, Server,
 };
 use reqwest::{Client, Url};
 
@@ -73,10 +71,11 @@ async fn index(tracer: Data<&SdkTracer>, body: String) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let tracer_provider = init_tracer();
     let tracer = tracer_provider.tracer("server1");

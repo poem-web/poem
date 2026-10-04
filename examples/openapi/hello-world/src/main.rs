@@ -1,5 +1,5 @@
-use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{param::Query, payload::PlainText, OpenApi, OpenApiService};
+use poem::{Route, Server, listener::TcpListener};
+use poem_openapi::{OpenApi, OpenApiService, param::Query, payload::PlainText};
 
 struct Api;
 
@@ -16,10 +16,11 @@ impl Api {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let api_service =
         OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000/api");

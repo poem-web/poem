@@ -1,4 +1,5 @@
 use poem_mcpserver::{
+    McpServer,
     protocol::{
         resources::{
             Resource, ResourceContent, ResourceTemplate, ResourcesListRequest,
@@ -9,7 +10,6 @@ use poem_mcpserver::{
     },
     resources::Resources,
     stdio::stdio,
-    McpServer,
 };
 
 /// A dynamic resource provider that serves config and status info.

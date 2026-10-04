@@ -2,16 +2,16 @@ use std::ops::{Deref, DerefMut};
 
 use bcs::{from_bytes, to_bytes};
 use poem::{
-    http::{header, StatusCode},
     FromRequest, IntoResponse, Request, RequestBody, Response, Result,
+    http::{StatusCode, header},
 };
 use poem_openapi::{
+    ApiResponse,
     error::ParseRequestPayloadError,
     impl_apirequest_for_payload,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
-    ApiResponse,
 };
 use serde::{Deserialize, Serialize};
 
@@ -69,7 +69,7 @@ impl<T: Serialize + Send + Type> IntoResponse for Bcs<T> {
             Err(err) => {
                 return Response::builder()
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(err.to_string())
+                    .body(err.to_string());
             }
         };
         Response::builder()

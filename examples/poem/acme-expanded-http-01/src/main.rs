@@ -5,17 +5,16 @@
 use std::{sync::Arc, time::Duration};
 
 use poem::{
-    get, handler,
+    EndpointExt, Route, RouteScheme, Server, get, handler,
     listener::{
-        acme::{
-            issue_cert, seconds_until_expiry, AcmeClient, ChallengeType, Http01Endpoint,
-            Http01TokensMap, ResolveServerCert, ResolvedCertListener, LETS_ENCRYPT_PRODUCTION,
-        },
         Listener, TcpListener,
+        acme::{
+            AcmeClient, ChallengeType, Http01Endpoint, Http01TokensMap, LETS_ENCRYPT_PRODUCTION,
+            ResolveServerCert, ResolvedCertListener, issue_cert, seconds_until_expiry,
+        },
     },
     middleware::Tracing,
     web::Path,
-    EndpointExt, Route, RouteScheme, Server,
 };
 use tokio::{spawn, time::sleep};
 
@@ -26,10 +25,11 @@ fn hello(Path(name): Path<String>) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let mut acme_client = AcmeClient::try_new(LETS_ENCRYPT_PRODUCTION, vec![]).await?;
     let cert_resolver = Arc::new(ResolveServerCert::default());

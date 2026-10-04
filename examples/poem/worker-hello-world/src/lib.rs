@@ -1,4 +1,4 @@
-use poem::{get, handler, web::Path, Route};
+use poem::{Route, get, handler, web::Path};
 use poem_worker::{CloudflareProperties, Server};
 use worker::event;
 
