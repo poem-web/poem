@@ -118,6 +118,9 @@ impl RustlsConfig {
     }
 
     /// Sets the certificates.
+    ///
+    /// Retained in Poem 4 and scheduled for removal in Poem 5. Use
+    /// [`RustlsConfig::fallback`] with [`RustlsCertificate::cert`] instead.
     #[deprecated = "replaced by `RustlsConfig::fallback`"]
     #[must_use]
     pub fn cert(mut self, cert: impl Into<Vec<u8>>) -> Self {
@@ -134,6 +137,9 @@ impl RustlsConfig {
     }
 
     /// Sets the private key.
+    ///
+    /// Retained in Poem 4 and scheduled for removal in Poem 5. Use
+    /// [`RustlsConfig::fallback`] with [`RustlsCertificate::key`] instead.
     #[deprecated = "replaced by `RustlsConfig::fallback`"]
     #[must_use]
     pub fn key(mut self, key: impl Into<Vec<u8>>) -> Self {
@@ -150,6 +156,10 @@ impl RustlsConfig {
     }
 
     /// Sets the DER-encoded OCSP response.
+    ///
+    /// Retained in Poem 4 and scheduled for removal in Poem 5. Use
+    /// [`RustlsConfig::fallback`] with [`RustlsCertificate::ocsp_resp`]
+    /// instead.
     #[deprecated = "replaced by `RustlsConfig::fallback`"]
     #[must_use]
     pub fn ocsp_resp(mut self, ocsp_resp: impl Into<Vec<u8>>) -> Self {

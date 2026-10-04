@@ -142,7 +142,17 @@ where
     }
 }
 
-/// A Structured content.
+/// A structured tool result serialized as a JSON object.
+///
+/// MCP 2025-06-18 requires structured content to be an object. Wrap arrays and
+/// scalar values in a struct, or use [`crate::content::Json`] for JSON text
+/// without structured content. Nested arrays in an object are supported.
+///
+/// Only schemas with an explicit object root are advertised in `tools/list`.
+/// Other schemas are omitted rather than panicking. A non-object result or a
+/// serialization failure produces a tool error (`isError: true`) without
+/// `structuredContent`. Object results are still supported when their schema
+/// does not have an explicit object root (for example, a composed enum schema).
 #[derive(Debug, Clone, Copy)]
 pub struct StructuredContent<T>(pub T);
 
@@ -152,24 +162,37 @@ where
 {
     fn output_schema() -> Option<Schema> {
         let schema = schemars::SchemaGenerator::default().into_root_schema_for::<T>();
-        if let Ok(value) = serde_json::to_value(&schema)
-            && value.get("type") == Some(&serde_json::Value::String("array".to_string()))
-        {
-            panic!(
-                "Tool return type must be an object, but found array. Please wrap the return value in a struct."
-            );
-        }
-        Some(schema)
+        // MCP 2025-06-18 only permits an object output schema. An unsupported
+        // return type must not prevent clients from discovering the other
+        // tools.
+        (schema.get("type").and_then(Value::as_str) == Some("object")).then_some(schema)
     }
 
     fn into_tool_response(self) -> ToolsCallResponse {
-        ToolsCallResponse {
-            content: vec![Content::Text {
-                text: serde_json::to_string(&self.0).unwrap_or_default(),
-            }],
-            structured_content: Some(serde_json::to_value(&self.0).unwrap_or_default()),
-            is_error: false,
+        match serde_json::to_value(&self.0) {
+            Ok(value) if value.is_object() => ToolsCallResponse {
+                content: vec![Content::Text {
+                    text: value.to_string(),
+                }],
+                structured_content: Some(value),
+                is_error: false,
+            },
+            Ok(_) => structured_content_error(
+                "Structured tool output must be a JSON object. Please wrap the return value in a struct."
+                    .to_string(),
+            ),
+            Err(error) => structured_content_error(format!(
+                "Failed to serialize structured tool output: {error}"
+            )),
         }
+    }
+}
+
+fn structured_content_error(text: String) -> ToolsCallResponse {
+    ToolsCallResponse {
+        content: vec![Content::Text { text }],
+        structured_content: None,
+        is_error: true,
     }
 }
 
@@ -179,33 +202,13 @@ where
     E: Display,
 {
     fn output_schema() -> Option<Schema> {
-        let schema = schemars::SchemaGenerator::default().into_root_schema_for::<T>();
-        if let Ok(value) = serde_json::to_value(&schema)
-            && value.get("type") == Some(&serde_json::Value::String("array".to_string()))
-        {
-            panic!(
-                "Tool return type must be an object, but found array. Please wrap the return value in a struct."
-            );
-        }
-        Some(schema)
+        StructuredContent::<T>::output_schema()
     }
 
     fn into_tool_response(self) -> ToolsCallResponse {
         match self {
-            Ok(value) => ToolsCallResponse {
-                content: vec![Content::Text {
-                    text: serde_json::to_string(&value.0).unwrap_or_default(),
-                }],
-                structured_content: Some(serde_json::to_value(&value.0).unwrap_or_default()),
-                is_error: false,
-            },
-            Err(error) => ToolsCallResponse {
-                content: vec![Content::Text {
-                    text: error.to_string(),
-                }],
-                structured_content: None,
-                is_error: true,
-            },
+            Ok(value) => value.into_tool_response(),
+            Err(error) => structured_content_error(error.to_string()),
         }
     }
 }
@@ -253,9 +256,11 @@ impl Tools for NoTools {
 
 #[cfg(test)]
 mod tests {
+    use schemars::JsonSchema;
+    use serde::{Serialize, Serializer};
     use serde_json::json;
 
-    use super::normalize_schema_value;
+    use super::{IntoToolResponse, StructuredContent, normalize_schema_value};
 
     #[test]
     fn strips_nonstandard_unsigned_integer_formats() {
@@ -292,5 +297,111 @@ mod tests {
                 .is_none()
         );
         assert_eq!(normalized["properties"]["signed"]["format"], json!("int32"));
+    }
+
+    fn assert_non_object<T: Serialize + JsonSchema + Clone>(value: T) {
+        assert!(StructuredContent::<T>::output_schema().is_none());
+        assert!(<Result<StructuredContent<T>, &str>>::output_schema().is_none());
+        for response in [
+            StructuredContent(value.clone()).into_tool_response(),
+            Ok::<_, &str>(StructuredContent(value)).into_tool_response(),
+        ] {
+            assert_eq!(
+                serde_json::to_value(response).unwrap(),
+                json!({
+                    "content": [{
+                        "type": "text",
+                        "text": "Structured tool output must be a JSON object. Please wrap the return value in a struct."
+                    }],
+                    "isError": true,
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn non_object_structured_results_are_tool_errors() {
+        assert_non_object(Vec::<String>::new());
+        assert_non_object(vec![vec![1, 2]]);
+        assert_non_object([1, 2]);
+        assert_non_object((1, "two"));
+        assert_non_object("text");
+        assert_non_object(42);
+        assert_non_object(true);
+        assert_non_object(());
+        assert_non_object(Option::<String>::None);
+        assert_non_object(json!([1, 2]));
+    }
+
+    #[test]
+    fn object_results_with_composed_or_unconstrained_schemas_are_supported() {
+        #[derive(JsonSchema, Serialize)]
+        #[serde(untagged)]
+        enum ObjectResult {
+            Name { name: String },
+            Items { items: Vec<String> },
+        }
+
+        assert!(StructuredContent::<ObjectResult>::output_schema().is_none());
+        assert!(StructuredContent::<serde_json::Value>::output_schema().is_none());
+        for value in [
+            ObjectResult::Name {
+                name: "test".to_string(),
+            },
+            ObjectResult::Items {
+                items: vec!["a".to_string()],
+            },
+        ] {
+            let expected = serde_json::to_value(&value).unwrap();
+            let response = StructuredContent(value).into_tool_response();
+            assert!(!response.is_error);
+            assert_eq!(response.structured_content, Some(expected));
+        }
+        let value = json!({"items": [[1, 2], [3, 4]]});
+        let response = StructuredContent(value.clone()).into_tool_response();
+        assert!(!response.is_error);
+        assert_eq!(response.structured_content, Some(value));
+    }
+
+    #[test]
+    fn object_schema_does_not_allow_a_non_object_serialized_result() {
+        #[derive(JsonSchema, Serialize)]
+        #[serde(transparent)]
+        #[schemars(with = "std::collections::BTreeMap<String, String>")]
+        struct MisleadingSchema(Vec<String>);
+
+        assert!(StructuredContent::<MisleadingSchema>::output_schema().is_some());
+        let response = StructuredContent(MisleadingSchema(vec![])).into_tool_response();
+        assert!(response.is_error);
+        assert!(response.structured_content.is_none());
+    }
+
+    #[test]
+    fn serialization_failures_are_tool_errors() {
+        #[derive(Clone, JsonSchema)]
+        struct SerializationFailure {}
+
+        impl Serialize for SerializationFailure {
+            fn serialize<S: Serializer>(&self, _serializer: S) -> Result<S::Ok, S::Error> {
+                Err(serde::ser::Error::custom("cannot serialize result"))
+            }
+        }
+
+        assert!(StructuredContent::<SerializationFailure>::output_schema().is_some());
+        for response in [
+            StructuredContent(SerializationFailure {}).into_tool_response(),
+            Ok::<_, &str>(StructuredContent(SerializationFailure {})).into_tool_response(),
+        ] {
+            assert_eq!(
+                serde_json::to_value(response).unwrap(),
+                json!({
+                    "content": [{
+                        "type": "text",
+                        "text": "Failed to serialize structured tool output: cannot serialize result"
+                    }],
+                    "isError": true,
+                })
+            );
+        }
     }
 }

@@ -12,7 +12,7 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 
 - Require Rust 1.94 and use Poem 4 for the optional `streamable-http` transport. [#1198](https://github.com/poem-web/poem/pull/1198)
 - Add `meta` to the public `Tool` struct and extend request types for prompts and resources. Update manual struct literals and exhaustive request matches. Explicit generic arguments to `stdio` and `streamable_http::endpoint` must account for prompt/resource handlers; inferred calls remain supported. [#1155](https://github.com/poem-web/poem/pull/1155), [#1160](https://github.com/poem-web/poem/pull/1160), [#1178](https://github.com/poem-web/poem/pull/1178)
-- Reject top-level array schemas in structured tool outputs by panicking during output-schema generation. Wrap vectors in an object type. Normalize nonstandard integer formats for MCP client compatibility. [#1172](https://github.com/poem-web/poem/pull/1172), [#1179](https://github.com/poem-web/poem/pull/1179)
+- Require structured tool results to be JSON objects, as specified by MCP 2025-06-18. Wrap vectors and other non-object values in an object type. Invalid results return a tool error instead of panicking during output-schema generation. [#1172](https://github.com/poem-web/poem/pull/1172)
 
 ## Added
 
@@ -24,6 +24,8 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 - Accept Cline-style empty initialized parameters and nested cancellation parameters/`requestId`; add dedicated tracing targets for requests/responses. [#1167](https://github.com/poem-web/poem/pull/1167), [#1171](https://github.com/poem-web/poem/pull/1171)
 
 ## Fixed
+
+- Avoid request-time panics when listing tools that return `StructuredContent<Vec<T>>` or its `Result` form. Only advertise output schemas with an explicit object root; reject non-object results and serialization failures with `isError: true` and no `structuredContent`. Object results, including nested arrays, remain supported.
 
 - Preserve request-scoped server metadata and UI resource contents; share metadata across streamable-HTTP sessions only when all contents match.
 - Keep Streamable HTTP POST responses on the POST connection when a GET event stream is attached or disconnects; retain legacy SSE response routing.

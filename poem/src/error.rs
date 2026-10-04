@@ -816,6 +816,10 @@ impl ResponseError for ParseXmlError {
 }
 
 /// A possible error value when parsing YAML.
+///
+/// Poem 4 retains the [`serde_yaml::Error`] payload of
+/// [`ParseYamlError::Parse`] and its `From<serde_yaml::Error>` implementation.
+/// Replacing this public error type and the YAML backend is deferred to Poem 5.
 #[cfg(feature = "yaml")]
 #[derive(Debug, thiserror::Error)]
 pub enum ParseYamlError {
@@ -827,7 +831,7 @@ pub enum ParseYamlError {
     #[error("expect content type `application/yaml`")]
     ContentTypeRequired,
 
-    /// Url decode error.
+    /// YAML parsing error.
     #[error("parse error: {0}")]
     Parse(#[from] serde_yaml::Error),
 }
