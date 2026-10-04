@@ -6,9 +6,12 @@ on:
       - master
   pull_request: {}
 
+permissions:
+  contents: read
+
 jobs:
   check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -48,24 +51,36 @@ jobs:
           - 5432:5432
         options: -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=test_poem_sessions
     steps:
-      - uses: actions/checkout@v5
-
-      # Use nightly Rust to check the format
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+
+      # Keep v1 warning behavior, including on the Rust 1.94 MSRV.
+      # Only the explicit compilation cache below owns Rust artifacts.
+      # Use nightly Rust to check the format
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+          rustflags: "-D warnings"
+          build-warnings: ""
           toolchain: nightly
           components: rustfmt, clippy
           override: true
       - name: Check Format
         run: cargo fmt --all -- --check
       # Switch to stable Rust
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          cache: false
+          rustflags: "-D warnings"
+          build-warnings: ""
           toolchain: stable
           components: rustfmt, clippy
           override: true
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.package.name }}
       - name: Install Protoc
         if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
         uses: arduino/setup-protoc@v1
@@ -82,39 +97,54 @@ jobs:
         working-directory: ${{ matrix.package.path }}
 
   check-examples:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       # Use nightly Rust to check the format
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          cache: false
+          rustflags: "-D warnings"
+          build-warnings: ""
           toolchain: nightly
           components: rustfmt, clippy
       - name: Check Format
         run: cargo fmt --all -- --check
         working-directory: examples
       # Switch to stable Rust
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          cache: false
+          rustflags: "-D warnings"
+          build-warnings: ""
           toolchain: stable
           components: rustfmt, clippy
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples -> target
       - name: Check With Clippy
         run: cargo clippy
         working-directory: examples
 
   check-msrv:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+          rustflags: "-D warnings"
+          build-warnings: ""
           toolchain: "1.94.0"
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
@@ -125,13 +155,22 @@ jobs:
         run: cargo check --workspace --all-features --all-targets
 
   check-worker:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+          rustflags: "-D warnings"
+          build-warnings: ""
           toolchain: stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            examples/poem/worker-hello-world -> target
       - name: Check native Poem without server features
         run: cargo check -p poem --no-default-features
       - name: Install WebAssembly target

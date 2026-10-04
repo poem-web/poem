@@ -7,9 +7,12 @@ on:
       - "**/Cargo.toml"
       - ".github/workflows/release.yml"
 
+permissions:
+  contents: read
+
 jobs:
   publish:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -47,10 +50,14 @@ jobs:
         with:
           toolchain: stable
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install Protoc
         if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
         uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get Version
         working-directory: ${{ matrix.package.path }}
         run: echo PACKAGE_VERSION=$(sed -nE 's/^\s*version = "(.*?)"/\1/p' Cargo.toml) >> $GITHUB_ENV
