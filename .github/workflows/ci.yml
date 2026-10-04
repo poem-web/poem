@@ -178,3 +178,20 @@ jobs:
       - name: Check Cloudflare Worker example
         run: cargo check --target wasm32-unknown-unknown
         working-directory: examples/poem/worker-hello-world
+
+  check-licenses:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+          toolchain: "1.94.0"
+      - name: Check license symlinks
+        run: python3 scripts/check-licenses.py
+      - name: Package workspace crates
+        run: cargo package --workspace --no-verify
+      - name: Check packaged license contents
+        run: python3 scripts/check-licenses.py --archives

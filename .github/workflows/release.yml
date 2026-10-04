@@ -66,6 +66,9 @@ jobs:
       - name: Cargo Login
         if: env.PACKAGE_VERSION != env.PUBLISHED_VERSION
         run: cargo login ${{ secrets.CRATES_TOKEN }}
+      - name: Check license symlinks
+        if: env.PACKAGE_VERSION != env.PUBLISHED_VERSION
+        run: python3 scripts/check-licenses.py --package ${{ matrix.package.name }}
       - name: Cargo Package
         if: env.PACKAGE_VERSION != env.PUBLISHED_VERSION
         working-directory: ${{ matrix.package.path }}
@@ -73,6 +76,9 @@ jobs:
           cargo package
           echo "We will publish:" $PACKAGE_VERSION
           echo "This is current latest:" $PUBLISHED_VERSION
+      - name: Check packaged license contents
+        if: env.PACKAGE_VERSION != env.PUBLISHED_VERSION
+        run: python3 scripts/check-licenses.py --archives --package ${{ matrix.package.name }}
       - name: Publish ${{ matrix.package.name }}
         if: env.PACKAGE_VERSION != env.PUBLISHED_VERSION
         working-directory: ${{ matrix.package.path }}
