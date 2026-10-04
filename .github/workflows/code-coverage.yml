@@ -4,40 +4,56 @@ on:
   push:
     branches:
       - master
+  pull_request: {}
 
 permissions:
   contents: read
 
 jobs:
   cover:
-    runs-on: ubuntu-latest
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     services:
       redis:
         image: redis:5.0.7
         ports:
           - 6379:6379
-        options: --entrypoint redis-server
+        options: >-
+          --entrypoint redis-server
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Rust coverage tools
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+          build-warnings: ""
+          toolchain: stable
+          components: llvm-tools-preview
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked --version 0.9.1
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install coverage dependencies
-        run: |
-          apt-get update
-          apt-get install -y bash curl git gpg redis-server
-          redis-server --daemonize yes
-          redis-cli ping
       - name: Generate code coverage
+        # Keep the existing report exclusions without excluding any workspace tests.
         run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+          cargo llvm-cov --workspace --all-features --tests --no-cfg-coverage \
+            --lcov --output-path target/llvm-cov/lcov.info \
+            --ignore-filename-regex '(^|/)(examples|poem-derive|poem-openapi-derive|poem-grpc-build)/'
+          test -s target/llvm-cov/lcov.info
       - name: Upload To codecov.io
+        # PRs validate coverage generation; only master publishes the report.
+        if: github.event_name == 'push'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/llvm-cov/lcov.info
+          disable_search: true
+          fail_ci_if_error: true
