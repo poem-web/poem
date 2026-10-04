@@ -1,4 +1,5 @@
 mod clean_unused;
+mod number;
 mod ser;
 
 use std::{
@@ -7,6 +8,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+pub use number::MetaSchemaNumber;
 use poem::http::Method;
 pub(crate) use ser::Document;
 use serde::{Serialize, Serializer, ser::SerializeMap};
@@ -95,11 +97,11 @@ pub struct MetaSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiple_of: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub maximum: Option<f64>,
+    pub maximum: Option<MetaSchemaNumber>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exclusive_maximum: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub minimum: Option<f64>,
+    pub minimum: Option<MetaSchemaNumber>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exclusive_minimum: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]

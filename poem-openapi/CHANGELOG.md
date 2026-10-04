@@ -10,6 +10,8 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 
 ## Breaking changes
 
+- Preserve exact integer minimum/maximum bounds in schemas, derives and runtime validation. `MetaSchema.minimum`/`maximum` now use `MetaSchemaNumber`; validators require `Copy + Into<MetaSchemaNumber>` rather than `AsPrimitive<f64>`. See [numeric-bound migration guidance](../docs/migration-4.0.md#exact-numeric-bounds). [#910](https://github.com/poem-web/poem/issues/910)
+
 - Upgrade to Poem 4 and require Rust 1.94. Keep runtime and derive dependencies on the same major release. [#1198](https://github.com/poem-web/poem/pull/1198)
 - Name generated discriminator/externally tagged union variant schemas after the Rust variant, rather than its payload type (`Union_Variant` instead of `Union_PayloadType`). Update schema snapshots, explicit `$ref` consumers and generated clients. [#1051](https://github.com/poem-web/poem/pull/1051)
 - Add `extensions` to `registry::MetaInfo`; update complete struct literals or use `..Default::default()`. [#1158](https://github.com/poem-web/poem/pull/1158)

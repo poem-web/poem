@@ -83,6 +83,40 @@ RCGen and Rand migrations are internal to Poem. ACME root-source choices and
 
 ## OpenAPI 6
 
+### Exact numeric bounds
+
+`MetaSchema.minimum` and `MetaSchema.maximum` now use
+`Option<registry::MetaSchemaNumber>` instead of `Option<f64>`. Use `.into()` in
+struct literals: `minimum: Some(9_007_199_254_740_993_u64.into())`. The public
+`Integer(i64)`, `Unsigned(u64)` and `Float(f64)` variants are also available.
+Integer bounds serialize as JSON integers and preserve the full `i64`/`u64`
+range. `multiple_of` remains `Option<f64>`.
+
+`Minimum::new` and `Maximum::new` accept `impl Into<MetaSchemaNumber>`, so existing
+calls such as `Maximum::new(10.0, false)` still work. Pass an integer argument to
+retain integer precision, e.g. `Maximum::new(u64::MAX, false)`. A value already
+rounded to `f64` cannot recover its original integer precision.
+
+Minimum/maximum validators now require `Copy + Into<MetaSchemaNumber>` instead
+of `num_traits::AsPrimitive<f64>`. Supported built-ins are `i8` through `i64`,
+`u8` through `u64`, `isize`/`usize`, their `NonZero` counterparts, and `f32`/`f64`.
+Custom numeric types must supply an exact conversion or use a custom validator;
+`i128`/`u128` are not implicitly converted to lossy floating-point values.
+
+Derive attributes accept quoted numeric strings and numeric literals, including
+negative literals. Integer syntax is preserved exactly; values outside
+`i64::MIN..=u64::MAX` are rejected rather than rounded to floating point. Decimal
+and exponent syntax still uses `f64` precision, not arbitrary-precision decimal
+arithmetic. For example, use `value = "9007199254740993"` or
+`value = 9007199254740993` for an exact integer, not `value = "9007199254740993.0"`.
+
+Comparisons no longer round integer inputs to floats, including when a bound is
+fractional or exclusive. Requests previously accepted only because of rounding
+can now fail validation. Regenerate OpenAPI snapshots and clients. Non-finite
+float bounds are rejected by the derive, reject all runtime values when
+constructed directly, and return a serialization error instead of emitting
+invalid `null` numeric bounds. Non-finite input values also fail these validators.
+
 ### Generated schemas and registry literals
 
 Discriminator/externally tagged union wrapper component names now use the Rust

@@ -1,32 +1,39 @@
 use derive_more::Display;
-use num_traits::AsPrimitive;
 
 use crate::{
-    registry::MetaSchema,
+    registry::{MetaSchema, MetaSchemaNumber},
     validation::{Validator, ValidatorMeta},
 };
 
 #[derive(Display)]
 #[display("minimum({n}, exclusive: {exclusive})")]
 pub struct Minimum {
-    n: f64,
+    n: MetaSchemaNumber,
     exclusive: bool,
 }
 
 impl Minimum {
+    /// Creates a bound, preserving the precision of integer arguments.
+    ///
+    /// Non-finite floating-point bounds reject all values and fail schema
+    /// serialization.
     #[inline]
-    pub fn new(n: f64, exclusive: bool) -> Self {
-        Self { n, exclusive }
+    pub fn new(n: impl Into<MetaSchemaNumber>, exclusive: bool) -> Self {
+        Self {
+            n: n.into(),
+            exclusive,
+        }
     }
 }
 
-impl<T: AsPrimitive<f64>> Validator<T> for Minimum {
+impl<T: Copy + Into<MetaSchemaNumber>> Validator<T> for Minimum {
     #[inline]
     fn check(&self, value: &T) -> bool {
+        let value: MetaSchemaNumber = (*value).into();
         if self.exclusive {
-            value.as_() > self.n
+            value > self.n
         } else {
-            value.as_() >= self.n
+            value >= self.n
         }
     }
 }
