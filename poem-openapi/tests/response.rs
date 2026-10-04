@@ -170,7 +170,10 @@ async fn headers() {
     assert!(!header2.required);
     assert_eq!(
         header2.schema,
-        MetaSchemaRef::Inline(Box::new(MetaSchema::new("string")))
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            nullable: true,
+            ..MetaSchema::new("string")
+        }))
     );
 
     let resp = MyResponse::A.into_response();

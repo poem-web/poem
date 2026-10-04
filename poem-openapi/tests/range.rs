@@ -139,10 +139,7 @@ fn optional_endpoints_require_keys_and_preserve_nulls() {
         assert_eq!(
             schema["properties"][field],
             json!({
-                "anyOf": [
-                    {"type": "integer", "format": "int32"},
-                    {"type": "object", "nullable": true, "enum": [null]},
-                ],
+                "type": "integer", "format": "int32", "nullable": true,
             })
         );
     }

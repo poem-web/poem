@@ -30,6 +30,8 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 
 ## Fixed
 
+- Describe `Option<T>` and `MaybeUndefined<T>` as nullable while preserving JSON output and required fields. Referenced and composed schemas use a null-only union without changing shared components; `nullable`/`nullable_all` use the same semantics. [#701](https://github.com/poem-web/poem/issues/701), [#913](https://github.com/poem-web/poem/issues/913), [#1122](https://github.com/poem-web/poem/issues/1122)
+
 - Preserve `one_of` uniqueness checks for childless union variants, rejecting ambiguous object input rather than discarding its data.
 - Represent unit `()` using a nullable, null-only OpenAPI 3.0 schema and reject non-null JSON input, matching Serde instead of discarding populated data.
 - Enable Time's `macros` feature for the optional Time integration. [#1082](https://github.com/poem-web/poem/pull/1082)

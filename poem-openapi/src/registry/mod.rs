@@ -306,6 +306,44 @@ pub enum MetaSchemaRef {
 }
 
 impl MetaSchemaRef {
+    /// Allow null without changing the schema of a shared component.
+    pub(crate) fn nullable(self) -> Self {
+        if let MetaSchemaRef::Inline(mut schema) = self {
+            if schema.any_of.is_empty()
+                && schema.one_of.is_empty()
+                && schema.all_of.is_empty()
+                && !schema.ty.is_empty()
+            {
+                schema.nullable = true;
+                // `nullable` extends `type`, but does not override `enum`.
+                if !schema.enum_items.is_empty() && !schema.enum_items.contains(&Value::Null) {
+                    schema.enum_items.push(Value::Null);
+                }
+                return MetaSchemaRef::Inline(schema);
+            }
+            if schema.ty.is_empty()
+                && schema.enum_items.is_empty()
+                && schema.one_of.is_empty()
+                && schema.all_of.is_empty()
+                && schema.any_of.contains(&<()>::schema_ref())
+            {
+                return MetaSchemaRef::Inline(schema);
+            }
+            return Self::null_union(MetaSchemaRef::Inline(schema));
+        }
+        Self::null_union(self)
+    }
+
+    fn null_union(schema: Self) -> Self {
+        // In OpenAPI 3.0 `nullable` only affects a type in the same schema.
+        // Neither a $ref sibling nor nullable on an allOf wrapper can make
+        // the referenced/composed schema accept null. Use a null-only branch.
+        MetaSchemaRef::Inline(Box::new(MetaSchema {
+            any_of: vec![schema, <()>::schema_ref()],
+            ..MetaSchema::ANY
+        }))
+    }
+
     pub fn is_array(&self) -> bool {
         matches!(self, MetaSchemaRef::Inline(schema) if schema.ty == "array")
     }
@@ -329,7 +367,11 @@ impl MetaSchemaRef {
     }
 
     #[must_use]
-    pub fn merge(self, other: MetaSchema) -> Self {
+    pub fn merge(self, mut other: MetaSchema) -> Self {
+        if other.nullable {
+            other.nullable = false;
+            return self.nullable().merge(other);
+        }
         match self {
             MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(Box::new(schema.merge(other))),
             MetaSchemaRef::Reference(name) => {
@@ -721,7 +763,24 @@ impl Registry {
     }
 
     pub fn create_fake_schema<T: Type>(&mut self) -> MetaSchema {
-        match T::schema_ref() {
+        let mut schema_ref = T::schema_ref();
+        if !T::IS_REQUIRED
+            && let MetaSchemaRef::Inline(schema) = &mut schema_ref
+        {
+            // Flattening needs the wrapped object's fields, not the
+            // optional value's null alternative. Preserve the existing
+            // properties and required keys when resolving our null union.
+            if schema.ty.is_empty()
+                && schema.enum_items.is_empty()
+                && schema.one_of.is_empty()
+                && schema.all_of.is_empty()
+                && schema.any_of.len() == 2
+                && schema.any_of[1] == <()>::schema_ref()
+            {
+                schema_ref = schema.any_of.remove(0);
+            }
+        }
+        match schema_ref {
             MetaSchemaRef::Inline(schema) => *schema,
             MetaSchemaRef::Reference(name) => {
                 T::register(self);
