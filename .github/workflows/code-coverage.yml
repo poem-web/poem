@@ -44,6 +44,7 @@ jobs:
       - name: Generate code coverage
         # Keep the existing report exclusions without excluding any workspace tests.
         run: |
+          mkdir -p target/llvm-cov
           cargo llvm-cov --workspace --all-features --tests --no-cfg-coverage \
             --lcov --output-path target/llvm-cov/lcov.info \
             --ignore-filename-regex '(^|/)(examples|poem-derive|poem-openapi-derive|poem-grpc-build)/'
