@@ -96,6 +96,7 @@
 //! |--------------------|----------------------------------------------------------------------------------------|
 //! | camino             | Integrate with the [`camino` crate](https://crates.io/crates/camino).                  |
 //! | chrono             | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                  |
+//! | jiff               | Integrate with the [`jiff` crate](https://crates.io/crates/jiff).                      |
 //! | time               | Integrate with the [`time` crate](https://crates.io/crates/time).                      |
 //! | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)             |
 //! | openapi-explorer   | Add OpenAPI Explorer support                                                           |
@@ -117,6 +118,32 @@
 //! | static-files       | Support for static file response                                                       |
 //! | websocket          | Support for websocket                                                                  |
 //! | sonic-rs           | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities |
+
+//! ### Jiff date and time types
+//!
+//! Enable the `jiff` feature to use `jiff::Timestamp`, `jiff::Zoned`, and
+//! `jiff::civil::{DateTime, Date, Time}` in JSON payloads, parameters, and
+//! multipart fields. Parsing and JSON output use Jiff's native string
+//! representations, including subsecond precision. Civil types use the existing
+//! `naive-date-time`, `naive-date`, and `naive-time` schema formats.
+//!
+//! `Zoned` uses the custom `zoned-date-time` format rather than RFC 3339
+//! `date-time`: its string includes a time zone annotation, for example
+//! `2024-11-03T01:30:00-05:00[America/New_York]`. IANA time zone names and
+//! minute-precision fixed offsets are preserved, including the offset that
+//! disambiguates repeated local times. Jiff's native format replaces
+//! unnamed/POSIX time zones with fixed offsets and rounds offsets to minutes;
+//! such zones can lose their rules, and second-precision fixed offsets can
+//! change the instant when reparsed. Clients that only support standard OpenAPI
+//! formats can treat `Zoned` as a string.
+//!
+//! `Timestamp` uses `date-time`, like Poem's other instant types, and
+//! serializes in UTC. Jiff's native parser
+//! accepts a broader syntax than RFC 3339, and its range includes negative
+//! years; applications requiring strict RFC 3339 validation must validate the
+//! input syntax separately and restrict timestamp years to `0000..=9999`. See
+//! [Jiff's parsing and printing documentation](https://docs.rs/jiff/latest/jiff/fmt/temporal/index.html)
+//! for the supported syntax and time zone database requirements.
 
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/poem-web/poem/master/favicon.ico")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/poem-web/poem/master/logo.png")]

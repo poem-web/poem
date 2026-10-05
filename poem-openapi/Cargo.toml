@@ -29,6 +29,7 @@ sonic-rs = ["poem/sonic-rs"]
 cookie = ["poem/cookie"]
 camino = ["dep:camino"]
 ulid = ["dep:ulid"]
+jiff = ["dep:jiff"]
 
 [dependencies]
 poem-openapi-derive.workspace = true
@@ -62,6 +63,7 @@ email_address = { version = "0.2.9", optional = true }
 hostname-validator = { version = "1.1.1", optional = true }
 
 # Feature optional dependencies
+jiff = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true, default-features = false, features = [
   "clock",
 ] }
