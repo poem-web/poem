@@ -20,6 +20,8 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 
 ## Added
 
+- Add optional `jiff` support for `Timestamp`, `Zoned`, and civil date/time types in JSON, parameters, and multipart fields. Zoned values preserve time zone annotations using the custom `zoned-date-time` schema format. Based on [#1188](https://github.com/poem-web/poem/pull/1188).
+
 - Support `std::ops::Range<T>` in JSON payloads and OpenAPI schemas, using required `start` and `end` fields.
 
 - Support primitive payloads in externally tagged unions. [1c2474ec](https://github.com/poem-web/poem/commit/1c2474ec)

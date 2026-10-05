@@ -42,6 +42,7 @@ regex = "1.13.1"
 mime = "0.3.17"
 tracing = "0.1.44"
 chrono = { version = "0.4.45", default-features = false }
+jiff = "0.2.29"
 bytes = "1.12.1"
 futures-util = "0.3.34"
 tokio-stream = "0.1.19"
