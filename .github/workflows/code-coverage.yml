@@ -49,9 +49,23 @@ jobs:
             --lcov --output-path target/llvm-cov/lcov.info \
             --ignore-filename-regex '(^|/)(examples|poem-derive|poem-openapi-derive|poem-grpc-build)/'
           test -s target/llvm-cov/lcov.info
+      - name: Check Dependabot Codecov token
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.actor == 'dependabot[bot]' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        id: codecov-token
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          if [[ -z "$CODECOV_TOKEN" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Codecov upload skipped: add CODECOV_TOKEN as a Dependabot secret to enable coverage reports for Dependabot PRs."
+            echo "Codecov upload skipped: CODECOV_TOKEN is not configured as a Dependabot secret. Coverage generation and tests still ran." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload To codecov.io
-        # PRs validate coverage generation; only master publishes the report.
-        if: github.event_name == 'push'
+        # Public fork PRs use Codecov's tokenless upload support.
+        if: steps.codecov-token.outputs.skip != 'true'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
