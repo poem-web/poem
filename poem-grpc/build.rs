@@ -6,7 +6,11 @@ fn main() -> Result<()> {
         .internal()
         .file_descriptor_set_path("grpc-reflection.bin")
         .compile(
-            &["proto/reflection.proto", "proto/health.proto"],
+            &[
+                "proto/reflection.proto",
+                "proto/reflection_v1.proto",
+                "proto/health.proto",
+            ],
             &["proto/"],
         )?;
 
