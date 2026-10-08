@@ -34,7 +34,6 @@ rand.workspace = true
 tokio-stream.workspace = true
 async-stream.workspace = true
 tracing.workspace = true
-pin-project-lite = "0.2.17"
 itertools = "0.15.0"
 mime.workspace = true
 base64.workspace = true
