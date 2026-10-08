@@ -300,10 +300,10 @@ impl Reflection {
             .expect("valid file descriptor sets")
             .file
         {
-            if let Ok(proto) = FileDescriptorProto::decode(bytes.as_slice()) {
-                if let Some(name) = proto.name {
-                    self.raw_files.insert(name, bytes);
-                }
+            if let Ok(proto) = FileDescriptorProto::decode(bytes.as_slice())
+                && let Some(name) = proto.name
+            {
+                self.raw_files.insert(name, bytes);
             }
         }
 
