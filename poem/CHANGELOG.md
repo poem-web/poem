@@ -30,12 +30,13 @@ This release also covers `poem-derive` 4.0.0. See the [major-release migration g
 
 - Retain the deprecated `RustlsConfig::cert`, `key` and `ocsp_resp` methods throughout Poem 4; removal is scheduled for Poem 5. Use `RustlsConfig::fallback` with `RustlsCertificate` instead. See the [retained API guidance](../docs/migration-4.0.md#apis-retained-until-the-next-major-release).
 - Retain `serde_yaml` 0.9 and the public `ParseYamlError::Parse(serde_yaml::Error)` payload. YAML backend and public error-type replacement are deferred to Poem 5 / OpenAPI 7; this release does not migrate to `serde_yml`.
-- Avoid copying the collected request body before JSON, XML and form deserialization.
+- Avoid copying the collected request body before JSON, XML and form deserialization. [#1203](https://github.com/poem-web/poem/pull/1203)
 
 - Enable `TCP_NODELAY` on accepted TCP sockets. [#1177](https://github.com/poem-web/poem/pull/1177)
 - Improve OpenTelemetry error attributes and server-error span status; stop attaching `telemetry.sdk.*` resource metadata to each request span. Review trace queries and dashboards. [#1087](https://github.com/poem-web/poem/pull/1087)
 - Update Tower to 0.5, x509-parser to 0.18 and quick-xml to 0.42, adapting XML serialization errors. Refresh shared dependencies, including Syn 3 in `poem-derive`; session IDs retain 32 bytes of entropy after the Rand update. [#1091](https://github.com/poem-web/poem/pull/1091), [#1162](https://github.com/poem-web/poem/pull/1162), [#1194](https://github.com/poem-web/poem/pull/1194), [#1198](https://github.com/poem-web/poem/pull/1198)
 - Document Let's Encrypt rate limits for ACME users. [#1080](https://github.com/poem-web/poem/pull/1080)
+- Drop unused `async-stream` and `hex` from Poem's own feature set; embed ETags keep lowercase hex via std formatting. [#1216](https://github.com/poem-web/poem/pull/1216)
 
 # [3.1.12] 2025-07-28
 

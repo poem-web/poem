@@ -16,6 +16,7 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 ## Fixed
 
 - Prefer `application/grpc+json` over `application/json` in `JsonCodec::CONTENT_TYPES`, so clients send the gRPC JSON content type. Both content types remain accepted. [#1191](https://github.com/poem-web/poem/pull/1191)
+- Serve original reflection descriptor bytes (preserving unknown fields), return transitive file dependencies, and answer extension queries for both `grpc.reflection.v1` and `v1alpha`. [#1196](https://github.com/poem-web/poem/pull/1196)
 
 ## Changed
 
