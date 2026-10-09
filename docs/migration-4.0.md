@@ -2,9 +2,11 @@
 
 These versions are **prepared, not yet released**. Release dates must be filled in
 when publication is approved. The release is based on merged `master` through
-[dfc0a435](https://github.com/poem-web/poem/commit/dfc0a435), including dependency
-upgrade [#1198](https://github.com/poem-web/poem/pull/1198) and TLS configuration
-[#1199](https://github.com/poem-web/poem/pull/1199).
+[85b6561](https://github.com/poem-web/poem/commit/85b6561), including dependency
+upgrade [#1198](https://github.com/poem-web/poem/pull/1198), TLS configuration
+[#1199](https://github.com/poem-web/poem/pull/1199), gRPC reflection fixes
+[#1196](https://github.com/poem-web/poem/pull/1196), and dropping unused std-covered
+dependencies [#1216](https://github.com/poem-web/poem/pull/1216).
 
 ## Versions and compatibility boundaries
 
