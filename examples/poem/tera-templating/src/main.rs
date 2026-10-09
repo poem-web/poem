@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use poem::{
     Route, Server,
     error::InternalServerError,
@@ -15,7 +16,7 @@ fn load_templates(glob: &str) -> tera::TeraResult<Tera> {
     Ok(tera)
 }
 
-static TEMPLATES: Lazy<Tera> = Lazy::new(|| {
+static TEMPLATES: LazyLock<Tera> = LazyLock::new(|| {
     load_templates("templates/**/*").unwrap_or_else(|e| {
         println!("Parsing error(s): {e}");
         ::std::process::exit(1);
