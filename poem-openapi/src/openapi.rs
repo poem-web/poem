@@ -632,7 +632,7 @@ impl<T, W> OpenApiService<T, W> {
                         description: header.description.clone(),
                         required: *is_required,
                         deprecated: header.deprecated,
-                        explode: true,
+                        explode: false,
                         style: None,
                     },
                 );
@@ -815,17 +815,20 @@ mod tests {
         assert_eq!(params[0].description, None);
         assert!(!params[0].deprecated);
         assert_eq!(params[0].schema, i32::schema_ref());
+        assert!(!params[0].explode);
 
         assert_eq!(params[1].name, "A2");
         assert_eq!(params[1].in_type, MetaParamIn::Header);
         assert_eq!(params[1].description.as_deref(), Some("abc"));
         assert!(!params[1].deprecated);
         assert_eq!(params[1].schema, String::schema_ref());
+        assert!(!params[1].explode);
 
         assert_eq!(params[2].name, "A3");
         assert_eq!(params[2].in_type, MetaParamIn::Header);
         assert_eq!(params[2].description, None);
         assert!(params[2].deprecated);
         assert_eq!(params[2].schema, f32::schema_ref());
+        assert!(!params[2].explode);
     }
 }

@@ -1,0 +1,13 @@
+[package]
+name = "poem-openapi-derive-compat-runtime-5-1-16"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+poem-openapi = "=5.1.16"
+
+[patch.crates-io]
+poem-openapi-derive = { path = "../../.." }
+
+[workspace]
