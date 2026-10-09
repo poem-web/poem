@@ -495,32 +495,26 @@ fn inline_fields() {
 
     let meta_inner_obj = meta.properties[0].1.unwrap_inline();
     assert_eq!(
-        meta_inner_obj.all_of[0],
-        MetaSchemaRef::Reference("InlineObj".to_string())
-    );
-    assert_eq!(
-        meta_inner_obj.all_of[1],
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        meta_inner_obj,
+        &MetaSchema {
             description: Some("Inner Obj"),
             default: Some(serde_json::json!({
                 "v": 100,
             })),
+            all_of: vec![MetaSchemaRef::Reference("InlineObj".to_string())],
             ..MetaSchema::ANY
-        }))
+        }
     );
 
     let meta_inner_enum = meta.properties[1].1.unwrap_inline();
     assert_eq!(
-        meta_inner_enum.all_of[0],
-        MetaSchemaRef::Reference("InlineEnum".to_string())
-    );
-    assert_eq!(
-        meta_inner_enum.all_of[1],
-        MetaSchemaRef::Inline(Box::new(MetaSchema {
+        meta_inner_enum,
+        &MetaSchema {
             description: Some("Inner Enum"),
             default: Some(serde_json::json!("B")),
+            all_of: vec![MetaSchemaRef::Reference("InlineEnum".to_string())],
             ..MetaSchema::ANY
-        }))
+        }
     );
 }
 
