@@ -18,6 +18,10 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Prefer `application/grpc+json` over `application/json` in `JsonCodec::CONTENT_TYPES`, so clients send the gRPC JSON content type. Both content types remain accepted. [#1191](https://github.com/poem-web/poem/pull/1191)
 - Serve original reflection descriptor bytes (preserving unknown fields), return transitive file dependencies, and answer extension queries for both `grpc.reflection.v1` and `v1alpha`. [#1196](https://github.com/poem-web/poem/pull/1196)
 
+## Added
+
+- Add `RouteGrpc::with_reflection`, whose `ListServices` advertises the services added to the router that the registered descriptors define, plus reflection itself, instead of every service in the descriptors. Add `Reflection::advertise_services` to narrow the advertised list down to the given names, in that order (the reflection service itself stays listed only if named, see `Reflection::SERVICE_NAMES`). Symbol and file lookups are unaffected, and adding `Reflection::build()` via `add_service` keeps advertising every service in the descriptors.
+
 ## Changed
 
 - Index reflection symbols with protobuf scoping: fields and oneofs under their message, enum values as siblings of their enum, and extensions under their scope, so `FileContainingSymbol` finds them and a field can no longer shadow a message with the same name. Register each descriptor file name once (first wins), so files shared between sets don't list their services twice, and serve the built-in reflection and health descriptors under their canonical paths (`grpc/health/v1/health.proto`, ...), so a user file named `health.proto` or `reflection.proto` is no longer replaced by them.
