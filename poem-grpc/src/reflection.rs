@@ -39,6 +39,9 @@ struct RawFileDescriptorSet {
     file: Vec<Vec<u8>>,
 }
 
+/// Names of the files already served on one reflection stream.
+type SentFiles = HashSet<String>;
+
 struct State {
     service_names: Vec<v1::ServiceResponse>,
     /// Decoded descriptors keyed by filename. Used for the symbol index, the
@@ -58,7 +61,12 @@ impl State {
     /// file name. The original wire bytes are served verbatim (falling back to
     /// a re-encode only when a raw file is unavailable), so unknown fields
     /// / custom options survive the round-trip.
-    fn file_descriptor_bytes(&self, filename: &str) -> Vec<Vec<u8>> {
+    ///
+    /// Dependencies already in `sent` (served earlier on the same reflection
+    /// stream) are skipped, as the reflection protocol allows; `filename`
+    /// itself is always included since it was asked for. Everything served is
+    /// recorded in `sent`.
+    fn file_descriptor_bytes(&self, filename: &str, sent: &mut SentFiles) -> Vec<Vec<u8>> {
         let mut out = Vec::new();
         let mut seen = HashSet::new();
         let mut queue = vec![filename.to_string()];
@@ -68,15 +76,16 @@ impl State {
                 continue;
             }
 
-            let bytes = match self.raw_files.get(&name).cloned() {
-                Some(bytes) => bytes,
-                None => match self.files.get(&name) {
-                    Some(fd) => fd.clone().encode_to_vec(),
-                    None => continue,
-                },
-            };
-            out.push(bytes);
+            if name == filename || !sent.contains(&name) {
+                let Some(bytes) = self.encoded_file(&name) else {
+                    continue;
+                };
+                out.push(bytes);
+                sent.insert(name.clone());
+            }
 
+            // Walk through already-sent files too: cheap, and doesn't rely on
+            // their dependencies having been sent with them.
             if let Some(fd) = self.files.get(&name) {
                 for dep in &fd.dependency {
                     queue.push(dep.clone());
@@ -87,8 +96,18 @@ impl State {
         out
     }
 
-    #[allow(clippy::result_large_err)]
-    fn file_by_filename(&self, filename: &str) -> Result<MessageResponse, Status> {
+    fn encoded_file(&self, name: &str) -> Option<Vec<u8>> {
+        self.raw_files
+            .get(name)
+            .cloned()
+            .or_else(|| self.files.get(name).map(|fd| fd.encode_to_vec()))
+    }
+
+    fn file_by_filename(
+        &self,
+        filename: &str,
+        sent: &mut SentFiles,
+    ) -> Result<MessageResponse, Status> {
         if !self.files.contains_key(filename) && !self.raw_files.contains_key(filename) {
             return Err(
                 Status::new(Code::NotFound).with_message(format!("file '{filename}' not found"))
@@ -97,28 +116,31 @@ impl State {
 
         Ok(MessageResponse::FileDescriptorResponse(
             v1::FileDescriptorResponse {
-                file_descriptor_proto: self.file_descriptor_bytes(filename),
+                file_descriptor_proto: self.file_descriptor_bytes(filename, sent),
             },
         ))
     }
 
-    #[allow(clippy::result_large_err)]
-    fn symbol_by_name(&self, symbol: &str) -> Result<MessageResponse, Status> {
+    fn symbol_by_name(
+        &self,
+        symbol: &str,
+        sent: &mut SentFiles,
+    ) -> Result<MessageResponse, Status> {
         let filename = self.symbols.get(symbol).ok_or_else(|| {
             Status::new(Code::NotFound).with_message(format!("symbol '{symbol}' not found"))
         })?;
 
         Ok(MessageResponse::FileDescriptorResponse(
             v1::FileDescriptorResponse {
-                file_descriptor_proto: self.file_descriptor_bytes(filename),
+                file_descriptor_proto: self.file_descriptor_bytes(filename, sent),
             },
         ))
     }
 
-    #[allow(clippy::result_large_err)]
     fn file_containing_extension(
         &self,
         request: &v1::ExtensionRequest,
+        sent: &mut SentFiles,
     ) -> Result<MessageResponse, Status> {
         let numbers = self
             .extensions
@@ -138,21 +160,25 @@ impl State {
 
         Ok(MessageResponse::FileDescriptorResponse(
             v1::FileDescriptorResponse {
-                file_descriptor_proto: self.file_descriptor_bytes(filename),
+                file_descriptor_proto: self.file_descriptor_bytes(filename, sent),
             },
         ))
     }
 
-    #[allow(clippy::result_large_err)]
     fn all_extension_numbers_of_type(
         &self,
         containing_type: &str,
     ) -> Result<MessageResponse, Status> {
-        let numbers = self.extensions.get(containing_type).ok_or_else(|| {
-            Status::new(Code::NotFound)
-                .with_message(format!("no known extensions for type '{containing_type}'"))
-        })?;
-        let mut extension_number: Vec<i32> = numbers.keys().copied().collect();
+        // A known type without extensions gets an empty list; only an unknown
+        // type is an error.
+        let mut extension_number: Vec<i32> = match self.extensions.get(containing_type) {
+            Some(numbers) => numbers.keys().copied().collect(),
+            None if self.symbols.contains_key(containing_type) => Vec::new(),
+            None => {
+                return Err(Status::new(Code::NotFound)
+                    .with_message(format!("type '{containing_type}' not found")));
+            }
+        };
         extension_number.sort_unstable();
 
         Ok(MessageResponse::AllExtensionNumbersResponse(
@@ -185,8 +211,9 @@ impl v1::ServerReflection for V1ReflectionService {
         let state = self.state.clone();
 
         Ok(Response::new(Streaming::new(async_stream::try_stream! {
+            let mut sent = SentFiles::new();
             while let Some(req) = request_stream.next().await.transpose()? {
-                let resp = handle_request(&state, &req)?;
+                let resp = handle_request(&state, &req, &mut sent)?;
                 yield v1::ServerReflectionResponse {
                     valid_host: req.host.clone(),
                     original_request: Some(req.clone()),
@@ -213,9 +240,10 @@ impl v1alpha::ServerReflection for V1alphaReflectionService {
         let state = self.state.clone();
 
         Ok(Response::new(Streaming::new(async_stream::try_stream! {
+            let mut sent = SentFiles::new();
             while let Some(req) = request_stream.next().await.transpose()? {
                 let v1_req = req_v1alpha_to_v1(&req);
-                let resp = handle_request(&state, &v1_req)?;
+                let resp = handle_request(&state, &v1_req, &mut sent)?;
                 let v1_resp = v1::ServerReflectionResponse {
                     valid_host: v1_req.host.clone(),
                     original_request: Some(v1_req.clone()),
@@ -239,23 +267,34 @@ fn resp_v1_to_v1alpha(resp: v1::ServerReflectionResponse) -> v1alpha::ServerRefl
         .expect("reflection response conversion")
 }
 
-#[allow(clippy::result_large_err)]
+/// Answers one request on a reflection stream. A failed lookup is reported
+/// in-band as an `ErrorResponse` so the stream stays usable, while a request
+/// without a `message_request` ends the stream with `InvalidArgument`.
 fn handle_request(
     state: &State,
     req: &v1::ServerReflectionRequest,
+    sent: &mut SentFiles,
 ) -> Result<MessageResponse, Status> {
-    match &req.message_request {
-        Some(MessageRequest::FileByFilename(filename)) => state.file_by_filename(filename),
-        Some(MessageRequest::FileContainingSymbol(symbol)) => state.symbol_by_name(symbol),
+    let result = match &req.message_request {
+        Some(MessageRequest::FileByFilename(filename)) => state.file_by_filename(filename, sent),
+        Some(MessageRequest::FileContainingSymbol(symbol)) => state.symbol_by_name(symbol, sent),
         Some(MessageRequest::FileContainingExtension(extension)) => {
-            state.file_containing_extension(extension)
+            state.file_containing_extension(extension, sent)
         }
         Some(MessageRequest::AllExtensionNumbersOfType(containing_type)) => {
             state.all_extension_numbers_of_type(containing_type)
         }
         Some(MessageRequest::ListServices(_)) => Ok(state.list_services()),
-        None => Err(Status::new(Code::InvalidArgument)),
-    }
+        None => {
+            return Err(Status::new(Code::InvalidArgument).with_message("empty reflection request"));
+        }
+    };
+    Ok(result.unwrap_or_else(|status| {
+        MessageResponse::ErrorResponse(v1::ErrorResponse {
+            error_code: status.code().as_u16().into(),
+            error_message: status.message().unwrap_or_default().to_string(),
+        })
+    }))
 }
 
 /// Composite endpoint returned by [`Reflection::build`], serving both the
@@ -458,6 +497,9 @@ fn index_extension(
     extensions: &mut HashMap<String, HashMap<i32, String>>,
 ) {
     if let (Some(extendee), Some(number)) = (ext.extendee.as_deref(), ext.number) {
+        // protoc writes fully-qualified type references with a leading dot
+        // (`.google.protobuf.FieldOptions`); requests name the type without it.
+        let extendee = extendee.strip_prefix('.').unwrap_or(extendee);
         extensions
             .entry(extendee.to_string())
             .or_default()
@@ -601,7 +643,9 @@ mod tests {
         api.message_type.push(outer);
 
         let state = reflection_state(vec![dep, api]);
-        let resp = state.symbol_by_name("api.Outer").unwrap();
+        let resp = state
+            .symbol_by_name("api.Outer", &mut SentFiles::new())
+            .unwrap();
         let MessageResponse::FileDescriptorResponse(fd_response) = resp else {
             panic!("expected file descriptor response");
         };
@@ -617,16 +661,20 @@ mod tests {
         let mut ext = field_proto();
         ext.name = Some("my_field_opt".into());
         ext.number = Some(50001);
-        ext.extendee = Some("google.protobuf.FieldOptions".into());
+        // As written by protoc: fully qualified with a leading dot.
+        ext.extendee = Some(".google.protobuf.FieldOptions".into());
         api.extension.push(ext);
 
         let state = reflection_state(vec![api]);
 
         let resp = state
-            .file_containing_extension(&v1::ExtensionRequest {
-                containing_type: "google.protobuf.FieldOptions".into(),
-                extension_number: 50001,
-            })
+            .file_containing_extension(
+                &v1::ExtensionRequest {
+                    containing_type: "google.protobuf.FieldOptions".into(),
+                    extension_number: 50001,
+                },
+                &mut SentFiles::new(),
+            )
             .unwrap();
         let MessageResponse::FileDescriptorResponse(fd_response) = resp else {
             panic!("expected file descriptor response");
@@ -644,7 +692,8 @@ mod tests {
 
     /// The file `symbol_by_name` resolves `symbol` to, if any.
     fn defining_file(state: &State, symbol: &str) -> Option<String> {
-        let MessageResponse::FileDescriptorResponse(resp) = state.symbol_by_name(symbol).ok()?
+        let MessageResponse::FileDescriptorResponse(resp) =
+            state.symbol_by_name(symbol, &mut SentFiles::new()).ok()?
         else {
             panic!("expected file descriptor response");
         };
@@ -808,12 +857,311 @@ mod tests {
             .collect();
         assert_eq!(names, ["shared.Users"]);
         assert_eq!(defining_file(&state, "shared.Renamed"), None);
-        let MessageResponse::FileDescriptorResponse(resp) =
-            state.file_by_filename("shared.proto").unwrap()
+        let MessageResponse::FileDescriptorResponse(resp) = state
+            .file_by_filename("shared.proto", &mut SentFiles::new())
+            .unwrap()
         else {
             panic!("expected file descriptor response");
         };
         let served = FileDescriptorProto::decode(resp.file_descriptor_proto[0].as_slice()).unwrap();
         assert_eq!(served.service[0].name(), "Users");
+    }
+
+    /// `dep.proto` <- `a.proto` (a.A) and `dep.proto` <- `b.proto` (b.B).
+    /// `a.proto` also extends `dep.Shared` with field 100.
+    fn shared_dependency_files() -> Vec<FileDescriptorProto> {
+        let file = |name: &str, package: &str, deps: &[&str], msg: &str| {
+            let mut fd = file_proto();
+            fd.name = Some(name.into());
+            fd.package = Some(package.into());
+            fd.dependency = deps.iter().map(|dep| dep.to_string()).collect();
+            let mut message = msg_proto();
+            message.name = Some(msg.into());
+            fd.message_type.push(message);
+            fd
+        };
+        let mut a = file("a.proto", "a", &["dep.proto"], "A");
+        let mut ext = field_proto();
+        ext.name = Some("a_ext".into());
+        ext.number = Some(100);
+        ext.extendee = Some(".dep.Shared".into());
+        a.extension.push(ext);
+        vec![
+            file("dep.proto", "dep", &[], "Shared"),
+            a,
+            file("b.proto", "b", &["dep.proto"], "B"),
+        ]
+    }
+
+    /// File names in a response: the requested file first (clients treat it as
+    /// the answer), then its dependencies in sorted order.
+    fn served_names(resp: MessageResponse) -> Vec<String> {
+        let MessageResponse::FileDescriptorResponse(resp) = resp else {
+            panic!("expected file descriptor response");
+        };
+        let mut names: Vec<_> = resp
+            .file_descriptor_proto
+            .iter()
+            .map(|bytes| {
+                FileDescriptorProto::decode(bytes.as_slice())
+                    .unwrap()
+                    .name()
+                    .to_string()
+            })
+            .collect();
+        names[1..].sort();
+        names
+    }
+
+    #[test]
+    fn skips_dependencies_already_sent_on_the_stream() {
+        let state = reflection_state(shared_dependency_files());
+        let mut sent = SentFiles::new();
+
+        let first = state.symbol_by_name("a.A", &mut sent).unwrap();
+        assert_eq!(served_names(first), ["a.proto", "dep.proto"]);
+        let second = state.symbol_by_name("b.B", &mut sent).unwrap();
+        assert_eq!(
+            served_names(second),
+            ["b.proto"],
+            "dep.proto was already sent"
+        );
+    }
+
+    #[test]
+    fn requested_file_is_always_sent() {
+        let state = reflection_state(shared_dependency_files());
+        let mut sent = SentFiles::new();
+
+        state.symbol_by_name("a.A", &mut sent).unwrap();
+        // Asked for explicitly, so served again even though it was sent.
+        let again = state.file_by_filename("dep.proto", &mut sent).unwrap();
+        assert_eq!(served_names(again), ["dep.proto"]);
+        let again = state.file_by_filename("a.proto", &mut sent).unwrap();
+        assert_eq!(served_names(again), ["a.proto"]);
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum Version {
+        V1,
+        V1alpha,
+    }
+
+    /// Opens one reflection stream per entry of `streams`, in turn, all on the
+    /// same server, and returns each stream's responses (lifted to v1).
+    async fn responses_per_stream(
+        version: Version,
+        streams: Vec<Vec<MessageRequest>>,
+    ) -> Vec<Vec<MessageResponse>> {
+        let route = crate::RouteGrpc::new().add_service(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(shared_dependency_files()))
+                .build(),
+        );
+        let cli = crate::client::GrpcClient::from_endpoint(route);
+
+        let mut out = Vec::new();
+        for requests in streams {
+            let requests = requests
+                .into_iter()
+                .map(|request| v1::ServerReflectionRequest {
+                    host: String::new(),
+                    message_request: Some(request),
+                });
+            let responses: Vec<v1::ServerReflectionResponse> = match version {
+                Version::V1 => {
+                    let requests = Streaming::new(futures_util::stream::iter(requests.map(Ok)));
+                    cli.bidirectional_streaming(
+                        "/grpc.reflection.v1.ServerReflection/ServerReflectionInfo",
+                        crate::codec::ProstCodec::<
+                            v1::ServerReflectionRequest,
+                            v1::ServerReflectionResponse,
+                        >::default(),
+                        Request::new(requests),
+                    )
+                    .await
+                    .unwrap()
+                    .into_inner()
+                    .map(Result::unwrap)
+                    .collect()
+                    .await
+                }
+                Version::V1alpha => {
+                    let requests =
+                        requests.map(|req| {
+                            Ok(v1alpha::ServerReflectionRequest::decode(
+                                req.encode_to_vec().as_slice(),
+                            )
+                            .unwrap())
+                        });
+                    cli.bidirectional_streaming(
+                        "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo",
+                        crate::codec::ProstCodec::<
+                            v1alpha::ServerReflectionRequest,
+                            v1alpha::ServerReflectionResponse,
+                        >::default(),
+                        Request::new(Streaming::new(futures_util::stream::iter(requests))),
+                    )
+                    .await
+                    .unwrap()
+                    .into_inner()
+                    .map(|resp| {
+                        v1::ServerReflectionResponse::decode(
+                            resp.unwrap().encode_to_vec().as_slice(),
+                        )
+                        .unwrap()
+                    })
+                    .collect()
+                    .await
+                }
+            };
+            out.push(
+                responses
+                    .into_iter()
+                    .map(|resp| resp.message_response.unwrap())
+                    .collect(),
+            );
+        }
+        out
+    }
+
+    fn symbol(name: &str) -> MessageRequest {
+        MessageRequest::FileContainingSymbol(name.into())
+    }
+
+    #[tokio::test]
+    async fn dedup_is_scoped_to_one_stream() {
+        for version in [Version::V1, Version::V1alpha] {
+            let streams = responses_per_stream(
+                version,
+                vec![vec![symbol("a.A"), symbol("b.B")], vec![symbol("b.B")]],
+            )
+            .await;
+            let served: Vec<Vec<Vec<String>>> = streams
+                .into_iter()
+                .map(|responses| responses.into_iter().map(served_names).collect())
+                .collect();
+            assert_eq!(
+                served,
+                [
+                    // Same stream: dep.proto is sent once.
+                    vec![vec!["a.proto", "dep.proto"], vec!["b.proto"]],
+                    // A new stream on the same server starts from scratch.
+                    vec![vec!["b.proto", "dep.proto"]],
+                ],
+                "{version:?}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn every_request_kind_is_answered_on_one_stream() {
+        for version in [Version::V1, Version::V1alpha] {
+            let [responses] = <[_; 1]>::try_from(
+                responses_per_stream(
+                    version,
+                    vec![vec![
+                        MessageRequest::FileByFilename("b.proto".into()),
+                        MessageRequest::FileContainingExtension(v1::ExtensionRequest {
+                            containing_type: "dep.Shared".into(),
+                            extension_number: 100,
+                        }),
+                        MessageRequest::AllExtensionNumbersOfType("dep.Shared".into()),
+                        MessageRequest::FileByFilename("missing.proto".into()),
+                        MessageRequest::ListServices(String::new()),
+                    ]],
+                )
+                .await,
+            )
+            .unwrap();
+            let [by_name, by_ext, numbers, missing, list] = <[_; 5]>::try_from(responses).unwrap();
+
+            assert_eq!(
+                served_names(by_name),
+                ["b.proto", "dep.proto"],
+                "{version:?}"
+            );
+            // dep.proto was already sent with b.proto.
+            assert_eq!(served_names(by_ext), ["a.proto"], "{version:?}");
+            let MessageResponse::AllExtensionNumbersResponse(numbers) = numbers else {
+                panic!("{version:?}: expected extension numbers response");
+            };
+            assert_eq!(numbers.extension_number, [100]);
+            let MessageResponse::ErrorResponse(err) = missing else {
+                panic!("{version:?}: expected error response");
+            };
+            assert_eq!(err.error_code, i32::from(Code::NotFound.as_u16()));
+            // Still answered after the error.
+            assert!(
+                matches!(list, MessageResponse::ListServicesResponse(_)),
+                "{version:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn unregistered_dependency_is_skipped() {
+        // A set built without `--include_imports` lacks the imported files.
+        let mut api = file_proto();
+        api.name = Some("api.proto".into());
+        api.dependency = vec!["absent.proto".into()];
+        let state = reflection_state(vec![api]);
+        let resp = state
+            .file_by_filename("api.proto", &mut SentFiles::new())
+            .unwrap();
+        assert_eq!(served_names(resp), ["api.proto"]);
+    }
+
+    #[tokio::test]
+    async fn errors_are_reported_in_band_without_ending_the_stream() {
+        for version in [Version::V1, Version::V1alpha] {
+            let [responses] = <[_; 1]>::try_from(
+                responses_per_stream(
+                    version,
+                    vec![vec![symbol("missing.Missing"), symbol("a.A")]],
+                )
+                .await,
+            )
+            .unwrap();
+            let [first, second] = <[_; 2]>::try_from(responses).unwrap();
+            let MessageResponse::ErrorResponse(err) = first else {
+                panic!("{version:?}: expected error response");
+            };
+            assert_eq!(err.error_code, i32::from(Code::NotFound.as_u16()));
+            assert_eq!(err.error_message, "symbol 'missing.Missing' not found");
+            assert_eq!(
+                served_names(second),
+                ["a.proto", "dep.proto"],
+                "{version:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn empty_request_is_rejected() {
+        let state = reflection_state(shared_dependency_files());
+        let req = v1::ServerReflectionRequest {
+            host: String::new(),
+            message_request: None,
+        };
+        let err = handle_request(&state, &req, &mut SentFiles::new()).unwrap_err();
+        assert_eq!(err.code(), Code::InvalidArgument);
+    }
+
+    #[test]
+    fn extension_numbers_of_message_without_extensions_is_empty() {
+        let state = reflection_state(shared_dependency_files());
+        let MessageResponse::AllExtensionNumbersResponse(numbers) =
+            state.all_extension_numbers_of_type("a.A").unwrap()
+        else {
+            panic!("expected extension numbers response");
+        };
+        assert_eq!(numbers.base_type_name, "a.A");
+        assert!(numbers.extension_number.is_empty());
+
+        let err = state
+            .all_extension_numbers_of_type("a.Missing")
+            .unwrap_err();
+        assert_eq!(err.code(), Code::NotFound);
     }
 }
