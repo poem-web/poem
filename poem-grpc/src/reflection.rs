@@ -321,9 +321,25 @@ pub struct Reflection {
     file_descriptor_sets: Vec<FileDescriptorSet>,
     /// Original wire bytes per file name, captured at registration time.
     raw_files: HashMap<String, Vec<u8>>,
+    /// Allow-list set by [`Reflection::advertise_services`], in order.
+    service_names: Option<Vec<String>>,
+    /// `Service::NAME`s mounted next to reflection, set by
+    /// [`RouteGrpc::with_reflection`](crate::RouteGrpc::with_reflection).
+    mounted: Option<Vec<String>>,
 }
 
 impl Reflection {
+    /// Fully-qualified names of the services [`build`](Self::build) mounts:
+    /// `grpc.reflection.v1.ServerReflection` and
+    /// `grpc.reflection.v1alpha.ServerReflection`.
+    ///
+    /// Include them in [`advertise_services`](Self::advertise_services) to
+    /// keep reflection itself listed.
+    pub const SERVICE_NAMES: &'static [&'static str] = &[
+        <v1::ServerReflectionServer<V1ReflectionService> as Service>::NAME,
+        <v1alpha::ServerReflectionServer<V1alphaReflectionService> as Service>::NAME,
+    ];
+
     /// Create a `ReflectionBuilder`
     pub fn new() -> Self {
         Default::default()
@@ -347,6 +363,73 @@ impl Reflection {
             }
         }
 
+        self
+    }
+
+    /// Advertise only these fully-qualified service names (e.g.
+    /// `helloworld.Greeter`) in `ListServices`, in the given order.
+    ///
+    /// Without this, `ListServices` advertises every available service: those
+    /// defined in the registered file descriptor sets or, with
+    /// [`RouteGrpc::with_reflection`](crate::RouteGrpc::with_reflection),
+    /// those mounted on the router. This narrows that list down to the given
+    /// names; a name that is not available is skipped. Calling it again
+    /// replaces the previous list.
+    ///
+    /// **The reflection service itself is no longer listed unless it is named
+    /// too**, via [`Reflection::SERVICE_NAMES`].
+    ///
+    /// This only affects `ListServices`: symbol and file lookups still resolve
+    /// against all registered descriptors.
+    ///
+    /// ```
+    /// use poem_grpc::Reflection;
+    /// # // An empty set; a real one comes from `poem_grpc_build`.
+    /// # const FILE_DESCRIPTOR_SET: &[u8] = &[];
+    ///
+    /// // Lists only `helloworld.Greeter` (as long as the registered
+    /// // descriptors define it), without the reflection service.
+    /// let reflection = Reflection::new()
+    ///     .add_file_descriptor_set(FILE_DESCRIPTOR_SET)
+    ///     .advertise_services(["helloworld.Greeter"]);
+    ///
+    /// // Lists `helloworld.Greeter` and the reflection service.
+    /// let reflection = Reflection::new()
+    ///     .add_file_descriptor_set(FILE_DESCRIPTOR_SET)
+    ///     .advertise_services(
+    ///         ["helloworld.Greeter"]
+    ///             .into_iter()
+    ///             .chain(Reflection::SERVICE_NAMES.iter().copied()),
+    ///     );
+    /// ```
+    pub fn advertise_services<I>(mut self, names: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        let mut advertised: Vec<String> = Vec::new();
+        for name in names {
+            let name = name.into();
+            if !advertised.contains(&name) {
+                advertised.push(name);
+            }
+        }
+        self.service_names = Some(advertised);
+        self
+    }
+
+    /// Restricts the available services to `mounted` plus reflection itself.
+    pub(crate) fn mounted_on_router<'a>(
+        mut self,
+        mounted: impl IntoIterator<Item = &'a str>,
+    ) -> Self {
+        self.mounted = Some(
+            mounted
+                .into_iter()
+                .chain(Self::SERVICE_NAMES.iter().copied())
+                .map(str::to_owned)
+                .collect(),
+        );
         self
     }
 
@@ -429,8 +512,31 @@ fn build_state(mut this: Reflection) -> State {
         }
     }
 
+    // Only services the descriptors define can be described, so a mounted
+    // service without a registered descriptor (or mounted under a name that
+    // isn't fully qualified) is not available.
+    let available = match this.mounted {
+        Some(mounted) => {
+            let mut available: Vec<String> = Vec::new();
+            for name in mounted {
+                if service_names.contains(&name) && !available.contains(&name) {
+                    available.push(name);
+                }
+            }
+            available
+        }
+        None => service_names,
+    };
+    let advertised = match this.service_names {
+        Some(allowed) => allowed
+            .into_iter()
+            .filter(|name| available.contains(name))
+            .collect(),
+        None => available,
+    };
+
     State {
-        service_names: service_names
+        service_names: advertised
             .into_iter()
             .map(|name| v1::ServiceResponse { name })
             .collect(),
@@ -1163,5 +1269,321 @@ mod tests {
             .all_extension_numbers_of_type("a.Missing")
             .unwrap_err();
         assert_eq!(err.code(), Code::NotFound);
+    }
+
+    fn service(name: &str) -> prost_types::ServiceDescriptorProto {
+        prost_types::ServiceDescriptorProto {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+
+    /// `api.proto` (api.Api, api.Hidden) and `other.proto` (other.Other).
+    fn two_files() -> Vec<FileDescriptorProto> {
+        let mut api = file_proto();
+        api.name = Some("api.proto".into());
+        api.package = Some("api".into());
+        api.service.push(service("Api"));
+        api.service.push(service("Hidden"));
+        let mut other = file_proto();
+        other.name = Some("other.proto".into());
+        other.package = Some("other".into());
+        other.service.push(service("Other"));
+        vec![api, other]
+    }
+
+    fn listed(state: &State) -> Vec<String> {
+        let MessageResponse::ListServicesResponse(list) = state.list_services() else {
+            panic!("expected list services response");
+        };
+        list.service.into_iter().map(|svc| svc.name).collect()
+    }
+
+    #[test]
+    fn advertises_every_service_by_default() {
+        let state = reflection_state(two_files());
+        assert_eq!(listed(&state), ["api.Api", "api.Hidden", "other.Other"]);
+    }
+
+    #[test]
+    fn advertise_services_only_affects_list_services() {
+        let state = build_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(two_files()))
+                .advertise_services(["api.Api"]),
+        );
+        assert_eq!(listed(&state), ["api.Api"]);
+
+        // Unadvertised services and their files still resolve, and the served
+        // bytes are untouched.
+        assert!(
+            state
+                .symbol_by_name("api.Hidden", &mut SentFiles::new())
+                .is_ok()
+        );
+        assert!(
+            state
+                .symbol_by_name("other.Other", &mut SentFiles::new())
+                .is_ok()
+        );
+        assert!(
+            state
+                .file_by_filename("other.proto", &mut SentFiles::new())
+                .is_ok()
+        );
+        let MessageResponse::FileDescriptorResponse(resp) = state
+            .file_by_filename("api.proto", &mut SentFiles::new())
+            .unwrap()
+        else {
+            panic!("expected file descriptor response");
+        };
+        let api = FileDescriptorProto::decode(resp.file_descriptor_proto[0].as_slice()).unwrap();
+        assert_eq!(api.service.len(), 2);
+    }
+
+    #[test]
+    fn advertise_services_keeps_given_order_and_skips_unknown_names() {
+        let state = build_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(two_files()))
+                .advertise_services(["other.Other", "missing.Service", "api.Api", "other.Other"]),
+        );
+        assert_eq!(listed(&state), ["other.Other", "api.Api"]);
+    }
+
+    #[test]
+    fn advertise_services_replaces_previous_list() {
+        let state = build_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(two_files()))
+                .advertise_services(["api.Api"])
+                .advertise_services(["other.Other"]),
+        );
+        assert_eq!(listed(&state), ["other.Other"]);
+    }
+
+    /// Like `Reflection::build`, which also registers the built-in
+    /// descriptors (reflection and health).
+    fn built_state(reflection: Reflection) -> State {
+        build_state(reflection.add_file_descriptor_set(FILE_DESCRIPTOR_SET))
+    }
+
+    #[test]
+    fn mounted_services_narrowed_by_advertise_services() {
+        // Reflection itself is not advertised unless it was named too.
+        let state = built_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(two_files()))
+                .advertise_services(["api.Hidden", "api.Api"])
+                .mounted_on_router(["api.Api", "other.Other"]),
+        );
+        assert_eq!(listed(&state), ["api.Api"]);
+    }
+
+    #[test]
+    fn mounted_with_nothing_registered_lists_only_reflection() {
+        let state = built_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(two_files()))
+                .mounted_on_router([]),
+        );
+        assert_eq!(listed(&state), Reflection::SERVICE_NAMES);
+    }
+
+    #[test]
+    fn mounted_services_without_descriptors_are_not_listed() {
+        // `internal.Admin` has no registered descriptor, and `Api` is how
+        // `api.Api` is named when generated with `disable_package_emission`:
+        // neither could be described, so neither is listed.
+        let state = built_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(two_files()))
+                .mounted_on_router(["api.Api", "internal.Admin", "Api"]),
+        );
+        let mut expected = vec!["api.Api"];
+        expected.extend(Reflection::SERVICE_NAMES);
+        assert_eq!(listed(&state), expected);
+    }
+
+    type ReflectionCodec =
+        crate::codec::ProstCodec<v1::ServerReflectionRequest, v1::ServerReflectionResponse>;
+
+    async fn ask_route(
+        route: crate::RouteGrpc,
+        request: MessageRequest,
+    ) -> Result<MessageResponse, Status> {
+        let cli = crate::client::GrpcClient::from_endpoint(route);
+        let req = v1::ServerReflectionRequest {
+            host: String::new(),
+            message_request: Some(request),
+        };
+        let stream = Streaming::new(futures_util::stream::iter([Ok(req)]));
+        let resp = cli
+            .bidirectional_streaming(
+                "/grpc.reflection.v1.ServerReflection/ServerReflectionInfo",
+                ReflectionCodec::default(),
+                Request::new(stream),
+            )
+            .await?;
+        let msg = resp.into_inner().next().await.unwrap()?;
+        Ok(msg.message_response.unwrap())
+    }
+
+    async fn list_via_route_in_order(route: crate::RouteGrpc) -> Vec<String> {
+        let resp = ask_route(route, MessageRequest::ListServices(String::new()))
+            .await
+            .unwrap();
+        let MessageResponse::ListServicesResponse(list) = resp else {
+            panic!("expected list services response");
+        };
+        list.service.into_iter().map(|svc| svc.name).collect()
+    }
+
+    async fn list_via_route(route: crate::RouteGrpc) -> Vec<String> {
+        let mut names = list_via_route_in_order(route).await;
+        names.sort();
+        names
+    }
+
+    /// A mounted service named `NAME` that no registered descriptor defines.
+    struct Undescribed<const V1: bool>;
+
+    impl Service for Undescribed<false> {
+        const NAME: &'static str = "internal.Admin";
+    }
+
+    impl Service for Undescribed<true> {
+        const NAME: &'static str = "grpc.reflection.v1.ServerReflection";
+    }
+
+    impl<const V1: bool> IntoEndpoint for Undescribed<V1> {
+        type Endpoint = BoxEndpoint<'static, poem::Response>;
+
+        fn into_endpoint(self) -> Self::Endpoint {
+            use poem::EndpointExt;
+            poem::endpoint::make_sync(|_| poem::Response::default()).boxed()
+        }
+    }
+
+    fn plus_reflection_names(mut names: Vec<&str>) -> Vec<String> {
+        names.extend(Reflection::SERVICE_NAMES);
+        let mut names: Vec<_> = names.into_iter().map(str::to_string).collect();
+        names.sort();
+        names
+    }
+
+    const HEALTH: &str = "grpc.health.v1.Health";
+
+    #[tokio::test]
+    async fn route_reflection_lists_only_registered_services() {
+        // `grpc.health.v1.Health` is in the built-in descriptors either way;
+        // it is only listed once it is actually mounted.
+        let route = crate::RouteGrpc::new().with_reflection(Reflection::new());
+        assert_eq!(list_via_route(route).await, plus_reflection_names(vec![]));
+
+        let route = crate::RouteGrpc::new()
+            .add_service(crate::health_service().0)
+            .with_reflection(Reflection::new());
+        assert_eq!(
+            list_via_route(route).await,
+            plus_reflection_names(vec![HEALTH])
+        );
+    }
+
+    #[tokio::test]
+    async fn route_reflection_skips_mounted_services_without_descriptors() {
+        let route = crate::RouteGrpc::new()
+            .add_service(Undescribed::<false>)
+            .add_service(crate::health_service().0)
+            .with_reflection(Reflection::new());
+        assert_eq!(
+            list_via_route(route).await,
+            plus_reflection_names(vec![HEALTH])
+        );
+    }
+
+    #[tokio::test]
+    async fn route_reflection_follows_advertise_services_order() {
+        let &[v1, v1alpha] = Reflection::SERVICE_NAMES else {
+            unreachable!()
+        };
+        let route = crate::RouteGrpc::new()
+            .add_service(crate::health_service().0)
+            .with_reflection(Reflection::new().advertise_services([v1alpha, HEALTH, v1]));
+        assert_eq!(list_via_route_in_order(route).await, [v1alpha, HEALTH, v1]);
+    }
+
+    #[tokio::test]
+    async fn route_reflection_still_resolves_unlisted_symbols() {
+        let route = crate::RouteGrpc::new().with_reflection(Reflection::new());
+        let resp = ask_route(route, MessageRequest::FileContainingSymbol(HEALTH.into())).await;
+        assert!(matches!(
+            resp,
+            Ok(MessageResponse::FileDescriptorResponse(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn route_reflection_is_order_independent() {
+        let route = crate::RouteGrpc::new()
+            .with_reflection(Reflection::new())
+            .add_service(crate::health_service().0);
+        assert_eq!(
+            list_via_route(route).await,
+            plus_reflection_names(vec![HEALTH])
+        );
+    }
+
+    #[tokio::test]
+    async fn add_service_reflection_keeps_listing_everything() {
+        // Existing usage is unchanged without `with_reflection`.
+        let route = crate::RouteGrpc::new().add_service(Reflection::new().build());
+        assert_eq!(
+            list_via_route(route).await,
+            plus_reflection_names(vec![HEALTH])
+        );
+    }
+
+    #[tokio::test]
+    async fn route_reflection_lists_itself_only_if_named() {
+        // With `advertise_services`, only named services that are mounted are
+        // advertised, reflection included.
+        let route = crate::RouteGrpc::new()
+            .add_service(crate::health_service().0)
+            .with_reflection(Reflection::new().advertise_services([HEALTH]));
+        assert_eq!(list_via_route(route).await, [HEALTH]);
+
+        let reflection = Reflection::new().advertise_services(
+            [HEALTH]
+                .into_iter()
+                .chain(Reflection::SERVICE_NAMES.iter().copied()),
+        );
+        let route = crate::RouteGrpc::new()
+            .add_service(crate::health_service().0)
+            .with_reflection(reflection);
+        assert_eq!(
+            list_via_route(route).await,
+            plus_reflection_names(vec![HEALTH])
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "a service with an empty `Service::NAME`")]
+    fn reflection_added_both_ways_panics() {
+        let route = crate::RouteGrpc::new()
+            .add_service(Reflection::new().build())
+            .with_reflection(Reflection::new());
+        let _ = route.into_endpoint();
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "`grpc.reflection.v1.ServerReflection` is also added via `add_service`"
+    )]
+    fn service_named_like_reflection_panics() {
+        let route = crate::RouteGrpc::new()
+            .add_service(Undescribed::<true>)
+            .with_reflection(Reflection::new());
+        let _ = route.into_endpoint();
     }
 }

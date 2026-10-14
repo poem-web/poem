@@ -29,12 +29,10 @@ async fn main() -> Result<(), std::io::Error> {
     Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(
             RouteGrpc::new()
-                .add_service(
-                    Reflection::new()
-                        .add_file_descriptor_set(FILE_DESCRIPTOR_SET)
-                        .build(),
-                )
                 .add_service(GreeterServer::new(GreeterService))
+                // `ListServices` advertises the services added to this router, plus
+                // reflection itself.
+                .with_reflection(Reflection::new().add_file_descriptor_set(FILE_DESCRIPTOR_SET))
                 .with(Tracing),
         )
         .await
