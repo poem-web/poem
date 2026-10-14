@@ -335,7 +335,6 @@ impl Status {
         headers
     }
 
-    #[allow(clippy::result_large_err)]
     pub(crate) fn from_headers(headers: &HeaderMap) -> Result<Option<Status>, Status> {
         if let Some(value) = headers.get(GRPC_STATUS_HEADER_CODE) {
             let code: Code = value

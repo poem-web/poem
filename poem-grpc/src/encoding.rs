@@ -55,7 +55,6 @@ impl DataFrameDecoder {
     }
 
     #[inline]
-    #[allow(clippy::result_large_err)]
     fn check_incomplete(&self) -> Result<(), Status> {
         if !self.buf.is_empty() {
             return Err(Status::new(Code::Internal).with_message("incomplete request"));
@@ -174,7 +173,6 @@ pub(crate) fn create_encode_request_body<T: Encoder>(
     BodyExt::boxed(StreamBody::new(SyncStream::new(stream))).into()
 }
 
-#[allow(clippy::result_large_err)]
 pub(crate) fn create_decode_response_body<T: Decoder>(
     mut decoder: T,
     headers: &HeaderMap,
