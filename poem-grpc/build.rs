@@ -7,9 +7,11 @@ fn main() -> Result<()> {
         .file_descriptor_set_path("grpc-reflection.bin")
         .compile(
             &[
-                "proto/reflection.proto",
-                "proto/reflection_v1.proto",
-                "proto/health.proto",
+                // Canonical upstream paths, so these files can't clash with a
+                // user's `health.proto` or `reflection.proto`.
+                "proto/grpc/reflection/v1alpha/reflection.proto",
+                "proto/grpc/reflection/v1/reflection.proto",
+                "proto/grpc/health/v1/health.proto",
             ],
             &["proto/"],
         )?;

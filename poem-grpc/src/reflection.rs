@@ -296,6 +296,7 @@ impl Reflection {
             .push(FileDescriptorSet::decode(data).expect("valid file descriptor sets"));
 
         // Keep the per-file original bytes so unknown fields survive serving.
+        // As in `build_state`, the first registration of a file name wins.
         for bytes in RawFileDescriptorSet::decode(data)
             .expect("valid file descriptor sets")
             .file
@@ -303,7 +304,7 @@ impl Reflection {
             if let Ok(proto) = FileDescriptorProto::decode(bytes.as_slice())
                 && let Some(name) = proto.name
             {
-                self.raw_files.insert(name, bytes);
+                self.raw_files.entry(name).or_insert(bytes);
             }
         }
 
@@ -347,6 +348,12 @@ fn build_state(mut this: Reflection) -> State {
             .name
             .clone()
             .unwrap_or_else(|| panic!("missing file name"));
+        // Sets often share files (e.g. each one built with its imports), and a
+        // name identifies one file: the first registration wins, and later
+        // copies are neither served nor indexed.
+        if files.contains_key(&filename) {
+            continue;
+        }
         let fd = Arc::new(fd);
         files.insert(filename.clone(), fd.clone());
 
@@ -362,7 +369,9 @@ fn build_state(mut this: Reflection) -> State {
 
         for service in &fd.service {
             let service_name = qualified_name(prefix, "service", service.name.as_deref());
-            service_names.push(service_name.clone());
+            if !service_names.contains(&service_name) {
+                service_names.push(service_name.clone());
+            }
             symbols.insert(service_name.clone(), filename.clone());
 
             for method in &service.method {
@@ -372,6 +381,8 @@ fn build_state(mut this: Reflection) -> State {
         }
 
         for ext in &fd.extension {
+            let ext_name = qualified_name(prefix, "extension", ext.name.as_deref());
+            symbols.insert(ext_name, filename.clone());
             index_extension(&filename, ext, &mut extensions);
         }
         for message in &fd.message_type {
@@ -409,13 +420,18 @@ fn process_message(
     }
 
     for field in &msg.field {
-        let field_name = qualified_name(prefix, "field", field.name.as_deref());
+        let field_name = qualified_name(&message_name, "field", field.name.as_deref());
         symbols.insert(field_name, filename.to_string());
     }
 
     for oneof in &msg.oneof_decl {
-        let oneof_name = qualified_name(prefix, "oneof", oneof.name.as_deref());
+        let oneof_name = qualified_name(&message_name, "oneof", oneof.name.as_deref());
         symbols.insert(oneof_name, filename.to_string());
+    }
+
+    for ext in &msg.extension {
+        let ext_name = qualified_name(&message_name, "extension", ext.name.as_deref());
+        symbols.insert(ext_name, filename.to_string());
     }
 }
 
@@ -428,8 +444,10 @@ fn process_enum(
     let enum_name = qualified_name(prefix, "enum", e.name.as_deref());
     symbols.insert(enum_name.clone(), filename.to_string());
 
+    // Enum values are siblings of their enum (C++ scoping): `pkg.VALUE`, not
+    // `pkg.Enum.VALUE`.
     for value in &e.value {
-        let value_name = qualified_name(&enum_name, "enum value", value.name.as_deref());
+        let value_name = qualified_name(prefix, "enum value", value.name.as_deref());
         symbols.insert(value_name, filename.to_string());
     }
 }
@@ -622,5 +640,180 @@ mod tests {
             panic!("expected extension number response");
         };
         assert_eq!(numbers.extension_number, vec![50001]);
+    }
+
+    /// The file `symbol_by_name` resolves `symbol` to, if any.
+    fn defining_file(state: &State, symbol: &str) -> Option<String> {
+        let MessageResponse::FileDescriptorResponse(resp) = state.symbol_by_name(symbol).ok()?
+        else {
+            panic!("expected file descriptor response");
+        };
+        let fd = FileDescriptorProto::decode(resp.file_descriptor_proto[0].as_slice()).unwrap();
+        Some(fd.name().to_string())
+    }
+
+    /// The built-in descriptors, as compiled by protoc.
+    fn built_in_state() -> State {
+        build_state(Reflection::new().add_file_descriptor_set(FILE_DESCRIPTOR_SET))
+    }
+
+    #[test]
+    fn indexes_symbols_with_protobuf_scoping() {
+        let state = built_in_state();
+        let health = Some("grpc/health/v1/health.proto".to_string());
+        // Field, and a value of the enum nested in the same message: values
+        // are siblings of their enum.
+        assert_eq!(
+            defining_file(&state, "grpc.health.v1.HealthCheckResponse.status"),
+            health
+        );
+        assert_eq!(
+            defining_file(&state, "grpc.health.v1.HealthCheckResponse.SERVING"),
+            health
+        );
+        // Oneof.
+        assert_eq!(
+            defining_file(
+                &state,
+                "grpc.reflection.v1.ServerReflectionRequest.message_request"
+            ),
+            Some("grpc/reflection/v1/reflection.proto".to_string())
+        );
+        // Names that don't exist under protobuf scoping.
+        for missing in [
+            "grpc.health.v1.status",
+            "grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING",
+            "grpc.reflection.v1.message_request",
+        ] {
+            assert_eq!(defining_file(&state, missing), None, "{missing}");
+        }
+    }
+
+    #[test]
+    fn indexes_top_level_enum_values_and_extensions() {
+        let mut api = file_proto();
+        api.name = Some("api.proto".into());
+        api.package = Some("api".into());
+        api.enum_type.push(EnumDescriptorProto {
+            name: Some("Color".into()),
+            value: vec![prost_types::EnumValueDescriptorProto {
+                name: Some("RED".into()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        });
+        let mut top_ext = field_proto();
+        top_ext.name = Some("top_opt".into());
+        top_ext.number = Some(50001);
+        top_ext.extendee = Some(".google.protobuf.FieldOptions".into());
+        api.extension.push(top_ext);
+        let mut holder = msg_proto();
+        holder.name = Some("Holder".into());
+        let mut nested_ext = field_proto();
+        nested_ext.name = Some("nested_opt".into());
+        nested_ext.number = Some(50002);
+        nested_ext.extendee = Some(".google.protobuf.FieldOptions".into());
+        holder.extension.push(nested_ext);
+        api.message_type.push(holder);
+
+        let state = reflection_state(vec![api]);
+        let api = Some("api.proto".to_string());
+        assert_eq!(defining_file(&state, "api.RED"), api);
+        assert_eq!(defining_file(&state, "api.top_opt"), api);
+        assert_eq!(defining_file(&state, "api.Holder.nested_opt"), api);
+        assert_eq!(defining_file(&state, "api.Color.RED"), None);
+    }
+
+    #[test]
+    fn field_named_like_a_message_does_not_shadow_it() {
+        let mut settings = file_proto();
+        settings.name = Some("settings.proto".into());
+        settings.package = Some("api".into());
+        let mut msg = msg_proto();
+        msg.name = Some("Settings".into());
+        settings.message_type.push(msg);
+
+        let mut config = file_proto();
+        config.name = Some("config.proto".into());
+        config.package = Some("api".into());
+        config.dependency = vec!["settings.proto".into()];
+        let mut msg = msg_proto();
+        msg.name = Some("Config".into());
+        let mut field = field_proto();
+        field.name = Some("Settings".into());
+        msg.field.push(field);
+        config.message_type.push(msg);
+
+        let state = reflection_state(vec![settings, config]);
+        assert_eq!(
+            defining_file(&state, "api.Settings"),
+            Some("settings.proto".into())
+        );
+        assert_eq!(
+            defining_file(&state, "api.Config.Settings"),
+            Some("config.proto".into())
+        );
+    }
+
+    #[test]
+    fn user_file_named_like_a_built_in_one_is_kept() {
+        // A user's own `health.proto`, registered before the built-in set (as
+        // `Reflection::build` does).
+        let mut health = file_proto();
+        health.name = Some("health.proto".into());
+        health.package = Some("myapp".into());
+        health.service.push(prost_types::ServiceDescriptorProto {
+            name: Some("Prober".into()),
+            ..Default::default()
+        });
+        let state = build_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(vec![health]))
+                .add_file_descriptor_set(FILE_DESCRIPTOR_SET),
+        );
+        assert_eq!(
+            defining_file(&state, "myapp.Prober"),
+            Some("health.proto".into())
+        );
+        assert_eq!(
+            defining_file(&state, "grpc.health.v1.Health"),
+            Some("grpc/health/v1/health.proto".into())
+        );
+    }
+
+    #[test]
+    fn files_shared_between_sets_are_registered_once() {
+        // Each set carries its imports, so the same file often appears in
+        // several; the first copy wins and its services are listed once.
+        let mut shared = file_proto();
+        shared.name = Some("shared.proto".into());
+        shared.package = Some("shared".into());
+        shared.service.push(prost_types::ServiceDescriptorProto {
+            name: Some("Users".into()),
+            ..Default::default()
+        });
+        let mut changed = shared.clone();
+        changed.service[0].name = Some("Renamed".into());
+
+        let state = build_state(
+            Reflection::new()
+                .add_file_descriptor_set(&set_bytes(vec![shared.clone()]))
+                .add_file_descriptor_set(&set_bytes(vec![shared]))
+                .add_file_descriptor_set(&set_bytes(vec![changed])),
+        );
+        let names: Vec<_> = state
+            .service_names
+            .iter()
+            .map(|svc| svc.name.as_str())
+            .collect();
+        assert_eq!(names, ["shared.Users"]);
+        assert_eq!(defining_file(&state, "shared.Renamed"), None);
+        let MessageResponse::FileDescriptorResponse(resp) =
+            state.file_by_filename("shared.proto").unwrap()
+        else {
+            panic!("expected file descriptor response");
+        };
+        let served = FileDescriptorProto::decode(resp.file_descriptor_proto[0].as_slice()).unwrap();
+        assert_eq!(served.service[0].name(), "Users");
     }
 }
