@@ -26,6 +26,9 @@ mod encoding;
 #[cfg(feature = "example_generated")]
 pub mod example_generated;
 mod health;
+mod method_type;
+#[cfg(test)]
+mod method_type_harness;
 mod reflection;
 mod request;
 mod response;
@@ -39,6 +42,7 @@ pub use client::{ClientBuilderError, ClientConfig, ClientConfigBuilder};
 pub use compression::CompressionEncoding;
 pub use health::{HealthReporter, ServingStatus, health_service};
 pub use metadata::Metadata;
+pub use method_type::MethodType;
 pub use reflection::Reflection;
 pub use request::Request;
 pub use response::Response;
