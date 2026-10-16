@@ -17,7 +17,7 @@ use poem::{
 use rustls::ClientConfig as TlsClientConfig;
 
 use crate::{
-    Code, CompressionEncoding, Metadata, Request, Response, Status, Streaming,
+    Code, CompressionEncoding, Metadata, MethodType, Request, Response, Status, Streaming,
     codec::Codec,
     compression::get_incoming_encodings,
     connector::HttpsConnector,
@@ -192,6 +192,13 @@ impl GrpcClient {
         T::Endpoint: 'static,
         <T::Endpoint as Endpoint>::Output: 'static,
     {
+        // Extensions do not cross a real network boundary, so do not leak the
+        // client's `MethodType` into an in-process server either. Client
+        // middlewares wrap this endpoint and still see it.
+        let ep = ep.into_endpoint().before(|mut req: HttpRequest| {
+            let _ = req.extensions_mut().remove::<MethodType>();
+            std::future::ready(Ok(req))
+        });
         Self {
             ep: Arc::new(ToDynEndpoint(ep.map_to_response())),
             send_compressed: None,
@@ -229,8 +236,13 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
+        let mut http_request = create_http_request::<T>(
+            path,
+            MethodType::Unary,
+            metadata,
+            extensions,
+            self.send_compressed,
+        );
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             Streaming::new(futures_util::stream::once(async move { Ok(message) })),
@@ -278,8 +290,13 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
+        let mut http_request = create_http_request::<T>(
+            path,
+            MethodType::ClientStreaming,
+            metadata,
+            extensions,
+            self.send_compressed,
+        );
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             message,
@@ -327,8 +344,13 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
+        let mut http_request = create_http_request::<T>(
+            path,
+            MethodType::ServerStreaming,
+            metadata,
+            extensions,
+            self.send_compressed,
+        );
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             Streaming::new(futures_util::stream::once(async move { Ok(message) })),
@@ -372,8 +394,13 @@ impl GrpcClient {
             message,
             extensions,
         } = request;
-        let mut http_request =
-            create_http_request::<T>(path, metadata, extensions, self.send_compressed);
+        let mut http_request = create_http_request::<T>(
+            path,
+            MethodType::BidirectionalStreaming,
+            metadata,
+            extensions,
+            self.send_compressed,
+        );
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             message,
@@ -409,6 +436,7 @@ impl GrpcClient {
 
 fn create_http_request<T: Codec>(
     path: &str,
+    method_type: MethodType,
     metadata: Metadata,
     extensions: Extensions,
     send_compressed: Option<CompressionEncoding>,
@@ -420,6 +448,7 @@ fn create_http_request<T: Codec>(
         .finish();
     *http_request.headers_mut() = metadata.headers;
     *http_request.extensions_mut() = extensions;
+    http_request.extensions_mut().insert(method_type);
     http_request
         .headers_mut()
         .insert("content-type", T::CONTENT_TYPES[0].parse().unwrap());

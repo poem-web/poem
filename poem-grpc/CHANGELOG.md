@@ -13,6 +13,11 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Upgrade to Poem 4 and require Rust 1.94. Update `poem-grpc` and `poem-grpc-build` together, then regenerate checked-in generated code. [Migration guide](../docs/migration-4.0.md)
 - Use the 0.6 runtime/build release line for generated APIs referring to Poem 4 types. Prost remains on 0.14; this release updates it to 0.14.4 and migrates the generator to Syn 3/prettyplease 0.3. [#1198](https://github.com/poem-web/poem/pull/1198)
 
+## Added
+
+- Add `MethodType` so middlewares can tell streaming calls from unary ones, e.g. to skip a request timeout on client streams. See its docs for which middlewares see it.
+- Add `RouteGrpc::middleware` to apply a middleware to all services, and `Service::METHODS`, the `MethodType` table of a service.
+
 ## Fixed
 
 - Prefer `application/grpc+json` over `application/json` in `JsonCodec::CONTENT_TYPES`, so clients send the gRPC JSON content type. Both content types remain accepted. [#1191](https://github.com/poem-web/poem/pull/1191)

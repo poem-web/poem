@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package method_type_harness;
+
+message Value { int32 value = 1; }
+
+service Echo {
+  rpc Unary(Value) returns (Value);
+
+  rpc ClientStreaming(stream Value) returns (Value);
+
+  rpc ServerStreaming(Value) returns (stream Value);
+
+  rpc BidirectionalStreaming(stream Value) returns (stream Value);
+}
+
+// A service without methods must still generate compilable code, with and
+// without server middlewares.
+service Empty {}
