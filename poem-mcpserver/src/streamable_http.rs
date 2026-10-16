@@ -21,7 +21,10 @@ use tokio::time::Instant;
 use crate::{
     McpServer,
     prompts::Prompts,
-    protocol::rpc::{BatchRequest as McpBatchRequest, Request as McpRequest, Requests},
+    protocol::rpc::{
+        BatchRequest as McpBatchRequest, BatchResponse as McpBatchResponse, Request as McpRequest,
+        Requests,
+    },
     resources::Resources,
     server::ServerMetadata,
     tool::Tools,
@@ -426,6 +429,7 @@ where
         )
     });
 
+    let is_single_request = matches!(&batch_request.0, McpBatchRequest::Single(_));
     let requests = batch_request.0.into_iter();
 
     let accept = accept
@@ -486,7 +490,12 @@ where
             if resps.is_empty() {
                 return Ok(StatusCode::ACCEPTED.into_response());
             }
-            Json(resps)
+            let response = if is_single_request {
+                McpBatchResponse::Single(resps.remove(0))
+            } else {
+                McpBatchResponse::Batch(resps)
+            };
+            Json(response)
                 .with_content_type("application/json")
                 .into_response()
         }

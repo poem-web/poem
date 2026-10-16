@@ -65,8 +65,132 @@ async fn streamable_http_get_does_not_reroute_post_response() {
         .await;
     response.assert_status_is_ok();
     response
-        .assert_json(json!([{"jsonrpc": "2.0", "id": 2, "result": {}}]))
+        .assert_json(json!({"jsonrpc": "2.0", "id": 2, "result": {}}))
         .await;
+}
+
+#[tokio::test]
+async fn single_json_responses_are_objects() {
+    let client = TestClient::new(endpoint_with_config(
+        |_| McpServer::new(),
+        Config {
+            session_timeout: None,
+        },
+    ));
+    let session_id = initialize(&client).await;
+
+    for (request, expected) in [
+        (
+            json!({"jsonrpc": "2.0", "id": 2, "method": "ping"}),
+            json!({"jsonrpc": "2.0", "id": 2, "result": {}}),
+        ),
+        (
+            json!({"jsonrpc": "2.0", "id": "list", "method": "tools/list"}),
+            json!({"jsonrpc": "2.0", "id": "list", "result": {"tools": []}}),
+        ),
+    ] {
+        let response = client
+            .post("/")
+            .header("Mcp-Session-Id", &session_id)
+            .header("Accept", "application/json, text/event-stream")
+            .body_json(&request)
+            .send()
+            .await;
+        response.assert_status_is_ok();
+        response.assert_content_type("application/json");
+        response.assert_json(expected).await;
+    }
+
+    let response = client
+        .post("/")
+        .header("Mcp-Session-Id", &session_id)
+        .header("Accept", "application/json, text/event-stream")
+        .body_json(&json!({
+            "jsonrpc": "2.0", "id": "missing", "method": "tools/call",
+            "params": {"name": "missing", "arguments": {}}
+        }))
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    let body: Value = response.0.into_body().into_json().await.unwrap();
+    assert!(body.is_object());
+    assert_eq!(body["id"], "missing");
+    assert_eq!(body["error"]["code"], -32601);
+    assert!(body.get("result").is_none());
+}
+
+#[tokio::test]
+async fn json_batch_responses_remain_arrays() {
+    let client = TestClient::new(endpoint_with_config(
+        |_| McpServer::new(),
+        Config {
+            session_timeout: None,
+        },
+    ));
+    let session_id = initialize(&client).await;
+
+    for (request, expected) in [
+        (
+            json!([{"jsonrpc": "2.0", "id": 2, "method": "ping"}]),
+            json!([{"jsonrpc": "2.0", "id": 2, "result": {}}]),
+        ),
+        (
+            json!([
+                {"jsonrpc": "2.0", "method": "notifications/initialized"},
+                {"jsonrpc": "2.0", "id": 3, "method": "ping"}
+            ]),
+            json!([{"jsonrpc": "2.0", "id": 3, "result": {}}]),
+        ),
+        (
+            json!([
+                {"jsonrpc": "2.0", "id": 4, "method": "ping"},
+                {"jsonrpc": "2.0", "id": 5, "method": "ping"}
+            ]),
+            json!([
+                {"jsonrpc": "2.0", "id": 4, "result": {}},
+                {"jsonrpc": "2.0", "id": 5, "result": {}}
+            ]),
+        ),
+    ] {
+        let response = client
+            .post("/")
+            .header("Mcp-Session-Id", &session_id)
+            .header("Accept", "application/json, text/event-stream")
+            .body_json(&request)
+            .send()
+            .await;
+        response.assert_status_is_ok();
+        response.assert_json(expected).await;
+    }
+}
+
+#[tokio::test]
+async fn notifications_return_accepted_without_a_body() {
+    let client = TestClient::new(endpoint_with_config(
+        |_| McpServer::new(),
+        Config {
+            session_timeout: None,
+        },
+    ));
+    let session_id = initialize(&client).await;
+    let notification = json!({"jsonrpc": "2.0", "method": "notifications/initialized"});
+
+    for accept in [
+        "application/json, text/event-stream",
+        "text/event-stream, application/json",
+    ] {
+        for request in [notification.clone(), json!([notification])] {
+            let response = client
+                .post("/")
+                .header("Mcp-Session-Id", &session_id)
+                .header("Accept", accept)
+                .body_json(&request)
+                .send()
+                .await;
+            response.assert_status(poem::http::StatusCode::ACCEPTED);
+            response.assert_bytes(&b""[..]).await;
+        }
+    }
 }
 
 #[tokio::test]
@@ -181,10 +305,10 @@ async fn dropping_get_during_tool_call_keeps_post_response() {
     assert_eq!(tools.completed.load(Ordering::SeqCst), 1);
     response.assert_status_is_ok();
     response
-        .assert_json(json!([{
+        .assert_json(json!({
             "jsonrpc": "2.0", "id": 2,
             "result": { "content": [], "isError": false }
-        }]))
+        }))
         .await;
 }
 
