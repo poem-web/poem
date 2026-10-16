@@ -52,7 +52,7 @@ async fn request_scoped_resources_remain_isolated_between_sessions() {
         response.assert_status_is_ok();
         let body: Value = response.0.into_body().into_json().await.unwrap();
         assert_eq!(
-            body[0]["result"]["contents"][0]["text"],
+            body["result"]["contents"][0]["text"],
             format!("private account information for {tenant}")
         );
     }

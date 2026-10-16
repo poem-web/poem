@@ -202,7 +202,7 @@ async fn failed_initialization_can_retry_and_existing_sessions_do_not_rerun_fact
         .body_json(&json!({"jsonrpc": "2.0", "id": 2, "method": "ping"}))
         .send()
         .await
-        .assert_json(json!([{"jsonrpc": "2.0", "id": 2, "result": {}}]))
+        .assert_json(json!({"jsonrpc": "2.0", "id": 2, "result": {}}))
         .await;
     drop(notifications);
     client

@@ -25,6 +25,7 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 
 ## Fixed
 
+- Return a single JSON-RPC response object for a single Streamable HTTP request; retain array responses for batch requests and empty 202 responses for notifications.
 - Avoid request-time panics when listing tools that return `StructuredContent<Vec<T>>` or its `Result` form. Only advertise output schemas with an explicit object root; reject non-object results and serialization failures with `isError: true` and no `structuredContent`. Object results, including nested arrays, remain supported.
 
 - Preserve request-scoped server metadata and UI resource contents; share metadata across streamable-HTTP sessions only when all contents match.
