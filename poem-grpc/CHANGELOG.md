@@ -21,6 +21,8 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 ## Changed
 
 - Index reflection symbols with protobuf scoping: fields and oneofs under their message, enum values as siblings of their enum, and extensions under their scope, so `FileContainingSymbol` finds them and a field can no longer shadow a message with the same name. Register each descriptor file name once (first wins), so files shared between sets don't list their services twice, and serve the built-in reflection and health descriptors under their canonical paths (`grpc/health/v1/health.proto`, ...), so a user file named `health.proto` or `reflection.proto` is no longer replaced by them.
+- Skip transitive dependencies already sent earlier on the same reflection stream, as the reflection protocol allows. The requested file itself is always returned.
+- Report reflection lookups that find nothing (unknown file, symbol, extension or type) in-band as an `ErrorResponse` and keep the stream open; a request without a `message_request` still ends the stream with `InvalidArgument`. `AllExtensionNumbersOfType` returns an empty list for a known type without extensions, and extension queries now match extensions whose extendee protoc wrote with a leading dot.
 - Reduce the size of `Status` by boxing its private metadata; public accessors remain unchanged. [#1191](https://github.com/poem-web/poem/pull/1191)
 
 # [0.5.9] 2025-12-23
