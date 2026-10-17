@@ -548,6 +548,21 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn issue_1098() {
+        let app = Route::new()
+            .at("/", make_sync(|_| "root"))
+            .at("/*path", make_sync(|_| "catch-all"));
+        assert_eq!(get(&app, "/").await, "root");
+        assert_eq!(get(&app, "/a").await, "catch-all");
+
+        let app = Route::new()
+            .at("/*path", make_sync(|_| "catch-all"))
+            .at("/", make_sync(|_| "root"));
+        assert_eq!(get(&app, "/").await, "root");
+        assert_eq!(get(&app, "/a").await, "catch-all");
+    }
+
+    #[tokio::test]
     async fn path_pattern() {
         let app = Route::new()
             .at(
