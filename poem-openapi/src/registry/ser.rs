@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::BTreeMap};
 
+use indexmap::IndexMap;
 use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::registry::{
@@ -26,14 +27,23 @@ struct PathMap<'a>(&'a [MetaApi], Option<&'a str>);
 
 impl Serialize for PathMap<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut s = serializer.serialize_map(Some(self.0.len()))?;
+        // Combined APIs (e.g. `(QueryApi, CommandApi)`) can each have operations on the same
+        // path. They are routed together, so they are written as one path item instead of
+        // repeating the key
+        let mut paths: IndexMap<Cow<'_, str>, Vec<&MetaPath>> = IndexMap::new();
         for api in self.0 {
             for path in &api.paths {
-                match self.1 {
-                    Some(p) => s.serialize_entry(&format!("{}{}", p, path.path), path)?,
-                    None => s.serialize_entry(&path.path, path)?,
-                }
+                let key = match self.1 {
+                    Some(p) => Cow::Owned(format!("{}{}", p, path.path)),
+                    None => Cow::Borrowed(path.path.as_str()),
+                };
+                paths.entry(key).or_default().push(path);
             }
+        }
+
+        let mut s = serializer.serialize_map(Some(paths.len()))?;
+        for (key, paths) in &paths {
+            s.serialize_entry(key, &PathItem(paths))?;
         }
         s.end()
     }
@@ -41,10 +51,20 @@ impl Serialize for PathMap<'_> {
 
 impl Serialize for MetaPath {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        PathItem(&[self]).serialize(serializer)
+    }
+}
+
+struct PathItem<'a>(&'a [&'a MetaPath]);
+
+impl Serialize for PathItem<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut s = serializer.serialize_map(None)?;
 
-        for operation in &self.operations {
-            s.serialize_entry(&operation.method.to_string().to_lowercase(), operation)?;
+        for path in self.0 {
+            for operation in &path.operations {
+                s.serialize_entry(&operation.method.to_string().to_lowercase(), operation)?;
+            }
         }
 
         s.end()

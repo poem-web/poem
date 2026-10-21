@@ -41,6 +41,7 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 - Enable Time's `macros` feature for the optional Time integration. [#1082](https://github.com/poem-web/poem/pull/1082)
 - Use `minItems`/`maxItems` rather than `minLength`/`maxLength` for fixed-size array schemas (`[T; LEN]`). [#1120](https://github.com/poem-web/poem/pull/1120)
 - Adapt derive macros to Syn 3 and preserve rejection of mutable API receivers; add BSON, SQLx, ULID and GeoJSON migration regressions. [#1198](https://github.com/poem-web/poem/pull/1198)
+- Write a path once in the specification when combined APIs (e.g. `(QueryApi, CommandApi)`) each have operations on it, instead of repeating the path key. [#1032](https://github.com/poem-web/poem/issues/1032), [#923](https://github.com/poem-web/poem/issues/923), [#698](https://github.com/poem-web/poem/issues/698)
 
 ## Changed
 

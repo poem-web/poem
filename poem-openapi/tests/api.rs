@@ -1213,3 +1213,61 @@ async fn unit_payload_rejects_non_null_data() {
         .await
         .assert_status_is_ok();
 }
+
+#[tokio::test]
+async fn combined_apis_share_a_path() {
+    struct QueryApi;
+
+    #[OpenApi]
+    impl QueryApi {
+        #[oai(path = "/user", method = "get")]
+        async fn get_user(&self) -> PlainText<&'static str> {
+            PlainText("get")
+        }
+
+        #[oai(path = "/users", method = "get")]
+        async fn list_users(&self) {}
+    }
+
+    struct CommandApi;
+
+    #[OpenApi]
+    impl CommandApi {
+        #[oai(path = "/user", method = "post")]
+        async fn create_user(&self) -> PlainText<&'static str> {
+            PlainText("post")
+        }
+
+        #[oai(path = "/user", method = "patch")]
+        async fn edit_user(&self) {}
+    }
+
+    for url_prefix in [None, Some("/api")] {
+        let mut service = OpenApiService::new((QueryApi, CommandApi), "test", "1.0");
+        if let Some(url_prefix) = url_prefix {
+            service = service.url_prefix(url_prefix);
+        }
+        let prefix = url_prefix.unwrap_or_default();
+        let path = format!("{prefix}/user");
+
+        // The path is written once, with the operations of both APIs
+        let spec = service.spec();
+        assert_eq!(spec.matches(&format!("\"{path}\":")).count(), 1);
+        let spec: serde_json::Value = serde_json::from_str(&spec).unwrap();
+        let methods: Vec<&str> = spec["paths"][&path]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(methods, ["get", "patch", "post"]);
+        assert!(spec["paths"][format!("{prefix}/users")]["get"].is_object());
+
+        let spec_yaml = service.spec_yaml();
+        assert_eq!(spec_yaml.matches(&format!("\n  {path}:\n")).count(), 1);
+    }
+
+    let cli = TestClient::new(OpenApiService::new((QueryApi, CommandApi), "test", "1.0"));
+    cli.get("/user").send().await.assert_text("get").await;
+    cli.post("/user").send().await.assert_text("post").await;
+}
