@@ -376,7 +376,7 @@ where
     T: ApiResponse,
     E: ApiResponse + Into<Error> + Send + Sync + 'static,
 {
-    const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER;
+    const BAD_REQUEST_HANDLER: bool = T::BAD_REQUEST_HANDLER || E::BAD_REQUEST_HANDLER;
 
     fn meta() -> MetaResponses {
         let mut meta = T::meta();
@@ -390,7 +390,11 @@ where
     }
 
     fn from_parse_request_error(err: Error) -> Self {
-        Ok(T::from_parse_request_error(err))
+        if T::BAD_REQUEST_HANDLER {
+            Ok(T::from_parse_request_error(err))
+        } else {
+            Err(E::from_parse_request_error(err))
+        }
     }
 }
 
