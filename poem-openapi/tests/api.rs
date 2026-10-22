@@ -519,6 +519,90 @@ async fn bad_request_handler_for_validator() {
 }
 
 #[tokio::test]
+async fn bad_request_handler_on_result_error_type() {
+    #[derive(ApiResponse)]
+    #[oai(bad_request_handler = "ok_bad_request_handler")]
+    enum OkResponse {
+        /// Ok
+        #[oai(status = 200)]
+        Ok(PlainText<String>),
+        /// Bad request
+        #[oai(status = 400)]
+        BadRequest(PlainText<String>),
+    }
+
+    fn ok_bad_request_handler(err: Error) -> OkResponse {
+        OkResponse::BadRequest(PlainText(format!("ok: {err}")))
+    }
+
+    #[derive(ApiResponse)]
+    enum PlainResponse {
+        /// Ok
+        #[oai(status = 200)]
+        Ok(PlainText<String>),
+    }
+
+    #[derive(ApiResponse)]
+    #[oai(bad_request_handler = "err_bad_request_handler")]
+    enum ErrResponse {
+        /// Bad request
+        #[oai(status = 400)]
+        BadRequest(PlainText<String>),
+    }
+
+    fn err_bad_request_handler(err: Error) -> ErrResponse {
+        ErrResponse::BadRequest(PlainText(format!("err: {err}")))
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/err", method = "get")]
+        async fn err_handler(
+            &self,
+            #[oai(validator(maximum(value = "100")))] code: Query<u16>,
+        ) -> Result<PlainResponse, ErrResponse> {
+            Ok(PlainResponse::Ok(PlainText(format!("code: {}", code.0))))
+        }
+
+        #[oai(path = "/both", method = "get")]
+        async fn both_handlers(&self, code: Query<u16>) -> Result<OkResponse, ErrResponse> {
+            Ok(OkResponse::Ok(PlainText(format!("code: {}", code.0))))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    let resp = cli.get("/err").query("code", &50).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_text("code: 50").await;
+
+    // The handler on the error type is used when the success type has none.
+    let resp = cli.get("/err").send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_content_type("text/plain; charset=utf-8");
+    resp.assert_text(
+        r#"err: failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#,
+    )
+    .await;
+
+    let resp = cli.get("/err").query("code", &200).send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_content_type("text/plain; charset=utf-8");
+    resp.assert_text(r#"err: failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#).await;
+
+    // The success type's handler still takes precedence when both have one.
+    let resp = cli.get("/both").send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_text(
+        r#"ok: failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#,
+    )
+    .await;
+}
+
+#[tokio::test]
 async fn poem_extract() {
     struct Api;
 
