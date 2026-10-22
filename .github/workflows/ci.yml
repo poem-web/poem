@@ -83,7 +83,7 @@ jobs:
           key: ${{ matrix.package.name }}
       - name: Install Protoc
         if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -103,7 +103,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Protoc
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -147,7 +147,7 @@ jobs:
           build-warnings: ""
           toolchain: "1.94.0"
       - name: Install Protoc
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: Swatinem/rust-cache@v2
