@@ -381,7 +381,10 @@ impl<T> Node<T> {
         params: &mut SmallVec<[(&'b [u8], &'b [u8]); 8]>,
     ) -> Option<&'a NodeData<T>> {
         if path.is_empty() {
-            return if let Some(catch_all_child) = &self.catch_all_child {
+            // An exact match takes priority over a catch-all on an empty rest.
+            return if self.data.is_none()
+                && let Some(catch_all_child) = &self.catch_all_child
+            {
                 if !catch_all_child.name.is_empty() {
                     params.push((&catch_all_child.name, path));
                 }
@@ -395,10 +398,10 @@ impl<T> Node<T> {
 
         if let Some(pos) = self.find_static_child(path[0]) {
             let child = &self.children[pos];
-            if let Some(tail_path) = path.strip_prefix(child.name.as_slice()) {
-                if let Some(data) = child.matches(tail_path, params) {
-                    return Some(data);
-                }
+            if let Some(tail_path) = path.strip_prefix(child.name.as_slice())
+                && let Some(data) = child.matches(tail_path, params)
+            {
+                return Some(data);
             }
         }
 
@@ -1215,6 +1218,37 @@ mod tests {
         tree.add("/a/b/c/*path", 3).unwrap();
         let matches = tree.matches("/a/b/c/123");
         assert_eq!(matches.unwrap().data.data, 3);
+    }
+
+    #[test]
+    fn test_exact_match_priority_over_catch_all() {
+        let mut tree = RadixTree::default();
+        tree.add("/", 1).unwrap();
+        tree.add("/*path", 2).unwrap();
+        tree.add("/a/", 3).unwrap();
+        tree.add("/a/*path", 4).unwrap();
+        tree.add("/b/*path", 5).unwrap();
+
+        let matches = tree.matches("/").unwrap();
+        assert_eq!(matches.data.data, 1);
+        assert!(matches.params.is_empty());
+
+        let matches = tree.matches("/x").unwrap();
+        assert_eq!(matches.data.data, 2);
+        assert_eq!(matches.params, create_url_params(vec![("path", "x")]));
+
+        let matches = tree.matches("/a/").unwrap();
+        assert_eq!(matches.data.data, 3);
+        assert!(matches.params.is_empty());
+
+        let matches = tree.matches("/a/x").unwrap();
+        assert_eq!(matches.data.data, 4);
+        assert_eq!(matches.params, create_url_params(vec![("path", "x")]));
+
+        // Without an exact route, the catch-all still matches an empty rest.
+        let matches = tree.matches("/b/").unwrap();
+        assert_eq!(matches.data.data, 5);
+        assert_eq!(matches.params, create_url_params(vec![("path", "")]));
     }
 
     #[test]

@@ -1,4 +1,6 @@
-use poem::{Endpoint, endpoint::make_sync, web::Html};
+use poem::Endpoint;
+
+use super::create_html_endpoint;
 
 const SWAGGER_UI_JS: &str = include_str!("swagger-ui-bundle.js");
 const SWAGGER_UI_CSS: &str = include_str!("swagger-ui.css");
@@ -54,9 +56,9 @@ pub(crate) fn create_html(document: &str) -> String {
 pub(crate) fn create_endpoint(document: String) -> impl Endpoint {
     let ui_html = create_html(&document);
     poem::Route::new()
-        .at("/", make_sync(move |_| Html(ui_html.clone())))
+        .at("/", create_html_endpoint(ui_html))
         .at(
             "/oauth-receiver.html",
-            make_sync(move |_| Html(OAUTH_RECEIVER_HTML.to_string())),
+            create_html_endpoint(OAUTH_RECEIVER_HTML),
         )
 }

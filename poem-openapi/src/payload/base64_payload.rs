@@ -9,7 +9,7 @@ use crate::{
     ApiResponse,
     error::ParseRequestPayloadError,
     payload::{ParsePayload, Payload},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchema, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchema, MetaSchemaRef, Registry},
 };
 
 /// A binary payload encoded with `base64`.
@@ -145,18 +145,7 @@ impl<T: AsRef<[u8]> + Send> IntoResponse for Base64<T> {
 
 impl<T: AsRef<[u8]> + Send> ApiResponse for Base64<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(_registry: &mut Registry) {}

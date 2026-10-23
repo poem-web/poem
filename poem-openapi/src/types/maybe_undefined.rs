@@ -315,7 +315,7 @@ impl<T: Type> Type for MaybeUndefined<T> {
     }
 
     fn schema_ref() -> MetaSchemaRef {
-        T::schema_ref()
+        T::schema_ref().nullable()
     }
 
     fn register(registry: &mut Registry) {

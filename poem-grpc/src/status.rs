@@ -233,7 +233,7 @@ impl Code {
 pub struct Status {
     code: Code,
     message: Option<String>,
-    metadata: Metadata,
+    metadata: Box<Metadata>,
 }
 
 impl Display for Status {
@@ -300,7 +300,10 @@ impl Status {
     /// Attach a meta data to this status.
     #[inline]
     pub fn with_metadata(self, metadata: Metadata) -> Self {
-        Self { metadata, ..self }
+        Self {
+            metadata: Box::new(metadata),
+            ..self
+        }
     }
 
     /// Returns a reference to the metadata.
@@ -332,7 +335,6 @@ impl Status {
         headers
     }
 
-    #[allow(clippy::result_large_err)]
     pub(crate) fn from_headers(headers: &HeaderMap) -> Result<Option<Status>, Status> {
         if let Some(value) = headers.get(GRPC_STATUS_HEADER_CODE) {
             let code: Code = value

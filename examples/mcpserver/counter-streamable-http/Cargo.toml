@@ -1,12 +1,14 @@
 [package]
 name = "counter-streamable-http"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 
 [dependencies]
 poem-mcpserver = { workspace = true, features = ["streamable-http"] }
-serde = { version = "1.0.219", features = ["derive"] }
-schemars = "1.0"
+serde.workspace = true
+schemars.workspace = true
 poem = { workspace = true, features = ["sse"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true

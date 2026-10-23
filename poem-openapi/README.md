@@ -22,8 +22,8 @@
       alt="Unsafe Rust forbidden" />
   </a>
   <a>
-    <img src="https://img.shields.io/badge/rustc-1.85.0+-ab6000.svg"
-      alt="rustc 1.85.0+" />
+    <img src="https://img.shields.io/badge/rustc-1.94.0+-ab6000.svg"
+      alt="rustc 1.94.0+" />
   </a>
   <a href="https://discord.gg/qWWNxwasb7">
     <img src="https://img.shields.io/discord/932986985604333638.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" />
@@ -54,6 +54,7 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | camino             | Integrate with the [`camino` crate](https://crates.io/crates/camino).                                                                                              |
 | chrono             | Integrate with the [`chrono` crate](https://crates.io/crates/chrono).                                                                                              |
+| jiff               | Integrate with the [`jiff` crate](https://crates.io/crates/jiff).                                                                                                  |
 | time               | Integrate with the [`time` crate](https://crates.io/crates/time).                                                                                                  |
 | humantime          | Integrate with the [`humantime` crate](https://crates.io/crates/humantime)                                                                                         |
 | openapi-explorer   | Add OpenAPI Explorer support                                                                                                                                       |
@@ -74,6 +75,32 @@ To avoid compiling unused dependencies, Poem gates certain features, some of whi
 | static-files       | Support for static file response                                                                                                                                   |
 | websocket          | Support for websocket                                                                                                                                              |
 | sonic-rs           | Uses [`sonic-rs`](https://github.com/cloudwego/sonic-rs) instead of `serde_json`. Pls, checkout `sonic-rs` requirements to properly enable `sonic-rs` capabilities |
+
+### Jiff date and time types
+
+Enable the `jiff` feature to use `jiff::Timestamp`, `jiff::Zoned`, and
+`jiff::civil::{DateTime, Date, Time}` in JSON payloads, parameters, and multipart
+fields. Parsing and JSON output use Jiff's native string representations, including
+subsecond precision. Civil types use the existing `naive-date-time`, `naive-date`,
+and `naive-time` schema formats.
+
+`Zoned` uses the custom `zoned-date-time` format rather than RFC 3339 `date-time`:
+its string includes a time zone annotation, for example
+`2024-11-03T01:30:00-05:00[America/New_York]`. IANA time zone names and
+minute-precision fixed offsets are preserved, including the offset that
+disambiguates repeated local times. Jiff's native format replaces unnamed/POSIX
+time zones with fixed offsets and rounds offsets to minutes; such zones can lose
+their rules, and second-precision fixed offsets can change the instant when
+reparsed. Clients that only support standard OpenAPI formats can treat `Zoned`
+as a string.
+
+`Timestamp` uses `date-time`, like Poem's other instant types, and serializes in
+UTC. Jiff's native parser
+accepts a broader syntax than RFC 3339, and its range includes negative years;
+applications requiring strict RFC 3339 validation must validate the input syntax
+separately and restrict timestamp years to `0000..=9999`. See
+[Jiff's parsing and printing documentation](https://docs.rs/jiff/latest/jiff/fmt/temporal/index.html)
+for the supported syntax and time zone database requirements.
 
 ## Safety
 
@@ -114,8 +141,8 @@ async fn main() -> Result<(), std::io::Error> {
 This feature needs to be opted-in. It can be done by adding the feature in `Cargo.toml` file
 ```toml filename=Cargo.toml
 [dependencies]
-poem = "3"
-poem-openapi = { version = "5", features = ["swagger-ui"]}
+poem = "4"
+poem-openapi = { version = "6", features = ["swagger-ui"]}
 tokio = { version = "1", features = ["full"] }
 ```
 

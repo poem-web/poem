@@ -2,20 +2,21 @@
 name = "example-opentelemetry"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
 poem = { workspace = true, features = ["opentelemetry"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing-subscriber.workspace = true
-opentelemetry = { version = "0.31.0", features = ["metrics"] }
-opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
-opentelemetry-http = { version = "0.31.0" }
-opentelemetry-otlp = { version = "0.31.0", default-features = false, features = [
+opentelemetry = { version = "0.33.0", features = ["metrics"] }
+opentelemetry_sdk = { version = "0.33.0", features = ["rt-tokio"] }
+opentelemetry-http = { version = "0.33.0" }
+opentelemetry-otlp = { version = "0.33.0", default-features = false, features = [
     "trace",
     "grpc-tonic",
 ] }
-reqwest = "0.12"
+reqwest = "0.13.5"
 
 [[bin]]
 name = "example-opentelemetry-client"

@@ -1,6 +1,6 @@
-use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route, Server};
+use poem::{EndpointExt, Route, Server, listener::TcpListener, middleware::Cors};
 use poem_mcpserver::{
-    content::Text, prompts::PromptMessages, streamable_http, McpServer, Prompts, Tools,
+    McpServer, Prompts, Tools, content::Text, prompts::PromptMessages, streamable_http,
 };
 
 /// A collection of development assistant tools.
@@ -161,10 +161,11 @@ impl DevPrompts {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let filter = match std::env::var_os("RUST_LOG") {
+        Some(_) => tracing_subscriber::EnvFilter::from_default_env(),
+        None => tracing_subscriber::EnvFilter::new("poem=debug"),
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let listener = TcpListener::bind("127.0.0.1:8000");
     let app = Route::new()

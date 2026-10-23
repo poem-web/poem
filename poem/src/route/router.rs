@@ -350,8 +350,9 @@ impl Endpoint for Route {
 
                 let result = matches.data.data.call(req).await;
 
-                // Add PathPattern to the innermost response so that metrics instrumentation
-                // can report the innermost matched pattern.
+                // Add PathPattern to the innermost response so that metrics
+                // instrumentation can report the innermost
+                // matched pattern.
                 match result {
                     Ok(mut res) => {
                         if res.data::<PathPattern>().is_none() {
@@ -544,6 +545,21 @@ mod tests {
                 .status(),
             StatusCode::BAD_REQUEST
         );
+    }
+
+    #[tokio::test]
+    async fn issue_1098() {
+        let app = Route::new()
+            .at("/", make_sync(|_| "root"))
+            .at("/*path", make_sync(|_| "catch-all"));
+        assert_eq!(get(&app, "/").await, "root");
+        assert_eq!(get(&app, "/a").await, "catch-all");
+
+        let app = Route::new()
+            .at("/*path", make_sync(|_| "catch-all"))
+            .at("/", make_sync(|_| "root"));
+        assert_eq!(get(&app, "/").await, "root");
+        assert_eq!(get(&app, "/a").await, "catch-all");
     }
 
     #[tokio::test]

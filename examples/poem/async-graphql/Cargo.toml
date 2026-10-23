@@ -2,11 +2,12 @@
 name = "example-async-graphql"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
 poem.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-async-graphql = "7.0.7"
-slab = "0.4.4"
+async-graphql = "7.2.1"
+slab = "0.4.12"
 tracing-subscriber.workspace = true

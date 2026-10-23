@@ -24,8 +24,7 @@ impl<'a> FromRequest<'a> for RealIp {
             .get("forwarded")
             .and_then(|value| value.to_str().ok())
             .and_then(|value| rfc7239::parse(value).collect::<Result<Vec<_>, _>>().ok())
-        {
-            if let Some(real_ip) = forwarded
+            && let Some(real_ip) = forwarded
                 .into_iter()
                 .find_map(|item| match item.forwarded_for {
                     Some(NodeIdentifier {
@@ -34,9 +33,8 @@ impl<'a> FromRequest<'a> for RealIp {
                     }) => Some(ip_addr),
                     _ => None,
                 })
-            {
-                return Ok(RealIp(Some(real_ip)));
-            }
+        {
+            return Ok(RealIp(Some(real_ip)));
         }
 
         if let Some(real_ip) = req

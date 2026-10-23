@@ -3,6 +3,7 @@ use std::{
     marker::PhantomData,
 };
 
+use bytes::Bytes;
 use poem::{
     Endpoint, EndpointExt, IntoEndpoint, Request, Response, Result, Route, RouteMethod,
     endpoint::{BoxEndpoint, make_sync},
@@ -582,7 +583,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        let spec = self.spec();
+        let spec = Bytes::from(self.spec());
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/json")
@@ -596,7 +597,7 @@ impl<T, W> OpenApiService<T, W> {
         T: OpenApi,
         W: Webhook,
     {
-        let spec = self.spec_yaml();
+        let spec = Bytes::from(self.spec_yaml());
         make_sync(move |_| {
             Response::builder()
                 .content_type("application/x-yaml")
@@ -724,10 +725,10 @@ impl<T: OpenApi, W: Webhook> IntoEndpoint for OpenApiService<T, W> {
             .flat_map(|api| api.paths.into_iter())
             .flat_map(|path| path.operations.into_iter())
         {
-            if let Some(operation_id) = operation.operation_id {
-                if !operation_ids.insert(operation_id) {
-                    panic!("duplicate operation id: {operation_id}");
-                }
+            if let Some(operation_id) = operation.operation_id
+                && !operation_ids.insert(operation_id)
+            {
+                panic!("duplicate operation id: {operation_id}");
             }
         }
 

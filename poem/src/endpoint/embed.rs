@@ -35,7 +35,7 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFileEndpoint<E> {
 
         match E::get(&self.path) {
             Some(content) => {
-                let hash = hex::encode(content.metadata.sha256_hash());
+                let hash = encode_sha256_hex(content.metadata.sha256_hash());
                 if req
                     .headers()
                     .get(header::IF_NONE_MATCH)
@@ -108,4 +108,14 @@ impl<E: RustEmbed + Send + Sync> Endpoint for EmbeddedFilesEndpoint<E> {
             EmbeddedFileEndpoint::<E>::new(path).call(req).await
         }
     }
+}
+
+fn encode_sha256_hex(hash: [u8; 32]) -> String {
+    use std::fmt::Write;
+
+    let mut encoded = String::with_capacity(hash.len() * 2);
+    for byte in hash {
+        write!(encoded, "{byte:02x}").unwrap();
+    }
+    encoded
 }

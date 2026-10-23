@@ -16,20 +16,18 @@ pub(crate) fn get_crate_name() -> TokenStream {
 pub(crate) fn get_description(attrs: &[Attribute]) -> Option<String> {
     let mut full_docs = String::new();
     for attr in attrs {
-        if attr.path().is_ident("doc") {
-            if let Meta::NameValue(nv) = &attr.meta {
-                if let Expr::Lit(ExprLit {
-                    lit: Lit::Str(doc), ..
-                }) = &nv.value
-                {
-                    let doc = doc.value();
-                    let doc_str = doc.trim();
-                    if !full_docs.is_empty() {
-                        full_docs += "\n";
-                    }
-                    full_docs += doc_str;
-                }
+        if attr.path().is_ident("doc")
+            && let Meta::NameValue(nv) = &attr.meta
+            && let Expr::Lit(ExprLit {
+                lit: Lit::Str(doc), ..
+            }) = &nv.value
+        {
+            let doc = doc.value();
+            let doc_str = doc.trim();
+            if !full_docs.is_empty() {
+                full_docs += "\n";
             }
+            full_docs += doc_str;
         }
     }
     if full_docs.is_empty() {

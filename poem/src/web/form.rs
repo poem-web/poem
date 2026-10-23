@@ -104,7 +104,7 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Form<T> {
             }
 
             Ok(Self(
-                serde_urlencoded::from_bytes(&body.take()?.into_vec().await?)
+                serde_urlencoded::from_bytes(&body.take()?.into_bytes().await?)
                     .map_err(ParseFormError::UrlDecode)?,
             ))
         }
@@ -163,5 +163,67 @@ mod tests {
             .send()
             .await
             .assert_status(StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    #[tokio::test]
+    async fn form_preserves_fragments_and_errors() {
+        use bytes::Bytes;
+
+        use crate::{Body, error::ReadBodyError};
+
+        #[derive(Debug, Deserialize, PartialEq)]
+        struct Data {
+            text: String,
+            number: u32,
+        }
+
+        let req = Request::builder()
+            .method(Method::POST)
+            .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .finish();
+        let stream = futures_util::stream::iter([
+            Ok::<_, std::io::Error>(Bytes::from_static(b"text=%E4%")),
+            Ok(Bytes::from_static(b"BD%A0&number=42")),
+        ]);
+        let mut body = RequestBody::new(Body::from_bytes_stream(stream));
+        assert_eq!(
+            Form::<Data>::from_request(&req, &mut body).await.unwrap().0,
+            Data {
+                text: "你".into(),
+                number: 42
+            }
+        );
+        let err = Form::<Data>::from_request(&req, &mut body)
+            .await
+            .err()
+            .unwrap();
+        assert!(matches!(
+            err.downcast_ref::<ReadBodyError>(),
+            Some(ReadBodyError::BodyHasBeenTaken)
+        ));
+
+        let mut body = RequestBody::new("text=test&number=invalid".into());
+        let err = Form::<Data>::from_request(&req, &mut body)
+            .await
+            .err()
+            .unwrap();
+        assert!(matches!(
+            err.downcast_ref::<ParseFormError>(),
+            Some(ParseFormError::UrlDecode(_))
+        ));
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+
+        let stream = futures_util::stream::once(async {
+            Err::<Bytes, _>(std::io::Error::other("read failed"))
+        });
+        let mut body = RequestBody::new(Body::from_bytes_stream(stream));
+        let err = Form::<Data>::from_request(&req, &mut body)
+            .await
+            .err()
+            .unwrap();
+        assert!(matches!(
+            err.downcast_ref::<ReadBodyError>(),
+            Some(ReadBodyError::Io(_))
+        ));
     }
 }

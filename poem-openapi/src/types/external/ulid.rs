@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn parse_from_json_value_string() {
-        let ulid = Ulid::new();
+        let ulid = Ulid::generate();
 
         assert_eq!(
             Ulid::parse_from_json(Some(Value::String(ulid.to_string())))
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn parse_from_parameter() {
-        let ulid = Ulid::new();
+        let ulid = Ulid::generate();
 
         assert_eq!(
             Ulid::parse_from_parameter(ulid.to_string().as_str()).expect("failed to parse ulid"),
@@ -139,14 +139,14 @@ mod tests {
 
     #[test]
     fn to_json() {
-        let ulid = Ulid::new();
+        let ulid = Ulid::generate();
 
         assert_eq!(ulid.to_json(), Some(Value::String(ulid.to_string())));
     }
 
     #[test]
     fn to_header() {
-        let ulid = Ulid::new();
+        let ulid = Ulid::generate();
 
         assert_eq!(
             ulid.to_header(),

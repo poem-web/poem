@@ -1,4 +1,36 @@
 //! Commonly used data types.
+//!
+//! # Ranges
+//!
+//! [`std::ops::Range<T>`] implements [`Type`], [`ParseFromJSON`], and
+//! [`ToJSON`] when its endpoint type implements the corresponding trait. Its
+//! JSON object representation matches Serde: `{"start": 1, "end": 5}`
+//! represents `1..5`, with an inclusive start and exclusive end. Both keys are
+//! required, including for optional endpoints, where `None` is serialized as
+//! an explicit `null`. Unknown fields are rejected. Parsing accepts only
+//! objects, not Serde's alternative two-element sequence representation.
+//!
+//! Endpoint ordering is not validated; empty and reversed ranges are valid.
+//! This support does not define a query/path parameter encoding or support
+//! other range types such as [`std::ops::RangeInclusive`].
+//!
+//! ```
+//! use std::ops::Range;
+//!
+//! use poem_openapi::{Object, types::{ParseFromJSON, ToJSON}};
+//! use serde_json::json;
+//!
+//! #[derive(Debug, Object)]
+//! struct Window {
+//!     bounds: Range<i32>,
+//! }
+//!
+//! let window = Window::parse_from_json(Some(json!({
+//!     "bounds": {"start": 1, "end": 5}
+//! }))).unwrap();
+//! assert_eq!(window.bounds, 1..5);
+//! assert_eq!(window.bounds.to_json(), Some(json!({"start": 1, "end": 5})));
+//! ```
 
 mod any;
 mod base64_type;

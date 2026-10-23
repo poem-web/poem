@@ -436,19 +436,33 @@ struct ArrayTools;
 #[Tools]
 impl ArrayTools {
     async fn array_ret(&self) -> StructuredContent<Vec<String>> {
-        StructuredContent(vec![])
+        StructuredContent(vec!["a".to_string()])
+    }
+
+    async fn array_result(&self) -> Result<StructuredContent<Vec<String>>, &'static str> {
+        Ok(StructuredContent(vec!["a".to_string()]))
+    }
+
+    async fn array_error(&self) -> Result<StructuredContent<Vec<String>>, &'static str> {
+        Err("tool failed")
+    }
+
+    async fn object_ret(&self) -> StructuredContent<StringList> {
+        StructuredContent(StringList {
+            items: vec!["a".to_string(), "b".to_string()],
+        })
+    }
+
+    async fn object_result(&self) -> Result<StructuredContent<StringList>, &'static str> {
+        Ok(self.object_ret().await)
     }
 }
 
 #[tokio::test]
-#[should_panic(
-    expected = "Tool return type must be an object, but found array. Please wrap the return value in a struct."
-)]
-async fn test_array_panic() {
-    let tools = ArrayTools;
-    let mut server = McpServer::new().tools(tools);
+async fn array_schemas_do_not_panic_or_prevent_listing_other_tools() {
+    let mut server = McpServer::new().tools(ArrayTools);
 
-    let _ = server
+    let resp = server
         .handle_request(Request {
             jsonrpc: JSON_RPC_VERSION.to_string(),
             id: Some(RequestId::Int(1)),
@@ -457,4 +471,81 @@ async fn test_array_panic() {
             },
         })
         .await;
+
+    let resp = serde_json::to_value(resp).unwrap();
+    assert!(resp.get("error").is_none());
+    let tools = resp["result"]["tools"].as_array().unwrap();
+    assert_eq!(tools.len(), 5);
+    for tool in &tools[..3] {
+        assert!(tool.get("outputSchema").is_none());
+    }
+    for tool in &tools[3..] {
+        assert_eq!(tool["outputSchema"]["type"], "object");
+        assert_eq!(tool["outputSchema"]["properties"]["items"]["type"], "array");
+    }
+}
+
+#[tokio::test]
+async fn array_calls_return_tool_errors_and_object_calls_still_succeed() {
+    let mut server = McpServer::new().tools(ArrayTools);
+
+    // Calling without first listing tools must enforce the same object
+    // requirement.
+    for name in ["array_ret", "array_result", "array_error"] {
+        let resp = server
+            .handle_request(Request {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id: Some(RequestId::Int(1)),
+                body: Requests::ToolsCall {
+                    params: ToolsCallRequest {
+                        name: name.to_string(),
+                        arguments: serde_json::json!({}),
+                    },
+                },
+            })
+            .await;
+        let text = if name == "array_error" {
+            "tool failed"
+        } else {
+            "Structured tool output must be a JSON object. Please wrap the return value in a struct."
+        };
+        assert_eq!(
+            serde_json::to_value(resp).unwrap(),
+            serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                    "content": [{"type": "text", "text": text}],
+                    "isError": true,
+                },
+            })
+        );
+    }
+
+    for name in ["object_ret", "object_result"] {
+        let resp = server
+            .handle_request(Request {
+                jsonrpc: JSON_RPC_VERSION.to_string(),
+                id: Some(RequestId::Int(2)),
+                body: Requests::ToolsCall {
+                    params: ToolsCallRequest {
+                        name: name.to_string(),
+                        arguments: serde_json::json!({}),
+                    },
+                },
+            })
+            .await;
+        assert_eq!(
+            serde_json::to_value(resp).unwrap(),
+            serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {
+                    "content": [{"type": "text", "text": r#"{"items":["a","b"]}"#}],
+                    "structuredContent": {"items": ["a", "b"]},
+                    "isError": false,
+                },
+            })
+        );
+    }
 }

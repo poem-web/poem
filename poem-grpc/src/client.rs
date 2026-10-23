@@ -492,10 +492,10 @@ fn create_client_endpoint(
             };
             *request.uri_mut() = make_uri(base_uri, request.uri());
 
-            if let Some(origin) = &config.origin {
-                if let Ok(value) = HeaderValue::from_maybe_shared(origin.to_string()) {
-                    request.headers_mut().insert(header::ORIGIN, value);
-                }
+            if let Some(origin) = &config.origin
+                && let Ok(value) = HeaderValue::from_maybe_shared(origin.to_string())
+            {
+                request.headers_mut().insert(header::ORIGIN, value);
             }
 
             if let Some(user_agent) = &config.user_agent {

@@ -5,7 +5,7 @@ use poem::{FromRequest, IntoResponse, Request, RequestBody, Response, Result};
 use crate::{
     ApiResponse,
     payload::{ParsePayload, Payload},
-    registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
+    registry::{MetaResponses, MetaSchemaRef, Registry},
     types::Type,
 };
 
@@ -59,18 +59,7 @@ impl<T: Into<String> + Send> IntoResponse for Html<T> {
 
 impl<T: Into<String> + Send> ApiResponse for Html<T> {
     fn meta() -> MetaResponses {
-        MetaResponses {
-            responses: vec![MetaResponse {
-                description: "",
-                status: Some(200),
-                status_range: None,
-                content: vec![MetaMediaType {
-                    content_type: Self::CONTENT_TYPE,
-                    schema: Self::schema_ref(),
-                }],
-                headers: vec![],
-            }],
-        }
+        super::response_meta::<Self>()
     }
 
     fn register(_registry: &mut Registry) {}

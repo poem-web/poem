@@ -9,6 +9,7 @@ mod camino;
 mod char;
 #[cfg(feature = "chrono")]
 mod chrono;
+mod collections;
 #[cfg(feature = "rust_decimal")]
 mod decimal;
 mod floats;
@@ -22,11 +23,14 @@ mod humantime;
 mod humantime_wrapper;
 mod integers;
 mod ip;
+#[cfg(feature = "jiff")]
+mod jiff;
 mod non_zero;
 mod optional;
 mod path_buf;
 #[cfg(feature = "prost-wkt-types")]
 mod prost_wkt_types;
+mod range;
 mod regex;
 mod slice;
 #[cfg(feature = "sqlx")]

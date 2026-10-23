@@ -2,16 +2,16 @@ use std::ops::{Deref, DerefMut};
 
 use bcs::{from_bytes, to_bytes};
 use poem::{
-    http::{header, StatusCode},
     FromRequest, IntoResponse, Request, RequestBody, Response, Result,
+    http::{StatusCode, header},
 };
 use poem_openapi::{
+    ApiResponse,
     error::ParseRequestPayloadError,
     impl_apirequest_for_payload,
     payload::{ParsePayload, Payload},
     registry::{MetaMediaType, MetaResponse, MetaResponses, MetaSchemaRef, Registry},
     types::Type,
-    ApiResponse,
 };
 use serde::{Deserialize, Serialize};
 
@@ -69,7 +69,7 @@ impl<T: Serialize + Send + Type> IntoResponse for Bcs<T> {
             Err(err) => {
                 return Response::builder()
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(err.to_string())
+                    .body(err.to_string());
             }
         };
         Response::builder()
@@ -100,3 +100,25 @@ impl<T: Serialize + Type> ApiResponse for Bcs<T> {
 }
 
 impl_apirequest_for_payload!(Bcs<T>, T: Type + for<'b> Deserialize<'b>);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn bcs_payload_preserves_wire_format_and_rejects_trailing_data() {
+        let mut response = Bcs(42_u64).into_response();
+        assert_eq!(response.headers()[header::CONTENT_TYPE], CONTENT_TYPE_STR);
+        let bytes = response.take_body().into_vec().await.unwrap();
+        assert_eq!(bytes, 42_u64.to_le_bytes());
+
+        let (request, mut body) = Request::builder().body(bytes.clone()).split();
+        let decoded = Bcs::<u64>::from_request(&request, &mut body).await.unwrap();
+        assert_eq!(decoded.0, 42);
+
+        let mut invalid = bytes;
+        invalid.push(0);
+        let (request, mut body) = Request::builder().body(invalid).split();
+        assert!(Bcs::<u64>::from_request(&request, &mut body).await.is_err());
+    }
+}

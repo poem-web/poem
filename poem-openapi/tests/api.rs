@@ -521,6 +521,90 @@ async fn bad_request_handler_for_validator() {
 }
 
 #[tokio::test]
+async fn bad_request_handler_on_result_error_type() {
+    #[derive(ApiResponse)]
+    #[oai(bad_request_handler = "ok_bad_request_handler")]
+    enum OkResponse {
+        /// Ok
+        #[oai(status = 200)]
+        Ok(PlainText<String>),
+        /// Bad request
+        #[oai(status = 400)]
+        BadRequest(PlainText<String>),
+    }
+
+    fn ok_bad_request_handler(err: Error) -> OkResponse {
+        OkResponse::BadRequest(PlainText(format!("ok: {err}")))
+    }
+
+    #[derive(ApiResponse)]
+    enum PlainResponse {
+        /// Ok
+        #[oai(status = 200)]
+        Ok(PlainText<String>),
+    }
+
+    #[derive(ApiResponse)]
+    #[oai(bad_request_handler = "err_bad_request_handler")]
+    enum ErrResponse {
+        /// Bad request
+        #[oai(status = 400)]
+        BadRequest(PlainText<String>),
+    }
+
+    fn err_bad_request_handler(err: Error) -> ErrResponse {
+        ErrResponse::BadRequest(PlainText(format!("err: {err}")))
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/err", method = "get")]
+        async fn err_handler(
+            &self,
+            #[oai(validator(maximum(value = "100")))] code: Query<u16>,
+        ) -> Result<PlainResponse, ErrResponse> {
+            Ok(PlainResponse::Ok(PlainText(format!("code: {}", code.0))))
+        }
+
+        #[oai(path = "/both", method = "get")]
+        async fn both_handlers(&self, code: Query<u16>) -> Result<OkResponse, ErrResponse> {
+            Ok(OkResponse::Ok(PlainText(format!("code: {}", code.0))))
+        }
+    }
+
+    let ep = OpenApiService::new(Api, "test", "1.0");
+    let cli = TestClient::new(ep);
+
+    let resp = cli.get("/err").query("code", &50).send().await;
+    resp.assert_status_is_ok();
+    resp.assert_text("code: 50").await;
+
+    // The handler on the error type is used when the success type has none.
+    let resp = cli.get("/err").send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_content_type("text/plain; charset=utf-8");
+    resp.assert_text(
+        r#"err: failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#,
+    )
+    .await;
+
+    let resp = cli.get("/err").query("code", &200).send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_content_type("text/plain; charset=utf-8");
+    resp.assert_text(r#"err: failed to parse parameter `code`: verification failed. maximum(100, exclusive: false)"#).await;
+
+    // The success type's handler still takes precedence when both have one.
+    let resp = cli.get("/both").send().await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    resp.assert_text(
+        r#"ok: failed to parse parameter `code`: Type "integer(uint16)" expects an input value."#,
+    )
+    .await;
+}
+
+#[tokio::test]
 async fn poem_extract() {
     struct Api;
 
@@ -1147,6 +1231,74 @@ fn parameter_explode_defaults_and_overrides() {
     assert!(explode("form_query"));
 }
 
+#[test]
+fn deep_object_parameter_explode_defaults_and_overrides() {
+    use poem_openapi::types::{ParseFromJSON, ParseFromParameter, ParseResult};
+
+    #[derive(Object)]
+    struct DeepObjectFilter {
+        name: String,
+    }
+
+    impl ParseFromParameter for DeepObjectFilter {
+        fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+            Self::parse_from_json(Some(serde_json::from_str(value)?))
+        }
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        #[allow(unused_variables)]
+        async fn get(
+            &self,
+            #[oai(style = "deep_object")] default_filter: Query<DeepObjectFilter>,
+            #[oai(style = "deep_object", explode = true)] expanded_filter: Query<DeepObjectFilter>,
+            #[oai(style = "deep_object", explode = false)] collapsed_filter: Query<
+                DeepObjectFilter,
+            >,
+        ) {
+        }
+    }
+
+    let meta = Api::meta();
+    let params = &meta[0].paths[0].operations[0].params;
+    for param in params {
+        assert_eq!(param.in_type, MetaParamIn::Query);
+        assert_eq!(param.style, Some(ParameterStyle::DeepObject));
+        assert_eq!(param.schema, DeepObjectFilter::schema_ref());
+    }
+    assert!(params[0].explode);
+    assert!(params[1].explode);
+    assert!(!params[2].explode);
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    assert_eq!(
+        spec["components"]["schemas"]["DeepObjectFilter"]["type"],
+        "object"
+    );
+    assert_eq!(
+        spec["components"]["schemas"]["DeepObjectFilter"]["properties"]["name"]["type"],
+        "string"
+    );
+    let params = spec["paths"]["/"]["get"]["parameters"].as_array().unwrap();
+    for (param, explode) in params.iter().zip([true, true, false]) {
+        assert_eq!(param["in"], "query");
+        assert_eq!(param["style"], "deepObject");
+        assert_eq!(
+            param["schema"]["$ref"],
+            "#/components/schemas/DeepObjectFilter"
+        );
+        assert_eq!(
+            param.get("explode").and_then(serde_json::Value::as_bool),
+            Some(explode)
+        );
+    }
+}
+
 #[tokio::test]
 async fn parameter_style_preserves_query_extraction_default() {
     struct Api;
@@ -1286,4 +1438,71 @@ async fn info_extensions() {
     } else {
         panic!("Spec root isn't a YAML mapping");
     }
+}
+
+#[test]
+fn unit_payload_uses_nullable_schema() {
+    #[derive(Object)]
+    struct UnitField {
+        value: (),
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/unit", method = "get")]
+        async fn unit(&self) -> Json<()> {
+            Json(())
+        }
+
+        #[oai(path = "/object", method = "get")]
+        async fn object(&self) -> Json<UnitField> {
+            Json(UnitField { value: () })
+        }
+    }
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    let expected = serde_json::json!({
+        "type": "object",
+        "nullable": true,
+        "enum": [null],
+    });
+    assert_eq!(
+        spec["paths"]["/unit"]["get"]["responses"]["200"]["content"]["application/json; charset=utf-8"]
+            ["schema"],
+        expected
+    );
+    assert_eq!(
+        spec["components"]["schemas"]["UnitField"]["properties"]["value"],
+        expected
+    );
+}
+
+#[tokio::test]
+async fn unit_payload_rejects_non_null_data() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "post")]
+        async fn unit(&self, _body: Json<()>) -> Json<()> {
+            Json(())
+        }
+    }
+
+    let client = TestClient::new(OpenApiService::new(Api, "test", "1.0"));
+    client
+        .post("/")
+        .body_json(&serde_json::json!({ "value": 42 }))
+        .send()
+        .await
+        .assert_status(StatusCode::BAD_REQUEST);
+    client
+        .post("/")
+        .body_json(&serde_json::json!(null))
+        .send()
+        .await
+        .assert_status_is_ok();
 }

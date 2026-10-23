@@ -46,3 +46,26 @@ impl<T: ToJSON> ToJSON for sqlx::types::Json<T> {
         self.0.to_json()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use sqlx::types::Json;
+
+    use super::*;
+
+    #[test]
+    fn json_wrapper_preserves_inner_type() {
+        let value = Json::<Vec<i32>>::parse_from_json(Some(json!([1, 2, 3]))).unwrap();
+        assert_eq!(value.0, vec![1, 2, 3]);
+        assert_eq!(value.to_json(), Some(json!([1, 2, 3])));
+        assert_eq!(value.as_raw_value(), Some(&value.0));
+        assert_eq!(Json::<Vec<i32>>::name(), Vec::<i32>::name());
+        assert_eq!(Json::<Vec<i32>>::schema_ref(), Vec::<i32>::schema_ref());
+    }
+
+    #[test]
+    fn json_wrapper_propagates_parse_errors() {
+        assert!(Json::<i32>::parse_from_json(Some(json!("invalid"))).is_err());
+    }
+}

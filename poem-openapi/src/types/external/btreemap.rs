@@ -78,13 +78,7 @@ where
     V: ToJSON,
 {
     fn to_json(&self) -> Option<Value> {
-        let mut map = serde_json::Map::new();
-        for (name, value) in self {
-            if let Some(value) = value.to_json() {
-                map.insert(name.to_string(), value);
-            }
-        }
-        Some(Value::Object(map))
+        super::collections::map_to_json!(self)
     }
 }
 

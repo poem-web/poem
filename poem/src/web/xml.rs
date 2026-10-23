@@ -124,8 +124,8 @@ impl<'a, T: DeserializeOwned> FromRequest<'a> for Xml<T> {
 }
 
 fn is_xml_content_type(content_type: &str) -> bool {
-    matches!(content_type.parse::<mime::Mime>(), 
-        Ok(content_type) if content_type.type_() == "application" 
+    matches!(content_type.parse::<mime::Mime>(),
+        Ok(content_type) if content_type.type_() == "application"
         && (content_type.subtype() == "xml"
         || content_type
             .suffix()
@@ -137,7 +137,7 @@ impl<T: Serialize + Send> IntoResponse for Xml<T> {
         let data = match quick_xml::se::to_string(&self.0) {
             Ok(data) => data,
             Err(err) => match err {
-                quick_xml::DeError::Unsupported(_) => {
+                quick_xml::SeError::Unsupported(_) => {
                     match quick_xml::se::to_string_with_root("root", &self.0) {
                         Ok(data) => data,
                         Err(err) => {

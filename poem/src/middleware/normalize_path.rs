@@ -87,6 +87,18 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
             .map(|x| x.path())
             .unwrap_or_default();
 
+        // Avoid constructing a new path or running the regex when the path
+        // already satisfies the selected trailing-slash policy.
+        if !original_path.contains("//")
+            && match self.style {
+                TrailingSlash::Trim => original_path == "/" || !original_path.ends_with('/'),
+                TrailingSlash::MergeOnly => true,
+                TrailingSlash::Always => original_path.ends_with('/'),
+            }
+        {
+            return self.inner.call(req).await;
+        }
+
         if !original_path.is_empty() {
             let path = match self.style {
                 TrailingSlash::Always => format!("{original_path}/"),
@@ -122,6 +134,101 @@ impl<E: Endpoint> Endpoint for NormalizePathEndpoint<E> {
 mod tests {
     use super::*;
     use crate::{EndpointExt, Route, endpoint::make_sync, http::StatusCode, test::TestClient};
+
+    #[tokio::test]
+    async fn normalization_preserves_request_parts() {
+        for (input, trim, merge, always) in [
+            ("/", "/", "/", "/"),
+            ("/?q=//%2F", "/?q=//%2F", "/?q=//%2F", "/?q=//%2F"),
+            ("/a", "/a", "/a", "/a/"),
+            ("/a/", "/a", "/a/", "/a/"),
+            ("///", "/", "/", "/"),
+            (
+                "//a///b//?q=//%2F",
+                "/a/b?q=//%2F",
+                "/a/b/?q=//%2F",
+                "/a/b/?q=//%2F",
+            ),
+            (
+                "/a%2Fb/%2f?q=//",
+                "/a%2Fb/%2f?q=//",
+                "/a%2Fb/%2f?q=//",
+                "/a%2Fb/%2f/?q=//",
+            ),
+            (
+                "/a%2Fb/%2f/?q=//",
+                "/a%2Fb/%2f?q=//",
+                "/a%2Fb/%2f/?q=//",
+                "/a%2Fb/%2f/?q=//",
+            ),
+            (
+                "https://example.com/a//b/?q=//",
+                "https://example.com/a/b?q=//",
+                "https://example.com/a/b/?q=//",
+                "https://example.com/a/b/?q=//",
+            ),
+            (
+                "https://example.com/a/b?q=//",
+                "https://example.com/a/b?q=//",
+                "https://example.com/a/b?q=//",
+                "https://example.com/a/b/?q=//",
+            ),
+            (
+                "example.com:443",
+                "example.com:443",
+                "example.com:443",
+                "example.com:443",
+            ),
+        ] {
+            for (style, expected) in [
+                (TrailingSlash::Trim, trim),
+                (TrailingSlash::MergeOnly, merge),
+                (TrailingSlash::Always, always),
+            ] {
+                let ep = crate::endpoint::make(move |mut req: Request| async move {
+                    assert_eq!(req.uri().to_string(), expected, "{input} {style:?}");
+                    assert_eq!(req.original_uri(), &input.parse::<Uri>().unwrap());
+                    assert_eq!(req.method(), crate::http::Method::POST);
+                    assert_eq!(req.version(), crate::http::Version::HTTP_2);
+                    assert_eq!(req.headers()["x-test"], "value");
+                    assert_eq!(req.extensions().get::<u32>(), Some(&42));
+                    assert_eq!(req.take_body().into_string().await.unwrap(), "body");
+                })
+                .with(NormalizePath::new(style));
+                let (parts, ()) = crate::http::Request::builder()
+                    .uri(input)
+                    .method(crate::http::Method::POST)
+                    .version(crate::http::Version::HTTP_2)
+                    .header("x-test", "value")
+                    .body(())
+                    .unwrap()
+                    .into_parts();
+                let mut req = Request::from_parts(
+                    (
+                        parts,
+                        Default::default(),
+                        Default::default(),
+                        crate::http::uri::Scheme::HTTP,
+                    )
+                        .into(),
+                    "body".into(),
+                );
+                req.extensions_mut().insert(42_u32);
+                ep.call(req).await.unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn keep_asterisk_path() {
+        for style in [TrailingSlash::Trim, TrailingSlash::MergeOnly] {
+            let ep =
+                make_sync(|req| assert_eq!(req.uri().path(), "*")).with(NormalizePath::new(style));
+            ep.call(Request::builder().uri_str("*").finish())
+                .await
+                .unwrap();
+        }
+    }
 
     #[tokio::test]
     async fn trim_trailing_slashes() {

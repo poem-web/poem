@@ -1,5 +1,5 @@
 name = "worker-hello-world"
-main = "build/worker/shim.mjs"
+main = "build/index.js"
 compatibility_date = "2025-07-20"
 
 [build]

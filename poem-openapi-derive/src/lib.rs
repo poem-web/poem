@@ -14,6 +14,7 @@ mod r#enum;
 mod error;
 mod multipart;
 mod newtype;
+mod numeric_bound;
 mod oauth_scopes;
 mod object;
 mod request;

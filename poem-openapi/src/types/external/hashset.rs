@@ -121,13 +121,7 @@ where
 
 impl<T: ToJSON, R: Send + Sync> ToJSON for HashSet<T, R> {
     fn to_json(&self) -> Option<Value> {
-        let mut values = Vec::with_capacity(self.len());
-        for item in self {
-            if let Some(value) = item.to_json() {
-                values.push(value);
-            }
-        }
-        Some(Value::Array(values))
+        super::collections::sequence_to_json!(self, self.len())
     }
 }
 

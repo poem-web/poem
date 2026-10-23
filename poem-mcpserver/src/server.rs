@@ -29,9 +29,9 @@ use crate::{
 ///
 /// These fields are configured once via the builder methods on [`McpServer`]
 /// and remain stable for the entire lifetime of the server, so they are kept
-/// behind an [`Arc`] and shared across all sessions to keep the per-session
-/// footprint small.
-#[derive(Clone)]
+/// behind an [`Arc`]. Transports may share identical metadata across sessions
+/// to keep the per-session footprint small.
+#[derive(Clone, PartialEq)]
 pub(crate) struct ServerMetadata {
     pub disabled_tools: HashSet<String>,
     pub server_info: ServerInfo,
@@ -251,13 +251,13 @@ where
                             normalize_schema_value(std::mem::take(&mut tool.input_schema));
                         tool.output_schema = tool.output_schema.take().map(normalize_schema_value);
 
-                        if let Some(object) = tool.input_schema.as_object_mut() {
-                            if !object.contains_key("properties") {
-                                object.insert(
-                                    "properties".to_string(),
-                                    Value::Object(Default::default()),
-                                );
-                            }
+                        if let Some(object) = tool.input_schema.as_object_mut()
+                            && !object.contains_key("properties")
+                        {
+                            object.insert(
+                                "properties".to_string(),
+                                Value::Object(Default::default()),
+                            );
                         }
                     }
                     tools

@@ -1,5 +1,5 @@
 use poem_mcpserver::{
-    content::Text, prompts::PromptMessages, stdio::stdio, McpServer, Prompts, Tools,
+    McpServer, Prompts, Tools, content::Text, prompts::PromptMessages, stdio::stdio,
 };
 
 /// A collection of development assistant tools.

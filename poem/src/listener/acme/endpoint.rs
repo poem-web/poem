@@ -46,10 +46,9 @@ impl Endpoint for Http01Endpoint {
             .uri()
             .path()
             .strip_prefix("/.well-known/acme-challenge/")
+            && let Some(value) = self.keys.get(token)
         {
-            if let Some(value) = self.keys.get(token) {
-                return Ok(value.into_response());
-            }
+            return Ok(value.into_response());
         }
 
         Err(NotFoundError.into())
