@@ -304,6 +304,10 @@ struct ReflectionServices(poem::Route);
 
 impl Service for ReflectionServices {
     const NAME: &'static str = "";
+    const METHODS: &'static [(&'static str, crate::MethodType)] = &[
+        <v1::ServerReflectionServer<V1ReflectionService> as Service>::METHODS[0],
+        <v1alpha::ServerReflectionServer<V1alphaReflectionService> as Service>::METHODS[0],
+    ];
 }
 
 impl IntoEndpoint for ReflectionServices {
@@ -442,13 +446,19 @@ impl Reflection {
 
         let route = poem::Route::new()
             .nest(
-                "/grpc.reflection.v1.ServerReflection",
+                format!(
+                    "/{}",
+                    <v1::ServerReflectionServer<V1ReflectionService> as Service>::NAME
+                ),
                 v1::ServerReflectionServer::new(V1ReflectionService {
                     state: state.clone(),
                 }),
             )
             .nest(
-                "/grpc.reflection.v1alpha.ServerReflection",
+                format!(
+                    "/{}",
+                    <v1alpha::ServerReflectionServer<V1alphaReflectionService> as Service>::NAME
+                ),
                 v1alpha::ServerReflectionServer::new(V1alphaReflectionService { state }),
             );
 
@@ -637,6 +647,16 @@ fn qualified_name(prefix: &str, ty: &str, name: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn method_table_matches_generated_services() {
+        let generated = [
+            <v1::ServerReflectionServer<V1ReflectionService> as Service>::METHODS,
+            <v1alpha::ServerReflectionServer<V1alphaReflectionService> as Service>::METHODS,
+        ]
+        .concat();
+        assert_eq!(ReflectionServices::METHODS, generated.as_slice());
+    }
 
     fn field_proto() -> FieldDescriptorProto {
         FieldDescriptorProto {

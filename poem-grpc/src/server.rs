@@ -3,8 +3,8 @@ use http::HeaderValue;
 use poem::{Body, Request, Response};
 
 use crate::{
-    Code, CompressionEncoding, Metadata, Request as GrpcRequest, Response as GrpcResponse, Status,
-    Streaming,
+    Code, CompressionEncoding, Metadata, MethodType, Request as GrpcRequest,
+    Response as GrpcResponse, Status, Streaming,
     codec::Codec,
     compression::get_incoming_encodings,
     encoding::{create_decode_request_body, create_encode_response_body},
@@ -12,6 +12,18 @@ use crate::{
         BidirectionalStreamingService, ClientStreamingService, ServerStreamingService, UnaryService,
     },
 };
+
+/// Tags the request with the [`MethodType`] of the method it is routed to.
+/// `methods` holds paths relative to the service, i.e. `/{method}`.
+#[doc(hidden)]
+pub fn tag_method_type(req: &mut Request, methods: &[(&str, MethodType)]) {
+    let path = req.uri().path();
+    let method_type = methods
+        .iter()
+        .find(|(method_path, _)| *method_path == path)
+        .map(|(_, method_type)| *method_type);
+    crate::method_type::set_method_type(req, method_type);
+}
 
 #[doc(hidden)]
 pub struct GrpcServer<'a, T> {

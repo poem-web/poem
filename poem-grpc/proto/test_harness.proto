@@ -23,3 +23,6 @@ service TestHarness {
 
   rpc UnaryMetadata(UnaryRequest) returns (ValueResponse);
 }
+
+// A service without methods must still generate compilable code.
+service Empty {}

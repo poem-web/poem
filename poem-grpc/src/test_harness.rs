@@ -69,6 +69,10 @@ impl TestHarness for TestHarnessService {
         if let Some(value) = req.metadata().get("mydata") {
             resp.metadata_mut().insert("mydata", value);
         }
+        if let Some(method_type) = req.extensions().get::<crate::MethodType>() {
+            resp.metadata_mut()
+                .insert("x-method-type", method_type.as_str());
+        }
         Ok(resp)
     }
 }
@@ -155,5 +159,26 @@ mod tests {
         let resp = cli.unary_metadata(req).await.unwrap();
         assert_eq!(resp.metadata().get("mydata"), Some("abc"));
         assert_eq!(resp.into_inner(), ValueResponse { value: 30 });
+    }
+
+    /// Handlers see the `MethodType` without any middleware configured,
+    /// whether the server is added to a `RouteGrpc` or mounted directly. The
+    /// in-process client does not pass its own one to the server.
+    #[tokio::test]
+    async fn method_type_in_handler() {
+        let clients = [
+            create_cli(),
+            TestHarnessClient::from_endpoint(poem::Route::new().nest(
+                "/test_harness.TestHarness",
+                TestHarnessServer::new(TestHarnessService),
+            )),
+        ];
+        for cli in clients {
+            let resp = cli
+                .unary_metadata(Request::new(UnaryRequest { a: 1, b: 2 }))
+                .await
+                .unwrap();
+            assert_eq!(resp.metadata().get("x-method-type"), Some("unary"));
+        }
     }
 }

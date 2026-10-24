@@ -20,6 +20,8 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
     let server_ident = format_ident!("{}Server", &service.name);
     let mut trait_methods = Vec::new();
     let mut endpoints = Vec::new();
+    let mut method_types = Vec::new();
+    let mut relative_method_types = Vec::new();
     let codec_list = config
         .codec_list
         .iter()
@@ -58,37 +60,61 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
             crate_name: &crate_name,
         };
 
-        match (method.client_streaming, method.server_streaming) {
+        let full_path = format!("/{service_name}/{}", method.proto_name);
+        let method_type = match (method.client_streaming, method.server_streaming) {
             (false, false) => {
                 trait_methods.push(quote! {
                     fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_unary(&codec_list, method_info));
+                quote!(Unary)
             }
             (true, false) => {
                 trait_methods.push(quote! {
                     fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#output_type>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_client_streaming(&codec_list, method_info));
+                quote!(ClientStreaming)
             }
             (false, true) => {
                 trait_methods.push(quote! {
                     fn #method_ident(&self, request: #crate_name::Request<#input_type>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_server_streaming(&codec_list, method_info));
+                quote!(ServerStreaming)
             }
             (true, true) => {
                 trait_methods.push(quote! {
                     fn #method_ident(&self, request: #crate_name::Request<#crate_name::Streaming<#input_type>>) -> impl ::std::future::Future<Output = ::std::result::Result<#crate_name::Response<#crate_name::Streaming<#output_type>>, #crate_name::Status>> + Send;
                 });
                 endpoints.push(generate_bidirectional_streaming(&codec_list, method_info));
+                quote!(BidirectionalStreaming)
             }
-        }
+        };
+        method_types.push(quote! {
+            (#full_path, #crate_name::MethodType::#method_type),
+        });
+        relative_method_types.push(quote! {
+            (#path, #crate_name::MethodType::#method_type),
+        });
     }
 
     let apply_middlewares = server_middlewares.iter().map(|expr| {
         quote! {
             let ep = ep.with(#expr);
+        }
+    });
+    // Tag the request before the server middlewares and the handlers see it,
+    // so they can tell streaming calls from unary ones.
+    let tag_method_type = (!relative_method_types.is_empty()).then(|| {
+        quote! {
+            let ep = ep.before(|mut req| {
+                const METHOD_TYPES: &[(&str, #crate_name::MethodType)] = &[
+                    #(#relative_method_types)*
+                ];
+                #crate_name::server::tag_method_type(&mut req, METHOD_TYPES);
+                ::std::future::ready(::std::result::Result::Ok(req))
+            });
         }
     });
 
@@ -118,6 +144,9 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
 
         impl<T: #service_ident> #crate_name::Service for #server_ident<T> {
             const NAME: &'static str = #service_name;
+            const METHODS: &'static [(&'static str, #crate_name::MethodType)] = &[
+                #(#method_types)*
+            ];
         }
 
 
@@ -157,7 +186,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
             fn into_endpoint(self) -> Self::Endpoint {
                 use ::poem::endpoint::EndpointExt;
 
-                let mut route = ::poem::Route::new();
+                let route = ::poem::Route::new();
 
                 #(#endpoints)*
                 let ep = route.before(|req| async move {
@@ -167,6 +196,7 @@ pub(crate) fn generate(config: &GrpcConfig, service: &Service, buf: &mut String)
                     Ok(req)
                 });
                 #(#apply_middlewares)*
+                #tag_method_type
                 ep.boxed()
             }
         }
@@ -245,7 +275,7 @@ fn generate_unary(codec_list: &[Path], method_info: MethodInfo) -> TokenStream {
             }
         }
 
-        route = route.at(#path, ::poem::endpoint::make({
+        let route = route.at(#path, ::poem::endpoint::make({
             let server = self.clone();
             move |req| {
                 let server = server.clone();
@@ -289,7 +319,7 @@ fn generate_client_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
             }
         }
 
-        route = route.at(#path, ::poem::endpoint::make({
+        let route = route.at(#path, ::poem::endpoint::make({
             let server = self.clone();
             move |req| {
                 let server = server.clone();
@@ -333,7 +363,7 @@ fn generate_server_streaming(codec_list: &[Path], method_info: MethodInfo) -> To
             }
         }
 
-        route = route.at(#path, ::poem::endpoint::make({
+        let route = route.at(#path, ::poem::endpoint::make({
             let server = self.clone();
             move |req| {
                 let server = server.clone();
@@ -377,7 +407,7 @@ fn generate_bidirectional_streaming(codec_list: &[Path], method_info: MethodInfo
             }
         }
 
-        route = route.at(#path, ::poem::endpoint::make({
+        let route = route.at(#path, ::poem::endpoint::make({
             let server = self.clone();
             move |req| {
                 let server = server.clone();
