@@ -17,12 +17,13 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 - Add `extensions` to `registry::MetaInfo`; update complete struct literals or use `..Default::default()`. [#1158](https://github.com/poem-web/poem/pull/1158)
 - Target BSON 3 `ObjectId`, SQLx 0.9 `Json<T>` and prost-wkt-types 0.7 `Duration`/`Timestamp`/`Struct`/`Value` in external type implementations. Older dependency generations are distinct Rust types. The new optional ULID integration targets ULID 3. [#1089](https://github.com/poem-web/poem/pull/1089), [#1099](https://github.com/poem-web/poem/pull/1099), [#1198](https://github.com/poem-web/poem/pull/1198)
 - Upgrade GeoJSON to 1.0. Empty polygons serialize as `[]` rather than `[[]]`; review serialized output and diagnostics. Public geo-types remain on 0.7. [#1198](https://github.com/poem-web/poem/pull/1198)
+- Align generated parameter `explode` metadata with OpenAPI defaults: omitted `explode` is `true` for `form`/`deepObject` (and for query/cookie when style is also omitted) and `false` for other styles, including path/header and extra request headers. Explicit `#[oai(explode = ...)]` is preserved. Runtime `Query` extraction defaults are unchanged. Spec consumers that assumed path/header explode=`true` (or deepObject explode=`false`) need to update. [#1189](https://github.com/poem-web/poem/pull/1189)
 
 ## Added
 
-- Add optional `jiff` support for `Timestamp`, `Zoned`, and civil date/time types in JSON, parameters, and multipart fields. Zoned values preserve time zone annotations using the custom `zoned-date-time` schema format. Based on [#1188](https://github.com/poem-web/poem/pull/1188).
+- Add optional `jiff` support for `Timestamp`, `Zoned`, and civil date/time types in JSON, parameters, and multipart fields. Zoned values preserve time zone annotations using the custom `zoned-date-time` schema format. Based on [#1188](https://github.com/poem-web/poem/pull/1188). [#1213](https://github.com/poem-web/poem/pull/1213)
 
-- Support `std::ops::Range<T>` in JSON payloads and OpenAPI schemas, using required `start` and `end` fields.
+- Support `std::ops::Range<T>` in JSON payloads and OpenAPI schemas, using required `start` and `end` fields. [#1206](https://github.com/poem-web/poem/pull/1206)
 
 - Support primitive payloads in externally tagged unions. [1c2474ec](https://github.com/poem-web/poem/commit/1c2474ec)
 - Support childless union variants, including discriminator schemas; externally tagged childless variants remain unsupported. [#1159](https://github.com/poem-web/poem/pull/1159)
@@ -41,12 +42,12 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 - Enable Time's `macros` feature for the optional Time integration. [#1082](https://github.com/poem-web/poem/pull/1082)
 - Use `minItems`/`maxItems` rather than `minLength`/`maxLength` for fixed-size array schemas (`[T; LEN]`). [#1120](https://github.com/poem-web/poem/pull/1120)
 - Adapt derive macros to Syn 3 and preserve rejection of mutable API receivers; add BSON, SQLx, ULID and GeoJSON migration regressions. [#1198](https://github.com/poem-web/poem/pull/1198)
-- Use the error type's `bad_request_handler` for operations returning `Result<T, E>` when `T` has no handler of its own. [#967](https://github.com/poem-web/poem/issues/967)
+- Use the error type's `bad_request_handler` for operations returning `Result<T, E>` when `T` has no handler of its own. [#967](https://github.com/poem-web/poem/issues/967), [#1230](https://github.com/poem-web/poem/pull/1230)
 
 ## Changed
 
 - Retain `serde_yaml` 0.9 for YAML payloads, conversion traits and specification output in OpenAPI 6. YAML backend replacement is deferred to OpenAPI 7 alongside Poem 5; this release does not migrate to `serde_yml`. See the [YAML compatibility guidance](../docs/migration-4.0.md#yaml-compatibility).
-- Avoid full-body copies when parsing JSON, XML, YAML and form payloads, and reuse the owned upload buffer when converting it to a string.
+- Avoid full-body copies when parsing JSON, XML, YAML and form payloads, and reuse the owned upload buffer when converting it to a string. [#1203](https://github.com/poem-web/poem/pull/1203)
 
 # [5.1.16] 2025-07-28
 

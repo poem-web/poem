@@ -16,7 +16,7 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 
 ## Added
 
-- Allow streamable-HTTP endpoint factories to return `Result<McpServer, E>` with `E: Into<poem::Error>`, propagating construction errors before creating a session. Existing infallible factories and four-parameter generic calls remain supported. [#1187](https://github.com/poem-web/poem/issues/1187)
+- Allow streamable-HTTP endpoint factories to return `Result<McpServer, E>` with `E: Into<poem::Error>`, propagating construction errors before creating a session. Existing infallible factories and four-parameter generic calls remain supported. [#1187](https://github.com/poem-web/poem/issues/1187), [#1205](https://github.com/poem-web/poem/pull/1205)
 - Add prompt handlers and the `#[Prompts]` macro, with stdio/streamable-HTTP examples and legacy SSE transport support. [#1155](https://github.com/poem-web/poem/pull/1155)
 - Add MCP Apps UI resources and tool UI metadata. [#1160](https://github.com/poem-web/poem/pull/1160)
 - Add resource listing, templates, reads and the `Resources` handler abstraction. [#1178](https://github.com/poem-web/poem/pull/1178)
@@ -25,8 +25,8 @@ This release also covers `poem-mcpserver-macros` 0.4.0. See the [major-release m
 
 ## Fixed
 
-- Return a single JSON-RPC response object for a single Streamable HTTP request; retain array responses for batch requests and empty 202 responses for notifications.
-- Avoid request-time panics when listing tools that return `StructuredContent<Vec<T>>` or its `Result` form. Only advertise output schemas with an explicit object root; reject non-object results and serialization failures with `isError: true` and no `structuredContent`. Object results, including nested arrays, remain supported.
+- Return a single JSON-RPC response object for a single Streamable HTTP request; retain array responses for batch requests and empty 202 responses for notifications. [#1225](https://github.com/poem-web/poem/pull/1225)
+- Avoid request-time panics when listing tools that return `StructuredContent<Vec<T>>` or its `Result` form. Only advertise output schemas with an explicit object root; reject non-object results and serialization failures with `isError: true` and no `structuredContent`. Object results, including nested arrays, remain supported. [#1211](https://github.com/poem-web/poem/pull/1211)
 
 - Preserve request-scoped server metadata and UI resource contents; share metadata across streamable-HTTP sessions only when all contents match.
 - Keep Streamable HTTP POST responses on the POST connection when a GET event stream is attached or disconnects; retain legacy SSE response routing.
