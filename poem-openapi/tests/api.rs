@@ -4,9 +4,11 @@ use poem::{
     test::TestClient,
     web::Data,
 };
+#[cfg(feature = "cookie")]
+use poem_openapi::param::Cookie;
 use poem_openapi::{
     ApiRequest, ApiResponse, Object, OpenApi, OpenApiService, ParameterStyle, Tags,
-    param::{Path, Query},
+    param::{Header, Path, Query},
     payload::{Binary, Json, Payload, PlainText},
     registry::{MetaApi, MetaExternalDocument, MetaOperation, MetaParamIn, MetaSchema, Registry},
     types::Type,
@@ -878,6 +880,7 @@ async fn extra_request_headers_on_operation() {
     assert_eq!(params.description.as_deref(), Some("abc"));
     assert!(params.required);
     assert!(!params.deprecated);
+    assert!(!params.explode);
 
     let params = &meta.paths[0].operations[0].params[1];
     assert_eq!(params.name, "A2");
@@ -886,6 +889,7 @@ async fn extra_request_headers_on_operation() {
     assert_eq!(params.description, None);
     assert!(params.required);
     assert!(params.deprecated);
+    assert!(!params.explode);
 }
 
 #[tokio::test]
@@ -910,6 +914,7 @@ async fn extra_request_headers_on_api() {
     assert_eq!(params.description.as_deref(), Some("abc"));
     assert!(params.required);
     assert!(!params.deprecated);
+    assert!(!params.explode);
 
     let params = &meta.paths[0].operations[0].params[1];
     assert_eq!(params.name, "A2");
@@ -918,6 +923,7 @@ async fn extra_request_headers_on_api() {
     assert_eq!(params.description, None);
     assert!(params.required);
     assert!(params.deprecated);
+    assert!(!params.explode);
 }
 
 #[tokio::test]
@@ -1167,6 +1173,209 @@ async fn parameter_style_none() {
 
     let spec = OpenApiService::new(Api {}, "test", "1.0").spec();
     assert!(!spec.contains("\"style\"") && !spec.contains("\"style\": null"));
+}
+
+#[test]
+fn parameter_explode_defaults_and_overrides() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/items/:id", method = "get")]
+        #[allow(clippy::too_many_arguments, unused_variables)]
+        async fn get_item(
+            &self,
+            id: Path<i32>,
+            default_header: Header<Vec<i32>>,
+            #[oai(style = "simple", explode = true)] exploded_header: Header<Vec<i32>>,
+            default_query: Query<Vec<i32>>,
+            #[oai(style = "form", explode = false)] collapsed_query: Query<Vec<i32>>,
+            #[oai(style = "form")] form_query: Query<Vec<i32>>,
+        ) {
+        }
+    }
+
+    let meta = Api::meta();
+    let params = &meta[0].paths[0].operations[0].params;
+    let explode = |name: &str| {
+        params
+            .iter()
+            .find(|param| param.name == name)
+            .unwrap()
+            .explode
+    };
+
+    assert!(!explode("id"));
+    assert!(!explode("default_header"));
+    assert!(explode("exploded_header"));
+    assert!(explode("default_query"));
+    assert!(!explode("collapsed_query"));
+    assert!(explode("form_query"));
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    let params = spec["paths"]["/items/{id}"]["get"]["parameters"]
+        .as_array()
+        .unwrap();
+    let explode = |name: &str| {
+        params.iter().find(|param| param["name"] == name).unwrap()["explode"]
+            .as_bool()
+            .unwrap()
+    };
+
+    assert!(!explode("id"));
+    assert!(!explode("default_header"));
+    assert!(explode("exploded_header"));
+    assert!(explode("default_query"));
+    assert!(!explode("collapsed_query"));
+    assert!(explode("form_query"));
+}
+
+#[test]
+fn deep_object_parameter_explode_defaults_and_overrides() {
+    use poem_openapi::types::{ParseFromJSON, ParseFromParameter, ParseResult};
+
+    #[derive(Object)]
+    struct DeepObjectFilter {
+        name: String,
+    }
+
+    impl ParseFromParameter for DeepObjectFilter {
+        fn parse_from_parameter(value: &str) -> ParseResult<Self> {
+            Self::parse_from_json(Some(serde_json::from_str(value)?))
+        }
+    }
+
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        #[allow(unused_variables)]
+        async fn get(
+            &self,
+            #[oai(style = "deep_object")] default_filter: Query<DeepObjectFilter>,
+            #[oai(style = "deep_object", explode = true)] expanded_filter: Query<DeepObjectFilter>,
+            #[oai(style = "deep_object", explode = false)] collapsed_filter: Query<
+                DeepObjectFilter,
+            >,
+        ) {
+        }
+    }
+
+    let meta = Api::meta();
+    let params = &meta[0].paths[0].operations[0].params;
+    for param in params {
+        assert_eq!(param.in_type, MetaParamIn::Query);
+        assert_eq!(param.style, Some(ParameterStyle::DeepObject));
+        assert_eq!(param.schema, DeepObjectFilter::schema_ref());
+    }
+    assert!(params[0].explode);
+    assert!(params[1].explode);
+    assert!(!params[2].explode);
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    assert_eq!(
+        spec["components"]["schemas"]["DeepObjectFilter"]["type"],
+        "object"
+    );
+    assert_eq!(
+        spec["components"]["schemas"]["DeepObjectFilter"]["properties"]["name"]["type"],
+        "string"
+    );
+    let params = spec["paths"]["/"]["get"]["parameters"].as_array().unwrap();
+    for (param, explode) in params.iter().zip([true, true, false]) {
+        assert_eq!(param["in"], "query");
+        assert_eq!(param["style"], "deepObject");
+        assert_eq!(
+            param["schema"]["$ref"],
+            "#/components/schemas/DeepObjectFilter"
+        );
+        assert_eq!(
+            param.get("explode").and_then(serde_json::Value::as_bool),
+            Some(explode)
+        );
+    }
+}
+
+#[tokio::test]
+async fn parameter_style_preserves_query_extraction_default() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        async fn get(
+            &self,
+            #[oai(style = "pipe_delimited")] values: Query<Vec<i32>>,
+        ) -> Json<Vec<i32>> {
+            Json(values.0)
+        }
+    }
+
+    let cli = TestClient::new(OpenApiService::new(Api, "test", "1.0"));
+
+    let response = cli.get("/").send().await;
+    response.assert_status_is_ok();
+    response.assert_json(Vec::<i32>::new()).await;
+
+    let response = cli
+        .get("/")
+        .query("values", &10)
+        .query("values", &20)
+        .send()
+        .await;
+    response.assert_status_is_ok();
+    response.assert_json(&[10, 20]).await;
+}
+
+#[test]
+fn parameter_explode_defaults_for_explicit_styles() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        #[allow(unused_variables)]
+        async fn get(
+            &self,
+            #[oai(style = "pipe_delimited")] pipe: Query<Vec<i32>>,
+            #[oai(style = "space_delimited")] space: Query<Vec<i32>>,
+        ) {
+        }
+    }
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    let params = spec["paths"]["/"]["get"]["parameters"].as_array().unwrap();
+    assert_eq!(params[0]["style"], "pipeDelimited");
+    assert_eq!(params[0]["explode"], false);
+    assert_eq!(params[1]["style"], "spaceDelimited");
+    assert_eq!(params[1]["explode"], false);
+}
+
+#[cfg(feature = "cookie")]
+#[test]
+fn cookie_parameter_explode_default() {
+    struct Api;
+
+    #[OpenApi]
+    impl Api {
+        #[oai(path = "/", method = "get")]
+        #[allow(unused_variables)]
+        async fn get(&self, session: Cookie<String>) {}
+    }
+
+    assert!(Api::meta()[0].paths[0].operations[0].params[0].explode);
+
+    let spec: serde_json::Value =
+        serde_json::from_str(&OpenApiService::new(Api, "test", "1.0").spec()).unwrap();
+    assert!(
+        spec["paths"]["/"]["get"]["parameters"][0]["explode"]
+            .as_bool()
+            .unwrap()
+    );
 }
 
 #[tokio::test]
