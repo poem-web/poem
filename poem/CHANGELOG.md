@@ -26,6 +26,7 @@ This release also covers `poem-derive` 4.0.0. See the [major-release migration g
 - Enable Tokio's `net` feature for native server listeners and Unix address APIs without forcing the unsupported Mio backend on Cloudflare Worker WASM builds. [#1081](https://github.com/poem-web/poem/pull/1081)
 - Preserve ACME native-only, Mozilla-only and combined root choices with Reqwest 0.13; adapt certificate generation to RCGen 0.14 and retain certificate/CSR regression coverage. [#1198](https://github.com/poem-web/poem/pull/1198)
 - Route a request for an exact path such as `/` or `/a/` to its own endpoint instead of a catch-all at the same level (`/*path`, `/a/*path`). [#1098](https://github.com/poem-web/poem/issues/1098), [#1226](https://github.com/poem-web/poem/pull/1226)
+- Answer `HEAD` requests in `StaticFilesEndpoint` with the headers of the `GET` response instead of `405 Method Not Allowed`. [#XXXX](https://github.com/poem-web/poem/pull/XXXX)
 
 ## Changed
 

@@ -176,10 +176,21 @@ impl Endpoint for StaticFilesEndpoint {
     type Output = Response;
 
     async fn call(&self, req: Request) -> Result<Self::Output> {
-        if req.method() != Method::GET {
-            return Err(StaticFileError::MethodNotAllowed(req.method().clone()).into());
+        if req.method() == Method::GET {
+            self.serve(req).await
+        } else if req.method() == Method::HEAD {
+            // HEAD gets the same response as GET, without the body.
+            let mut resp = self.serve(req).await?;
+            resp.set_body(());
+            Ok(resp)
+        } else {
+            Err(StaticFileError::MethodNotAllowed(req.method().clone()).into())
         }
+    }
+}
 
+impl StaticFilesEndpoint {
+    async fn serve(&self, req: Request) -> Result<Response> {
         let path = req
             .uri()
             .path()
@@ -347,5 +358,25 @@ impl Endpoint for StaticFileEndpoint {
             .await?
             .create_response(&self.path, self.prefer_utf8, self.no_cache)?
             .into_response())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test::TestClient;
+
+    #[tokio::test]
+    async fn head_method() {
+        let len = std::fs::metadata("Cargo.toml").unwrap().len();
+        let cli = TestClient::new(StaticFilesEndpoint::new("."));
+
+        let resp = cli.head("/Cargo.toml").send().await;
+        resp.assert_status_is_ok();
+        resp.assert_header(header::CONTENT_LENGTH, len.to_string());
+        resp.assert_text("").await;
+
+        let resp = cli.post("/Cargo.toml").send().await;
+        resp.assert_status(StatusCode::METHOD_NOT_ALLOWED);
     }
 }
