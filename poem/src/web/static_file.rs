@@ -139,12 +139,14 @@ impl StaticFileRequest {
                 Bound::Excluded(n) => n + 1,
                 Bound::Unbounded => 0,
             };
+            // A last position at or past the end of the data selects the rest of it.
             let end = match end {
-                Bound::Included(n) => n + 1,
+                Bound::Included(n) => n.saturating_add(1),
                 Bound::Excluded(n) => n,
                 Bound::Unbounded => content_length,
-            };
-            if end < start || end > content_length {
+            }
+            .min(content_length);
+            if start >= end {
                 return Err(StaticFileError::RangeNotSatisfiable {
                     size: content_length,
                 });
@@ -251,12 +253,14 @@ impl StaticFileRequest {
                 Bound::Excluded(n) => n + 1,
                 Bound::Unbounded => 0,
             };
+            // A last position at or past the end of the file selects the rest of it.
             let end = match end {
-                Bound::Included(n) => n + 1,
+                Bound::Included(n) => n.saturating_add(1),
                 Bound::Excluded(n) => n,
                 Bound::Unbounded => metadata.len(),
-            };
-            if end < start || end > metadata.len() {
+            }
+            .min(metadata.len());
+            if start >= end {
                 return Err(StaticFileError::RangeNotSatisfiable {
                     size: metadata.len(),
                 });
@@ -554,23 +558,50 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_range_413() {
+    async fn test_range_past_end() {
         let md = std::fs::metadata("Cargo.toml").unwrap();
 
         let static_file = StaticFileRequest::from_request_without_body(
             &Request::builder()
-                .typed_header(Range::bytes(0..md.len() + 1).unwrap())
+                .typed_header(Range::bytes(10..md.len() + 100).unwrap())
                 .finish(),
         )
         .await
         .unwrap();
-        let err = static_file
+        let resp = static_file
             .create_response(Path::new("Cargo.toml"), false, false)
-            .unwrap_err();
+            .unwrap();
+        match resp {
+            StaticFileResponse::Ok {
+                content_range,
+                content_length,
+                ..
+            } => {
+                assert_eq!(content_range.unwrap(), (10..md.len(), md.len()));
+                assert_eq!(content_length, md.len() - 10);
+            }
+            StaticFileResponse::NotModified => panic!(),
+        }
+    }
 
-        match err {
-            StaticFileError::RangeNotSatisfiable { size } => assert_eq!(size, md.len()),
-            _ => panic!(),
+    #[tokio::test]
+    async fn test_range_not_satisfiable() {
+        let md = std::fs::metadata("Cargo.toml").unwrap();
+
+        for range in [format!("bytes={}-", md.len()), "bytes=-0".to_string()] {
+            let static_file = StaticFileRequest::from_request_without_body(
+                &Request::builder().header("range", &range).finish(),
+            )
+            .await
+            .unwrap();
+            let err = static_file
+                .create_response(Path::new("Cargo.toml"), false, false)
+                .unwrap_err();
+
+            match err {
+                StaticFileError::RangeNotSatisfiable { size } => assert_eq!(size, md.len()),
+                _ => panic!("{range} should not be satisfiable"),
+            }
         }
     }
 
