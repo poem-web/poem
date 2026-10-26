@@ -19,20 +19,32 @@ async fn encode_data_frame<T: Encoder>(
     message: T::Item,
     compression: Option<CompressionEncoding>,
 ) -> IoResult<Bytes> {
-    buf.put_slice(&[compression.is_some() as u8, 0, 0, 0, 0]);
+    let Some(compression) = compression else {
+        return encode_uncompressed_data_frame(encoder, buf, message);
+    };
 
-    if let Some(compression) = compression {
-        let mut data = BytesMut::new();
-        encoder.encode(message, &mut data)?;
-        let data = compression.encode(&data).await?;
-        buf.extend(data);
-    } else {
-        encoder.encode(message, buf)?;
-    }
+    buf.put_slice(&[1, 0, 0, 0, 0]);
+    let mut data = BytesMut::new();
+    encoder.encode(message, &mut data)?;
+    let data = compression.encode(&data).await?;
+    buf.extend(data);
+    Ok(finish_data_frame(buf))
+}
 
+fn encode_uncompressed_data_frame<T: Encoder>(
+    encoder: &mut T,
+    buf: &mut BytesMut,
+    message: T::Item,
+) -> IoResult<Bytes> {
+    buf.put_slice(&[0, 0, 0, 0, 0]);
+    encoder.encode(message, buf)?;
+    Ok(finish_data_frame(buf))
+}
+
+fn finish_data_frame(buf: &mut BytesMut) -> Bytes {
     let msg_len = (buf.len() - 5) as u32;
     buf.as_mut()[1..5].copy_from_slice(&msg_len.to_be_bytes());
-    Ok(buf.split().freeze())
+    buf.split().freeze()
 }
 
 struct DataFrameDecoder {
@@ -171,6 +183,138 @@ pub(crate) fn create_encode_request_body<T: Encoder>(
     };
 
     BodyExt::boxed(StreamBody::new(SyncStream::new(stream))).into()
+}
+
+/// Encodes the only message of a non-client-streaming request into a complete
+/// body, so the END_STREAM flag is sent on its DATA frame instead of in a
+/// separate, empty one that may reach the server after it has responded.
+pub(crate) async fn create_encode_unary_request_body<T: Encoder>(
+    mut encoder: T,
+    message: T::Item,
+    compression: Option<CompressionEncoding>,
+) -> Result<Body, Status> {
+    let mut buf = BytesMut::new();
+    let data = match compression {
+        // Boxed, so the compressor's state doesn't grow every call's future.
+        Some(_) => {
+            Box::pin(encode_data_frame(
+                &mut encoder,
+                &mut buf,
+                message,
+                compression,
+            ))
+            .await
+        }
+        None => encode_uncompressed_data_frame(&mut encoder, &mut buf, message),
+    }
+    .map_err(Status::from_std_error)?;
+    Ok(Body::from_bytes(data))
+}
+
+/// How many bytes of a response body the client reads past an error to reach
+/// its end. Dropping a body before its end resets the stream, and h2 closes
+/// the connection after too many resets.
+const MAX_DISCARDED_BYTES: usize = 64 * 1024;
+
+/// Reads and discards the rest of `body`, up to [`MAX_DISCARDED_BYTES`].
+///
+/// It is not bounded in time: a peer that stalls before ending the body delays
+/// the error until the call's own timeout, if any.
+pub(crate) async fn discard_body(body: Body) {
+    let mut body: BoxBody = body.into();
+    let mut discarded = 0;
+    while let Some(Ok(frame)) = body.frame().await {
+        if let Ok(data) = frame.into_data() {
+            discarded += data.len();
+            if discarded > MAX_DISCARDED_BYTES {
+                break;
+            }
+        }
+    }
+}
+
+/// Decodes the only message of a non-server-streaming response.
+///
+/// The body is read up to the trailers even after an error, since the status
+/// is only known from them and dropping the body early resets the stream. A
+/// non-OK status in the trailers takes precedence over errors found locally.
+pub(crate) async fn decode_single_response_message<T: Decoder>(
+    mut decoder: T,
+    headers: &HeaderMap,
+    body: Body,
+    compression: Option<CompressionEncoding>,
+) -> Result<T::Item, Status> {
+    // check is trailers-only
+    if let Some(status) = Status::from_headers(headers)? {
+        return Err(if status.is_ok() {
+            Status::new(Code::Internal).with_message("missing response message")
+        } else {
+            status
+        });
+    }
+
+    let mut body: BoxBody = body.into();
+    let mut frame_decoder = DataFrameDecoder::new(compression);
+    let mut result: Option<Result<T::Item, Status>> = None;
+    let mut discarded = 0;
+
+    while let Some(frame) = body
+        .frame()
+        .await
+        .transpose()
+        .map_err(Status::from_std_error)?
+    {
+        let frame = match frame.into_data() {
+            Ok(data) => {
+                if result.is_some() {
+                    if matches!(result, Some(Ok(_))) && !data.is_empty() {
+                        result = Some(Err(extra_response_message()));
+                    }
+                    discarded += data.len();
+                    if discarded > MAX_DISCARDED_BYTES {
+                        break;
+                    }
+                    continue;
+                }
+                frame_decoder.put_slice(data);
+                result = match frame_decoder.next().await {
+                    // Bytes after the message: a second, maybe partial, one.
+                    Ok(Some(_)) if !frame_decoder.buf.is_empty() => {
+                        Some(Err(extra_response_message()))
+                    }
+                    Ok(Some(data)) => Some(decoder.decode(&data).map_err(Status::from_std_error)),
+                    Ok(None) => None,
+                    Err(status) => Some(Err(status)),
+                };
+                continue;
+            }
+            Err(frame) => frame,
+        };
+
+        if let Ok(trailers) = frame.into_trailers() {
+            let status = Status::from_headers(&trailers)?
+                .ok_or_else(|| Status::new(Code::Internal).with_message("missing grpc-status"))?;
+            if !status.is_ok() {
+                return Err(status);
+            }
+            return match result {
+                Some(result) => result,
+                None => {
+                    frame_decoder.check_incomplete()?;
+                    Err(Status::new(Code::Internal).with_message("missing response message"))
+                }
+            };
+        }
+    }
+
+    match result {
+        Some(Err(status)) => Err(status),
+        _ => Err(Status::new(Code::Internal).with_message("missing trailers")),
+    }
+}
+
+fn extra_response_message() -> Status {
+    Status::new(Code::Internal).with_message("expected only one response message")
 }
 
 pub(crate) fn create_decode_response_body<T: Decoder>(
