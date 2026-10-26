@@ -139,7 +139,8 @@ impl StaticFileRequest {
                 Bound::Excluded(n) => n + 1,
                 Bound::Unbounded => 0,
             };
-            // A last position at or past the end of the data selects the rest of it.
+            // A last position at or past the end of the data selects the rest
+            // of it.
             let end = match end {
                 Bound::Included(n) => n.saturating_add(1),
                 Bound::Excluded(n) => n,
@@ -253,7 +254,8 @@ impl StaticFileRequest {
                 Bound::Excluded(n) => n + 1,
                 Bound::Unbounded => 0,
             };
-            // A last position at or past the end of the file selects the rest of it.
+            // A last position at or past the end of the file selects the rest
+            // of it.
             let end = match end {
                 Bound::Included(n) => n.saturating_add(1),
                 Bound::Excluded(n) => n,
