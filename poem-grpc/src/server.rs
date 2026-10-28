@@ -50,8 +50,8 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
         };
         let mut stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
-        let res = match stream.next().await {
-            Some(Ok(message)) => {
+        let res = match read_single_message(&mut stream).await {
+            Ok(message) => {
                 service
                     .call(GrpcRequest {
                         metadata: Metadata {
@@ -62,8 +62,7 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
                     })
                     .await
             }
-            Some(Err(status)) => Err(status),
-            None => Err(Status::new(Code::Internal).with_message("missing request message")),
+            Err(status) => Err(status),
         };
 
         match res {
@@ -142,8 +141,8 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
         };
         let mut stream = create_decode_request_body(self.codec.decoder(), body, incoming_encoding);
 
-        let res = match stream.next().await {
-            Some(Ok(message)) => {
+        let res = match read_single_message(&mut stream).await {
+            Ok(message) => {
                 service
                     .call(GrpcRequest {
                         metadata: Metadata {
@@ -154,8 +153,7 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
                     })
                     .await
             }
-            Some(Err(status)) => Err(status),
-            None => Err(Status::new(Code::Internal).with_message("missing request message")),
+            Err(status) => Err(status),
         };
 
         match res {
@@ -218,6 +216,24 @@ impl<'a, T: Codec> GrpcServer<'a, T> {
         }
 
         resp
+    }
+}
+
+/// Reads the only message of a non-client-streaming request, up to the end of
+/// the request stream: responding before it ends makes the client's final,
+/// empty DATA frame arrive on a closed stream, which h2 counts as a reset and
+/// closes the connection after too many of them.
+async fn read_single_message<T>(stream: &mut Streaming<T>) -> Result<T, Status> {
+    let message = stream
+        .next()
+        .await
+        .ok_or_else(|| Status::new(Code::Internal).with_message("missing request message"))??;
+    match stream.next().await {
+        Some(Ok(_)) => {
+            Err(Status::new(Code::Internal).with_message("expected only one request message"))
+        }
+        Some(Err(status)) => Err(status),
+        None => Ok(message),
     }
 }
 

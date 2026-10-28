@@ -1,7 +1,6 @@
 use std::{io::Error as IoError, sync::Arc};
 
 use bytes::Bytes;
-use futures_util::TryStreamExt;
 use http_body_util::BodyExt;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use poem::{
@@ -21,7 +20,10 @@ use crate::{
     codec::Codec,
     compression::get_incoming_encodings,
     connector::HttpsConnector,
-    encoding::{create_decode_response_body, create_encode_request_body},
+    encoding::{
+        create_decode_response_body, create_encode_request_body, create_encode_unary_request_body,
+        decode_single_response_message, discard_body,
+    },
 };
 
 pub(crate) type BoxBody = http_body_util::combinators::BoxBody<Bytes, IoError>;
@@ -231,11 +233,10 @@ impl GrpcClient {
         } = request;
         let mut http_request =
             create_http_request::<T>(path, metadata, extensions, self.send_compressed);
-        http_request.set_body(create_encode_request_body(
-            codec.encoder(),
-            Streaming::new(futures_util::stream::once(async move { Ok(message) })),
-            self.send_compressed,
-        ));
+        http_request.set_body(
+            create_encode_unary_request_body(codec.encoder(), message, self.send_compressed)
+                .await?,
+        );
 
         let mut resp = self
             .ep
@@ -243,22 +244,15 @@ impl GrpcClient {
             .await
             .map_err(|err| Status::new(Code::Internal).with_message(err))?;
 
-        if resp.status() != StatusCode::OK {
-            return Err(Status::new(Code::Internal).with_message(format!(
-                "invalid http status code: {}",
-                resp.status().as_u16()
-            )));
-        }
-
+        let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
-        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
-        let mut stream =
-            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
-
-        let message = stream
-            .try_next()
-            .await?
-            .ok_or_else(|| Status::new(Code::Internal).with_message("missing response message"))?;
+        let message = decode_single_response_message(
+            codec.decoder(),
+            resp.headers(),
+            body,
+            incoming_encoding,
+        )
+        .await?;
         Ok(Response {
             metadata: Metadata {
                 headers: std::mem::take(resp.headers_mut()),
@@ -292,22 +286,15 @@ impl GrpcClient {
             .await
             .map_err(|err| Status::new(Code::Internal).with_message(err))?;
 
-        if resp.status() != StatusCode::OK {
-            return Err(Status::new(Code::Internal).with_message(format!(
-                "invalid http status code: {}",
-                resp.status().as_u16()
-            )));
-        }
-
+        let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
-        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
-        let mut stream =
-            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
-
-        let message = stream
-            .try_next()
-            .await?
-            .ok_or_else(|| Status::new(Code::Internal).with_message("missing response message"))?;
+        let message = decode_single_response_message(
+            codec.decoder(),
+            resp.headers(),
+            body,
+            incoming_encoding,
+        )
+        .await?;
         Ok(Response {
             metadata: Metadata {
                 headers: std::mem::take(resp.headers_mut()),
@@ -329,11 +316,10 @@ impl GrpcClient {
         } = request;
         let mut http_request =
             create_http_request::<T>(path, metadata, extensions, self.send_compressed);
-        http_request.set_body(create_encode_request_body(
-            codec.encoder(),
-            Streaming::new(futures_util::stream::once(async move { Ok(message) })),
-            self.send_compressed,
-        ));
+        http_request.set_body(
+            create_encode_unary_request_body(codec.encoder(), message, self.send_compressed)
+                .await?,
+        );
 
         let mut resp = self
             .ep
@@ -341,15 +327,8 @@ impl GrpcClient {
             .await
             .map_err(|err| Status::new(Code::Internal).with_message(err))?;
 
-        if resp.status() != StatusCode::OK {
-            return Err(Status::new(Code::Internal).with_message(format!(
-                "invalid http status code: {}",
-                resp.status().as_u16()
-            )));
-        }
-
+        let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
-        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
         let stream =
             create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
 
@@ -386,15 +365,8 @@ impl GrpcClient {
             .await
             .map_err(|err| Status::new(Code::Internal).with_message(err))?;
 
-        if resp.status() != StatusCode::OK {
-            return Err(Status::new(Code::Internal).with_message(format!(
-                "invalid http status code: {}",
-                resp.status().as_u16()
-            )));
-        }
-
+        let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
-        let incoming_encoding = get_incoming_encodings(resp.headers(), &self.accept_compressed)?;
         let stream =
             create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
 
@@ -405,6 +377,27 @@ impl GrpcClient {
             message: stream,
         })
     }
+}
+
+/// Rejects a response that is not a gRPC response the client can decode, and
+/// returns its message encoding otherwise. A rejected body is discarded first,
+/// since dropping it unread resets the stream.
+async fn check_response(
+    resp: &mut HttpResponse,
+    accept_compressed: &[CompressionEncoding],
+) -> Result<Option<CompressionEncoding>, Status> {
+    let res = if resp.status() != StatusCode::OK {
+        Err(Status::new(Code::Internal).with_message(format!(
+            "invalid http status code: {}",
+            resp.status().as_u16()
+        )))
+    } else {
+        get_incoming_encodings(resp.headers(), accept_compressed)
+    };
+    if res.is_err() {
+        discard_body(resp.take_body()).await;
+    }
+    res
 }
 
 fn create_http_request<T: Codec>(
@@ -419,6 +412,9 @@ fn create_http_request<T: Codec>(
         .version(Version::HTTP_2)
         .finish();
     *http_request.headers_mut() = metadata.headers;
+    // Metadata forwarded from an incoming request may carry its length, which
+    // doesn't match this body.
+    http_request.headers_mut().remove(header::CONTENT_LENGTH);
     *http_request.extensions_mut() = extensions;
     http_request
         .headers_mut()
@@ -501,7 +497,7 @@ fn create_client_endpoint(
             if let Some(user_agent) = &config.user_agent {
                 request
                     .headers_mut()
-                    .insert(header::ORIGIN, user_agent.clone());
+                    .insert(header::USER_AGENT, user_agent.clone());
             }
 
             let resp = cli.request(request).await.map_err(to_boxed_error)?;
@@ -513,4 +509,420 @@ fn create_client_endpoint(
             )))
         }
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use bytes::{BufMut, BytesMut};
+    use futures_util::StreamExt;
+    use http_body_util::StreamBody;
+    use hyper::body::{Body as _, Frame};
+    use poem::{
+        Body, Server,
+        http::HeaderMap,
+        listener::{Acceptor, Listener, TcpListener},
+    };
+    use prost::Message;
+
+    use super::*;
+    use crate::codec::ProstCodec;
+
+    #[derive(Clone, PartialEq, Message)]
+    struct TestMsg {
+        #[prost(int32, tag = 1)]
+        value: i32,
+    }
+
+    fn data_frame(value: i32) -> Bytes {
+        let msg = TestMsg { value }.encode_to_vec();
+        let mut buf = BytesMut::new();
+        buf.put_u8(0);
+        buf.put_u32(msg.len() as u32);
+        buf.extend(msg);
+        buf.freeze()
+    }
+
+    fn grpc_response(data: Vec<Bytes>, status: &'static str, ended: Arc<AtomicBool>) -> Body {
+        let mut trailers = HeaderMap::new();
+        trailers.insert("grpc-status", HeaderValue::from_static(status));
+        trailers.insert("grpc-message", HeaderValue::from_static("from trailers"));
+        let frames = futures_util::stream::iter(data)
+            .map(|data| Ok::<_, IoError>(Frame::data(data)))
+            .chain(futures_util::stream::once(async move {
+                ended.store(true, Ordering::SeqCst);
+                Ok(Frame::trailers(trailers))
+            }));
+        BodyExt::boxed(StreamBody::new(frames)).into()
+    }
+
+    /// A client whose server responds with `data`, then trailers with
+    /// `grpc-status: status`, and a flag set once the trailers are read.
+    fn client(data: Vec<Bytes>, status: &'static str) -> (GrpcClient, Arc<AtomicBool>) {
+        let ended = Arc::new(AtomicBool::new(false));
+        let cli = GrpcClient::from_endpoint(poem::endpoint::make({
+            let ended = ended.clone();
+            move |_req| {
+                let body = grpc_response(data.clone(), status, ended.clone());
+                async move {
+                    HttpResponse::builder()
+                        .content_type("application/grpc")
+                        .body(body)
+                }
+            }
+        }));
+        (cli, ended)
+    }
+
+    async fn unary(cli: &GrpcClient) -> Result<i32, Status> {
+        cli.unary(
+            "/test.Test/Unary",
+            ProstCodec::<TestMsg, TestMsg>::default(),
+            Request::new(TestMsg { value: 1 }),
+        )
+        .await
+        .map(|resp| resp.into_inner().value)
+    }
+
+    async fn client_streaming(cli: &GrpcClient) -> Result<i32, Status> {
+        cli.client_streaming(
+            "/test.Test/ClientStreaming",
+            ProstCodec::<TestMsg, TestMsg>::default(),
+            Request::new_streaming(futures_util::stream::iter(vec![Ok(TestMsg { value: 1 })])),
+        )
+        .await
+        .map(|resp| resp.into_inner().value)
+    }
+
+    /// Runs a unary and a client-streaming call against a server responding
+    /// with `data` and `status`, and checks that both read the trailers.
+    async fn single_response_calls(
+        data: Vec<Bytes>,
+        status: &'static str,
+    ) -> [Result<i32, Status>; 2] {
+        let (cli, ended) = client(data.clone(), status);
+        let unary = unary(&cli).await;
+        assert!(
+            ended.load(Ordering::SeqCst),
+            "unary didn't read the trailers"
+        );
+        let (cli, ended) = client(data, status);
+        let client_streaming = client_streaming(&cli).await;
+        assert!(
+            ended.load(Ordering::SeqCst),
+            "client streaming didn't read the trailers"
+        );
+        [unary, client_streaming]
+    }
+
+    fn assert_internal(res: Result<i32, Status>, message: &str) {
+        let status = res.unwrap_err();
+        assert_eq!(status.code(), Code::Internal);
+        assert_eq!(status.message(), Some(message));
+    }
+
+    #[tokio::test]
+    async fn single_response_message() {
+        for res in single_response_calls(vec![data_frame(7)], "0").await {
+            assert_eq!(res.unwrap(), 7);
+        }
+    }
+
+    /// The status in the trailers after the message is not ignored.
+    #[tokio::test]
+    async fn status_from_trailers() {
+        for res in single_response_calls(vec![data_frame(7)], "13").await {
+            assert_internal(res, "from trailers");
+        }
+    }
+
+    #[tokio::test]
+    async fn too_many_response_messages() {
+        let both = [data_frame(7), data_frame(8)].concat().into();
+        for data in [vec![data_frame(7), data_frame(8)], vec![both]] {
+            for res in single_response_calls(data, "0").await {
+                assert_internal(res, "expected only one response message");
+            }
+        }
+    }
+
+    /// A non-OK status in the trailers takes precedence over a local error.
+    #[tokio::test]
+    async fn trailers_status_over_local_error() {
+        let data = vec![data_frame(7), data_frame(8)];
+        for res in single_response_calls(data, "13").await {
+            assert_internal(res, "from trailers");
+        }
+    }
+
+    #[tokio::test]
+    async fn undecodable_response_message() {
+        let data = vec![Bytes::from_static(&[0, 0, 0, 0, 2, 0xff, 0xff])];
+        for res in single_response_calls(data, "0").await {
+            assert_eq!(res.unwrap_err().code(), Code::Internal);
+        }
+    }
+
+    /// A response the client can't decode is read to its end before failing.
+    #[tokio::test]
+    async fn rejected_response_is_read() {
+        for (status, encoding) in [(StatusCode::NOT_FOUND, None), (StatusCode::OK, Some("br"))] {
+            let ended = Arc::new(AtomicBool::new(false));
+            let cli = GrpcClient::from_endpoint(poem::endpoint::make({
+                let ended = ended.clone();
+                move |_req| {
+                    let body = grpc_response(vec![data_frame(7)], "0", ended.clone());
+                    async move {
+                        let mut resp = HttpResponse::builder()
+                            .status(status)
+                            .content_type("application/grpc");
+                        if let Some(encoding) = encoding {
+                            resp = resp.header("grpc-encoding", encoding);
+                        }
+                        resp.body(body)
+                    }
+                }
+            }));
+            assert!(unary(&cli).await.is_err());
+            assert!(ended.load(Ordering::SeqCst));
+        }
+    }
+
+    /// A client whose server responds with `status`, `headers` and `body`.
+    fn mock(
+        status: StatusCode,
+        headers: &'static [(&'static str, &'static str)],
+        body: impl Fn() -> Body + Send + Sync + 'static,
+    ) -> GrpcClient {
+        let body = Arc::new(body);
+        GrpcClient::from_endpoint(poem::endpoint::make(move |_req| {
+            let body = body();
+            async move {
+                let mut resp = HttpResponse::builder()
+                    .status(status)
+                    .content_type("application/grpc");
+                for (name, value) in headers {
+                    resp = resp.header(*name, *value);
+                }
+                resp.body(body)
+            }
+        }))
+    }
+
+    /// An endless body of response messages, yielding between them so a test
+    /// timeout can fire.
+    fn endless_body() -> Body {
+        let frames = futures_util::stream::unfold((), |()| async {
+            tokio::task::yield_now().await;
+            Some((Ok::<_, IoError>(Frame::data(data_frame(7))), ()))
+        });
+        BodyExt::boxed(StreamBody::new(frames)).into()
+    }
+
+    async fn single_response_results(cli: &GrpcClient) -> [Result<i32, Status>; 2] {
+        [unary(cli).await, client_streaming(cli).await]
+    }
+
+    /// The status of a trailers-only response, i.e. in the headers.
+    #[tokio::test]
+    async fn trailers_only_response() {
+        let cli = mock(
+            StatusCode::OK,
+            &[("grpc-status", "5"), ("grpc-message", "from headers")],
+            Body::empty,
+        );
+        for res in single_response_results(&cli).await {
+            let status = res.unwrap_err();
+            assert_eq!(status.code(), Code::NotFound);
+            assert_eq!(status.message(), Some("from headers"));
+        }
+
+        let cli = mock(StatusCode::OK, &[("grpc-status", "0")], Body::empty);
+        for res in single_response_results(&cli).await {
+            assert_internal(res, "missing response message");
+        }
+    }
+
+    #[tokio::test]
+    async fn missing_trailers() {
+        let cli = mock(StatusCode::OK, &[], || Body::from_bytes(data_frame(7)));
+        for res in single_response_results(&cli).await {
+            assert_internal(res, "missing trailers");
+        }
+    }
+
+    #[tokio::test]
+    async fn missing_response_message() {
+        for res in single_response_calls(vec![], "0").await {
+            assert_internal(res, "missing response message");
+        }
+        let partial = data_frame(7).slice(..6);
+        for res in single_response_calls(vec![partial], "0").await {
+            assert_eq!(res.unwrap_err().code(), Code::Internal);
+        }
+    }
+
+    #[tokio::test]
+    async fn message_split_across_frames() {
+        let msg = data_frame(7);
+        let data = vec![msg.slice(..3), msg.slice(3..6), msg.slice(6..)];
+        for res in single_response_calls(data, "0").await {
+            assert_eq!(res.unwrap(), 7);
+        }
+    }
+
+    #[tokio::test]
+    async fn unsupported_compressed_flag() {
+        let data = vec![Bytes::from_static(&[2, 0, 0, 0, 0])];
+        for res in single_response_calls(data, "0").await {
+            assert_eq!(res.unwrap_err().code(), Code::Unimplemented);
+        }
+    }
+
+    /// Reading past an error stops after a limit, so an endless response
+    /// can't block the call.
+    #[tokio::test]
+    async fn endless_response_after_error() {
+        let timeout = std::time::Duration::from_secs(10);
+        let cli = mock(StatusCode::OK, &[], endless_body);
+        for res in tokio::time::timeout(timeout, single_response_results(&cli))
+            .await
+            .unwrap()
+        {
+            assert_internal(res, "expected only one response message");
+        }
+
+        let cli = mock(StatusCode::NOT_FOUND, &[], endless_body);
+        for res in tokio::time::timeout(timeout, single_response_results(&cli))
+            .await
+            .unwrap()
+        {
+            assert_internal(res, "invalid http status code: 404");
+        }
+    }
+
+    /// The request of a non-client-streaming call is a single DATA frame with
+    /// END_STREAM.
+    #[tokio::test]
+    async fn request_ends_with_message() {
+        let cli =
+            GrpcClient::from_endpoint(poem::endpoint::make(|mut req: HttpRequest| async move {
+                let mut body: BoxBody = req.take_body().into();
+                body.frame().await.unwrap().unwrap();
+                let ended = body.is_end_stream() as i32;
+                let body = grpc_response(vec![data_frame(ended)], "0", Default::default());
+                HttpResponse::builder()
+                    .content_type("application/grpc")
+                    .body(body)
+            }));
+        assert_eq!(unary(&cli).await.unwrap(), 1);
+        let resp = cli
+            .server_streaming(
+                "/test.Test/ServerStreaming",
+                ProstCodec::<TestMsg, TestMsg>::default(),
+                Request::new(TestMsg { value: 1 }),
+            )
+            .await
+            .unwrap();
+        let values: Vec<_> = resp
+            .into_inner()
+            .map(|msg| msg.unwrap().value)
+            .collect()
+            .await;
+        assert_eq!(values, [1]);
+    }
+
+    /// The request of a non-client-streaming call is compressed when
+    /// configured.
+    #[cfg(feature = "gzip")]
+    #[tokio::test]
+    async fn compressed_request() {
+        let mut cli =
+            GrpcClient::from_endpoint(poem::endpoint::make(|mut req: HttpRequest| async move {
+                let flag = req.take_body().into_bytes().await.unwrap()[0] as i32;
+                let body = grpc_response(vec![data_frame(flag)], "0", Default::default());
+                HttpResponse::builder()
+                    .content_type("application/grpc")
+                    .body(body)
+            }));
+        cli.set_send_compressed(CompressionEncoding::GZIP);
+        assert_eq!(unary(&cli).await.unwrap(), 1);
+        let resp = cli
+            .server_streaming(
+                "/test.Test/ServerStreaming",
+                ProstCodec::<TestMsg, TestMsg>::default(),
+                Request::new(TestMsg { value: 1 }),
+            )
+            .await
+            .unwrap();
+        let values: Vec<_> = resp
+            .into_inner()
+            .map(|msg| msg.unwrap().value)
+            .collect()
+            .await;
+        assert_eq!(values, [1]);
+    }
+
+    /// The headers a client sends over a connection: the configured
+    /// `User-Agent` and `Origin`, and the body's own `Content-Length` rather
+    /// than one forwarded in the metadata.
+    #[tokio::test]
+    async fn request_headers() {
+        let acceptor = TcpListener::bind("127.0.0.1:0")
+            .into_acceptor()
+            .await
+            .unwrap();
+        let addr = *acceptor.local_addr()[0].as_socket_addr().unwrap();
+        tokio::spawn(
+            Server::new_with_acceptor(acceptor).run(poem::endpoint::make(
+                |req: HttpRequest| async move {
+                    let header = |name| {
+                        req.header(name)
+                            .map_or("-".to_string(), ToString::to_string)
+                    };
+                    let value = format!(
+                        "{} {} {}",
+                        header(header::USER_AGENT),
+                        header(header::ORIGIN),
+                        header(header::CONTENT_LENGTH),
+                    );
+                    let mut trailers = HeaderMap::new();
+                    trailers.insert("grpc-status", HeaderValue::from_static("0"));
+                    let frames = futures_util::stream::iter([
+                        Ok::<_, IoError>(Frame::data(data_frame(0))),
+                        Ok(Frame::trailers(trailers)),
+                    ]);
+                    HttpResponse::builder()
+                        .content_type("application/grpc")
+                        .header("x-headers", value)
+                        .body(Body::from(BodyExt::boxed(StreamBody::new(frames))))
+                },
+            )),
+        );
+
+        let cli = GrpcClient::new(
+            ClientConfig::builder()
+                .uri(format!("http://{addr}"))
+                .origin("http://origin.example")
+                .user_agent("poem-test/1.0")
+                .build()
+                .unwrap(),
+        );
+        let mut req = Request::new(TestMsg { value: 1 });
+        req.metadata_mut().insert("content-length", "9999");
+        let resp = cli
+            .unary(
+                "/test.Test/Unary",
+                ProstCodec::<TestMsg, TestMsg>::default(),
+                req,
+            )
+            .await
+            .unwrap();
+        let content_length = data_frame(1).len();
+        assert_eq!(
+            resp.metadata().get("x-headers"),
+            Some(format!("poem-test/1.0 http://origin.example/ {content_length}").as_str())
+        );
+    }
 }
