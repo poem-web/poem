@@ -90,7 +90,7 @@ serde.workspace = true
 sonic-rs = { workspace = true, optional = true }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-parking_lot = "0.12.5"
+parking_lot = "0.13.0"
 pin-project-lite = "0.2.17"
 percent-encoding = "2.3.2"
 regex.workspace = true
