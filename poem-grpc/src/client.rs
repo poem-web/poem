@@ -288,11 +288,7 @@ impl GrpcClient {
                 .await?,
         );
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
         let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
@@ -335,11 +331,7 @@ impl GrpcClient {
             self.send_compressed,
         ));
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
         let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
@@ -381,11 +373,7 @@ impl GrpcClient {
                 .await?,
         );
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
         let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
@@ -424,11 +412,7 @@ impl GrpcClient {
             self.send_compressed,
         ));
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
         let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
@@ -452,10 +436,18 @@ async fn check_response(
     accept_compressed: &[CompressionEncoding],
 ) -> Result<Option<CompressionEncoding>, Status> {
     let res = if resp.status() != StatusCode::OK {
-        Err(Status::new(Code::Internal).with_message(format!(
-            "invalid http status code: {}",
-            resp.status().as_u16()
-        )))
+        // The HTTP status only stands for the call's status without a
+        // `grpc-status`.
+        match Status::from_headers(resp.headers()) {
+            Ok(Some(status)) if !status.is_ok() => Err(status),
+            Err(status) => Err(status),
+            _ => Err(
+                Status::new(code_from_http_status(resp.status())).with_message(format!(
+                    "invalid http status code: {}",
+                    resp.status().as_u16()
+                )),
+            ),
+        }
     } else {
         get_incoming_encodings(resp.headers(), accept_compressed)
     };
@@ -463,6 +455,34 @@ async fn check_response(
         discard_body(resp.take_body()).await;
     }
     res
+}
+
+/// The status of a call whose endpoint failed: `Unavailable` if it couldn't
+/// reach the server, since the call can be retried, and `Internal` otherwise.
+fn call_error(err: poem::Error) -> Status {
+    let code = if err.status() == StatusCode::SERVICE_UNAVAILABLE {
+        Code::Unavailable
+    } else {
+        Code::Internal
+    };
+    Status::new(code).with_message(err)
+}
+
+/// The code of a response with a non-200 HTTP status and no `grpc-status`, as
+/// specified in
+/// <https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md>.
+fn code_from_http_status(status: StatusCode) -> Code {
+    match status {
+        StatusCode::BAD_REQUEST => Code::Internal,
+        StatusCode::UNAUTHORIZED => Code::Unauthenticated,
+        StatusCode::FORBIDDEN => Code::PermissionDenied,
+        StatusCode::NOT_FOUND => Code::Unimplemented,
+        StatusCode::TOO_MANY_REQUESTS
+        | StatusCode::BAD_GATEWAY
+        | StatusCode::SERVICE_UNAVAILABLE
+        | StatusCode::GATEWAY_TIMEOUT => Code::Unavailable,
+        _ => Code::Unknown,
+    }
 }
 
 fn create_http_request<T: Codec>(
@@ -496,13 +516,6 @@ fn create_http_request<T: Codec>(
         );
     }
     http_request
-}
-
-#[inline]
-fn to_boxed_error(
-    err: impl std::error::Error + Send + Sync + 'static,
-) -> Box<dyn std::error::Error + Send + Sync> {
-    Box::new(err)
 }
 
 fn make_uri(base_uri: &Uri, path: &Uri) -> Uri {
@@ -584,7 +597,12 @@ fn create_client_endpoint(
                     .insert(header::USER_AGENT, user_agent.clone());
             }
 
-            let resp = cli.request(request).await.map_err(to_boxed_error)?;
+            // Failing to send the request or to read its response: the server
+            // can't be reached, or the connection broke.
+            let resp = cli
+                .request(request)
+                .await
+                .map_err(|err| poem::Error::new(err, StatusCode::SERVICE_UNAVAILABLE))?;
             let (parts, body) = resp.into_parts();
 
             Ok::<_, poem::Error>(HttpResponse::from(hyper::Response::from_parts(
@@ -700,10 +718,14 @@ mod tests {
         [unary, client_streaming]
     }
 
-    fn assert_internal(res: Result<i32, Status>, message: &str) {
+    fn assert_status(res: Result<i32, Status>, code: Code, message: &str) {
         let status = res.unwrap_err();
-        assert_eq!(status.code(), Code::Internal);
+        assert_eq!(status.code(), code);
         assert_eq!(status.message(), Some(message));
+    }
+
+    fn assert_internal(res: Result<i32, Status>, message: &str) {
+        assert_status(res, Code::Internal, message);
     }
 
     #[tokio::test]
@@ -828,6 +850,25 @@ mod tests {
         }
     }
 
+    /// An invalid or missing `grpc-status` is `Unknown`.
+    #[tokio::test]
+    async fn invalid_grpc_status() {
+        for res in single_response_calls(vec![data_frame(7)], "ok").await {
+            assert_status(res, Code::Unknown, "invalid grpc-status");
+        }
+
+        let cli = mock(StatusCode::OK, &[], || {
+            let frames = futures_util::stream::iter([
+                Ok::<_, IoError>(Frame::data(data_frame(7))),
+                Ok(Frame::trailers(HeaderMap::new())),
+            ]);
+            BodyExt::boxed(StreamBody::new(frames)).into()
+        });
+        for res in single_response_results(&cli).await {
+            assert_status(res, Code::Unknown, "missing grpc-status");
+        }
+    }
+
     #[tokio::test]
     async fn missing_trailers() {
         let cli = mock(StatusCode::OK, &[], || Body::from_bytes(data_frame(7)));
@@ -882,7 +923,60 @@ mod tests {
             .await
             .unwrap()
         {
-            assert_internal(res, "invalid http status code: 404");
+            let status = res.unwrap_err();
+            assert_eq!(status.code(), Code::Unimplemented);
+            assert_eq!(status.message(), Some("invalid http status code: 404"));
+        }
+    }
+
+    /// A non-200 response maps to the code the gRPC spec gives its HTTP
+    /// status, unless it has a `grpc-status`.
+    #[tokio::test]
+    async fn http_status_codes() {
+        for (status, code) in [
+            (StatusCode::BAD_REQUEST, Code::Internal),
+            (StatusCode::UNAUTHORIZED, Code::Unauthenticated),
+            (StatusCode::FORBIDDEN, Code::PermissionDenied),
+            (StatusCode::NOT_FOUND, Code::Unimplemented),
+            (StatusCode::TOO_MANY_REQUESTS, Code::Unavailable),
+            (StatusCode::BAD_GATEWAY, Code::Unavailable),
+            (StatusCode::SERVICE_UNAVAILABLE, Code::Unavailable),
+            (StatusCode::GATEWAY_TIMEOUT, Code::Unavailable),
+            (StatusCode::INTERNAL_SERVER_ERROR, Code::Unknown),
+        ] {
+            let cli = mock(status, &[], Body::empty);
+            for res in single_response_results(&cli).await {
+                assert_eq!(res.unwrap_err().code(), code, "{status}");
+            }
+        }
+
+        // A `grpc-status` takes precedence over the HTTP status.
+        let cli = mock(
+            StatusCode::SERVICE_UNAVAILABLE,
+            &[("grpc-status", "8"), ("grpc-message", "from headers")],
+            Body::empty,
+        );
+        for res in single_response_results(&cli).await {
+            assert_status(res, Code::ResourceExhausted, "from headers");
+        }
+    }
+
+    /// A call to a server that can't be reached fails with `Unavailable`.
+    #[tokio::test]
+    async fn unreachable_server() {
+        // A port that was free a moment ago, so nothing listens on it.
+        let addr = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap();
+        let cli = GrpcClient::new(
+            ClientConfig::builder()
+                .uri(format!("http://{addr}"))
+                .build()
+                .unwrap(),
+        );
+        for res in single_response_results(&cli).await {
+            assert_eq!(res.unwrap_err().code(), Code::Unavailable);
         }
     }
 

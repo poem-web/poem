@@ -341,7 +341,7 @@ impl Status {
                 .to_str()
                 .ok()
                 .and_then(|value| value.parse::<u16>().ok())
-                .ok_or_else(|| Status::new(Code::Internal).with_message("invalid grpc-status"))?
+                .ok_or_else(|| Status::new(Code::Unknown).with_message("invalid grpc-status"))?
                 .into();
             let mut status = Status::new(code);
             if let Some(message) = headers
