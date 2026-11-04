@@ -118,6 +118,9 @@ impl ClientConfigBuilder {
     }
 
     /// Set `Origin` header for each requests.
+    ///
+    /// The header is the scheme and authority of `origin`, e.g.
+    /// `http://example.com:8080`, without a path.
     pub fn origin(mut self, origin: impl TryInto<Uri, Error = InvalidUri>) -> Self {
         self.config = self.config.and_then(|mut config| {
             config.origin = Some(
@@ -486,6 +489,16 @@ fn make_uri(base_uri: &Uri, path: &Uri) -> Uri {
     Uri::from_parts(parts).unwrap()
 }
 
+/// The `Origin` header for `uri`: its scheme and authority, since an origin has
+/// no path and `Uri`'s `Display` adds a `/` for the empty one.
+fn origin_header(uri: &Uri) -> Option<HeaderValue> {
+    let value = match (uri.scheme(), uri.authority()) {
+        (Some(scheme), Some(authority)) => format!("{scheme}://{authority}"),
+        _ => uri.to_string(),
+    };
+    HeaderValue::from_maybe_shared(value).ok()
+}
+
 fn create_client_endpoint(
     config: ClientConfig,
 ) -> Arc<dyn DynEndpoint<Output = HttpResponse> + 'static> {
@@ -495,10 +508,12 @@ fn create_client_endpoint(
         .http2_max_header_list_size(config.max_header_list_size)
         .build(HttpsConnector::new(config.tls_config.take()));
 
+    let origin = config.origin.as_ref().and_then(origin_header);
     let config = Arc::new(config);
 
     Arc::new(ToDynEndpoint(poem::endpoint::make(move |request| {
         let config = config.clone();
+        let origin = origin.clone();
         let cli = cli.clone();
         async move {
             let mut request: hyper::Request<BoxBody> = request.into();
@@ -517,10 +532,8 @@ fn create_client_endpoint(
             };
             *request.uri_mut() = make_uri(base_uri, request.uri());
 
-            if let Some(origin) = &config.origin
-                && let Ok(value) = HeaderValue::from_maybe_shared(origin.to_string())
-            {
-                request.headers_mut().insert(header::ORIGIN, value);
+            if let Some(origin) = origin {
+                request.headers_mut().insert(header::ORIGIN, origin);
             }
 
             if let Some(user_agent) = &config.user_agent {
@@ -933,7 +946,7 @@ mod tests {
         let cli = GrpcClient::new(
             ClientConfig::builder()
                 .uri(format!("http://{addr}"))
-                .origin("http://origin.example")
+                .origin("http://origin.example:8080/path")
                 .user_agent("poem-test/1.0")
                 .build()
                 .unwrap(),
@@ -951,7 +964,7 @@ mod tests {
         let content_length = data_frame(1).len();
         assert_eq!(
             resp.metadata().get("x-headers"),
-            Some(format!("poem-test/1.0 http://origin.example/ {content_length}").as_str())
+            Some(format!("poem-test/1.0 http://origin.example:8080 {content_length}").as_str())
         );
     }
 }

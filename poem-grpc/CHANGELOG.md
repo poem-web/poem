@@ -19,6 +19,7 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Serve original reflection descriptor bytes (preserving unknown fields), return transitive file dependencies, and answer extension queries for both `grpc.reflection.v1` and `v1alpha`. [#1196](https://github.com/poem-web/poem/pull/1196)
 - Fix HTTP/2 connections being closed (`GOAWAY ENHANCE_YOUR_CALM`) under concurrent calls, which failed every call in flight with `client error (SendRequest)`: each call made h2 count a reset, and h2 closes the connection after 1024 of them. The client now reads a unary or client-streaming response up to its trailers, also when the call fails, and sends a unary or server-streaming request's END_STREAM with its message; the server reads a unary or server-streaming request to its end before calling the handler. [#1233](https://github.com/poem-web/poem/issues/1233), [#1236](https://github.com/poem-web/poem/pull/1236)
 - Send `ClientConfigBuilder::user_agent` as the `User-Agent` header instead of `Origin`. [#1236](https://github.com/poem-web/poem/pull/1236)
+- Send `ClientConfigBuilder::origin` as the scheme and authority only, e.g. `http://example.com` instead of `http://example.com/`, so servers matching origins exactly (such as `Cors::allow_origin`) accept it.
 
 ## Added
 
