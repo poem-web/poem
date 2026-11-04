@@ -1,6 +1,7 @@
 use std::{io::Error as IoError, sync::Arc};
 
 use bytes::Bytes;
+use futures_util::TryStreamExt;
 use http_body_util::BodyExt;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use poem::{
@@ -21,8 +22,8 @@ use crate::{
     compression::get_incoming_encodings,
     connector::HttpsConnector,
     encoding::{
-        create_decode_response_body, create_encode_request_body, create_encode_unary_request_body,
-        decode_single_response_message, discard_body,
+        RequestError, create_decode_response_body, create_encode_request_body,
+        create_encode_unary_request_body, decode_single_response_message, discard_body,
     },
 };
 
@@ -35,6 +36,8 @@ pub struct ClientConfig {
     user_agent: Option<HeaderValue>,
     tls_config: Option<TlsClientConfig>,
     max_header_list_size: u32,
+    max_concurrent_reset_streams: Option<usize>,
+    max_local_error_reset_streams: Option<Option<usize>>,
 }
 
 impl ClientConfig {
@@ -47,6 +50,8 @@ impl ClientConfig {
                 user_agent: None,
                 tls_config: None,
                 max_header_list_size: 16384,
+                max_concurrent_reset_streams: None,
+                max_local_error_reset_streams: None,
             }),
         }
     }
@@ -118,6 +123,9 @@ impl ClientConfigBuilder {
     }
 
     /// Set `Origin` header for each requests.
+    ///
+    /// The header is the scheme and authority of `origin`, e.g.
+    /// `http://example.com:8080`, without a path.
     pub fn origin(mut self, origin: impl TryInto<Uri, Error = InvalidUri>) -> Self {
         self.config = self.config.and_then(|mut config| {
             config.origin = Some(
@@ -160,6 +168,37 @@ impl ClientConfigBuilder {
     pub fn http2_max_header_list_size(mut self, max: u32) -> Self {
         if let Ok(config) = &mut self.config {
             config.max_header_list_size = max;
+        }
+        self
+    }
+
+    /// Sets the maximum number of streams the client has reset that it
+    /// remembers at once, to tell frames still in flight on them from protocol
+    /// errors.
+    ///
+    /// A call cancelled before its end, e.g. by a timeout or by dropping its
+    /// response stream, resets its stream. Frames the server sent before
+    /// seeing the reset then arrive on a stream the client no longer
+    /// remembers once more than this many are reset at once, and count
+    /// toward [`http2_max_local_error_reset_streams`](Self::http2_max_local_error_reset_streams).
+    /// Raise it when many calls on one client are cancelled at once.
+    ///
+    /// Default is the `h2` crate's, currently `50`.
+    pub fn http2_max_concurrent_reset_streams(mut self, max: usize) -> Self {
+        if let Ok(config) = &mut self.config {
+            config.max_concurrent_reset_streams = Some(max);
+        }
+        self
+    }
+
+    /// Sets the maximum number of streams the client resets because of the
+    /// server's protocol errors before closing the connection with `GOAWAY`,
+    /// failing every call in flight on it. `None` removes the limit.
+    ///
+    /// Default is the `h2` crate's, currently `1024`.
+    pub fn http2_max_local_error_reset_streams(mut self, max: Option<usize>) -> Self {
+        if let Ok(config) = &mut self.config {
+            config.max_local_error_reset_streams = Some(max);
         }
         self
     }
@@ -250,11 +289,7 @@ impl GrpcClient {
                 .await?,
         );
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
         let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
@@ -291,33 +326,37 @@ impl GrpcClient {
             extensions,
             self.send_compressed,
         );
+        let request_error = RequestError::default();
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             message,
             self.send_compressed,
+            request_error.clone(),
         ));
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let res = async {
+            let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
-        let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
-        let body = resp.take_body();
-        let message = decode_single_response_message(
-            codec.decoder(),
-            resp.headers(),
-            body,
-            incoming_encoding,
-        )
-        .await?;
-        Ok(Response {
-            metadata: Metadata {
-                headers: std::mem::take(resp.headers_mut()),
-            },
-            message,
-        })
+            let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
+            let body = resp.take_body();
+            let message = decode_single_response_message(
+                codec.decoder(),
+                resp.headers(),
+                body,
+                incoming_encoding,
+            )
+            .await?;
+            Ok(Response {
+                metadata: Metadata {
+                    headers: std::mem::take(resp.headers_mut()),
+                },
+                message,
+            })
+        }
+        .await;
+        // The call fails because the request was cut short, not for the error
+        // that caused on the way back.
+        res.map_err(|status| request_error.get().unwrap_or(status))
     }
 
     pub async fn server_streaming<T: Codec>(
@@ -343,11 +382,7 @@ impl GrpcClient {
                 .await?,
         );
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
         let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
         let body = resp.take_body();
@@ -380,29 +415,45 @@ impl GrpcClient {
             extensions,
             self.send_compressed,
         );
+        let request_error = RequestError::default();
         http_request.set_body(create_encode_request_body(
             codec.encoder(),
             message,
             self.send_compressed,
+            request_error.clone(),
         ));
 
-        let mut resp = self
-            .ep
-            .call(http_request)
-            .await
-            .map_err(|err| Status::new(Code::Internal).with_message(err))?;
+        let res = async {
+            let mut resp = self.ep.call(http_request).await.map_err(call_error)?;
 
-        let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
-        let body = resp.take_body();
-        let stream =
-            create_decode_response_body(codec.decoder(), resp.headers(), body, incoming_encoding)?;
+            let incoming_encoding = check_response(&mut resp, &self.accept_compressed).await?;
+            let body = resp.take_body();
+            let stream = create_decode_response_body(
+                codec.decoder(),
+                resp.headers(),
+                body,
+                incoming_encoding,
+            )?;
 
-        Ok(Response {
-            metadata: Metadata {
-                headers: std::mem::take(resp.headers_mut()),
-            },
-            message: stream,
-        })
+            Ok(Response {
+                metadata: Metadata {
+                    headers: std::mem::take(resp.headers_mut()),
+                },
+                message: stream,
+            })
+        }
+        .await;
+        // The call fails because the request was cut short, not for the error
+        // that caused on the way back, also while reading the responses.
+        match res {
+            Ok(Response { metadata, message }) => Ok(Response {
+                metadata,
+                message: Streaming::new(
+                    message.map_err(move |status| request_error.get().unwrap_or(status)),
+                ),
+            }),
+            Err(status) => Err(request_error.get().unwrap_or(status)),
+        }
     }
 }
 
@@ -414,10 +465,18 @@ async fn check_response(
     accept_compressed: &[CompressionEncoding],
 ) -> Result<Option<CompressionEncoding>, Status> {
     let res = if resp.status() != StatusCode::OK {
-        Err(Status::new(Code::Internal).with_message(format!(
-            "invalid http status code: {}",
-            resp.status().as_u16()
-        )))
+        // The HTTP status only stands for the call's status without a
+        // `grpc-status`.
+        match Status::from_headers(resp.headers()) {
+            Ok(Some(status)) if !status.is_ok() => Err(status),
+            Err(status) => Err(status),
+            _ => Err(
+                Status::new(code_from_http_status(resp.status())).with_message(format!(
+                    "invalid http status code: {}",
+                    resp.status().as_u16()
+                )),
+            ),
+        }
     } else {
         get_incoming_encodings(resp.headers(), accept_compressed)
     };
@@ -425,6 +484,34 @@ async fn check_response(
         discard_body(resp.take_body()).await;
     }
     res
+}
+
+/// The status of a call whose endpoint failed: `Unavailable` if it couldn't
+/// reach the server, since the call can be retried, and `Internal` otherwise.
+fn call_error(err: poem::Error) -> Status {
+    let code = if err.status() == StatusCode::SERVICE_UNAVAILABLE {
+        Code::Unavailable
+    } else {
+        Code::Internal
+    };
+    Status::new(code).with_message(err)
+}
+
+/// The code of a response with a non-200 HTTP status and no `grpc-status`, as
+/// specified in
+/// <https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md>.
+fn code_from_http_status(status: StatusCode) -> Code {
+    match status {
+        StatusCode::BAD_REQUEST => Code::Internal,
+        StatusCode::UNAUTHORIZED => Code::Unauthenticated,
+        StatusCode::FORBIDDEN => Code::PermissionDenied,
+        StatusCode::NOT_FOUND => Code::Unimplemented,
+        StatusCode::TOO_MANY_REQUESTS
+        | StatusCode::BAD_GATEWAY
+        | StatusCode::SERVICE_UNAVAILABLE
+        | StatusCode::GATEWAY_TIMEOUT => Code::Unavailable,
+        _ => Code::Unknown,
+    }
 }
 
 fn create_http_request<T: Codec>(
@@ -460,13 +547,6 @@ fn create_http_request<T: Codec>(
     http_request
 }
 
-#[inline]
-fn to_boxed_error(
-    err: impl std::error::Error + Send + Sync + 'static,
-) -> Box<dyn std::error::Error + Send + Sync> {
-    Box::new(err)
-}
-
 fn make_uri(base_uri: &Uri, path: &Uri) -> Uri {
     let path = path.path_and_query().unwrap().path();
     let mut parts = base_uri.clone().into_parts();
@@ -486,19 +566,38 @@ fn make_uri(base_uri: &Uri, path: &Uri) -> Uri {
     Uri::from_parts(parts).unwrap()
 }
 
+/// The `Origin` header for `uri`: its scheme and authority, since an origin has
+/// no path and `Uri`'s `Display` adds a `/` for the empty one.
+fn origin_header(uri: &Uri) -> Option<HeaderValue> {
+    let value = match (uri.scheme(), uri.authority()) {
+        (Some(scheme), Some(authority)) => format!("{scheme}://{authority}"),
+        _ => uri.to_string(),
+    };
+    HeaderValue::from_maybe_shared(value).ok()
+}
+
 fn create_client_endpoint(
     config: ClientConfig,
 ) -> Arc<dyn DynEndpoint<Output = HttpResponse> + 'static> {
     let mut config = config;
-    let cli = Client::builder(TokioExecutor::new())
+    let mut builder = Client::builder(TokioExecutor::new());
+    builder
         .http2_only(true)
-        .http2_max_header_list_size(config.max_header_list_size)
-        .build(HttpsConnector::new(config.tls_config.take()));
+        .http2_max_header_list_size(config.max_header_list_size);
+    if let Some(max) = config.max_concurrent_reset_streams {
+        builder.http2_max_concurrent_reset_streams(max);
+    }
+    if let Some(max) = config.max_local_error_reset_streams {
+        builder.http2_max_local_error_reset_streams(max);
+    }
+    let cli = builder.build(HttpsConnector::new(config.tls_config.take()));
 
+    let origin = config.origin.as_ref().and_then(origin_header);
     let config = Arc::new(config);
 
     Arc::new(ToDynEndpoint(poem::endpoint::make(move |request| {
         let config = config.clone();
+        let origin = origin.clone();
         let cli = cli.clone();
         async move {
             let mut request: hyper::Request<BoxBody> = request.into();
@@ -517,10 +616,8 @@ fn create_client_endpoint(
             };
             *request.uri_mut() = make_uri(base_uri, request.uri());
 
-            if let Some(origin) = &config.origin
-                && let Ok(value) = HeaderValue::from_maybe_shared(origin.to_string())
-            {
-                request.headers_mut().insert(header::ORIGIN, value);
+            if let Some(origin) = origin {
+                request.headers_mut().insert(header::ORIGIN, origin);
             }
 
             if let Some(user_agent) = &config.user_agent {
@@ -529,7 +626,12 @@ fn create_client_endpoint(
                     .insert(header::USER_AGENT, user_agent.clone());
             }
 
-            let resp = cli.request(request).await.map_err(to_boxed_error)?;
+            // Failing to send the request or to read its response: the server
+            // can't be reached, or the connection broke.
+            let resp = cli
+                .request(request)
+                .await
+                .map_err(|err| poem::Error::new(err, StatusCode::SERVICE_UNAVAILABLE))?;
             let (parts, body) = resp.into_parts();
 
             Ok::<_, poem::Error>(HttpResponse::from(hyper::Response::from_parts(
@@ -645,10 +747,14 @@ mod tests {
         [unary, client_streaming]
     }
 
-    fn assert_internal(res: Result<i32, Status>, message: &str) {
+    fn assert_status(res: Result<i32, Status>, code: Code, message: &str) {
         let status = res.unwrap_err();
-        assert_eq!(status.code(), Code::Internal);
+        assert_eq!(status.code(), code);
         assert_eq!(status.message(), Some(message));
+    }
+
+    fn assert_internal(res: Result<i32, Status>, message: &str) {
+        assert_status(res, Code::Internal, message);
     }
 
     #[tokio::test]
@@ -773,6 +879,25 @@ mod tests {
         }
     }
 
+    /// An invalid or missing `grpc-status` is `Unknown`.
+    #[tokio::test]
+    async fn invalid_grpc_status() {
+        for res in single_response_calls(vec![data_frame(7)], "ok").await {
+            assert_status(res, Code::Unknown, "invalid grpc-status");
+        }
+
+        let cli = mock(StatusCode::OK, &[], || {
+            let frames = futures_util::stream::iter([
+                Ok::<_, IoError>(Frame::data(data_frame(7))),
+                Ok(Frame::trailers(HeaderMap::new())),
+            ]);
+            BodyExt::boxed(StreamBody::new(frames)).into()
+        });
+        for res in single_response_results(&cli).await {
+            assert_status(res, Code::Unknown, "missing grpc-status");
+        }
+    }
+
     #[tokio::test]
     async fn missing_trailers() {
         let cli = mock(StatusCode::OK, &[], || Body::from_bytes(data_frame(7)));
@@ -827,8 +952,189 @@ mod tests {
             .await
             .unwrap()
         {
-            assert_internal(res, "invalid http status code: 404");
+            let status = res.unwrap_err();
+            assert_eq!(status.code(), Code::Unimplemented);
+            assert_eq!(status.message(), Some("invalid http status code: 404"));
         }
+    }
+
+    /// A non-200 response maps to the code the gRPC spec gives its HTTP
+    /// status, unless it has a `grpc-status`.
+    #[tokio::test]
+    async fn http_status_codes() {
+        for (status, code) in [
+            (StatusCode::BAD_REQUEST, Code::Internal),
+            (StatusCode::UNAUTHORIZED, Code::Unauthenticated),
+            (StatusCode::FORBIDDEN, Code::PermissionDenied),
+            (StatusCode::NOT_FOUND, Code::Unimplemented),
+            (StatusCode::TOO_MANY_REQUESTS, Code::Unavailable),
+            (StatusCode::BAD_GATEWAY, Code::Unavailable),
+            (StatusCode::SERVICE_UNAVAILABLE, Code::Unavailable),
+            (StatusCode::GATEWAY_TIMEOUT, Code::Unavailable),
+            (StatusCode::INTERNAL_SERVER_ERROR, Code::Unknown),
+        ] {
+            let cli = mock(status, &[], Body::empty);
+            for res in single_response_results(&cli).await {
+                assert_eq!(res.unwrap_err().code(), code, "{status}");
+            }
+        }
+
+        // A `grpc-status` takes precedence over the HTTP status.
+        let cli = mock(
+            StatusCode::SERVICE_UNAVAILABLE,
+            &[("grpc-status", "8"), ("grpc-message", "from headers")],
+            Body::empty,
+        );
+        for res in single_response_results(&cli).await {
+            assert_status(res, Code::ResourceExhausted, "from headers");
+        }
+    }
+
+    /// A call to a server that can't be reached fails with `Unavailable`.
+    #[tokio::test]
+    async fn unreachable_server() {
+        // A port that was free a moment ago, so nothing listens on it.
+        let addr = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap();
+        let cli = GrpcClient::new(
+            ClientConfig::builder()
+                .uri(format!("http://{addr}"))
+                .build()
+                .unwrap(),
+        );
+        for res in single_response_results(&cli).await {
+            assert_eq!(res.unwrap_err().code(), Code::Unavailable);
+        }
+    }
+
+    /// A message, then an error, as the input of a streaming call.
+    fn failing_input() -> Request<Streaming<TestMsg>> {
+        Request::new_streaming(futures_util::stream::iter([
+            Ok(TestMsg { value: 1 }),
+            Err(Status::new(Code::Aborted).with_message("input failed")),
+        ]))
+    }
+
+    /// A client whose server reads the request to its end, then responds with
+    /// a message and `grpc-status: status`, and a flag set if the request
+    /// ended with an error rather than cleanly.
+    fn input_reading_client(status: &'static str) -> (GrpcClient, Arc<AtomicBool>) {
+        let failed = Arc::new(AtomicBool::new(false));
+        let cli = GrpcClient::from_endpoint(poem::endpoint::make({
+            let failed = failed.clone();
+            move |mut req: HttpRequest| {
+                let failed = failed.clone();
+                async move {
+                    let mut body: BoxBody = req.take_body().into();
+                    while let Some(frame) = body.frame().await {
+                        if frame.is_err() {
+                            failed.store(true, Ordering::SeqCst);
+                            break;
+                        }
+                    }
+                    let body = grpc_response(vec![data_frame(7)], status, Default::default());
+                    HttpResponse::builder()
+                        .content_type("application/grpc")
+                        .body(body)
+                }
+            }
+        }));
+        (cli, failed)
+    }
+
+    fn assert_input_failed(status: Status) {
+        assert_eq!(status.code(), Code::Aborted);
+        assert_eq!(status.message(), Some("input failed"));
+    }
+
+    /// An error in the input of a client-streaming call ends the request with
+    /// an error, not cleanly, and fails the call with it.
+    #[tokio::test]
+    async fn client_streaming_input_error() {
+        let (cli, failed) = input_reading_client("13");
+        let res = cli
+            .client_streaming(
+                "/test.Test/ClientStreaming",
+                ProstCodec::<TestMsg, TestMsg>::default(),
+                failing_input(),
+            )
+            .await;
+        assert_input_failed(res.unwrap_err());
+        assert!(failed.load(Ordering::SeqCst));
+    }
+
+    /// Over HTTP/2, the server sees the request end with an error: the client
+    /// resets the stream.
+    #[tokio::test]
+    async fn client_streaming_input_error_over_http2() {
+        let acceptor = TcpListener::bind("127.0.0.1:0")
+            .into_acceptor()
+            .await
+            .unwrap();
+        let addr = *acceptor.local_addr()[0].as_socket_addr().unwrap();
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let tx = Arc::new(std::sync::Mutex::new(Some(tx)));
+        tokio::spawn(
+            Server::new_with_acceptor(acceptor).run(poem::endpoint::make(
+                move |mut req: HttpRequest| {
+                    let tx = tx.clone();
+                    async move {
+                        let mut body: BoxBody = req.take_body().into();
+                        let mut failed = false;
+                        while let Some(frame) = body.frame().await {
+                            if frame.is_err() {
+                                failed = true;
+                                break;
+                            }
+                        }
+                        if let Some(tx) = tx.lock().unwrap().take() {
+                            let _ = tx.send(failed);
+                        }
+                        let body = grpc_response(vec![data_frame(7)], "0", Default::default());
+                        HttpResponse::builder()
+                            .content_type("application/grpc")
+                            .body(body)
+                    }
+                },
+            )),
+        );
+
+        let cli = GrpcClient::new(
+            ClientConfig::builder()
+                .uri(format!("http://{addr}"))
+                .build()
+                .unwrap(),
+        );
+        let res = cli
+            .client_streaming(
+                "/test.Test/ClientStreaming",
+                ProstCodec::<TestMsg, TestMsg>::default(),
+                failing_input(),
+            )
+            .await;
+        assert_input_failed(res.unwrap_err());
+        assert!(rx.await.unwrap(), "the server saw the request end cleanly");
+    }
+
+    /// Same for a bidirectional call, whose responses then fail with it.
+    #[tokio::test]
+    async fn bidirectional_streaming_input_error() {
+        let (cli, failed) = input_reading_client("13");
+        let resp = cli
+            .bidirectional_streaming(
+                "/test.Test/Bidirectional",
+                ProstCodec::<TestMsg, TestMsg>::default(),
+                failing_input(),
+            )
+            .await
+            .unwrap();
+        let mut stream = resp.into_inner();
+        assert_eq!(stream.next().await.unwrap().unwrap().value, 7);
+        assert_input_failed(stream.next().await.unwrap().unwrap_err());
+        assert!(stream.next().await.is_none());
+        assert!(failed.load(Ordering::SeqCst));
     }
 
     /// The request of a non-client-streaming call is a single DATA frame with
@@ -933,7 +1239,7 @@ mod tests {
         let cli = GrpcClient::new(
             ClientConfig::builder()
                 .uri(format!("http://{addr}"))
-                .origin("http://origin.example")
+                .origin("http://origin.example:8080/path")
                 .user_agent("poem-test/1.0")
                 .build()
                 .unwrap(),
@@ -951,7 +1257,7 @@ mod tests {
         let content_length = data_frame(1).len();
         assert_eq!(
             resp.metadata().get("x-headers"),
-            Some(format!("poem-test/1.0 http://origin.example/ {content_length}").as_str())
+            Some(format!("poem-test/1.0 http://origin.example:8080 {content_length}").as_str())
         );
     }
 }
