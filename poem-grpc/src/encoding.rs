@@ -247,7 +247,7 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
     // check is trailers-only
     if let Some(status) = Status::from_headers(headers)? {
         return Err(if status.is_ok() {
-            Status::new(Code::Internal).with_message("missing response message")
+            missing_response_message()
         } else {
             status
         });
@@ -292,8 +292,7 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
         };
 
         if let Ok(trailers) = frame.into_trailers() {
-            let status = Status::from_headers(&trailers)?
-                .ok_or_else(|| Status::new(Code::Internal).with_message("missing grpc-status"))?;
+            let status = Status::from_headers(&trailers)?.ok_or_else(missing_grpc_status)?;
             if !status.is_ok() {
                 return Err(status);
             }
@@ -301,7 +300,7 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
                 Some(result) => result,
                 None => {
                     frame_decoder.check_incomplete()?;
-                    Err(Status::new(Code::Internal).with_message("missing response message"))
+                    Err(missing_response_message())
                 }
             };
         }
@@ -313,8 +312,23 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
     }
 }
 
+// A wrong number of messages is `Internal`, as in grpc-go and grpc-java:
+// `doc/statuscodes.md` says `Unimplemented`, which gRPC agreed to change
+// (https://github.com/grpc/grpc-java/issues/11247), since the server may have
+// handled the call already. A missing or invalid `grpc-status` is `Unknown`,
+// as specified in <https://github.com/grpc/grpc/blob/master/doc/statuscodes.md>
+// and <https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md>.
+
+fn missing_response_message() -> Status {
+    Status::new(Code::Internal).with_message("missing response message")
+}
+
 fn extra_response_message() -> Status {
     Status::new(Code::Internal).with_message("expected only one response message")
+}
+
+fn missing_grpc_status() -> Status {
+    Status::new(Code::Unknown).with_message("missing grpc-status")
 }
 
 pub(crate) fn create_decode_response_body<T: Decoder>(
@@ -350,8 +364,7 @@ pub(crate) fn create_decode_response_body<T: Decoder>(
                 frame_decoder.check_incomplete()?;
                 let headers = frame.into_trailers().unwrap();
                 status = Some(Status::from_headers(&headers)?
-                    .ok_or_else(|| Status::new(Code::Internal)
-                    .with_message("missing grpc-status"))?);
+                    .ok_or_else(missing_grpc_status)?);
                 break;
             }
         }

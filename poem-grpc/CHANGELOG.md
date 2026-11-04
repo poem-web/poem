@@ -12,6 +12,7 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 
 - Upgrade to Poem 4 and require Rust 1.94. Update `poem-grpc` and `poem-grpc-build` together, then regenerate checked-in generated code. [Migration guide](../docs/migration-4.0.md)
 - Use the 0.6 runtime/build release line for generated APIs referring to Poem 4 types. Prost remains on 0.14; this release updates it to 0.14.4 and migrates the generator to Syn 3/prettyplease 0.3. [#1198](https://github.com/poem-web/poem/pull/1198)
+- The client fails a call with the code the gRPC spec gives its error instead of `Internal`: `Unavailable` if it can't reach the server or the connection breaks, and for a non-200 response without `grpc-status`, `Unauthenticated` (401), `PermissionDenied` (403), `Unimplemented` (404), `Unavailable` (429, 502, 503, 504), `Internal` (400) or `Unknown` (any other). A non-200 response with a `grpc-status` fails with that status instead, and a missing or invalid `grpc-status` is `Unknown`. Code matching on `Internal` for these errors needs updating.
 
 ## Fixed
 
