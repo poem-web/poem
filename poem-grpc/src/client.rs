@@ -35,6 +35,8 @@ pub struct ClientConfig {
     user_agent: Option<HeaderValue>,
     tls_config: Option<TlsClientConfig>,
     max_header_list_size: u32,
+    max_concurrent_reset_streams: Option<usize>,
+    max_local_error_reset_streams: Option<Option<usize>>,
 }
 
 impl ClientConfig {
@@ -47,6 +49,8 @@ impl ClientConfig {
                 user_agent: None,
                 tls_config: None,
                 max_header_list_size: 16384,
+                max_concurrent_reset_streams: None,
+                max_local_error_reset_streams: None,
             }),
         }
     }
@@ -163,6 +167,37 @@ impl ClientConfigBuilder {
     pub fn http2_max_header_list_size(mut self, max: u32) -> Self {
         if let Ok(config) = &mut self.config {
             config.max_header_list_size = max;
+        }
+        self
+    }
+
+    /// Sets the maximum number of streams the client has reset that it
+    /// remembers at once, to tell frames still in flight on them from protocol
+    /// errors.
+    ///
+    /// A call cancelled before its end, e.g. by a timeout or by dropping its
+    /// response stream, resets its stream. Frames the server sent before
+    /// seeing the reset then arrive on a stream the client no longer
+    /// remembers once more than this many are reset at once, and count
+    /// toward [`http2_max_local_error_reset_streams`](Self::http2_max_local_error_reset_streams).
+    /// Raise it when many calls on one client are cancelled at once.
+    ///
+    /// Default is the `h2` crate's, currently `50`.
+    pub fn http2_max_concurrent_reset_streams(mut self, max: usize) -> Self {
+        if let Ok(config) = &mut self.config {
+            config.max_concurrent_reset_streams = Some(max);
+        }
+        self
+    }
+
+    /// Sets the maximum number of streams the client resets because of the
+    /// server's protocol errors before closing the connection with `GOAWAY`,
+    /// failing every call in flight on it. `None` removes the limit.
+    ///
+    /// Default is the `h2` crate's, currently `1024`.
+    pub fn http2_max_local_error_reset_streams(mut self, max: Option<usize>) -> Self {
+        if let Ok(config) = &mut self.config {
+            config.max_local_error_reset_streams = Some(max);
         }
         self
     }
@@ -503,10 +538,17 @@ fn create_client_endpoint(
     config: ClientConfig,
 ) -> Arc<dyn DynEndpoint<Output = HttpResponse> + 'static> {
     let mut config = config;
-    let cli = Client::builder(TokioExecutor::new())
+    let mut builder = Client::builder(TokioExecutor::new());
+    builder
         .http2_only(true)
-        .http2_max_header_list_size(config.max_header_list_size)
-        .build(HttpsConnector::new(config.tls_config.take()));
+        .http2_max_header_list_size(config.max_header_list_size);
+    if let Some(max) = config.max_concurrent_reset_streams {
+        builder.http2_max_concurrent_reset_streams(max);
+    }
+    if let Some(max) = config.max_local_error_reset_streams {
+        builder.http2_max_local_error_reset_streams(max);
+    }
+    let cli = builder.build(HttpsConnector::new(config.tls_config.take()));
 
     let origin = config.origin.as_ref().and_then(origin_header);
     let config = Arc::new(config);

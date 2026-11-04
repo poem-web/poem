@@ -26,6 +26,7 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Add `RouteGrpc::with_reflection`, whose `ListServices` advertises the services added to the router that the registered descriptors define, plus reflection itself, instead of every service in the descriptors. Add `Reflection::advertise_services` to narrow the advertised list down to the given names, in that order (the reflection service itself stays listed only if named, see `Reflection::SERVICE_NAMES`). Symbol and file lookups are unaffected, and adding `Reflection::build()` via `add_service` keeps advertising every service in the descriptors. [#1223](https://github.com/poem-web/poem/pull/1223)
 - Add `MethodType` so middlewares can tell streaming calls from unary ones, e.g. to skip a request timeout on client streams. See its docs for which middlewares see it. [#1231](https://github.com/poem-web/poem/pull/1231)
 - Add `RouteGrpc::middleware` to apply a middleware to all services, and `Service::METHODS`, the `MethodType` table of a service. [#1231](https://github.com/poem-web/poem/pull/1231)
+- Add `ClientConfigBuilder::http2_max_concurrent_reset_streams` and `http2_max_local_error_reset_streams`, so a client whose calls are often cancelled (timeouts, dropped response streams) can keep its connection open instead of h2 closing it with `GOAWAY` once late frames on reset streams reach the limit.
 
 ## Changed
 
