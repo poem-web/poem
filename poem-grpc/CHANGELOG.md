@@ -23,6 +23,8 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Send `ClientConfigBuilder::origin` as the scheme and authority only, e.g. `http://example.com` instead of `http://example.com/`, so servers matching origins exactly (such as `Cors::allow_origin`) accept it.
 - End a client-streaming or bidirectional request with an error, resetting the HTTP/2 stream, when its input stream yields an `Err` or a message fails to encode, and fail the call with that error. The request used to end cleanly, so the server took the messages sent so far for the whole input; a message that failed to encode was skipped.
 - Don't leave part of a message that fails to encode in front of the next message, which corrupted it.
+- Percent-encode `%` in `grpc-message`, so a status message containing `%` (e.g. `code %41` or `10%AB`) is no longer decoded into different text or lost.
+- Keep a `grpc-message` that isn't validly encoded instead of dropping it: raw bytes and invalid escapes are kept, and invalid UTF-8 is replaced with U+FFFD, as the gRPC spec requires.
 
 ## Added
 
