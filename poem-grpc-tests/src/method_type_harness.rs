@@ -5,9 +5,8 @@ mod proto {
 
 use futures_util::{StreamExt, TryStreamExt};
 use poem::{Endpoint, IntoResponse, Middleware};
+use poem_grpc::{MethodType, Request, Response, Status, Streaming};
 use proto::{Echo, Value};
-
-use crate::{MethodType, Request, Response, Status, Streaming};
 
 /// Client middleware that copies the [`MethodType`] from the request
 /// extensions into the `x-client-middleware` header.
@@ -119,10 +118,10 @@ mod tests {
         EndpointExt, IntoEndpoint,
         middleware::{NormalizePath, TrailingSlash},
     };
+    use poem_grpc::{RouteGrpc, Service};
     use proto::{EchoClient, EchoServer, EmptyServer};
 
     use super::*;
-    use crate::{RouteGrpc, Service};
 
     const ECHO: &str = "/method_type_harness.Echo";
 
@@ -150,7 +149,7 @@ mod tests {
 
     /// Every documented middleware sees the method type, and a middleware
     /// wrapping the whole `RouteGrpc` sees none, even in-process.
-    fn assert_method_type(metadata: &crate::Metadata, expected: MethodType) {
+    fn assert_method_type(metadata: &poem_grpc::Metadata, expected: MethodType) {
         for header in [
             "x-client-middleware",
             "x-route-middleware",
@@ -288,10 +287,10 @@ mod tests {
     /// reflection services combine two generated method tables.
     #[tokio::test]
     async fn builtin_services() {
-        let (health, _) = crate::health_service();
+        let (health, _) = poem_grpc::health_service();
         let ep = RouteGrpc::new()
             .add_service(health)
-            .add_service(crate::Reflection::new().build())
+            .add_service(poem_grpc::Reflection::new().build())
             .middleware(EchoMethodType("x-route-middleware"))
             .into_endpoint();
         for (path, expected) in [
@@ -325,7 +324,7 @@ mod tests {
         }
 
         let ep = route()
-            .with_reflection(crate::Reflection::new())
+            .with_reflection(poem_grpc::Reflection::new())
             .middleware(EchoMethodType("x-route-middleware"))
             .into_endpoint()
             .nest("/", other);

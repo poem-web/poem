@@ -8,6 +8,7 @@ members = [
     "poem-lambda",
     "poem-grpc-build",
     "poem-grpc",
+    "poem-grpc-tests",
     "poem-mcpserver",
     "poem-mcpserver-macros",
     "poem-worker",
