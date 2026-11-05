@@ -27,16 +27,12 @@ mod encoding;
 pub mod example_generated;
 mod health;
 mod method_type;
-#[cfg(test)]
-mod method_type_harness;
 mod reflection;
 mod request;
 mod response;
 mod route;
 mod status;
 mod streaming;
-#[cfg(test)]
-mod test_harness;
 
 pub use client::{ClientBuilderError, ClientConfig, ClientConfigBuilder};
 pub use compression::CompressionEncoding;

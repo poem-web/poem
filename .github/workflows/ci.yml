@@ -30,6 +30,8 @@ jobs:
             path: poem-grpc-build
           - name: poem-grpc
             path: poem-grpc
+          - name: poem-grpc-tests
+            path: poem-grpc-tests
           - name: poem-mcpserver-macros
             path: poem-mcpserver-macros
           - name: poem-mcpserver
@@ -82,7 +84,7 @@ jobs:
         with:
           key: ${{ matrix.package.name }}
       - name: Install Protoc
-        if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-openapi'
+        if: matrix.package.name == 'poem-grpc' || matrix.package.name == 'poem-grpc-tests' || matrix.package.name == 'poem-openapi'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}

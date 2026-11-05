@@ -4,9 +4,8 @@ mod proto {
 }
 
 use futures_util::TryStreamExt;
+use poem_grpc::{Request, Response, Status, Streaming};
 use proto::{TestHarness, UnaryRequest, ValueRequest, ValueResponse};
-
-use crate::{Request, Response, Status, Streaming};
 
 pub(crate) struct TestHarnessService;
 
@@ -69,7 +68,7 @@ impl TestHarness for TestHarnessService {
         if let Some(value) = req.metadata().get("mydata") {
             resp.metadata_mut().insert("mydata", value);
         }
-        if let Some(method_type) = req.extensions().get::<crate::MethodType>() {
+        if let Some(method_type) = req.extensions().get::<poem_grpc::MethodType>() {
             resp.metadata_mut()
                 .insert("x-method-type", method_type.as_str());
         }
@@ -87,11 +86,11 @@ mod tests {
         Body, Endpoint, IntoEndpoint,
         http::{Method, Version},
     };
+    use poem_grpc::{Code, RouteGrpc};
     use prost::Message;
     use proto::{TestHarnessClient, TestHarnessServer};
 
     use super::*;
-    use crate::{Code, RouteGrpc};
 
     fn create_cli() -> TestHarnessClient {
         let server = TestHarnessServer::new(TestHarnessService);
@@ -225,14 +224,20 @@ mod tests {
         assert_eq!(status.message(), Some("expected only one request message"));
     }
 
-    async fn status_of(method: &str, body: Body) -> crate::Status {
+    async fn status_of(method: &str, body: Body) -> poem_grpc::Status {
         let route = RouteGrpc::new()
             .add_service(TestHarnessServer::new(TestHarnessService))
             .into_endpoint();
         let resp = route.get_response(request(method, body)).await;
-        crate::Status::from_headers(resp.headers())
-            .unwrap()
-            .unwrap()
+        let headers = resp.headers();
+        let code: u16 = headers["grpc-status"].to_str().unwrap().parse().unwrap();
+        let mut status = poem_grpc::Status::new(code.into());
+        if let Some(message) = headers.get("grpc-message") {
+            status = status.with_message(
+                percent_encoding::percent_decode(message.as_bytes()).decode_utf8_lossy(),
+            );
+        }
+        status
     }
 
     #[tokio::test]
@@ -253,10 +258,9 @@ mod tests {
     }
 
     /// Compressed requests of non-client-streaming calls.
-    #[cfg(feature = "gzip")]
     #[tokio::test]
     async fn compressed_request() {
-        use crate::CompressionEncoding;
+        use poem_grpc::CompressionEncoding;
 
         let server = TestHarnessServer::new(TestHarnessService)
             .accept_compressed([CompressionEncoding::GZIP]);
