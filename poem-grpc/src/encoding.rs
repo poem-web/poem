@@ -1,4 +1,7 @@
-use std::io::Result as IoResult;
+use std::{
+    io::{Error as IoError, Result as IoResult},
+    sync::{Arc, Mutex},
+};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures_util::StreamExt;
@@ -25,10 +28,21 @@ async fn encode_data_frame<T: Encoder>(
 
     buf.put_slice(&[1, 0, 0, 0, 0]);
     let mut data = BytesMut::new();
-    encoder.encode(message, &mut data)?;
-    let data = compression.encode(&data).await?;
-    buf.extend(data);
-    Ok(finish_data_frame(buf))
+    let res = match encoder.encode(message, &mut data) {
+        Ok(()) => compression.encode(&data).await,
+        Err(err) => Err(err),
+    };
+    match res {
+        Ok(data) => {
+            buf.extend(data);
+            Ok(finish_data_frame(buf))
+        }
+        Err(err) => {
+            // Don't leave this frame's header in front of the next one.
+            buf.clear();
+            Err(err)
+        }
+    }
 }
 
 fn encode_uncompressed_data_frame<T: Encoder>(
@@ -37,7 +51,12 @@ fn encode_uncompressed_data_frame<T: Encoder>(
     message: T::Item,
 ) -> IoResult<Bytes> {
     buf.put_slice(&[0, 0, 0, 0, 0]);
-    encoder.encode(message, buf)?;
+    if let Err(err) = encoder.encode(message, buf) {
+        // Don't leave this frame's header, or part of the message, in front of
+        // the next one.
+        buf.clear();
+        return Err(err);
+    }
     Ok(finish_data_frame(buf))
 }
 
@@ -140,45 +159,90 @@ pub(crate) fn create_decode_request_body<T: Decoder>(
     })
 }
 
+/// Encodes the messages of a response, followed by the trailers carrying its
+/// status.
+///
+/// An error from `stream`, or a message that fails to encode, ends the
+/// response with that error as its status: `stream` is not read any further,
+/// and nothing follows the trailers.
 pub(crate) fn create_encode_response_body<T: Encoder>(
     mut encoder: T,
     mut stream: Streaming<T::Item>,
     compression: Option<CompressionEncoding>,
 ) -> Body {
-    let stream = async_stream::try_stream! {
+    let stream = async_stream::stream! {
         let mut buf = BytesMut::new();
+        let mut status = Status::new(Code::Ok);
 
         while let Some(item) = stream.next().await {
-            match item {
-                Ok(message) => {
-                    if let Ok(data) = encode_data_frame(&mut encoder, &mut buf, message, compression).await {
-                        yield Frame::data(data);
-                    }
-                }
-                Err(status) => {
-                    yield Frame::trailers(status.to_headers());
+            let res = match item {
+                Ok(message) => encode_data_frame(&mut encoder, &mut buf, message, compression)
+                    .await
+                    .map_err(Status::from_std_error),
+                Err(err) => Err(err),
+            };
+            match res {
+                Ok(data) => yield Ok::<_, IoError>(Frame::data(data)),
+                Err(err) => {
+                    status = err;
+                    break;
                 }
             }
         }
 
-        yield Frame::trailers(Status::new(Code::Ok).to_headers());
+        yield Ok(Frame::trailers(status.to_headers()));
     };
 
     BodyExt::boxed(StreamBody::new(SyncStream::new(stream))).into()
 }
 
+/// The error that ended a streaming request before its end, shared between
+/// the request body and the call so the call fails with it.
+#[derive(Clone, Default)]
+pub(crate) struct RequestError(Arc<Mutex<Option<Status>>>);
+
+impl RequestError {
+    fn set(&self, status: Status) {
+        *self.0.lock().unwrap() = Some(status);
+    }
+
+    /// The error, if the request ended with one.
+    pub(crate) fn get(&self) -> Option<Status> {
+        self.0.lock().unwrap().clone()
+    }
+}
+
+/// Encodes the messages of a streaming request.
+///
+/// An error from `stream`, or a message that fails to encode, ends the body
+/// with an error, which resets the HTTP/2 stream: ending it cleanly would make
+/// the server take the messages sent so far for the whole input. The error is
+/// stored in `error`.
 pub(crate) fn create_encode_request_body<T: Encoder>(
     mut encoder: T,
     mut stream: Streaming<T::Item>,
     compression: Option<CompressionEncoding>,
+    error: RequestError,
 ) -> Body {
-    let stream = async_stream::try_stream! {
+    let stream = async_stream::stream! {
         let mut buf = BytesMut::new();
 
-        while let Some(Ok(message)) = stream.next().await {
-            if let Ok(data) = encode_data_frame(&mut encoder, &mut buf, message, compression).await {
-                yield Frame::data(data);
-            }
+        while let Some(item) = stream.next().await {
+            let status = match item {
+                Ok(message) => {
+                    match encode_data_frame(&mut encoder, &mut buf, message, compression).await {
+                        Ok(data) => {
+                            yield Ok(Frame::data(data));
+                            continue;
+                        }
+                        Err(err) => Status::from_std_error(err),
+                    }
+                }
+                Err(status) => status,
+            };
+            error.set(status.clone());
+            yield Err(IoError::other(status));
+            break;
         }
     };
 
@@ -247,7 +311,7 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
     // check is trailers-only
     if let Some(status) = Status::from_headers(headers)? {
         return Err(if status.is_ok() {
-            Status::new(Code::Internal).with_message("missing response message")
+            missing_response_message()
         } else {
             status
         });
@@ -292,8 +356,7 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
         };
 
         if let Ok(trailers) = frame.into_trailers() {
-            let status = Status::from_headers(&trailers)?
-                .ok_or_else(|| Status::new(Code::Internal).with_message("missing grpc-status"))?;
+            let status = Status::from_headers(&trailers)?.ok_or_else(missing_grpc_status)?;
             if !status.is_ok() {
                 return Err(status);
             }
@@ -301,7 +364,7 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
                 Some(result) => result,
                 None => {
                     frame_decoder.check_incomplete()?;
-                    Err(Status::new(Code::Internal).with_message("missing response message"))
+                    Err(missing_response_message())
                 }
             };
         }
@@ -313,8 +376,23 @@ pub(crate) async fn decode_single_response_message<T: Decoder>(
     }
 }
 
+// A wrong number of messages is `Internal`, as in grpc-go and grpc-java:
+// `doc/statuscodes.md` says `Unimplemented`, which gRPC agreed to change
+// (https://github.com/grpc/grpc-java/issues/11247), since the server may have
+// handled the call already. A missing or invalid `grpc-status` is `Unknown`,
+// as specified in <https://github.com/grpc/grpc/blob/master/doc/statuscodes.md>
+// and <https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md>.
+
+fn missing_response_message() -> Status {
+    Status::new(Code::Internal).with_message("missing response message")
+}
+
 fn extra_response_message() -> Status {
     Status::new(Code::Internal).with_message("expected only one response message")
+}
+
+fn missing_grpc_status() -> Status {
+    Status::new(Code::Unknown).with_message("missing grpc-status")
 }
 
 pub(crate) fn create_decode_response_body<T: Decoder>(
@@ -350,8 +428,7 @@ pub(crate) fn create_decode_response_body<T: Decoder>(
                 frame_decoder.check_incomplete()?;
                 let headers = frame.into_trailers().unwrap();
                 status = Some(Status::from_headers(&headers)?
-                    .ok_or_else(|| Status::new(Code::Internal)
-                    .with_message("missing grpc-status"))?);
+                    .ok_or_else(missing_grpc_status)?);
                 break;
             }
         }
@@ -365,13 +442,11 @@ pub(crate) fn create_decode_response_body<T: Decoder>(
 
 #[cfg(test)]
 mod tests {
-    use bytes::Bytes;
     use futures_util::TryStreamExt;
     use http::HeaderMap;
-    use poem::Body;
     use prost::Message;
 
-    use super::create_decode_response_body;
+    use super::*;
     use crate::codec::{Codec, ProstCodec};
 
     #[derive(Clone, PartialEq, Message)]
@@ -417,5 +492,149 @@ mod tests {
             .expect("one message");
 
         assert_eq!(msg, stream_msg);
+    }
+
+    /// Encodes an `i32` as 4 big-endian bytes, and fails on a negative one
+    /// after writing part of it.
+    struct I32Encoder;
+
+    impl Encoder for I32Encoder {
+        type Item = i32;
+
+        fn encode(&mut self, message: i32, buf: &mut BytesMut) -> IoResult<()> {
+            if message < 0 {
+                buf.put_slice(&[0xff, 0xff]);
+                return Err(IoError::other("negative"));
+            }
+            buf.put_i32(message);
+            Ok(())
+        }
+    }
+
+    fn i32_frame(value: i32) -> Bytes {
+        let mut buf = BytesMut::new();
+        buf.put_slice(&[0, 0, 0, 0, 4]);
+        buf.put_i32(value);
+        buf.freeze()
+    }
+
+    async fn frames(body: Body) -> Vec<IoResult<Frame<Bytes>>> {
+        let mut body: BoxBody = body.into();
+        let mut frames = vec![];
+        while let Some(frame) = body.frame().await {
+            frames.push(frame);
+        }
+        frames
+    }
+
+    /// A message that fails to encode leaves nothing of itself in the buffer
+    /// shared with the next one.
+    #[tokio::test]
+    async fn failed_encode_leaves_no_bytes() {
+        let mut buf = BytesMut::new();
+        assert!(
+            encode_data_frame(&mut I32Encoder, &mut buf, -1, None)
+                .await
+                .is_err()
+        );
+        assert!(buf.is_empty());
+        let frame = encode_data_frame(&mut I32Encoder, &mut buf, 2, None).await;
+        assert_eq!(frame.unwrap(), i32_frame(2));
+    }
+
+    /// Same when the message was to be compressed.
+    #[cfg(feature = "gzip")]
+    #[tokio::test]
+    async fn failed_compressed_encode_leaves_no_bytes() {
+        let gzip = Some(CompressionEncoding::GZIP);
+        let mut buf = BytesMut::new();
+        assert!(
+            encode_data_frame(&mut I32Encoder, &mut buf, -1, gzip)
+                .await
+                .is_err()
+        );
+        assert!(buf.is_empty());
+        let frame = encode_data_frame(&mut I32Encoder, &mut buf, 2, gzip)
+            .await
+            .unwrap();
+        assert_eq!(frame[0], 1);
+        assert_eq!(
+            u32::from_be_bytes(frame[1..5].try_into().unwrap()) as usize,
+            frame.len() - 5
+        );
+        let data = CompressionEncoding::GZIP.decode(&frame[5..]).await.unwrap();
+        assert_eq!(data, 2i32.to_be_bytes());
+    }
+
+    fn grpc_status(frame: &IoResult<Frame<Bytes>>) -> (&str, Option<&str>) {
+        let trailers = frame.as_ref().unwrap().trailers_ref().expect("trailers");
+        (
+            trailers["grpc-status"].to_str().unwrap(),
+            trailers
+                .get("grpc-message")
+                .map(|value| value.to_str().unwrap()),
+        )
+    }
+
+    /// A response ends with trailers carrying an OK status.
+    #[tokio::test]
+    async fn response_ends_with_ok_trailers() {
+        let stream = Streaming::new(futures_util::stream::iter([Ok(1), Ok(2)]));
+        let frames = frames(create_encode_response_body(I32Encoder, stream, None)).await;
+        assert_eq!(frames.len(), 3);
+        assert_eq!(frames[0].as_ref().unwrap().data_ref(), Some(&i32_frame(1)));
+        assert_eq!(frames[1].as_ref().unwrap().data_ref(), Some(&i32_frame(2)));
+        assert_eq!(grpc_status(&frames[2]), ("0", None));
+    }
+
+    /// A message that fails to encode ends a response with that error in the
+    /// trailers, and nothing after them.
+    #[tokio::test]
+    async fn failed_encode_ends_response_with_status() {
+        let stream = Streaming::new(futures_util::stream::iter([Ok(1), Ok(-1), Ok(2)]));
+        let frames = frames(create_encode_response_body(I32Encoder, stream, None)).await;
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0].as_ref().unwrap().data_ref(), Some(&i32_frame(1)));
+        assert_eq!(grpc_status(&frames[1]), ("13", Some("negative")));
+    }
+
+    /// An error from the response stream ends a response with it in the
+    /// trailers: the stream isn't polled again, and no second trailers follow.
+    #[tokio::test]
+    async fn stream_error_ends_response_with_status() {
+        let error = Status::new(Code::NotFound).with_message("gone");
+        let polled_after_error = Arc::new(Mutex::new(false));
+        let stream = Streaming::new(futures_util::stream::iter([Ok(1), Err(error)]).chain(
+            futures_util::stream::poll_fn({
+                let polled_after_error = polled_after_error.clone();
+                move |_| {
+                    *polled_after_error.lock().unwrap() = true;
+                    std::task::Poll::Ready(None)
+                }
+            }),
+        ));
+        let frames = frames(create_encode_response_body(I32Encoder, stream, None)).await;
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0].as_ref().unwrap().data_ref(), Some(&i32_frame(1)));
+        assert_eq!(grpc_status(&frames[1]), ("5", Some("gone")));
+        assert!(!*polled_after_error.lock().unwrap());
+    }
+
+    /// A message that fails to encode ends a streaming request with an error.
+    #[tokio::test]
+    async fn failed_encode_ends_request_with_error() {
+        let stream = Streaming::new(futures_util::stream::iter([Ok(1), Ok(-1), Ok(2)]));
+        let error = RequestError::default();
+        let frames = frames(create_encode_request_body(
+            I32Encoder,
+            stream,
+            None,
+            error.clone(),
+        ))
+        .await;
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0].as_ref().unwrap().data_ref(), Some(&i32_frame(1)));
+        assert!(frames[1].is_err());
+        assert_eq!(error.get().unwrap().code(), Code::Internal);
     }
 }

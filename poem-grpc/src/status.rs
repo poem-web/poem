@@ -1,17 +1,21 @@
 use std::fmt::Display;
 
 use http::{HeaderMap, header::HeaderValue};
-use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, percent_encode};
+use percent_encoding::{AsciiSet, CONTROLS, percent_decode, percent_encode};
 
 use crate::Metadata;
 
 const GRPC_STATUS_HEADER_CODE: &str = "grpc-status";
 const GRPC_STATUS_MESSAGE_HEADER: &str = "grpc-message";
 
+/// The bytes of `grpc-message` to percent-encode, as in tonic. It includes
+/// `%`, which the spec requires so a `%` in the message isn't decoded as an
+/// escape.
 const ENCODING_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
     .add(b'#')
+    .add(b'%')
     .add(b'<')
     .add(b'>')
     .add(b'`')
@@ -341,19 +345,69 @@ impl Status {
                 .to_str()
                 .ok()
                 .and_then(|value| value.parse::<u16>().ok())
-                .ok_or_else(|| Status::new(Code::Internal).with_message("invalid grpc-status"))?
+                .ok_or_else(|| Status::new(Code::Unknown).with_message("invalid grpc-status"))?
                 .into();
             let mut status = Status::new(code);
-            if let Some(message) = headers
-                .get(GRPC_STATUS_MESSAGE_HEADER)
-                .and_then(|value| value.to_str().ok())
-                .and_then(|value| percent_decode_str(value).decode_utf8().ok())
-            {
-                status = status.with_message(message);
+            // An invalid value is decoded as far as possible rather than
+            // dropped, as the spec requires: raw bytes and invalid escapes are
+            // kept, and invalid UTF-8 is replaced with U+FFFD.
+            if let Some(value) = headers.get(GRPC_STATUS_MESSAGE_HEADER) {
+                status = status.with_message(percent_decode(value.as_bytes()).decode_utf8_lossy());
             }
             Ok(Some(status))
         } else {
             Ok(None)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn message_of(value: &[u8]) -> Option<String> {
+        let mut headers = HeaderMap::new();
+        headers.insert(GRPC_STATUS_HEADER_CODE, HeaderValue::from_static("2"));
+        headers.insert(
+            GRPC_STATUS_MESSAGE_HEADER,
+            HeaderValue::from_bytes(value).unwrap(),
+        );
+        let status = Status::from_headers(&headers).unwrap().unwrap();
+        status.message().map(ToString::to_string)
+    }
+
+    #[test]
+    fn message_round_trip() {
+        for message in [
+            "用户不存在",
+            "disk 100% full",
+            "progress 10%AB",
+            "code %41",
+            "a \"quoted\" #tag <b> `x` ? {y}",
+            "line\nbreak",
+        ] {
+            let headers = Status::new(Code::Unknown)
+                .with_message(message)
+                .to_headers();
+            let value = headers.get(GRPC_STATUS_MESSAGE_HEADER).unwrap();
+            assert_eq!(message_of(value.as_bytes()).as_deref(), Some(message));
+        }
+    }
+
+    /// An invalid `grpc-message` is decoded as far as possible, not dropped.
+    #[test]
+    fn invalid_message() {
+        // Raw UTF-8 instead of percent-encoded.
+        assert_eq!(
+            message_of("用户不存在".as_bytes()).as_deref(),
+            Some("用户不存在")
+        );
+        // An escape cut in the middle of a character.
+        assert_eq!(
+            message_of(b"user %E7%94%A8%E6%88").as_deref(),
+            Some("user 用\u{FFFD}")
+        );
+        // Invalid escapes are kept.
+        assert_eq!(message_of(b"100% %zz").as_deref(), Some("100% %zz"));
     }
 }

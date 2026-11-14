@@ -12,6 +12,7 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 
 - Upgrade to Poem 4 and require Rust 1.94. Update `poem-grpc` and `poem-grpc-build` together, then regenerate checked-in generated code. [Migration guide](../docs/migration-4.0.md)
 - Use the 0.6 runtime/build release line for generated APIs referring to Poem 4 types. Prost remains on 0.14; this release updates it to 0.14.4 and migrates the generator to Syn 3/prettyplease 0.3. [#1198](https://github.com/poem-web/poem/pull/1198)
+- The client fails a call with the code the gRPC spec gives its error instead of `Internal`: `Unavailable` if it can't reach the server or the connection breaks before the response arrives, and for a non-200 response without `grpc-status`, `Unauthenticated` (401), `PermissionDenied` (403), `Unimplemented` (404), `Unavailable` (429, 502, 503, 504), `Internal` (400) or `Unknown` (any other). A non-200 response with a `grpc-status` fails with that status instead, and a missing or invalid `grpc-status` is `Unknown`. Code matching on `Internal` for these errors needs updating.
 
 ## Fixed
 
@@ -19,12 +20,19 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Serve original reflection descriptor bytes (preserving unknown fields), return transitive file dependencies, and answer extension queries for both `grpc.reflection.v1` and `v1alpha`. [#1196](https://github.com/poem-web/poem/pull/1196)
 - Fix HTTP/2 connections being closed (`GOAWAY ENHANCE_YOUR_CALM`) under concurrent calls, which failed every call in flight with `client error (SendRequest)`: each call made h2 count a reset, and h2 closes the connection after 1024 of them. The client now reads a unary or client-streaming response up to its trailers, also when the call fails, and sends a unary or server-streaming request's END_STREAM with its message; the server reads a unary or server-streaming request to its end before calling the handler. [#1233](https://github.com/poem-web/poem/issues/1233), [#1236](https://github.com/poem-web/poem/pull/1236)
 - Send `ClientConfigBuilder::user_agent` as the `User-Agent` header instead of `Origin`. [#1236](https://github.com/poem-web/poem/pull/1236)
+- Send `ClientConfigBuilder::origin` as the scheme and authority only, e.g. `http://example.com` instead of `http://example.com/`, so servers matching origins exactly (such as `Cors::allow_origin`) accept it.
+- End a client-streaming or bidirectional request with an error, resetting the HTTP/2 stream, when its input stream yields an `Err` or a message fails to encode, and fail the call with that error. The request used to end cleanly, so the server took the messages sent so far for the whole input; a message that failed to encode was skipped.
+- Don't leave part of a message that fails to encode in front of the next message, which corrupted it.
+- Percent-encode `%` in `grpc-message`, so a status message containing `%` (e.g. `code %41` or `10%AB`) is no longer decoded into different text or lost.
+- Keep a `grpc-message` that isn't validly encoded instead of dropping it: raw bytes and invalid escapes are kept, and invalid UTF-8 is replaced with U+FFFD, as the gRPC spec requires.
+- End a server response with an `Internal` status when one of its messages fails to encode. The message used to be skipped and the response ended with an OK status, so a streaming client silently missed it and a unary client reported `missing response message` instead of the encoder's error.
 
 ## Added
 
 - Add `RouteGrpc::with_reflection`, whose `ListServices` advertises the services added to the router that the registered descriptors define, plus reflection itself, instead of every service in the descriptors. Add `Reflection::advertise_services` to narrow the advertised list down to the given names, in that order (the reflection service itself stays listed only if named, see `Reflection::SERVICE_NAMES`). Symbol and file lookups are unaffected, and adding `Reflection::build()` via `add_service` keeps advertising every service in the descriptors. [#1223](https://github.com/poem-web/poem/pull/1223)
 - Add `MethodType` so middlewares can tell streaming calls from unary ones, e.g. to skip a request timeout on client streams. See its docs for which middlewares see it. [#1231](https://github.com/poem-web/poem/pull/1231)
 - Add `RouteGrpc::middleware` to apply a middleware to all services, and `Service::METHODS`, the `MethodType` table of a service. [#1231](https://github.com/poem-web/poem/pull/1231)
+- Add `ClientConfigBuilder::http2_max_concurrent_reset_streams` and `http2_max_local_error_reset_streams`, so a client whose calls are often cancelled (timeouts, dropped response streams) can keep its connection open instead of h2 closing it with `GOAWAY` once late frames on reset streams reach the limit.
 
 ## Changed
 
