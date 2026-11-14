@@ -10,6 +10,27 @@ permissions:
   contents: read
 
 jobs:
+  # The workspace and the examples are formatted as a whole, so this runs once
+  # instead of in every job of the matrix below.
+  check-format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Use nightly Rust to check the format
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+          build-warnings: ""
+          toolchain: nightly
+          components: rustfmt
+      - name: Check Format
+        run: cargo fmt --all -- --check
+      - name: Check Format of the examples
+        run: cargo fmt --all -- --check
+        working-directory: examples
+
   check:
     runs-on: ubuntu-24.04
     strategy:
@@ -57,28 +78,16 @@ jobs:
 
       # Keep v1 warning behavior, including on the Rust 1.94 MSRV.
       # Only the explicit compilation cache below owns Rust artifacts.
-      # Use nightly Rust to check the format
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          cache: false
-          rustflags: "-D warnings"
-          build-warnings: ""
-          toolchain: nightly
-          components: rustfmt, clippy
-          override: true
-      - name: Check Format
-        run: cargo fmt --all -- --check
-      # Switch to stable Rust
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false
           rustflags: "-D warnings"
           build-warnings: ""
           toolchain: stable
-          components: rustfmt, clippy
+          components: clippy
           override: true
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           key: ${{ matrix.package.name }}
       - name: Install Protoc
@@ -107,27 +116,15 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Use nightly Rust to check the format
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          cache: false
-          rustflags: "-D warnings"
-          build-warnings: ""
-          toolchain: nightly
-          components: rustfmt, clippy
-      - name: Check Format
-        run: cargo fmt --all -- --check
-        working-directory: examples
-      # Switch to stable Rust
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false
           rustflags: "-D warnings"
           build-warnings: ""
           toolchain: stable
-          components: rustfmt, clippy
+          components: clippy
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: examples -> target
       - name: Check With Clippy
@@ -150,7 +147,7 @@ jobs:
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Check minimum supported Rust version
         run: cargo check --workspace --all-features --all-targets
 
@@ -166,7 +163,8 @@ jobs:
           rustflags: "-D warnings"
           build-warnings: ""
           toolchain: stable
-      - uses: Swatinem/rust-cache@v2
+          components: clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: |
             . -> target
@@ -175,6 +173,10 @@ jobs:
         run: cargo check -p poem --no-default-features
       - name: Install WebAssembly target
         run: rustup target add wasm32-unknown-unknown
+      # poem-worker has no tests and isn't in the package matrix; its real
+      # target is WebAssembly.
+      - name: Check poem-worker With Clippy
+        run: cargo clippy -p poem-worker --all-features --target wasm32-unknown-unknown
       - name: Check Cloudflare Worker example
         run: cargo check --target wasm32-unknown-unknown
         working-directory: examples/poem/worker-hello-world
