@@ -25,6 +25,7 @@ This changelog also covers `poem-grpc-build` 0.6.0.
 - Don't leave part of a message that fails to encode in front of the next message, which corrupted it.
 - Percent-encode `%` in `grpc-message`, so a status message containing `%` (e.g. `code %41` or `10%AB`) is no longer decoded into different text or lost.
 - Keep a `grpc-message` that isn't validly encoded instead of dropping it: raw bytes and invalid escapes are kept, and invalid UTF-8 is replaced with U+FFFD, as the gRPC spec requires.
+- End a server response with an `Internal` status when one of its messages fails to encode. The message used to be skipped and the response ended with an OK status, so a streaming client silently missed it and a unary client reported `missing response message` instead of the encoder's error.
 
 ## Added
 
