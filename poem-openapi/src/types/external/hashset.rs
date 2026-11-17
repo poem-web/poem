@@ -29,6 +29,7 @@ impl<T: Type, R: Send + Sync> Type for HashSet<T, R> {
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
             items: Some(Box::new(T::schema_ref())),
+            unique_items: Some(true),
             ..MetaSchema::new("array")
         }))
     }

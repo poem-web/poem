@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use poem_openapi::types::{MaybeUndefined, ToJSON};
+use poem_openapi::types::{MaybeUndefined, ToJSON, Type};
 use serde_json::json;
 
 type TestHasher = BuildHasherDefault<DefaultHasher>;
@@ -109,4 +109,21 @@ fn hash_collection_serialization_does_not_require_a_build_hasher() {
     let map = HashMap::<String, i32, ()>::with_hasher(());
     assert_eq!(set.to_json(), Some(json!([])));
     assert_eq!(map.to_json(), Some(json!({})));
+}
+
+#[test]
+fn set_schemas_have_unique_items() {
+    for schema in [
+        BTreeSet::<String>::schema_ref(),
+        HashSet::<String, TestHasher>::schema_ref(),
+        Option::<BTreeSet<String>>::schema_ref(),
+    ] {
+        let schema = schema.unwrap_inline();
+        assert_eq!(schema.ty, "array");
+        assert_eq!(schema.unique_items, Some(true));
+    }
+    assert_eq!(
+        Vec::<String>::schema_ref().unwrap_inline().unique_items,
+        None
+    );
 }

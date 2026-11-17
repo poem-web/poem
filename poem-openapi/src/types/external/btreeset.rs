@@ -25,6 +25,7 @@ impl<T: Type> Type for BTreeSet<T> {
     fn schema_ref() -> MetaSchemaRef {
         MetaSchemaRef::Inline(Box::new(MetaSchema {
             items: Some(Box::new(T::schema_ref())),
+            unique_items: Some(true),
             ..MetaSchema::new("array")
         }))
     }
