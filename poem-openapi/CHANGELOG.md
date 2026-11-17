@@ -43,6 +43,7 @@ This release also covers `poem-openapi-derive` 6.0.0. See the [major-release mig
 - Use `minItems`/`maxItems` rather than `minLength`/`maxLength` for fixed-size array schemas (`[T; LEN]`). [#1120](https://github.com/poem-web/poem/pull/1120)
 - Adapt derive macros to Syn 3 and preserve rejection of mutable API receivers; add BSON, SQLx, ULID and GeoJSON migration regressions. [#1198](https://github.com/poem-web/poem/pull/1198)
 - Use the error type's `bad_request_handler` for operations returning `Result<T, E>` when `T` has no handler of its own. [#967](https://github.com/poem-web/poem/issues/967), [#1230](https://github.com/poem-web/poem/pull/1230)
+- Mark `BTreeSet<T>` and `HashSet<T>` schemas with `uniqueItems: true`, so client generators can type them as sets; regenerated clients may change those fields from lists to sets. Parsing is unchanged: repeated items still collapse into one. [#1248](https://github.com/poem-web/poem/issues/1248)
 
 ## Changed
 
