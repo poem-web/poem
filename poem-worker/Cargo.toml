@@ -11,7 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 serde = { workspace = true }
-worker = { version = "0.8.7", features = ["http"] }
+worker = { version = "0.9.0", features = ["http"] }
 bytes = { workspace = true }
 http = { workspace = true }
 http-body = "1.1.0"
