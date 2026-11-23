@@ -59,11 +59,6 @@ The following are cases of community use:
 | [poem-grants](https://github.com/DDtKey/protect-endpoints/tree/main/poem-grants) | Authorization extension to protect endpoints.                                                                          | [(README)](https://github.com/DDtKey/protect-endpoints/blob/main/poem-grants/README.md) |
 
 
-### Startups
-
-- [My Data My Consent](https://mydatamyconsent.com/) | Online data sharing for people and businesses simplified
-
-
 ### Resources
 
 - [Examples](https://github.com/poem-web/poem/tree/master/examples)
