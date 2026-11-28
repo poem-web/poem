@@ -278,10 +278,7 @@ pub(crate) fn generate(args: DeriveInput) -> GeneratorResult<TokenStream> {
                     });
                 } else if let Some(discriminator_name) = &args.discriminator_name {
                     create_schemas.push(quote! {
-                    {
-                        fn __check_is_object_type<T: #crate_name::types::IsObjectType>() {}
-                        __check_is_object_type::<#object_ty>();
-                    }
+                    let _ = <#object_ty as #crate_name::types::IsObjectType>::IS_REQUIRED;
 
                     let schema = #crate_name::registry::MetaSchema {
                         description: #description,
